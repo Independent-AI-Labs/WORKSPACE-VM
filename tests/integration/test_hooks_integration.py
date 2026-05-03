@@ -4,11 +4,28 @@ Verifies that HookManager loads real hooks.yaml and dispatches
 to validators that use real command_tiers.yaml patterns.
 """
 
+import pytest
+from coverage import Coverage
+
 import ami.core.policies.engine
 import ami.core.policies.tiers
 from ami.core.policies.engine import get_policy_engine
 from ami.hooks.manager import HookManager
 from ami.hooks.types import HookContext, HookEvent
+
+
+def _coverage_running() -> bool:
+    """Return True when running under coverage.py instrumentation.
+
+    Used to skip tests that segfault under the C tracer. Detection is
+    via the running coverage object (Coverage exposes a class-level
+    current() that returns the active instance) rather than env vars,
+    which pytest-cov does not expose to test code.
+    """
+    try:
+        return Coverage.current() is not None
+    except AttributeError:
+        return False
 
 
 class TestHookIntegration:
@@ -62,6 +79,10 @@ class TestHookIntegration:
         )
         assert not result.allowed
 
+    @pytest.mark.skipif(
+        _coverage_running(),
+        reason="coverage.py + PyYAML/execnet interaction segfaults this test",
+    )
     def test_tier_scope_override_elevates(self) -> None:
         """Scope override can elevate admin from deny to confirm."""
         manager = HookManager.from_config(self.hooks_path)
