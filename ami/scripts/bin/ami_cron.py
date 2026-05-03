@@ -217,7 +217,11 @@ Examples:
         """,
     )
 
-    subparsers = parser.add_subparsers(dest="command", help="Available commands")
+    # NOTE: dest must NOT be "command" — the `add` subparser declares a
+    # positional named `command` (the cron command string) which would
+    # otherwise shadow this attribute on the parsed namespace, causing the
+    # dispatch lookup to fail and print --help without warning.
+    subparsers = parser.add_subparsers(dest="subcommand", help="Available commands")
 
     # list
     subparsers.add_parser("list", help="List AMI cron jobs")
@@ -246,7 +250,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = create_parser()
     args = parser.parse_args(argv)
 
-    if args.command is None:
+    if args.subcommand is None:
         parser.print_help()
         return 0
 
@@ -258,7 +262,7 @@ def main(argv: list[str] | None = None) -> int:
         "status": cmd_status,
     }
 
-    handler = commands.get(args.command)
+    handler = commands.get(args.subcommand)
     if handler:
         return handler(args)
 
