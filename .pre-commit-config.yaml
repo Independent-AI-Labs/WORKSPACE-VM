@@ -23,6 +23,12 @@ repos:
         name: Block Sensitive Files
         entry: "bash -c 'source projects/AMI-CI/lib/checks.sh && ci_block_sensitive_files \"$@\"' --"
         language: system
+      - id: gitleaks
+        name: Block secrets in staged content (gitleaks)
+        entry: gitleaks protect --staged --redact --no-banner --verbose
+        language: system
+        pass_filenames: false
+        always_run: true
       - id: check-dependency-versions
         name: Check Dependency Versions (strict pinning + latest)
         entry: uv run python -m ami.ci.check_dependency_versions pyproject.toml
