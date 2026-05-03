@@ -38,15 +38,6 @@ display_banner() {
         _ami_echo "  OpenAMI"
     fi
     _ami_echo ""
-    _ami_echo "${GREEN}> Secure infrastructure for distributed enterprise automation and governance."
-    _ami_echo "> Supports bare metal, cloud, and hybrid deployments without vendor lock-in."
-    _ami_echo "> Safely integrates with any local or remote web, data, and API service."
-    _ami_echo "${RED}"
-    _ami_echo "================================================================================"
-    _ami_echo "> Transparent and auditable open-source framework by Independent AI Labs."
-    _ami_echo "> Full NIST AI CSF/RMF, ISO 42001/27001, and EU AI Act compliance."
-    _ami_echo "================================================================================"
-    _ami_echo "${NC}"
 
     # Display extensions via Python helper (manifest-based discovery)
     local _banner_helper="$AMI_ROOT/ami/scripts/shell/banner_helper.py"

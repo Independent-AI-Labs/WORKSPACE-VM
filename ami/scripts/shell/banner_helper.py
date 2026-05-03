@@ -53,6 +53,17 @@ _UNKNOWN_COLOR = "green"
 
 _NAME_PAD = 20  # column width for extension name alignment
 
+# Hard cap so the banner stays within an 80-column terminal. The extension
+# line layout is:  "  > {name}{pad}\u2192 {description} {suffix}"
+# where the leading marker block (`"  > "`) plus name plus pad lands the
+# arrow at column 24, and the suffix is short (`"v1.2.3"` or `"\u2713"`).
+# Reserve `_LINE_BUDGET` printable cols for the whole line and truncate the
+# description with an ellipsis to make it fit. Features and dim-text lines
+# are wrapped separately by `_wrap_features`.
+_LINE_BUDGET = 80
+_FEATURES_PAD = _NAME_PAD + 4  # indent under the description
+_ELLIPSIS = "\u2026"
+
 
 # ---------------------------------------------------------------------------
 # Banner mode
@@ -86,6 +97,43 @@ def _has_failed_container_dep(ext: ResolvedExtension, root: Path) -> bool:
     return False
 
 
+def _visible_len(suffix: str) -> int:
+    """Length of *suffix* with ANSI escape sequences stripped."""
+    out: list[str] = []
+    i = 0
+    while i < len(suffix):
+        if suffix[i] == "\x1b":
+            # Skip CSI sequence: ESC [ ... letter
+            j = i + 1
+            if j < len(suffix) and suffix[j] == "[":
+                j += 1
+                while j < len(suffix) and not suffix[j].isalpha():
+                    j += 1
+                i = j + 1
+                continue
+        out.append(suffix[i])
+        i += 1
+    return len(out)
+
+
+def _truncate_to_fit(desc: str, suffix_visible: int) -> str:
+    """Trim *desc* so the assembled line stays inside ``_LINE_BUDGET``.
+
+    Visible layout (no ANSI):  ``  > {name}{pad}\u2192 {desc} {suffix}``
+    Fixed prefix is 4 cols (``"  > "``); the name + pad sums to
+    ``_NAME_PAD`` cols regardless of name length; the arrow + space is 2
+    cols; the trailing space before suffix is 1 col. The description has
+    therefore ``budget = _LINE_BUDGET - 4 - _NAME_PAD - 2 - 1 - suffix_visible``
+    cols available before the truncation ellipsis.
+    """
+    overhead = 4 + _NAME_PAD + 2 + 1 + suffix_visible
+    budget = _LINE_BUDGET - overhead
+    if budget <= 0 or len(desc) <= budget:
+        return desc
+    # Reserve 1 col for the ellipsis.
+    return desc[: max(0, budget - 1)].rstrip() + _ELLIPSIS
+
+
 def _format_partial_line(
     ext: ResolvedExtension,
     color: str,
@@ -94,6 +142,7 @@ def _format_partial_line(
     """Format an extension line with a trailing suffix (countdown or result)."""
     name = ext.entry["name"]
     desc = ext.entry.get("description", "")
+    desc = _truncate_to_fit(desc, _visible_len(suffix))
     pad = max(1, _NAME_PAD - len(name))
     return f"  {color}> {name}{_NC}{' ' * pad}\u2192 {desc} {suffix}"
 
@@ -103,7 +152,11 @@ def _format_features(ext: ResolvedExtension) -> str | None:
     if not features:
         return None
     joined = ", ".join(features)
-    return f"{' ' * _NAME_PAD}    {_DIM}{joined}{_NC}"
+    indent = " " * _FEATURES_PAD
+    budget = _LINE_BUDGET - _FEATURES_PAD
+    if len(joined) > budget:
+        joined = joined[: max(0, budget - 1)].rstrip() + _ELLIPSIS
+    return f"{indent}{_DIM}{joined}{_NC}"
 
 
 def _run_check_with_countdown(
