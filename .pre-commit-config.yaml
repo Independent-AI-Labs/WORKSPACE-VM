@@ -29,6 +29,12 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
+      - id: ci-check-silent-swallow
+        name: Block silent error-swallow patterns (staged diff)
+        entry: "bash -c 'source projects/AMI-CI/lib/checks.sh && ci_check_silent_swallow'"
+        language: system
+        pass_filenames: false
+        always_run: true
       - id: check-dependency-versions
         name: Check Dependency Versions (strict pinning + latest)
         entry: uv run python -m ami.ci.check_dependency_versions pyproject.toml
