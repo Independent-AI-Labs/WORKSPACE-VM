@@ -147,12 +147,42 @@ install_node_agents() {
 
     # Copy the package.json to .venv to ensure npm reads dependencies from it
     cp "$project_root/scripts/package.json" "$project_root/.venv/package.json"
-    # Run npm install in .venv directory to install dependencies specified in package.json
-    cd "$project_root/.venv" && "$project_root/.boot-linux/node-env/bin/npm" install --no-save --ignore-scripts --force --production
-    # Remove the temporary package.json after installation
-    rm -f "$project_root/.venv/package.json"
-    cd "$project_root"  # Return to original directory
 
-    log_info "✓ Node.js CLI agents installed successfully to .venv/node_modules"
+    # Run npm install in .venv. INCIDENT-2026-05-04: this used to swallow
+    # npm's exit code, so a network blip / dep resolution failure / disk
+    # error would leave .venv/node_modules/.bin/{claude,gemini,qwen}
+    # missing while the bootstrap reported "installed successfully".
+    # Tom @tomohawkyo hit exactly that on a fresh make install. Fail loud.
+    local npm_rc=0
+    ( cd "$project_root/.venv" && "$project_root/.boot-linux/node-env/bin/npm" install --no-save --ignore-scripts --force --production ) || npm_rc=$?
+    rm -f "$project_root/.venv/package.json"
+
+    if [[ $npm_rc -ne 0 ]]; then
+        log_error "npm install exited $npm_rc -- Node.js CLI agents NOT installed"
+        log_error "  Re-run: cd $project_root && make install"
+        log_error "  If it keeps failing, capture: npm config get registry; npm doctor"
+        return $npm_rc
+    fi
+
+    # Verify the agent binaries actually landed. The bootstrap reads agent
+    # names + binary paths from ami/scripts/bootstrap/agents/extension.manifest.yaml.
+    # Each declared binary path must exist as an executable file in
+    # .venv/node_modules/.bin/ -- otherwise the .boot-linux/bin/ami-* symlinks
+    # dangle and users report "ami-claude missing after fresh make install".
+    local missing=()
+    for bin in claude gemini qwen; do
+        if [[ ! -x "$project_root/.venv/node_modules/.bin/$bin" ]]; then
+            missing+=("$bin")
+        fi
+    done
+    if [[ ${#missing[@]} -gt 0 ]]; then
+        log_error "npm install exit was 0 BUT these CLI agents are missing from .venv/node_modules/.bin/: ${missing[*]}"
+        log_error "  Upstream npm flake (postinstall skipped, dep resolved to no-bin variant, etc.)"
+        log_error "  Inspect: ls -la $project_root/.venv/node_modules/@anthropic-ai/claude-code/"
+        log_error "  Inspect: cat $project_root/scripts/package.json"
+        return 1
+    fi
+
+    log_info "Node.js CLI agents installed successfully (verified: claude, gemini, qwen)"
     return 0
 }
