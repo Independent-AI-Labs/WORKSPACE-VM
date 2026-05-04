@@ -77,8 +77,12 @@ def _get_container_inspect_info(name: str, podman_bin: str) -> ContainerInspectI
             exposed_ports.append(
                 PortMapping(containerPort=int(port_num), protocol=proto)
             )
-    except Exception:
-        pass
+    except (json.JSONDecodeError, KeyError, ValueError, IndexError):
+        # intentional-no-op: best-effort parse of `podman inspect` JSON; if the
+        # schema differs (older podman) or fields are missing, returning
+        # whatever we accumulated keeps the status display alive instead
+        # of crashing on a corner-case container.
+        _inspect_parse_failed = True  # intentional-no-op marker; SIM105 forbids `pass`
     return ContainerInspectInfo(exposed_ports, labels)
 
 

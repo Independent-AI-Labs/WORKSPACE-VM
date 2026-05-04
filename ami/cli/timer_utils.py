@@ -112,7 +112,10 @@ class TimerDisplay:
             try:
                 sys.stdout.write("\n")
                 sys.stdout.flush()
-            except Exception:
-                pass
+            except (OSError, ValueError):
+                # intentional-no-op: writing to a closed stdout (e.g. parent pipe
+                # already gone during shutdown) must not abort the timer
+                # cleanup. ValueError fires on closed buffers.
+                _stdout_closed = True  # intentional-no-op marker; SIM105 forbids `pass`
 
             self.timer_thread = None

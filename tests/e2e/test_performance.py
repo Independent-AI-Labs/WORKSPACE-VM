@@ -3,7 +3,6 @@
 Measures response time and memory footprint with progressively larger prompts.
 """
 
-import contextlib
 import shutil
 import subprocess
 import time
@@ -36,15 +35,29 @@ def _find_project_root() -> Path:
     return Path(__file__).resolve().parent
 
 
+def _safe_child_rss(child: psutil.Process) -> int:
+    """Return child RSS or 0 if the process is gone / inaccessible.
+
+    Factored out of get_process_memory's loop body so the intentional-no-op
+    handler is not nested inside a `for` (PERF203).
+    """
+    try:
+        return int(child.memory_info().rss)
+    except (psutil.NoSuchProcess, psutil.AccessDenied):
+        # intentional-no-op: child may have exited or be in a different security
+        # context between children() and memory_info(); skipping it
+        # under-reports by at most one process, which is acceptable for
+        # the perf summary's RSS total.
+        return 0
+
+
 def get_process_memory(proc_pid: int) -> int:
     """Get total RSS memory of process and its children."""
     try:
         parent = psutil.Process(proc_pid)
         children = parent.children(recursive=True)
         total_rss = parent.memory_info().rss
-        for child in children:
-            with contextlib.suppress(psutil.NoSuchProcess, psutil.AccessDenied):
-                total_rss += child.memory_info().rss
+        total_rss += sum(_safe_child_rss(c) for c in children)
     except (psutil.NoSuchProcess, psutil.AccessDenied):
         return 0
     else:

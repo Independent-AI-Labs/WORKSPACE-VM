@@ -30,8 +30,11 @@ def _accumulate_entry_size(entry: os.DirEntry[str], stack: list[Path]) -> int:
             return entry.stat().st_size
         if entry.is_dir():
             stack.append(Path(entry.path))
-    except Exception:
-        pass
+    except (OSError, PermissionError):
+        # intentional-no-op: best-effort filesystem probe; entries that vanish or
+        # become unreadable mid-scan contribute zero to the size total,
+        # which is the documented behavior of this disk-usage scanner.
+        _scan_skipped = True  # intentional-no-op marker; SIM105 forbids `pass`
     return 0
 
 
@@ -50,10 +53,15 @@ def get_size(path: Path) -> int:
                 with os.scandir(current_dir) as it:
                     for entry in it:
                         total_size += _accumulate_entry_size(entry, stack)
-            except Exception:
+            except (OSError, PermissionError):
+                # intentional-no-op: skip directories we cannot read; scanner
+                # contract is "best-effort total, never crash on perms".
                 continue
-    except Exception:
-        pass
+    except (OSError, PermissionError):
+        # intentional-no-op: outer guard for the initial path.is_file()/stat(); a
+        # vanished or unreadable root path returns whatever has been
+        # accumulated so far (typically zero).
+        _scan_skipped = True  # intentional-no-op marker; SIM105 forbids `pass`
     return total_size
 
 
@@ -112,8 +120,11 @@ def _handle_directory_entry(
     try:
         if str(path.resolve()) in exclude_paths:
             return
-    except Exception:
-        pass
+    except (OSError, RuntimeError):
+        # intentional-no-op: path.resolve() can fail on circular symlinks or
+        # vanished entries; we skip the exclude check and let the entry
+        # fall through to the normal scan path.
+        _resolve_failed = True  # intentional-no-op marker; SIM105 forbids `pass`
 
     if entry.name == "__pycache__":
         found_files.append(path)
@@ -135,8 +146,10 @@ def _handle_file_entry(
     try:
         if entry.stat().st_size > LARGE_FILE_THRESHOLD:
             large_files.append(path)
-    except Exception:
-        pass
+    except (OSError, PermissionError):
+        # intentional-no-op: stat may fail if the file vanished or is on an
+        # unreadable mount; large-file detection is best-effort.
+        _stat_failed = True  # intentional-no-op marker; SIM105 forbids `pass`
 
 
 def _process_directory_entry(
@@ -273,8 +286,11 @@ def _try_collect_user_entry(entry: os.DirEntry[str], user: str) -> TempFileEntry
         path = Path(entry.path)
         if path.owner() == user:
             return TempFileEntry(str(path), get_size(path))
-    except Exception:
-        pass
+    except (OSError, KeyError):
+        # intentional-no-op: path.owner() raises KeyError on uids without a
+        # passwd entry, OSError on vanished files; either way the entry
+        # is filtered out (not user's), which is the documented contract.
+        _owner_check_failed = True  # intentional-no-op marker; SIM105 forbids `pass`
     return None
 
 

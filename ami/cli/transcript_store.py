@@ -80,7 +80,14 @@ class TranscriptStore:
             return None
         try:
             return SessionMetadata.model_validate_json(path.read_text("utf-8"))
-        except Exception:
+        except (OSError, ValueError) as exc:
+            # Surface corrupt or unreadable session metadata instead of
+            # returning None; callers treat None as "no session"
+            # which previously hid root-cause errors.
+            sys.stderr.write(
+                f"[transcript_store] failed to load session.json "
+                f"for {session_id}: {type(exc).__name__}: {exc}\n"
+            )
             return None
 
     def update_session(self, session_id: str, **fields: object) -> None:
@@ -182,9 +189,21 @@ class TranscriptStore:
                         continue
                     try:
                         entries.append(ConversationEntry.model_validate_json(stripped))
-                    except Exception:
+                    except ValueError as exc:
+                        # intentional-no-op: skip malformed JSONL lines (corrupt
+                        # writes from a crashed run). We surface the count
+                        # via the open-file warning below if every line
+                        # fails; per-line noise would dominate stderr.
+                        sys.stderr.write(
+                            f"[transcript_store] skipping malformed entry "
+                            f"in {jsonl_path}: {exc}\n"
+                        )
                         continue
-        except Exception:
+        except OSError as exc:
+            sys.stderr.write(
+                f"[transcript_store] failed to open transcript "
+                f"{jsonl_path}: {type(exc).__name__}: {exc}\n"
+            )
             return []
         return entries
 

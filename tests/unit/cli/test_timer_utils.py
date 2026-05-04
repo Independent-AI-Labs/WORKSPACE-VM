@@ -170,13 +170,19 @@ class TestTimerDisplay:
         assert True  # If we get here, no exception was raised
 
     def test_timer_display_stop_handles_write_exception(self):
-        """Test stop handles stdout write exceptions."""
+        """Test stop tolerates expected stdout write failures.
+
+        After the 2026-05-04 silent-error audit the catch was narrowed
+        from bare Exception to (OSError, ValueError) to surface real
+        bugs while still handling the closed-pipe / closed-buffer cases
+        that legitimately occur during shutdown.
+        """
         timer = TimerDisplay()
         timer.is_running = True
         timer.stop_event.clear()
 
         with (
-            patch.object(sys.stdout, "write", side_effect=Exception("IO Error")),
+            patch.object(sys.stdout, "write", side_effect=OSError("IO Error")),
             patch.object(sys.stdout, "flush"),
         ):
             timer.stop()
