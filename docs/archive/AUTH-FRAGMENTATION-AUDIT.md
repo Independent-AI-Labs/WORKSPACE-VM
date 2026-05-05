@@ -327,7 +327,7 @@ matrix_homeserver_generic_secret_key: 'fd9f2c...'
 postgres_connection_password: '84971a...'
 matrix_authentication_service_config_secrets_encryption: 'e7f8cf...'
 exim_relay_relay_auth_username: "independentailabs@gmail.com"
-exim_relay_relay_auth_password: "tppsmpbjuesuuobh"  # Gmail app password
+exim_relay_relay_auth_password: "REDACTED — see projects/docs/INCIDENT-2026-05-03-GMAIL-APP-PASSWORD-LEAK.md"  # Gmail app password
 ```
 
 ### Rate Limiting
