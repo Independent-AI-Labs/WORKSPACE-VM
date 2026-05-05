@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import re
 import stat
+import sys
 from pathlib import Path
 
 from ami.scripts.shell.extension_registry import (
@@ -144,37 +145,54 @@ def register_extensions() -> None:
 
 
 def update_bashrc_path(bin_dir: Path) -> None:
-    """Add .boot-linux/bin to PATH at TOP of ~/.bashrc (before interactive check)."""
-    bashrc = Path.home() / ".bashrc"
-    if not bashrc.exists():
-        return
+    """Add .boot-linux/bin to PATH at TOP of ~/.bashrc and ~/.zshrc.
 
+    Both bash and zsh accept the same `export PATH="..."` syntax, so we
+    update every shell rc that exists. If neither exists (pure-fish,
+    container minimal image, fresh user account) we emit a stderr warning
+    so the operator knows to add the PATH manually — skipping without a
+    warning leaves `ami-claude` and friends unreachable from interactive
+    shells without any signal that the install was incomplete.
+    """
+    home = Path.home()
+    candidates = [home / ".bashrc", home / ".zshrc"]
+    updated_any = False
+    for rc in candidates:
+        if rc.exists():
+            _update_rc_file(rc, bin_dir)
+            updated_any = True
+    if not updated_any:
+        print(
+            f"WARNING: no shell rc file found at {candidates[0]} or "
+            f'{candidates[1]}; add `export PATH="{bin_dir}:$PATH"` '
+            "to your shell rc manually so AMI extensions resolve.",
+            file=sys.stderr,
+        )
+
+
+def _update_rc_file(rc: Path, bin_dir: Path) -> None:
+    """Insert the AMI PATH line at the top of *rc*, replacing any prior marker."""
     marker = "# AMI PATH"
     line = f'export PATH="{bin_dir}:$PATH"  {marker}'
 
-    content = bashrc.read_text()
+    content = rc.read_text()
 
-    # Remove old marker line if exists anywhere
     if marker in content:
         content = re.sub(rf".*{re.escape(marker)}.*\n?", "", content)
 
-    # Find the shebang or first line, insert PATH right after
     lines = content.split("\n")
     insert_idx = 0
 
-    # Skip shebang if present
     if lines and lines[0].startswith("#!"):
         insert_idx = 1
-    # Skip initial comments
     while insert_idx < len(lines) and lines[insert_idx].startswith("#"):
         insert_idx += 1
 
-    # Insert PATH line at the top (after comments, before any code)
     lines.insert(insert_idx, line)
     content = "\n".join(lines)
 
-    bashrc.write_text(content)
-    print("\u2705 Added PATH to TOP of ~/.bashrc (works for all shells)")
+    rc.write_text(content)
+    print(f"\u2705 Added PATH to TOP of ~/{rc.name}")
 
 
 def remove_bashrc_functions() -> None:

@@ -9,16 +9,44 @@ import json
 import subprocess
 import sys
 from pathlib import Path
-
-from ami.ci.types import (
-    PackageUpdateCheck,
-    UpdateEntry,
-    VersionEntry,
-    VersionUpdate,
-)
+from typing import NamedTuple
 
 from ami.cli_components.confirmation_dialog import confirm
 from ami.core.env import PROJECT_ROOT
+
+
+# These were imported from ami.ci.types, but ami-ci is an editable package
+# only resolvable inside the uv-managed `.venv`. Running this module via
+# `.boot-linux/bin/python -m ami.tools.update_cli_versions` would crash with
+# ModuleNotFoundError. The types are not referenced anywhere else outside
+# this module, so we keep them local — the script now runs from any Python
+# that can import the rest of the ami.* tree.
+class VersionUpdate(NamedTuple):
+    """A version update from old to new."""
+
+    old: str
+    new: str
+
+
+class VersionEntry(NamedTuple):
+    """Package name paired with version string."""
+
+    package: str
+    version: str
+
+
+class UpdateEntry(NamedTuple):
+    """Package name paired with version update info."""
+
+    package: str
+    update: VersionUpdate
+
+
+class PackageUpdateCheck(NamedTuple):
+    """Result from checking for package updates."""
+
+    latest_versions: list[VersionEntry]
+    updates_needed: list[UpdateEntry]
 
 
 def get_latest_npm_version(package_name: str) -> str | None:

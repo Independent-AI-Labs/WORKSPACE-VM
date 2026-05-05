@@ -164,13 +164,53 @@ install_node_agents() {
         return $npm_rc
     fi
 
-    # Verify the agent binaries actually landed. The bootstrap reads agent
-    # names + binary paths from ami/scripts/bootstrap/agents/extension.manifest.yaml.
-    # Each declared binary path must exist as an executable file in
-    # .venv/node_modules/.bin/ -- otherwise the .boot-linux/bin/ami-* symlinks
-    # dangle and users report "ami-claude missing after fresh make install".
+    # Verify the agent binaries actually landed. We derive the expected bin
+    # list from scripts/package.json + each package's own package.json `bin`
+    # field rather than hardcoding {claude,gemini,qwen} -- that way adding or
+    # removing a package from package.json doesn't require touching this
+    # script, and a future "no-bin variant" of an existing package fails
+    # loud against its own manifest. Each declared bin must exist as an
+    # executable file in .venv/node_modules/.bin/ -- otherwise the
+    # .boot-linux/bin/ami-* symlinks dangle and users report
+    # "ami-claude missing after fresh make install".
+    local expected_bins
+    expected_bins=$("$project_root/.boot-linux/bin/python" -c '
+import json, os, sys
+project_root = sys.argv[1]
+try:
+    with open(os.path.join(project_root, "scripts/package.json")) as f:
+        deps = json.load(f).get("dependencies", {})
+except Exception as exc:
+    print(f"package.json parse error: {exc}", file=sys.stderr)
+    sys.exit(2)
+bins = []
+for pkg in deps:
+    pkg_json = os.path.join(project_root, ".venv/node_modules", pkg, "package.json")
+    if not os.path.isfile(pkg_json):
+        print(f"package missing entirely: {pkg}", file=sys.stderr)
+        sys.exit(3)
+    try:
+        with open(pkg_json) as f:
+            data = json.load(f)
+    except Exception as exc:
+        print(f"parse error in {pkg_json}: {exc}", file=sys.stderr)
+        sys.exit(4)
+    pkg_bin = data.get("bin")
+    if isinstance(pkg_bin, str):
+        bins.append(pkg.rsplit("/", 1)[-1])
+    elif isinstance(pkg_bin, dict):
+        bins.extend(pkg_bin.keys())
+print(" ".join(bins))
+' "$project_root")
+    local enum_rc=$?
+    if [[ $enum_rc -ne 0 ]]; then
+        log_error "Failed to enumerate expected binaries from scripts/package.json (rc=$enum_rc)"
+        log_error "  Re-run: cd $project_root && make install-node-agents"
+        return 1
+    fi
+
     local missing=()
-    for bin in claude gemini qwen; do
+    for bin in $expected_bins; do
         if [[ ! -x "$project_root/.venv/node_modules/.bin/$bin" ]]; then
             missing+=("$bin")
         fi
@@ -178,11 +218,11 @@ install_node_agents() {
     if [[ ${#missing[@]} -gt 0 ]]; then
         log_error "npm install exit was 0 BUT these CLI agents are missing from .venv/node_modules/.bin/: ${missing[*]}"
         log_error "  Upstream npm flake (postinstall skipped, dep resolved to no-bin variant, etc.)"
-        log_error "  Inspect: ls -la $project_root/.venv/node_modules/@anthropic-ai/claude-code/"
+        log_error "  Inspect: ls -la $project_root/.venv/node_modules/.bin/"
         log_error "  Inspect: cat $project_root/scripts/package.json"
         return 1
     fi
 
-    log_info "Node.js CLI agents installed successfully (verified: claude, gemini, qwen)"
+    log_info "Node.js CLI agents installed successfully (verified: ${expected_bins})"
     return 0
 }

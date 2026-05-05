@@ -1,5 +1,6 @@
 """Bootstrap component models, detection, and version checking."""
 
+import os
 import re
 import subprocess
 from enum import Enum
@@ -54,7 +55,7 @@ class Component(BaseModel):
         """Check if component is installed and get version."""
         if self.detect_path:
             path = PROJECT_ROOT / self.detect_path
-            if path.exists():
+            if path.exists() and self._runnable_binary_present():
                 version = self._get_version_from_cmd() if self.version_cmd else None
                 return ComponentStatus(installed=True, version=version, path=str(path))
 
@@ -75,6 +76,25 @@ class Component(BaseModel):
                 pass
 
         return ComponentStatus(installed=False)
+
+    def _runnable_binary_present(self) -> bool:
+        """Verify version_cmd's binary is executable when it points in-tree.
+
+        detect_path alone is sticky for npm packages: the package directory
+        is created during extraction before bin-linking. A partial install
+        leaves the directory but no `.venv/node_modules/.bin/<name>`,
+        making the component look installed forever (INCIDENT-2026-05-04).
+        Returns True when no version_cmd is declared, or when the first arg
+        is absolute (system tool) — preserving prior behaviour outside the
+        npm-package case.
+        """
+        if not self.version_cmd:
+            return True
+        binary = self.version_cmd[0]
+        if binary.startswith(("/", "~")):
+            return True
+        bin_path = PROJECT_ROOT / binary
+        return bin_path.exists() and os.access(bin_path, os.X_OK)
 
     def _get_version_from_cmd(self) -> str | None:
         """Get version using version command."""

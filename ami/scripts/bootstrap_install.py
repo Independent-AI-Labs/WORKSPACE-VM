@@ -6,6 +6,7 @@ Handles the actual installation of components, separate from TUI.
 
 import os
 import subprocess
+import sys
 from collections.abc import Callable
 from pathlib import Path
 from typing import NamedTuple
@@ -40,6 +41,10 @@ def run_bootstrap_script(script_name: str) -> bool:
     """Run a single bootstrap script."""
     script_path = get_bootstrap_dir() / script_name
     if not script_path.exists():
+        print(
+            f"ERROR: bootstrap script not found: {script_path}",
+            file=sys.stderr,
+        )
         return False
 
     try:
@@ -54,7 +59,11 @@ def run_bootstrap_script(script_name: str) -> bool:
             env=env,
             check=False,
         )
-    except (OSError, subprocess.SubprocessError):
+    except (OSError, subprocess.SubprocessError) as exc:
+        print(
+            f"ERROR: failed to invoke bootstrap script {script_path}: {exc}",
+            file=sys.stderr,
+        )
         return False
     else:
         return result.returncode == 0
@@ -71,13 +80,33 @@ def install_component(component: Component) -> bool:
         # have non-critical failures in post-install steps.
         if not script_ok and component.detect_path:
             path = PROJECT_ROOT / component.detect_path
-            if path.exists():
+            if path.exists() and _binary_is_runnable(component):
                 return True
         return script_ok
     elif component.type == ComponentType.UV:
         # UV packages are handled by uv sync
         return True
     return False
+
+
+def _binary_is_runnable(component: Component) -> bool:
+    """Verify the component's runnable binary exists and is executable.
+
+    detect_path on its own is sticky — an npm package directory survives
+    a partial install where bin-linking never ran (INCIDENT-2026-05-04).
+    When version_cmd is declared and points at an in-tree binary, the
+    detect_path success path must also require that binary to be
+    executable. Returns True when no in-tree binary is declared
+    (preserves prior behaviour for components that don't ship a
+    version_cmd).
+    """
+    if not component.version_cmd:
+        return True
+    binary = component.version_cmd[0]
+    if binary.startswith(("/", "~")):
+        return True
+    bin_path = PROJECT_ROOT / binary
+    return bin_path.exists() and os.access(bin_path, os.X_OK)
 
 
 def _categorize_components(components: list[Component]) -> CategorizedComponents:

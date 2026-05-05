@@ -39,8 +39,8 @@ install: ## Install AMI Agents in editable mode with all setup
 	$(MAKE) pre-req-check && \
 	$(MAKE) sync-package && \
 	$(MAKE) setup-config && \
-	$(MAKE) register-extensions && \
 	$(MAKE) install-bootstrap && \
+	$(MAKE) register-extensions && \
 	$(MAKE) install-git-guard && \
 	$(MAKE) install-hooks && \
 	$(MAKE) install-shell && \
@@ -55,8 +55,8 @@ install-ci: ## Non-interactive install for CI (uses install-defaults.yaml)
 	$(MAKE) pre-req-check && \
 	$(MAKE) sync-package && \
 	$(MAKE) setup-config && \
-	$(MAKE) register-extensions && \
 	$(MAKE) install-bootstrap-ci && \
+	$(MAKE) register-extensions && \
 	$(MAKE) install-git-guard && \
 	$(MAKE) install-hooks && \
 	$(MAKE) install-shell && \
