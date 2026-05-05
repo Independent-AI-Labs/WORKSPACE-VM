@@ -280,7 +280,18 @@ def get_container_runtime() -> str | None:
 
 
 def check_container(name: str) -> bool:
-    """Return True if a container named *name* exists."""
+    """Return True if a container named *name* is currently running.
+
+    Uses ``ps`` (no ``-a``) so a stopped/created/exited container is NOT
+    counted as present. INCIDENT-2026-05-05: previously this used
+    ``ps -a`` which classified ami-keycloak as "present" even when the
+    container was exited; the resolve pass therefore marked ami-kcadm
+    READY, but the banner's live ``ami-kcadm --help`` (which execs into
+    the container) failed and rendered ✗ — an unflagged disagreement
+    between doctor and banner. Containers that exist-but-aren't-running
+    cannot satisfy ``podman exec`` callers, which is what every
+    container-backed extension actually needs, so treat them as missing.
+    """
     runtime = get_container_runtime()
     if not runtime:
         return False
@@ -289,7 +300,6 @@ def check_container(name: str) -> bool:
             [
                 runtime,
                 "ps",
-                "-a",
                 "--filter",
                 f"name={name}",
                 "--format",

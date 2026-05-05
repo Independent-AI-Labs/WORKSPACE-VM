@@ -91,10 +91,16 @@ def _title_for(category: str) -> str:
 
 def _has_failed_container_dep(ext: ResolvedExtension, root: Path) -> bool:
     """Return True if any container dep is missing."""
-    for dep in ext.entry.get("deps", []):
-        if dep.get("type") == "container" and not check_dep(dep, root):
-            return True
-    return False
+    return bool(_failed_container_deps(ext, root))
+
+
+def _failed_container_deps(ext: ResolvedExtension, root: Path) -> list[str]:
+    """Return names of declared container deps that are not currently running."""
+    return [
+        dep.get("container", dep.get("name", "?"))
+        for dep in ext.entry.get("deps", [])
+        if dep.get("type") == "container" and not check_dep(dep, root)
+    ]
 
 
 def _visible_len(suffix: str) -> int:
@@ -216,7 +222,8 @@ def _print_extension(
 ) -> None:
     """Print a single extension line with optional health check."""
     has_check = bool(ext.entry.get("check")) and not ctx.quiet
-    skip_check = _has_failed_container_dep(ext, root)
+    failed_containers = _failed_container_deps(ext, root)
+    skip_check = bool(failed_containers)
 
     version: str | None = None
     health_ok = True
@@ -259,6 +266,15 @@ def _print_extension(
         suffix = f"{yellow}v{version or '?'} \u26a0 {label}{_NC}"
     elif version:
         suffix = f"{green}v{version}{_NC}"
+    elif skip_check:
+        # Don't render green ✓ when we never ran the check. INCIDENT-2026-
+        # 05-05: ami-kcadm needs `podman exec` into ami-keycloak; if the
+        # container isn't running we skip the live --help and previously
+        # defaulted to ✓ (because health_ok stayed True), then later the
+        # user's actual `ami-kcadm` invocation would fail with no warning.
+        # Surface the missing container so the user knows what to start.
+        joined = ", ".join(failed_containers)
+        suffix = f"{yellow}\u26a0 container not running: {joined}{_NC}"
     elif health_ok:
         suffix = f"{green}\u2713{_NC}"
     else:
