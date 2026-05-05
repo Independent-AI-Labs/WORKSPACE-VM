@@ -1,0 +1,13 @@
+# Allowlist — gitleaks fingerprints to ignore as false positives.
+# Format: <commit>:<path>:<rule-id>:<line>
+# Document each entry — drift in this file is how secrets leak through gates.
+
+# OIDC spec example tokens — placeholder JWTs in a documentation example
+# of the token response shape, not real credentials. The strings are
+# truncated example bytes ("eyJhbGciOiJSUzI1NiIsInR5cCI6...") used to
+# illustrate the OIDC response payload format. Verified 2026-05-05 in
+# the AMI-AGENTS gitleaks history sweep (task #45).
+e11e946273f592e8a114361d63551baf70a9ee7b:docs/specifications/SPEC-AUTH-OIDC-PROVIDER.md:generic-api-key:252
+e11e946273f592e8a114361d63551baf70a9ee7b:docs/specifications/SPEC-AUTH-OIDC-PROVIDER.md:generic-api-key:255
+e11e946273f592e8a114361d63551baf70a9ee7b:docs/specifications/SPEC-AUTH-OIDC-PROVIDER.md:generic-api-key:256
+e11e946273f592e8a114361d63551baf70a9ee7b:docs/specifications/SPEC-AUTH-OIDC-PROVIDER.md:generic-api-key:712
