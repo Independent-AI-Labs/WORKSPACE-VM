@@ -131,9 +131,22 @@ install_node_agents() {
 
     # Change to the scripts directory and install packages to the .venv directory using prefix
     # Use --no-save to prevent creating package.json in .venv and ensure clean local installation
-    # Use --ignore-scripts to avoid running postinstall scripts that might create unwanted node_modules
     # Use --force to ensure latest compatible versions according to package.json
     # Install production dependencies only (skip devDependencies)
+    #
+    # We deliberately DO NOT pass --ignore-scripts. INCIDENT-2026-05-05:
+    # @anthropic-ai/claude-code 2.1.113+ ships only a 132 KB wrapper
+    # package; the actual native binary lives in per-platform optional
+    # deps (e.g. @anthropic-ai/claude-code-linux-x64) and gets copied
+    # over the wrapper's bin/claude.exe by the package's postinstall
+    # (install.cjs). With --ignore-scripts that copy never happens, so
+    # bin/claude.exe is left as the wrapper-package's diagnostic file
+    # — `[[ -x .bin/claude ]]` still passes (the file is +x by design)
+    # but invoking it just prints "Error: claude native binary not
+    # installed" and exits 1. Symptom: tom@tomohawkyo's banner-doctor
+    # logs flag ami-claude as "no version extracted (required >=2.0.0)"
+    # after `make install` reported success. Drop the flag so the
+    # postinstall runs and the native binary lands.
     if [ ! -f "$project_root/scripts/package.json" ]; then
         log_error "scripts/package.json not found, cannot install Node.js agents"
         return 1
@@ -154,7 +167,7 @@ install_node_agents() {
     # missing while the bootstrap reported "installed successfully".
     # Tom @tomohawkyo hit exactly that on a fresh make install. Fail loud.
     local npm_rc=0
-    ( cd "$project_root/.venv" && "$project_root/.boot-linux/node-env/bin/npm" install --no-save --ignore-scripts --force --production ) || npm_rc=$?
+    ( cd "$project_root/.venv" && "$project_root/.boot-linux/node-env/bin/npm" install --no-save --force --production ) || npm_rc=$?
     rm -f "$project_root/.venv/package.json"
 
     if [[ $npm_rc -ne 0 ]]; then
@@ -210,19 +223,46 @@ print(" ".join(bins))
     fi
 
     local missing=()
+    local broken=()
     for bin in $expected_bins; do
-        if [[ ! -x "$project_root/.venv/node_modules/.bin/$bin" ]]; then
+        local bin_path="$project_root/.venv/node_modules/.bin/$bin"
+        if [[ ! -x "$bin_path" ]]; then
             missing+=("$bin")
+            continue
+        fi
+        # Smoke test: --version must exit 0 AND emit a parseable
+        # MAJOR.MINOR.PATCH. INCIDENT-2026-05-05: claude-code ships a
+        # bin/claude.exe diagnostic file that is technically +x but
+        # exits 1 with the message "Error: claude native binary not
+        # installed.". The old `[[ -x ]]` check passed and we shipped
+        # the broken state. Run the actual command so a wrapper-only
+        # install is caught at bootstrap time, not at first-use.
+        local version_output version_rc
+        version_output=$("$bin_path" --version 2>&1)
+        version_rc=$?
+        if [[ $version_rc -ne 0 ]] || ! [[ "$version_output" =~ [0-9]+\.[0-9]+\.[0-9]+ ]]; then
+            local snippet="${version_output:0:200}"
+            broken+=("$bin (rc=$version_rc): ${snippet//$'\n'/ }")
         fi
     done
     if [[ ${#missing[@]} -gt 0 ]]; then
         log_error "npm install exit was 0 BUT these CLI agents are missing from .venv/node_modules/.bin/: ${missing[*]}"
-        log_error "  Upstream npm flake (postinstall skipped, dep resolved to no-bin variant, etc.)"
         log_error "  Inspect: ls -la $project_root/.venv/node_modules/.bin/"
         log_error "  Inspect: cat $project_root/scripts/package.json"
         return 1
     fi
+    if [[ ${#broken[@]} -gt 0 ]]; then
+        log_error "npm install exit was 0 AND .bin/<name> is +x BUT --version smoke test failed for:"
+        for entry in "${broken[@]}"; do
+            log_error "    - $entry"
+        done
+        log_error "  Most common cause: a package's postinstall step did not run (e.g."
+        log_error "  --ignore-scripts in your npm config) and the native binary was never"
+        log_error "  copied over its diagnostic file. Remove --ignore-scripts from npm"
+        log_error "  flags and rerun, or invoke the package's install.cjs manually."
+        return 1
+    fi
 
-    log_info "Node.js CLI agents installed successfully (verified: ${expected_bins})"
+    log_info "Node.js CLI agents installed successfully (verified runnable: ${expected_bins})"
     return 0
 }
