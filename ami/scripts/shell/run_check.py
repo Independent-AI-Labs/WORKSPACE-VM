@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
     from pathlib import Path
 
-    from ami.scripts.shell.extension_registry import ExtensionEntry
+    from ami.scripts.shell.extension_registry import CheckConfig, ExtensionEntry
 
 
 MAX_CHECK_TIMEOUT = 5
@@ -79,6 +79,7 @@ def _compare_semver(a: str, b: str) -> int:
 def _check_version_constraint(
     entry: ExtensionEntry,
     version: str | None,
+    cause: str | None = None,
 ) -> tuple[bool | None, str | None]:
     """Compare *version* against the entry's minVersion / maxVersion.
 
@@ -87,6 +88,11 @@ def _check_version_constraint(
     - ``(True, None)`` if the observed version satisfies the constraint.
     - ``(False, reason)`` if the observed version violates the constraint
       (or if no version was extracted but a constraint is declared).
+
+    When *version* is None and *cause* is supplied, the cause is woven
+    into the reason so callers can see WHY extraction failed (timeout,
+    non-zero exit, regex miss, OSError) instead of the prior generic
+    "no version extracted" message that hid the upstream signal.
     """
     min_v = entry.get("minVersion")
     max_v = entry.get("maxVersion")
@@ -95,6 +101,8 @@ def _check_version_constraint(
 
     if version is None:
         bound = f">={min_v}" if min_v else f"<={max_v}"
+        if cause:
+            return False, f"{cause} (required {bound})"
         return False, f"no version extracted (required {bound})"
 
     if min_v and _compare_semver(version, min_v) < 0:
@@ -102,6 +110,46 @@ def _check_version_constraint(
     if max_v and _compare_semver(version, max_v) > 0:
         return False, f"{version} > allowed maxVersion {max_v}"
     return True, None
+
+
+_OUTPUT_SNIPPET_CAP = 80
+
+
+def _first_line_snippet(output: str) -> str:
+    """Return the first non-empty line of *output* clipped to the cap."""
+    stripped = output.strip()
+    if not stripped:
+        return ""
+    return stripped.splitlines()[0][:_OUTPUT_SNIPPET_CAP]
+
+
+def _diagnose_version_failure(
+    check: CheckConfig,
+    exc: str | None,
+    rc: int | None,
+    output: str,
+    version: str | None,
+) -> str | None:
+    """Return a one-line diagnostic when version extraction failed.
+
+    Returns None when the version was extracted (no diagnostic needed)
+    or when no versionPattern was declared (nothing to diagnose).
+    Otherwise produces a string callers can pass through to operators —
+    e.g. "TimeoutExpired(5s): ..." or "exit 127, output 'not found'"
+    or "output 'hello' did not match (\\d+\\.\\d+\\.\\d+)".
+    """
+    if version is not None or "versionPattern" not in check:
+        return None
+    if exc:
+        return exc
+    if rc is not None and rc != 0:
+        snippet = _first_line_snippet(output)
+        if snippet:
+            return f"exit {rc}, output {snippet!r}"
+        return f"exit {rc}, no output"
+    pattern = check.get("versionPattern", "")
+    snippet = _first_line_snippet(output) or "<empty>"
+    return f"output {snippet!r} did not match {pattern}"
 
 
 def run_check(
@@ -164,7 +212,8 @@ def run_check(
             m = re.search(check["versionPattern"], output)
             version = m.group(1) if m else None
 
-    v_ok, v_reason = _check_version_constraint(entry, version)
+    cause = _diagnose_version_failure(check, exc, rc, output, version)
+    v_ok, v_reason = _check_version_constraint(entry, version, cause)
 
     if log_hook is not None:
         log_hook(
