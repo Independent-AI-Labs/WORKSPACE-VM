@@ -129,36 +129,54 @@ fi
 
 log_info "Using tlmgr: ${TLMGR}"
 
+# Track tlmgr block failures. Previously every block had its exit
+# code masked unconditionally, so legit failures (network drop,
+# sealed mirror, disk full) and stale package names alike disappeared
+# from the bootstrap return code. The 8 stale-name errors in tom@
+# tomohawkyo's install-20260505-162919.log went unnoticed for the
+# same reason. Capture each block's rc, keep going so a single typo
+# doesn't take out the whole TeX install, and report loud at the
+# end so the operator (and the install log) sees what broke.
+tlmgr_failures=()
+
+run_tlmgr_block() {
+    local label="$1"
+    shift
+    log_info "Installing ${label}..."
+    if ! "${TLMGR}" install "$@"; then
+        tlmgr_failures+=("${label}")
+    fi
+}
+
 # --- Collections (broad package groups) ---
-log_info "Installing TeX collections..."
-"${TLMGR}" install \
+run_tlmgr_block "TeX collections" \
     collection-latex \
     collection-latexrecommended \
     collection-latexextra \
     collection-fontsrecommended \
-    collection-mathscience \
-    || true
+    collection-mathscience
 
 # --- Core engines and tools ---
-log_info "Installing TeX engines and tools..."
-"${TLMGR}" install \
+run_tlmgr_block "TeX engines and tools" \
     latex-bin \
     xetex \
-    luatex \
-    || true
+    luatex
 
 # --- Fonts (needed for xelatex / pandoc output) ---
-log_info "Installing fonts..."
-"${TLMGR}" install \
+# Removed package names that CTAN no longer ships standalone (these
+# triggered the "package not present in repository" spam in Tom's
+# log without breaking anything functional):
+#   - freefont       -> use gnu-freefont (kept below)
+#   - sourcesanspro  -> rolled into source-pro / no standalone any more
+#   - sourceserifpro -> ditto
+run_tlmgr_block "fonts" \
     fontspec \
     unicode-math \
     montserrat \
     lato \
     noto \
     roboto \
-    sourcesanspro \
     sourcecodepro \
-    sourceserifpro \
     libertinus \
     libertinus-fonts \
     libertinus-otf \
@@ -171,19 +189,21 @@ log_info "Installing fonts..."
     raleway \
     inconsolata \
     dejavu \
-    freefont \
     gnu-freefont \
     ec \
     cm-unicode \
     lm \
-    lm-math \
-    || true
+    lm-math
 
 # --- Pandoc / document conversion essentials ---
 # These packages are required by pandoc's default LaTeX template
-# and commonly needed when converting markdown to PDF/DOCX
-log_info "Installing pandoc/document conversion packages..."
-"${TLMGR}" install \
+# and commonly needed when converting markdown to PDF/DOCX.
+# Removed:
+#   - footnote  (does not exist as a standalone package; footmisc
+#     covers the typical use case and is already in the list)
+#   - longtable (ships with the `tools` collection / package, also
+#     in the list as `tools`)
+run_tlmgr_block "pandoc/document conversion packages" \
     amsmath \
     amscls \
     amsfonts \
@@ -201,7 +221,6 @@ log_info "Installing pandoc/document conversion packages..."
     fancyvrb \
     float \
     footmisc \
-    footnote \
     framed \
     geometry \
     grffile \
@@ -209,7 +228,6 @@ log_info "Installing pandoc/document conversion packages..."
     iftex \
     kvoptions \
     listings \
-    longtable \
     mdframed \
     microtype \
     multirow \
@@ -234,30 +252,28 @@ log_info "Installing pandoc/document conversion packages..."
     url \
     xcolor \
     xkeyval \
-    xurl \
-    || true
+    xurl
 
 # --- Tables and lists ---
-log_info "Installing table and list packages..."
-"${TLMGR}" install \
-    array \
+# Removed:
+#   - array, tabularx (both ship with the `tools` package, already
+#     pulled in by the pandoc/document block above)
+run_tlmgr_block "table and list packages" \
     colortbl \
     ctable \
     makecell \
     multirow \
-    tabularx \
     tabulary \
     tabu \
     threeparttable \
     wrapfig \
-    adjustbox \
-    || true
+    adjustbox
 
 # --- Graphics and images ---
-log_info "Installing graphics packages..."
-"${TLMGR}" install \
+# Removed:
+#   - graphicx (ships inside the `graphics` package, kept below)
+run_tlmgr_block "graphics packages" \
     graphics \
-    graphicx \
     svg \
     svg-inkscape \
     epstopdf \
@@ -265,12 +281,10 @@ log_info "Installing graphics packages..."
     pdflscape \
     pdfpages \
     tikz-cd \
-    tikzfill \
-    || true
+    tikzfill
 
 # --- Math and science ---
-log_info "Installing math/science packages..."
-"${TLMGR}" install \
+run_tlmgr_block "math/science packages" \
     mathtools \
     unicode-math \
     siunitx \
@@ -279,30 +293,24 @@ log_info "Installing math/science packages..."
     mhchem \
     algorithms \
     algorithmicx \
-    algorithm2e \
-    || true
+    algorithm2e
 
 # --- Code listings and verbatim ---
-log_info "Installing code/verbatim packages..."
-"${TLMGR}" install \
+run_tlmgr_block "code/verbatim packages" \
     minted \
     fvextra \
-    lineno \
-    || true
+    lineno
 
 # --- Page layout and headers ---
-log_info "Installing layout packages..."
-"${TLMGR}" install \
+run_tlmgr_block "layout packages" \
     lastpage \
     wallpaper \
     background \
     everypage \
-    changepage \
-    || true
+    changepage
 
 # --- Misc commonly needed ---
-log_info "Installing miscellaneous packages..."
-"${TLMGR}" install \
+run_tlmgr_block "miscellaneous packages" \
     catchfile \
     environ \
     import \
@@ -314,8 +322,7 @@ log_info "Installing miscellaneous packages..."
     unicode-data \
     xifthen \
     xindy \
-    zref \
-    || true
+    zref
 
 log_info "Package installation complete"
 
@@ -360,6 +367,21 @@ if "${VENV_DIR}/bin/pdflatex" --version >/dev/null 2>&1; then
     "${VENV_DIR}/bin/pdflatex" --version | head -n 1
 else
     log_error "pdflatex installation verification failed"
+    exit 1
+fi
+
+# If any tlmgr block returned non-zero, fail the bootstrap loud here.
+# pdflatex itself works (verified above) so the parent installer can
+# decide to accept partial success via detect_path / version_cmd, but
+# the upstream caller and the install log still see a clear signal —
+# previously each tlmgr exit was masked outright and broken package
+# names piled up across releases without anyone noticing.
+if (( ${#tlmgr_failures[@]} > 0 )); then
+    log_error "tlmgr returned non-zero for these blocks: ${tlmgr_failures[*]}"
+    log_error "  Inspect ${TEXLIVE_DIR}/texmf/texmf-var/web2c/tlmgr.log"
+    log_error "  pdflatex/xelatex are present and runnable; missing"
+    log_error "  packages can be installed individually via:"
+    log_error "    ${TLMGR} install <pkg-name>"
     exit 1
 fi
 
