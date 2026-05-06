@@ -33,7 +33,7 @@ INSTALL_LOG := install-$(shell date +%Y%m%d-%H%M%S).log
 
 .PHONY: install
 install: ## Install AMI Agents in editable mode with all setup
-	@exec > >(tee -a "$(INSTALL_LOG)") 2>&1; \
+	@exec > >(awk -W interactive -v LOG="$(INSTALL_LOG)" '{ ts=strftime("[%Y-%m-%dT%H:%M:%S]"); print $$0; print ts, $$0 >> LOG; fflush(); }') 2>&1; \
 	echo "🚀 Installing AMI Agents..."; \
 	echo "📝 Log: $(INSTALL_LOG)"; \
 	$(MAKE) pre-req-check && \
@@ -49,7 +49,7 @@ install: ## Install AMI Agents in editable mode with all setup
 
 .PHONY: install-ci
 install-ci: ## Non-interactive install for CI (uses install-defaults.yaml)
-	@exec > >(tee -a "$(INSTALL_LOG)") 2>&1; \
+	@exec > >(awk -W interactive -v LOG="$(INSTALL_LOG)" '{ ts=strftime("[%Y-%m-%dT%H:%M:%S]"); print $$0; print ts, $$0 >> LOG; fflush(); }') 2>&1; \
 	echo "🚀 Installing AMI Agents (CI mode)..."; \
 	echo "📝 Log: $(INSTALL_LOG)"; \
 	$(MAKE) pre-req-check && \
