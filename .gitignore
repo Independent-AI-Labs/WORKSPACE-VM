@@ -138,6 +138,9 @@ user_app_token.pickle
 # Bootstrapped tools directory (like .venv, local only)
 .boot-linux/
 
+# moon (moonrepo) local cache — content-hashed task outputs, never committed
+.moon/cache/
+
 # Forecasting directory
 learning/forecasting/
 learning/forecasting/

@@ -1,0 +1,111 @@
+# yaml-language-server: $schema=https://moonrepo.dev/schemas/project.json
+#
+# moon project config for ami-agents (workspace umbrella repo).
+# See /home/ami/AMI-AGENTS/projects/docs/MOON-MIGRATION-PLAN.md for context.
+#
+# This is the orchestrator at the workspace root. Tasks wrap the root
+# Makefile, which in turn drives sub-project installs and checks.
+
+$schema: 'https://moonrepo.dev/schemas/project.json'
+
+project:
+  name: 'ami-agents'
+  description: 'AMI workspace umbrella repo and Python orchestrator'
+
+language: 'python'
+# moon's layer constraint forbids application→application edges. We
+# depend on ami-dataops (layer=application), so we declare 'unknown'
+# until Phase C ratifies the canonical layer for umbrella+app projects
+# that consume dataops.
+layer: 'unknown'
+
+
+# Cross-AMI edges. Validated by `moon ci` — every entry must appear in
+# .moon/workspace.yml.
+dependsOn:
+  - 'ami-ci'
+  - 'ami-dataops'
+
+# Tasks wrap the root Makefile. The umbrella repo intentionally calls
+# uv / pytest / ruff / mypy via `make`, never directly, so single-repo
+# `make <target>` workflows keep working unchanged.
+tasks:
+  install:
+    command: 'make install-ci'
+    inputs:
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - 'Makefile'
+      - 'ami/**/*'
+    outputs:
+      - '.venv'
+    options:
+      cache: false
+
+  sync:
+    command: 'make sync-package'
+    inputs:
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - 'Makefile'
+    outputs:
+      - '.venv'
+    options:
+      cache: false
+
+  test:
+    command: 'make test'
+    inputs:
+      - 'ami/**/*.py'
+      - 'tests/**/*.py'
+      - 'pyproject.toml'
+      - 'Makefile'
+    deps:
+      - 'sync'
+
+  lint:
+    command: 'make lint'
+    inputs:
+      - 'ami/**/*.py'
+      - 'tests/**/*.py'
+      - 'res/config/ruff.toml'
+      - 'ruff.toml'
+      - 'Makefile'
+
+  type-check:
+    command: 'make type-check'
+    inputs:
+      - 'ami/**/*.py'
+      - 'tests/**/*.py'
+      - 'res/config/mypy.toml'
+      - 'mypy.toml'
+      - 'Makefile'
+
+  check:
+    command: 'make check'
+    inputs:
+      - 'ami/**/*.py'
+      - 'tests/**/*.py'
+      - 'res/config/ruff.toml'
+      - 'res/config/mypy.toml'
+      - 'Makefile'
+    deps:
+      - 'sync'
+
+  dead-code:
+    command: 'make dead-code'
+    inputs:
+      - 'ami/**/*.py'
+      - 'Makefile'
+
+  install-hooks:
+    command: 'make install-hooks'
+    inputs:
+      - 'Makefile'
+    options:
+      cache: false
+
+  clean:
+    command: 'make clean'
+    options:
+      cache: false

@@ -188,6 +188,17 @@ DEV_TOOLS = [
         version_pattern=r"sd (\d+\.\d+\.\d+)",
     ),
     Component(
+        name="moon",
+        label="moon (workspace)",
+        description="Workspace task runner and dep-graph validator (moonrepo)",
+        type=ComponentType.SCRIPT,
+        group="Development Tools",
+        script="bootstrap_moon.sh",
+        detect_path=".boot-linux/bin/moon",
+        version_cmd=[".boot-linux/bin/moon", "--version"],
+        version_pattern=r"moon (\d+\.\d+\.\d+)",
+    ),
+    Component(
         name="gcloud",
         label="Google Cloud CLI",
         description="Google Cloud SDK (gcloud)",
