@@ -25,7 +25,7 @@ dependsOn:
 
 tasks:
   lint:
-    command: 'make lint'
+    command: 'make _lint-impl'
     inputs:
       - 'ami/**/*.py'
       - 'tests/**/*.py'
@@ -34,14 +34,14 @@ tasks:
       - 'res/config/ruff.toml'
       - 'Makefile'
   type-check:
-    command: 'make type-check'
+    command: 'make _type-check-impl'
     inputs:
       - 'ami/**/*.py'
       - 'pyproject.toml'
       - 'res/config/mypy.toml'
       - 'Makefile'
   test:
-    command: 'make test'
+    command: 'make _test-impl'
     inputs:
       - 'ami/**/*.py'
       - 'tests/**/*.py'
@@ -50,13 +50,15 @@ tasks:
       - 'pyproject.toml'
       - 'Makefile'
   dead-code:
-    command: 'make dead-code'
+    command: 'make _dead-code-impl'
     inputs:
       - 'ami/**/*.py'
       - 'pyproject.toml'
       - 'Makefile'
   check:
-    command: 'make check'
+    # Aggregator: deps fan out via moon's task DAG; command is a no-op
+    # to avoid recursing back through the public make check shim.
+    command: 'true'
     deps:
       - '~:lint'
       - '~:type-check'

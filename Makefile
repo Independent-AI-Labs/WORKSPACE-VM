@@ -255,23 +255,36 @@ check-compliance-recursive: ensure-ci ## Audit every nested repo for AMI-CI cont
 # --- Quality & Test ---
 
 .PHONY: test
-test: ## Run tests
+test: ## Run tests (delegates to moon for caching)
+	@moon run ami-agents:test
+
+.PHONY: _test-impl
+_test-impl:
 	@echo "🧪 Running tests..."
 	pytest
 
 .PHONY: lint
-lint: ## Run linters
+lint: ## Run linters (delegates to moon for caching)
+	@moon run ami-agents:lint
+
+.PHONY: _lint-impl
+_lint-impl:
 	@echo "🔍 Running linters..."
 	uv run ruff check --config res/config/ruff.toml .
 	uv run ruff format --config res/config/ruff.toml --check .
 
 .PHONY: type-check
-type-check: ## Run type checker
+type-check: ## Run type checker (delegates to moon for caching)
+	@moon run ami-agents:type-check
+
+.PHONY: _type-check-impl
+_type-check-impl:
 	@echo "📝 Running type checker..."
 	mypy .
 
 .PHONY: check
-check: lint type-check test ## Run all checks (lint, type-check, test)
+check: ## Run all checks (lint + type-check + test, with caching)
+	@moon run ami-agents:check
 
 .PHONY: check-hooks
 check-hooks: ensure-ci ## Preview generated hooks (dry-run)
@@ -282,7 +295,11 @@ cleanup-precommit: ## Remove pre-commit package and cache
 	bash projects/AMI-CI/scripts/cleanup-precommit
 
 .PHONY: dead-code
-dead-code: ## Run AST-based dead code analysis
+dead-code: ## Run AST-based dead code analysis (delegates to moon for caching)
+	@moon run ami-agents:dead-code
+
+.PHONY: _dead-code-impl
+_dead-code-impl:
 	.boot-linux/bin/uv run python -m ami.ci.check_dead_code
 
 .PHONY: update
