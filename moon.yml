@@ -19,62 +19,10 @@ tags:
   - 'umbrella'
   - 'python'
 
-# Workspace-clone manifest. Read by ami/scripts/bin/ami-bootstrap-repos
-# to clone-if-missing each declared workspace repo. Mandatory entries
-# always clone; optional entries opt-in via the bootstrap TUI or
-# `--include <id>` CLI flag. minTag (when present) is enforced after
-# clone — abort if the cloned working tree's nearest tag is older.
-#
-# This block is the SINGLE source of truth for "what repos belong to
-# the AMI workspace." Children's moon.yml files do NOT carry per-repo
-# clone metadata (chicken-egg: at install time only this file is on
-# disk, so reaching into children would fail).
-metadata:
-  workspaceClones:
-    ami-ci:
-      remote: 'git@github.com:Independent-AI-Labs/AMI-CI.git'
-      path: 'projects/AMI-CI'
-      mandatory: true
-    ami-dataops:
-      remote: 'git@github.com:Independent-AI-Labs/AMI-DATAOPS.git'
-      path: 'projects/AMI-DATAOPS'
-      mandatory: true
-    ami-docs:
-      remote: 'git@github.com:Independent-AI-Labs/AMI-DOCS.git'
-      path: 'projects/docs'
-      mandatory: false
-    ami-portal:
-      remote: 'git@github.com:Independent-AI-Labs/AMI-PORTAL.git'
-      path: 'projects/AMI-PORTAL'
-      mandatory: false
-    ami-srp:
-      remote: 'git@github.com:Independent-AI-Labs/AMI-SRP.git'
-      path: 'projects/AMI-SRP'
-      mandatory: false
-    ami-browser:
-      remote: 'git@github.com:Independent-AI-Labs/AMI-BROWSER.git'
-      path: 'projects/AMI-BROWSER'
-      mandatory: false
-    ami-streams:
-      remote: 'git@github.com:Independent-AI-Labs/AMI-STREAMS.git'
-      path: 'projects/AMI-STREAMS'
-      mandatory: false
-    ami-trading:
-      remote: 'git@github.com:Independent-AI-Labs/AMI-TRADING.git'
-      path: 'projects/AMI-TRADING'
-      mandatory: false
-    rust-trading:
-      remote: 'git@github.com:Independent-AI-Labs/RUST-TRADING.git'
-      path: 'projects/RUST-TRADING'
-      mandatory: false
-    zk-portal:
-      remote: 'git@github.com:Independent-AI-Labs/ZK-PORTAL.git'
-      path: 'projects/ZK-PORTAL'
-      mandatory: false
-    polymarket-tracker:
-      remote: 'git@github.com:Independent-AI-Labs/polymarket-insider-tracker.git'
-      path: 'projects/polymarket-insider-tracker'
-      mandatory: false
+# Workspace clone manifest lives in ami/config/workspace-clones.yaml
+# (moon.yml schema doesn't accept arbitrary top-level metadata fields).
+# That separate file is the single source of truth for "what repos
+# belong to the AMI workspace" — read by ami/scripts/bin/ami-bootstrap-repos.
 
 dependsOn:
   - 'ami-ci'

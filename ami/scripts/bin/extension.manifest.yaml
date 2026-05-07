@@ -80,20 +80,11 @@ extensions:
       - resume
     bannerPriority: 50
 
-  - name: ami-update
-    binary: ami/scripts/bin/ami-update
-    description: "Update AMI Orchestrator components (default: SYSTEM only)"
-    category: core
-    features:
-      - default (SYSTEM only)
-      - --projects
-      - --all
-      - --ci
-    bannerPriority: 55
-    check:
-      command: ["{binary}", "--help"]
-      healthExpect: "ami-update"
-      timeout: 5
+  # ami-update extension removed: the umbrella orchestration now lives
+  # in moon via `moon run :update` (walks every project's update task
+  # in topological order through ^:update). Use `make update` from the
+  # workspace root or `moon run :update` directly. See
+  # `kind-weaving-kahan` plan / MOON-MIGRATION-PLAN.md v0.2.0 Phase 6.
 
   - name: ami-welcome
     binary: ami/scripts/bin/ami-welcome

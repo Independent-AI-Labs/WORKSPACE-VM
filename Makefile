@@ -291,12 +291,12 @@ _dead-code-impl:
 	.boot-linux/bin/uv run python -m ami.ci.check_dead_code
 
 .PHONY: update
-update: ## Interactive update of all repos (SYSTEM then APPS)
-	@bash ami/scripts/bin/ami-update
+update: ## Update workspace via moon — walks every project topologically (^:update)
+	@moon run :update
 
 .PHONY: update-ci
-update-ci: ## Non-interactive update (uses update-defaults.yaml)
-	@bash ami/scripts/bin/ami-update --ci --defaults ami/config/update-defaults.yaml
+update-ci: ## Update via moon (non-interactive — same as `make update`, alias kept for CI)
+	@moon run :update
 
 .PHONY: update-deps
 update-deps: ## Update Python dependencies only

@@ -39,7 +39,7 @@ if [[ "$AMI_ROOT" == "/" ]]; then
     exit 1
 fi
 
-ROOT_MOON="$AMI_ROOT/moon.yml"
+CLONES_YAML="$AMI_ROOT/ami/config/workspace-clones.yaml"
 PYTHON="$AMI_ROOT/.boot-linux/bin/python"
 if [[ ! -x "$PYTHON" ]]; then
     # Fall back to system python3 if .boot-linux isn't there yet (very-cold-start).
@@ -83,17 +83,15 @@ done
 
 # --- read workspaceClones via python ---
 # Output one line per entry: id|remote|path|mandatory|minTag
-ENTRIES=$("$PYTHON" - "$ROOT_MOON" <<'PY'
+ENTRIES=$("$PYTHON" - "$CLONES_YAML" <<'PY'
 import sys
-import re
 
-moon_yml = sys.argv[1]
-with open(moon_yml) as f:
+clones_yaml = sys.argv[1]
+with open(clones_yaml) as f:
     text = f.read()
 
-# Minimal YAML reader scoped to metadata.workspaceClones.<id>.<key>: 'value'.
+# Minimal YAML reader scoped to workspaceClones.<id>.<key>: 'value'.
 # Avoids requiring PyYAML at this bootstrap stage.
-in_meta = False
 in_clones = False
 current_id = None
 entries = {}
@@ -106,22 +104,16 @@ for raw in text.splitlines():
     stripped = line.strip()
 
     if indent == 0:
-        in_meta = (stripped == "metadata:")
-        in_clones = False
-        current_id = None
-        continue
-    if in_meta and indent == 2:
         in_clones = (stripped == "workspaceClones:")
         current_id = None
         continue
-    if in_clones and indent == 4 and stripped.endswith(":"):
+    if in_clones and indent == 2 and stripped.endswith(":"):
         current_id = stripped[:-1].strip()
         entries[current_id] = {}
         continue
-    if in_clones and indent == 6 and current_id and ":" in stripped:
+    if in_clones and indent == 4 and current_id and ":" in stripped:
         key, _, value = stripped.partition(":")
         value = value.strip()
-        # Strip surrounding quotes
         if (value.startswith("'") and value.endswith("'")) or (value.startswith('"') and value.endswith('"')):
             value = value[1:-1]
         entries[current_id][key.strip()] = value
@@ -136,7 +128,7 @@ PY
 )
 
 if [[ -z "$ENTRIES" ]]; then
-    echo "ERROR: no workspaceClones entries found in $ROOT_MOON" >&2
+    echo "ERROR: no workspaceClones entries found in $CLONES_YAML" >&2
     exit 1
 fi
 
