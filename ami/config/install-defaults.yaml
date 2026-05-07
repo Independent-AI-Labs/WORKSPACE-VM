@@ -22,7 +22,6 @@ components:
   # Development Tools
   - gh
   - go
-  - moon
 
   # Security & Networking
   - cloudflared
