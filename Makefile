@@ -212,6 +212,46 @@ install-hooks: ensure-ci ## Install native git hooks (no pre-commit dependency)
 	@bash projects/AMI-CI/scripts/cleanup-precommit 2>/dev/null || true
 	bash projects/AMI-CI/scripts/generate-hooks
 
+.PHONY: install-hooks-recursive
+install-hooks-recursive: ensure-ci ## Install hooks in workspace + every nested .git under projects/
+	@echo "🔗 Installing hooks in workspace root..."
+	@bash projects/AMI-CI/scripts/cleanup-precommit 2>/dev/null || true
+	@bash projects/AMI-CI/scripts/generate-hooks
+	@bash projects/AMI-CI/scripts/walk-projects | while IFS= read -r repo; do \
+		echo ""; \
+		echo "🔗 Installing hooks in $$repo..."; \
+		( cd "$$repo" && bash $(CURDIR)/projects/AMI-CI/scripts/cleanup-precommit 2>/dev/null || true; \
+		  bash $(CURDIR)/projects/AMI-CI/scripts/generate-hooks ) || \
+		  echo "⚠️  Hook install failed in $$repo (skipping)"; \
+	done
+
+.PHONY: scaffold-recursive
+scaffold-recursive: ensure-ci ## Scaffold quality_exceptions.yaml in every strict-tier repo missing it
+	@bash projects/AMI-CI/scripts/walk-projects | while IFS= read -r repo; do \
+		_tier=$$(bash -c "source projects/AMI-CI/lib/checks_quality.sh && \
+			ci_resolve_tier '$$repo' \
+			'$(CURDIR)/ami/config/project_enforcement.yaml'" 2>/dev/null || echo strict); \
+		if [ "$$_tier" != "strict" ]; then continue; fi; \
+		if [ ! -f "$$repo/quality_exceptions.yaml" ]; then \
+			pname=$$(basename "$$repo"); \
+			sed "s/__PROJECT_NAME__/$$pname/" \
+				projects/AMI-CI/templates/quality_exceptions.template.yaml \
+				> "$$repo/quality_exceptions.yaml"; \
+			echo "📝 Scaffolded $$repo/quality_exceptions.yaml (tier=strict)"; \
+		fi; \
+	done
+
+.PHONY: check-compliance-recursive
+check-compliance-recursive: ensure-ci ## Audit every nested repo for AMI-CI contract compliance
+	@_failed=0; \
+	bash projects/AMI-CI/scripts/walk-projects | while IFS= read -r repo; do \
+		echo ""; \
+		echo "═══ Compliance: $$repo ═══"; \
+		bash -c "source projects/AMI-CI/lib/checks.sh && ci_compliance_score '$$repo'" || \
+			_failed=$$((_failed + 1)); \
+	done; \
+	[ $$_failed -eq 0 ]
+
 # --- Quality & Test ---
 
 .PHONY: test
