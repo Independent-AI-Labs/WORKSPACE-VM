@@ -24,5 +24,44 @@ dependsOn:
   - 'ami-dataops'
 
 tasks:
+  lint:
+    command: 'make lint'
+    inputs:
+      - 'ami/**/*.py'
+      - 'tests/**/*.py'
+      - 'scripts/**/*'
+      - 'pyproject.toml'
+      - 'res/config/ruff.toml'
+      - 'Makefile'
+  type-check:
+    command: 'make type-check'
+    inputs:
+      - 'ami/**/*.py'
+      - 'pyproject.toml'
+      - 'res/config/mypy.toml'
+      - 'Makefile'
+  test:
+    command: 'make test'
+    inputs:
+      - 'ami/**/*.py'
+      - 'tests/**/*.py'
+      - 'scripts/**/*'
+      - 'res/**/*'
+      - 'pyproject.toml'
+      - 'Makefile'
+  dead-code:
+    command: 'make dead-code'
+    inputs:
+      - 'ami/**/*.py'
+      - 'pyproject.toml'
+      - 'Makefile'
+  check:
+    command: 'make check'
+    deps:
+      - '~:lint'
+      - '~:type-check'
+      - '~:test'
   ci:
     command: 'make check'
+    deps:
+      - '~:check'
