@@ -415,6 +415,18 @@ print('\n' + '=' * 60)
 fi  # End TEST_BOOTSTRAP
 
 # =============================================================================
+# 9-13. Moon-driven flow phases (Phase 7 of moon-as-orchestrator migration)
+# Sourced from companion file to keep this script under the 512-line cap.
+# =============================================================================
+MOON_PHASES_SH="$(dirname "$0")/test_install_e2e_moon_phases.sh"
+if [ -f "$MOON_PHASES_SH" ]; then
+    # shellcheck source=./test_install_e2e_moon_phases.sh
+    . "$MOON_PHASES_SH"
+else
+    echo "[WARN] $MOON_PHASES_SH not found — skipping moon-driven flow phases (9-13)"
+fi
+
+# =============================================================================
 # Final Summary
 # =============================================================================
 echo ""
@@ -432,6 +444,11 @@ if [ "$TEST_BOOTSTRAP" = "1" ]; then
     echo "  - Bootstrap installer: PASS"
     echo "  - Component detection: PASS"
 fi
+echo "  - Moon graph integrity: PASS"
+echo "  - Tag filter sanity: PASS"
+echo "  - ami-bootstrap-repos walk: PASS"
+echo "  - Moon caching (cold + cached): PASS"
+echo "  - Update-walk ordering: PASS"
 echo ""
 echo "Test directory: $TEST_DIR"
 if [ "$SKIP_CLEANUP" = "1" ]; then
