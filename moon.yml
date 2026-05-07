@@ -15,6 +15,10 @@ project:
 language: 'python'
 layer: 'unknown'
 
+tags:
+  - 'umbrella'
+  - 'python'
+
 dependsOn:
   - 'ami-ci'
   - 'ami-dataops'
