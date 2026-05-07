@@ -1,6 +1,6 @@
 extensions:
   - name: ami-agent
-    binary: ami-agent
+    binary: ami/scripts/bin/ami-agent
     description: AMI Orchestrator main entry point
     category: core
     features:
