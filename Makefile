@@ -62,27 +62,15 @@ install-ci: ## Non-interactive install for CI (uses install-defaults.yaml)
 	$(MAKE) install-shell && \
 	echo "✨ Installation complete (CI mode)!"
 
+.PHONY: ensure-repos
+ensure-repos: ## Clone every workspace repo per moon.yml metadata.workspaceClones (mandatory + opt-in via --include)
+	@bash ami/scripts/bin/ami-bootstrap-repos --pull
+
 .PHONY: ensure-ci
-ensure-ci: ## Clone AMI-CI if missing, pull latest if present
-	@if [ ! -f "projects/AMI-CI/lib/checks.sh" ]; then \
-		echo "📦 AMI-CI not found — cloning..."; \
-		git clone git@github.com:Independent-AI-Labs/AMI-CI.git projects/AMI-CI; \
-		echo "✅ AMI-CI cloned to projects/AMI-CI"; \
-	else \
-		echo "🔄 Pulling latest AMI-CI..."; \
-		cd projects/AMI-CI && git pull --ff-only 2>/dev/null || echo "⚠️  AMI-CI pull failed (offline or dirty)"; \
-	fi
+ensure-ci: ensure-repos  ## Compatibility alias for ensure-repos (data-driven via moon.yml)
 
 .PHONY: ensure-dataops
-ensure-dataops: ## Clone AMI-DATAOPS if missing, pull latest if present
-	@if [ ! -f "projects/AMI-DATAOPS/pyproject.toml" ]; then \
-		echo "📦 AMI-DATAOPS not found — cloning..."; \
-		git clone git@github.com:Independent-AI-Labs/AMI-DATAOPS.git projects/AMI-DATAOPS; \
-		echo "✅ AMI-DATAOPS cloned to projects/AMI-DATAOPS"; \
-	else \
-		echo "🔄 Pulling latest AMI-DATAOPS..."; \
-		cd projects/AMI-DATAOPS && git pull --ff-only 2>/dev/null || echo "⚠️  AMI-DATAOPS pull failed (offline or dirty)"; \
-	fi
+ensure-dataops: ensure-repos  ## Compatibility alias for ensure-repos (data-driven via moon.yml)
 
 .PHONY: sync-package
 sync-package: bootstrap-core ensure-ci ensure-dataops ## Sync package dependencies via uv
