@@ -186,5 +186,152 @@ if [[ "$cmd" == "merge" ]] && _is_protected_branch; then
     fi
 fi
 
+# =============================================================================
+# 9. Contract enforcement (commit/push only, in-scope projects only)
+#
+# On every commit/push inside an AMI workspace project, verify the
+# AMI-CI auto-enforcement contract:
+#   - .pre-commit-config.yaml present at repo root
+#   - native git hooks installed and AMI-CI generated
+#   - quality_exceptions.yaml present (strict tier only)
+#   - Makefile includes lib/makefile_contract.mk
+#
+# Tier resolution: project_enforcement.yaml in ami/config/ (live) or
+# the AMI-CI template (fallback). Per-machine enforcement_mode in the
+# same file: 'warn' = yellow advisory, 'enforce' = hard block.
+# Default mode 'warn' for fail-safe rollout.
+#
+# Performance: this block runs ONLY for `git commit` and `git push`.
+# Every other invocation (status, log, diff, fetch, pull, clone)
+# short-circuits at the cmd test below. <5ms cost per commit.
+# =============================================================================
+if [[ "$cmd" == "commit" || "$cmd" == "push" ]]; then
+    _wsroot=""
+    _toplevel="$("$GIT_REAL" rev-parse --show-toplevel 2>/dev/null || true)"
+    if [[ -n "$_toplevel" ]]; then
+        _cur="$_toplevel"
+        while [[ "$_cur" != "/" ]]; do
+            if [[ -d "$_cur/.boot-linux" && -d "$_cur/projects/AMI-CI" \
+                  && -f "$_cur/ami/scripts/utils/git-guard" ]]; then
+                _wsroot="$_cur"; break
+            fi
+            _cur="$(dirname "$_cur")"
+        done
+    fi
+
+    if [[ -n "$_wsroot" && -n "$_toplevel" ]]; then
+        _ci_lib="$_wsroot/projects/AMI-CI/lib/checks_quality.sh"
+        if [[ -f "$_ci_lib" ]]; then
+            # shellcheck source=/dev/null
+            source "$_ci_lib"
+
+            _registry="$_wsroot/ami/config/project_enforcement.yaml"
+            [[ ! -f "$_registry" ]] && _registry=""
+
+            _rel="${_toplevel#"$_wsroot"/}"
+            [[ "$_rel" == "$_toplevel" ]] && _rel="."
+            _tier="$(ci_resolve_tier "$_rel" "$_registry" 2>/dev/null || echo strict)"
+            _mode="$(ci_resolve_enforcement_mode "$_registry" 2>/dev/null || echo warn)"
+
+            # vendored = passthrough; nothing to enforce.
+            if [[ "$_tier" != "vendored" ]]; then
+                _violations=()
+                # Resolve hooks dir (handles worktree gitdir-pointer).
+                _gd="$_toplevel/.git"
+                if [[ -f "$_gd" ]]; then
+                    _gd="$(sed -n 's/^gitdir:[[:space:]]*//p' "$_gd" 2>/dev/null || true)"
+                    [[ -n "$_gd" && "$_gd" != /* ]] && _gd="$_toplevel/$_gd"
+                fi
+                _hooks_dir="$_gd/hooks"
+
+                # G1: .pre-commit-config.yaml at repo root
+                if [[ ! -f "$_toplevel/.pre-commit-config.yaml" ]]; then
+                    _violations+=(".pre-commit-config.yaml missing at repo root — copy from projects/AMI-CI/.pre-commit-config.yaml or run: make install-hooks")
+                fi
+
+                # G2: pre-commit hook installed + AMI-CI generated
+                if [[ ! -x "$_hooks_dir/pre-commit" ]] || \
+                   ! head -5 "$_hooks_dir/pre-commit" 2>/dev/null | grep -q 'AUTO-GENERATED.*generate-hooks'; then
+                    _violations+=("pre-commit hook missing or not AMI-CI generated — run: make install-hooks")
+                fi
+
+                # G3: commit-msg hook (only enforced for commit, not push)
+                if [[ "$cmd" == "commit" ]]; then
+                    if [[ ! -x "$_hooks_dir/commit-msg" ]] || \
+                       ! head -5 "$_hooks_dir/commit-msg" 2>/dev/null | grep -q 'AUTO-GENERATED.*generate-hooks'; then
+                        _violations+=("commit-msg hook missing or not AMI-CI generated — run: make install-hooks")
+                    fi
+                fi
+
+                # G4: AMI-CI reachable in workspace
+                if [[ ! -f "$_wsroot/projects/AMI-CI/lib/checks.sh" ]]; then
+                    _violations+=("AMI-CI not present at $_wsroot/projects/AMI-CI — re-run: make install")
+                fi
+
+                # G5: quality_exceptions.yaml at repo root (strict only)
+                if [[ "$_tier" == "strict" && ! -f "$_toplevel/quality_exceptions.yaml" ]]; then
+                    _violations+=("quality_exceptions.yaml missing at repo root — copy projects/AMI-CI/templates/quality_exceptions.template.yaml")
+                fi
+
+                # G6: Makefile includes the AMI-CI contract (strict only)
+                if [[ "$_tier" == "strict" ]]; then
+                    if [[ ! -f "$_toplevel/Makefile" ]] || \
+                       ! grep -q 'lib/makefile_contract.mk\|AMI-CI/scripts' "$_toplevel/Makefile" 2>/dev/null; then
+                        _violations+=("Makefile not using AMI-CI contract — include projects/AMI-CI/lib/makefile_contract.mk")
+                    fi
+                fi
+
+                # P3 (push only, strict tier): pushed tree must contain
+                # .pre-commit-config.yaml. Catches "deleted config locally,
+                # commit slipped past, now pushing it" race.
+                if [[ "$cmd" == "push" && "$_tier" == "strict" ]]; then
+                    _skip_p3=0
+                    for _arg in "$@"; do
+                        case "$_arg" in
+                            --delete|:*|*:) _skip_p3=1 ;;
+                        esac
+                    done
+                    if [[ $_skip_p3 -eq 0 ]] && \
+                       ! "$GIT_REAL" cat-file -e HEAD:.pre-commit-config.yaml 2>/dev/null; then
+                        _violations+=("push tip's tree is missing .pre-commit-config.yaml — fix the deletion before pushing")
+                    fi
+                fi
+
+                if [[ ${#_violations[@]} -gt 0 ]]; then
+                    _summary="AMI-CI contract violation in $_rel (tier=$_tier)"
+                    if [[ "$_mode" == "enforce" ]]; then
+                        echo "" >&2
+                        echo "❌ BLOCKED: $_summary" >&2
+                        for _v in "${_violations[@]}"; do
+                            echo "  • $_v" >&2
+                        done
+                        echo "$_summary | cwd=$(pwd) | cmd=$cmd | violations=${#_violations[@]}" \
+                            >> "${HOME}/.ami-git-guard.log" 2>/dev/null || true
+                        exit 1
+                    else
+                        # warn mode: yellow advisory. Prefer /dev/tty so it
+                        # survives stdout/stderr redirection in interactive
+                        # use; fall back to stderr in non-tty contexts.
+                        # `[[ -w ]]` lies on `/dev/tty` (returns true but
+                        # opening fails), so probe by actually opening fd9.
+                        _warn_fd=/dev/stderr
+                        if (exec 9>/dev/tty) 2>/dev/null; then
+                            _warn_fd=/dev/tty
+                        fi
+                        {
+                            printf "\n\033[33m⚠ AMI-CI contract advisory (mode=warn, will block at enforce):\033[0m\n"
+                            printf "\033[33m  %s\033[0m\n" "$_summary"
+                            for _v in "${_violations[@]}"; do
+                                printf "\033[33m    • %s\033[0m\n" "$_v"
+                            done
+                            printf "\n"
+                        } > "$_warn_fd" 2>/dev/null || true
+                    fi
+                fi
+            fi
+        fi
+    fi
+fi
+
 # Safe - pass through to real git
 exec "$GIT_REAL" "$@"
