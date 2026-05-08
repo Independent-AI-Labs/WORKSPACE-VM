@@ -15,7 +15,7 @@
 
 ```bash
 git clone git@github.com:Independent-AI-Labs/AMI-AGENTS.git && cd AMI-AGENTS
-sudo make pre-req       # check + apt-install: make, curl, git, openssh, openssl, openvpn, tar, gzip
+sudo make pre-req       # check + apt-install: make, curl, git, openssh-client/server, openssl, openvpn, tar, gzip, dpkg
 make install            # bootstrap TUI: pick repos (step 1), pick components (step 2)
 ami-agent               # interactive AI session (alias gets registered in your shell rc)
 ami-agent "ship the polymarket fix"   # one-shot query
