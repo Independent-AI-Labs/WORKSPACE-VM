@@ -1,15 +1,16 @@
 """Unit tests for _load_workspace_repo_components helper.
 
-Exercises the workspaceClones YAML reader: missing file, malformed
-entries, mandatory/optional marker assignment, and detect_path mapping.
-Split out from test_bootstrap_components.py to keep that file under
-the 512-line cap.
+Exercises the workspaceClones YAML reader: missing file, malformed manifest,
+mandatory/optional marker assignment, and detect_path mapping.
 """
 
 from __future__ import annotations
 
 from pathlib import Path
 from unittest.mock import patch
+
+import pytest
+from pydantic import ValidationError
 
 from ami.scripts import bootstrap_component_defs as defs
 
@@ -27,21 +28,17 @@ class TestLoadWorkspaceRepoComponents:
         with patch.object(defs, "WORKSPACE_CLONES_YAML", bad):
             assert defs._load_workspace_repo_components() == []
 
-    def test_skips_non_dict_entries(self, tmp_path: Path) -> None:
+    def test_invalid_entry_raises_validation_error(self, tmp_path: Path) -> None:
+        """A non-dict entry under workspaceClones is a manifest bug — fail
+        loudly so the user can fix their YAML rather than silently dropping
+        a repo from the workspace topology."""
         f = tmp_path / "clones.yaml"
-        f.write_text(
-            "workspaceClones:\n"
-            "  garbage: 'not-a-dict'\n"
-            "  good:\n"
-            "    remote: 'git@example.com:foo.git'\n"
-            "    path: 'projects/FOO'\n"
-            "    mandatory: false\n"
-        )
-        with patch.object(defs, "WORKSPACE_CLONES_YAML", f):
-            comps = defs._load_workspace_repo_components()
-        names = [c.name for c in comps]
-        assert "good" in names
-        assert "garbage" not in names
+        f.write_text("workspaceClones:\n  garbage: 'not-a-dict'\n")
+        with (
+            patch.object(defs, "WORKSPACE_CLONES_YAML", f),
+            pytest.raises(ValidationError),
+        ):
+            defs._load_workspace_repo_components()
 
     def test_marks_mandatory_vs_optional(self, tmp_path: Path) -> None:
         f = tmp_path / "clones.yaml"

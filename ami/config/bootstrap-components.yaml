@@ -1,0 +1,331 @@
+# Bootstrap component manifest — loaded by ami/scripts/bootstrap_component_defs.py.
+#
+# Single source of truth for "what bootstrap components exist." Edit here, not
+# in Python. Each entry maps 1:1 to a `Component` model (see
+# bootstrap_components.py). Group ordering controls TUI display order.
+#
+# Component fields:
+#   name           — stable identifier (used by install-defaults.yaml refs).
+#   label          — short human label shown in TUI.
+#   description    — one-line description shown next to the label.
+#   type           — script | uv | workspace_repo. Determines installer path.
+#   script         — bash script under ami/scripts/bootstrap/ (script type only).
+#   detect_path    — relative path; existence => installed.
+#   version_cmd    — argv to invoke for version detection (relative to repo root).
+#   version_pattern— regex with one capture group; first match wins.
+#   detect_cmd     — alternative argv when detect_path is unreliable.
+#
+# Workspace repos are NOT listed here — they live in workspace-clones.yaml and
+# are loaded into a separate group ("Workspace Repositories") for the
+# repo-selection step of the boot installer.
+
+groups:
+  # Group ordering = TUI display order. Workspace Repositories is appended at
+  # runtime by the loader so it always sits at the bottom of the components
+  # multi-select (and is also surfaced as a separate first-step dialog).
+  - 'Core Dependencies'
+  - 'AI Coding Assistants'
+  - 'Containers & Orchestration'
+  - 'Development Tools'
+  - 'Security & Networking'
+  - 'Document Processing'
+  - 'Browser Automation'
+  - 'Matrix & Communication'
+  - 'Miscellaneous'
+
+components:
+  # =========================================================================
+  # Core Dependencies — installed FIRST, before everything else.
+  # System dependencies (git, openssh, openssl, openvpn) are checked by
+  # pre-req.sh and installed via `sudo make pre-req` — they are NOT bootstrap
+  # components.
+  # =========================================================================
+  - name: uv
+    label: 'uv'
+    description: 'Python package manager'
+    type: script
+    group: 'Core Dependencies'
+    script: 'bootstrap_uv.sh'
+    detect_path: '.boot-linux/bin/uv'
+    version_cmd: ['.boot-linux/bin/uv', '--version']
+    version_pattern: 'uv (\d+\.\d+\.\d+)'
+
+  - name: python
+    label: 'Python'
+    description: 'Python venv for .boot-linux'
+    type: script
+    group: 'Core Dependencies'
+    script: 'bootstrap_python.sh'
+    detect_path: '.boot-linux/python-env/bin/python'
+    version_cmd: ['.boot-linux/bin/python', '--version']
+    version_pattern: 'Python (\d+\.\d+\.\d+)'
+
+  - name: gcc
+    label: 'GCC/musl'
+    description: 'C compiler (static toolchain)'
+    type: script
+    group: 'Core Dependencies'
+    script: 'bootstrap_gcc.sh'
+    detect_path: '.boot-linux/bin/gcc'
+    version_cmd: ['.boot-linux/bin/gcc', '--version']
+    version_pattern: 'gcc.*?(\d+\.\d+\.\d+)'
+
+  - name: git_xet
+    label: 'Git Xet'
+    description: 'HuggingFace large file storage'
+    type: script
+    group: 'Core Dependencies'
+    script: 'bootstrap_git_xet.sh'
+    detect_path: '.boot-linux/bin/git-lfs'
+    version_cmd: ['.boot-linux/bin/git-lfs', '--version']
+    version_pattern: 'git-lfs/(\d+\.\d+\.\d+)'
+
+  - name: moon
+    label: 'moon (workspace)'
+    description: 'Workspace task runner and dep-graph validator (moonrepo)'
+    type: script
+    group: 'Core Dependencies'
+    script: 'bootstrap_moon.sh'
+    detect_path: '.boot-linux/bin/moon'
+    version_cmd: ['.boot-linux/bin/moon', '--version']
+    version_pattern: 'moon (\d+\.\d+\.\d+)'
+
+  # =========================================================================
+  # AI Coding Assistants — npm-installed agent CLIs. The package version is
+  # resolved at load time from scripts/package.json (single source of truth
+  # for the npm dependency set).
+  # =========================================================================
+  - name: claude
+    label: 'Claude Code'
+    description: 'Anthropic AI assistant'
+    type: script
+    group: 'AI Coding Assistants'
+    script: 'bootstrap_agents.sh'
+    package_ref: '@anthropic-ai/claude-code'
+    detect_path: '.venv/node_modules/@anthropic-ai/claude-code'
+    version_cmd: ['.venv/node_modules/.bin/claude', '--version']
+    version_pattern: '(\d+\.\d+\.\d+)'
+
+  - name: gemini
+    label: 'Gemini CLI'
+    description: 'Google AI assistant'
+    type: script
+    group: 'AI Coding Assistants'
+    script: 'bootstrap_agents.sh'
+    package_ref: '@google/gemini-cli'
+    detect_path: '.venv/node_modules/@google/gemini-cli'
+    version_cmd: ['.venv/node_modules/.bin/gemini', '--version']
+    version_pattern: '(\d+\.\d+\.\d+)'
+
+  - name: qwen
+    label: 'Qwen Code'
+    description: 'Alibaba AI assistant'
+    type: script
+    group: 'AI Coding Assistants'
+    script: 'bootstrap_agents.sh'
+    package_ref: '@qwen-code/qwen-code'
+    detect_path: '.venv/node_modules/@qwen-code/qwen-code'
+    version_cmd: ['.venv/node_modules/.bin/qwen', '--version']
+    version_pattern: '(\d+\.\d+\.\d+)'
+
+  # =========================================================================
+  # Containers & Orchestration
+  # =========================================================================
+  - name: podman
+    label: 'Podman'
+    description: 'Container runtime'
+    type: script
+    group: 'Containers & Orchestration'
+    script: 'bootstrap_podman.sh'
+    detect_path: '.boot-linux/bin/podman'
+    version_cmd: ['.boot-linux/bin/podman', '--version']
+    version_pattern: 'podman version (\d+\.\d+\.\d+)'
+
+  - name: kubernetes
+    label: 'Kubernetes'
+    description: 'k8s tools (kubectl, helm)'
+    type: script
+    group: 'Containers & Orchestration'
+    script: 'bootstrap_kubernetes.sh'
+    detect_path: '.boot-linux/bin/kubectl'
+    version_cmd: ['.boot-linux/bin/kubectl', 'version', '--client', '-o', 'json']
+    version_pattern: '"gitVersion":\s*"v?(\d+\.\d+\.\d+)"'
+
+  # =========================================================================
+  # Development Tools
+  # =========================================================================
+  - name: go
+    label: 'Go'
+    description: 'Go language'
+    type: script
+    group: 'Development Tools'
+    script: 'bootstrap_go.sh'
+    detect_path: '.boot-linux/go/bin/go'
+    version_cmd: ['.boot-linux/go/bin/go', 'version']
+    version_pattern: 'go(\d+\.\d+\.\d+)'
+
+  - name: rust
+    label: 'Rust'
+    description: 'Rust language & Cargo'
+    type: script
+    group: 'Development Tools'
+    script: 'bootstrap_rust.sh'
+    detect_path: '.boot-linux/rust/bin/cargo'
+    version_cmd: ['.boot-linux/rust/bin/rustc', '--version']
+    version_pattern: 'rustc (\d+\.\d+\.\d+)'
+
+  - name: sd
+    label: 'sd'
+    description: 'sed alternative'
+    type: script
+    group: 'Development Tools'
+    script: 'bootstrap_sd.sh'
+    detect_path: '.boot-linux/bin/sd'
+    version_cmd: ['.boot-linux/bin/sd', '--version']
+    version_pattern: 'sd (\d+\.\d+\.\d+)'
+
+  - name: gcloud
+    label: 'Google Cloud CLI'
+    description: 'Google Cloud SDK (gcloud)'
+    type: script
+    group: 'Development Tools'
+    script: 'bootstrap_gcloud.sh'
+    detect_path: '.boot-linux/bin/ami-gcloud'
+    version_cmd: ['.gcloud/google-cloud-sdk/bin/gcloud', 'version', '--format=value(Google Cloud SDK)']
+    version_pattern: '(\d+\.\d+\.\d+)'
+
+  - name: gh
+    label: 'GitHub CLI'
+    description: 'GitHub API client'
+    type: script
+    group: 'Development Tools'
+    script: 'bootstrap_gh.sh'
+    detect_path: '.boot-linux/bin/gh'
+    version_cmd: ['.boot-linux/bin/gh', '--version']
+    version_pattern: 'gh version (\d+\.\d+\.\d+)'
+
+  - name: huggingface
+    label: 'HuggingFace CLI'
+    description: 'HuggingFace Hub client'
+    type: script
+    group: 'Development Tools'
+    script: 'bootstrap_hf.sh'
+    detect_path: '.boot-linux/python-env/bin/hf'
+    version_cmd: ['.boot-linux/python-env/bin/hf', 'version']
+    version_pattern: '(\d+\.\d+\.\d+)'
+
+  # =========================================================================
+  # Security & Networking
+  # Note: openssh/openssl/openvpn are system deps checked by pre-req.sh.
+  # =========================================================================
+  - name: cloudflared
+    label: 'Cloudflared'
+    description: 'CF tunnel client'
+    type: script
+    group: 'Security & Networking'
+    script: 'bootstrap_cloudflared.sh'
+    detect_path: '.boot-linux/bin/cloudflared'
+    version_cmd: ['.boot-linux/bin/cloudflared', '--version']
+    version_pattern: '(\d+\.\d+\.\d+)'
+
+  # =========================================================================
+  # Document Processing
+  # =========================================================================
+  - name: pandoc
+    label: 'Pandoc'
+    description: 'Document converter'
+    type: script
+    group: 'Document Processing'
+    script: 'bootstrap_pandoc.sh'
+    detect_path: '.boot-linux/bin/pandoc'
+    version_cmd: ['.boot-linux/bin/pandoc', '--version']
+    version_pattern: 'pandoc (\d+\.\d+\.\d+)'
+
+  - name: texlive
+    label: 'TeX Live'
+    description: 'LaTeX distribution'
+    type: script
+    group: 'Document Processing'
+    script: 'bootstrap_texlive.sh'
+    detect_path: '.boot-linux/texlive'
+    detect_cmd: ['.boot-linux/bin/pdflatex', '--version']
+    version_pattern: 'pdfTeX (\d+\.\d+)'
+
+  - name: pdfjam
+    label: 'PDFjam'
+    description: 'PDF manipulation'
+    type: script
+    group: 'Document Processing'
+    script: 'bootstrap_pdfjam.sh'
+    detect_path: '.boot-linux/bin/pdfjam'
+    version_cmd: ['.boot-linux/bin/pdfjam', '--version']
+    version_pattern: 'pdfjam (\d+\.\d+)'
+
+  - name: wkhtmltopdf
+    label: 'wkhtmltopdf'
+    description: 'HTML to PDF'
+    type: script
+    group: 'Document Processing'
+    script: 'bootstrap_wkhtmltopdf.sh'
+    detect_path: '.boot-linux/bin/wkhtmltopdf'
+    version_cmd: ['.boot-linux/bin/wkhtmltopdf', '--version']
+    version_pattern: 'wkhtmltopdf (\d+\.\d+\.\d+)'
+
+  # =========================================================================
+  # Browser Automation
+  # =========================================================================
+  - name: playwright
+    label: 'Playwright'
+    description: 'Browser automation (chromium + chrome)'
+    type: script
+    group: 'Browser Automation'
+    script: 'bootstrap_playwright.sh'
+    detect_path: '.boot-linux/playwright-browsers'
+    version_cmd: ['.venv/bin/playwright', '--version']
+    version_pattern: '(\d+\.\d+\.\d+)'
+
+  # =========================================================================
+  # Matrix & Communication
+  # =========================================================================
+  - name: matrix_commander
+    label: 'Matrix Cmdr'
+    description: 'Matrix CLI client'
+    type: script
+    group: 'Matrix & Communication'
+    script: 'bootstrap_matrix_commander.sh'
+    detect_path: '.boot-linux/python-env/bin/matrix-commander'
+    version_cmd: ['.boot-linux/python-env/bin/matrix-commander', '--version']
+    version_pattern: 'matrix-commander: (\d+\.\d+\.\d+)'
+
+  - name: synadm
+    label: 'Synadm'
+    description: 'Synapse admin CLI'
+    type: script
+    group: 'Matrix & Communication'
+    script: 'bootstrap_synadm.sh'
+    detect_path: '.boot-linux/bin/synadm'
+    version_cmd: ['.boot-linux/bin/synadm', '--version']
+    version_pattern: '(\d+\.\d+\.\d+)'
+
+  # =========================================================================
+  # Miscellaneous
+  # =========================================================================
+  - name: adb
+    label: 'ADB'
+    description: 'Android Debug Bridge'
+    type: script
+    group: 'Miscellaneous'
+    script: 'bootstrap_adb.sh'
+    detect_path: '.boot-linux/bin/adb'
+    version_cmd: ['.boot-linux/bin/adb', '--version']
+    version_pattern: 'Android Debug Bridge version (\d+\.\d+\.\d+)'
+
+  - name: ansible
+    label: 'Ansible'
+    description: 'IT automation'
+    type: script
+    group: 'Miscellaneous'
+    script: 'bootstrap_ansible.sh'
+    detect_path: '.boot-linux/python-env/bin/ansible'
+    version_cmd: ['.boot-linux/python-env/bin/ansible', '--version']
+    version_pattern: 'ansible.*?(\d+\.\d+\.\d+)'

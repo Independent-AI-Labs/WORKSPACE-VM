@@ -5,18 +5,10 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from ami.scripts.bootstrap_component_defs import (
-    AI_AGENTS,
     ALL_COMPONENTS,
-    BROWSER,
-    CONTAINERS,
-    CORE_DEPS,
-    DEV_TOOLS,
-    DOCUMENTS,
     GROUPS,
-    MATRIX,
-    MISC,
-    SECURITY,
     WORKSPACE_REPOS,
+    WORKSPACE_REPOS_GROUP,
     get_component_by_name,
     get_components_by_group,
 )
@@ -25,8 +17,6 @@ from ami.scripts.bootstrap_components import (
     ComponentStatus,
     ComponentType,
 )
-
-EXPECTED_GROUP_COUNT = 10
 
 
 class TestComponentType:
@@ -318,88 +308,43 @@ class TestGetComponentByName:
         assert comp is None
 
 
-class TestComponentLists:
-    """Tests for component list constants."""
+class TestYamlLoadedManifest:
+    """Tests that the YAML manifest loaded into ALL_COMPONENTS / GROUPS is
+    well-formed. Group names are derived from the manifest, not hardcoded
+    here — adding/removing groups in YAML must not require a test edit."""
 
-    def test_core_deps_not_empty(self) -> None:
-        """Test CORE_DEPS is not empty."""
-        assert len(CORE_DEPS) > 0
-        assert all(c.group == "Core Dependencies" for c in CORE_DEPS)
+    def test_groups_non_empty(self) -> None:
+        assert len(GROUPS) > 0
 
-    def test_ai_agents_not_empty(self) -> None:
-        """Test AI_AGENTS is not empty."""
-        assert len(AI_AGENTS) > 0
-        assert all(c.group == "AI Coding Assistants" for c in AI_AGENTS)
+    def test_workspace_repos_group_is_last(self) -> None:
+        """The dedicated Workspace Repositories group renders as the last
+        group so it can also be surfaced as a separate first-step dialog."""
+        assert GROUPS[-1] == WORKSPACE_REPOS_GROUP
 
-    def test_containers_not_empty(self) -> None:
-        """Test CONTAINERS is not empty."""
-        assert len(CONTAINERS) > 0
-        assert all(c.group == "Containers & Orchestration" for c in CONTAINERS)
+    def test_every_group_has_at_least_one_component(self) -> None:
+        for grouping in get_components_by_group():
+            assert len(grouping.components) > 0, (
+                f"group '{grouping.group}' has no components"
+            )
 
-    def test_dev_tools_not_empty(self) -> None:
-        """Test DEV_TOOLS is not empty."""
-        assert len(DEV_TOOLS) > 0
-        assert all(c.group == "Development Tools" for c in DEV_TOOLS)
+    def test_every_component_belongs_to_a_declared_group(self) -> None:
+        declared = set(GROUPS)
+        for comp in ALL_COMPONENTS:
+            assert comp.group in declared, (
+                f"component {comp.name} has undeclared group {comp.group!r}"
+            )
 
-    def test_security_not_empty(self) -> None:
-        """Test SECURITY is not empty."""
-        assert len(SECURITY) > 0
-        assert all(c.group == "Security & Networking" for c in SECURITY)
+    def test_get_components_by_group_partitions_all(self) -> None:
+        partitioned = sum(len(g.components) for g in get_components_by_group())
+        assert partitioned == len(ALL_COMPONENTS)
 
-    def test_documents_not_empty(self) -> None:
-        """Test DOCUMENTS is not empty."""
-        assert len(DOCUMENTS) > 0
-        assert all(c.group == "Document Processing" for c in DOCUMENTS)
-
-    def test_matrix_not_empty(self) -> None:
-        """Test MATRIX is not empty."""
-        assert len(MATRIX) > 0
-        assert all(c.group == "Matrix & Communication" for c in MATRIX)
-
-    def test_misc_not_empty(self) -> None:
-        """Test MISC is not empty."""
-        assert len(MISC) > 0
-        assert all(c.group == "Miscellaneous" for c in MISC)
-
-    def test_all_components_has_all(self) -> None:
-        """Test ALL_COMPONENTS contains all components."""
-        total = (
-            len(CORE_DEPS)
-            + len(AI_AGENTS)
-            + len(CONTAINERS)
-            + len(DEV_TOOLS)
-            + len(SECURITY)
-            + len(DOCUMENTS)
-            + len(BROWSER)
-            + len(MATRIX)
-            + len(MISC)
-            + len(WORKSPACE_REPOS)
+    def test_workspace_repos_subset_lands_in_workspace_group(self) -> None:
+        ws_group = next(
+            g for g in get_components_by_group() if g.group == WORKSPACE_REPOS_GROUP
         )
-        assert len(ALL_COMPONENTS) == total
-
-
-class TestGroups:
-    """Tests for GROUPS constant."""
-
-    def test_groups_not_empty(self) -> None:
-        """Test GROUPS is not empty."""
-        assert len(GROUPS) == EXPECTED_GROUP_COUNT
-
-    def test_groups_contains_expected(self) -> None:
-        """Test GROUPS contains expected groups."""
-        expected = [
-            "Core Dependencies",
-            "AI Coding Assistants",
-            "Containers & Orchestration",
-            "Development Tools",
-            "Security & Networking",
-            "Document Processing",
-            "Browser Automation",
-            "Matrix & Communication",
-            "Miscellaneous",
-            "Workspace Repositories",
-        ]
-        assert expected == GROUPS
+        assert {c.name for c in ws_group.components} == {
+            c.name for c in WORKSPACE_REPOS
+        }
 
 
 class TestComponentVersionParsing:

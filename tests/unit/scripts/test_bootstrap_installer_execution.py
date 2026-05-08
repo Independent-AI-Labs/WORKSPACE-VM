@@ -144,25 +144,35 @@ class TestMain:
         captured = capsys.readouterr()
         assert "cancelled" in captured.out
 
-    @patch("sys.argv", ["bootstrap_installer.py"])
-    @patch("ami.scripts.bootstrap_installer._dialogs.multiselect")
-    @patch("ami.scripts.bootstrap_installer.build_menu_items")
-    @patch("ami.scripts.bootstrap_installer.scan_components")
-    @patch("sys.stdin")
-    def test_exits_when_no_selection(
-        self, mock_stdin, mock_scan, mock_build, mock_multi, capsys
-    ) -> None:
-        """Test exits when user selects nothing."""
+    def test_exits_when_no_selection(self, capsys) -> None:
+        """Test exits when user selects nothing in either step."""
+        mock_stdin = MagicMock()
         mock_stdin.isatty.return_value = True
-        mock_scan.return_value = {}
-        mock_build.return_value = MenuBuildResult([], set(), set())
-        mock_multi.return_value = []
 
-        result = main()
+        with (
+            patch("sys.argv", ["bootstrap_installer.py"]),
+            patch("sys.stdin", mock_stdin),
+            patch(
+                "ami.scripts.bootstrap_installer.scan_components",
+                return_value={},
+            ),
+            patch(
+                "ami.scripts.bootstrap_installer.build_menu_items",
+                return_value=MenuBuildResult([], set(), set()),
+            ),
+            patch(
+                "ami.scripts.bootstrap_installer.select_workspace_repos",
+                return_value=[],
+            ),
+            patch(
+                "ami.scripts.bootstrap_installer._dialogs.multiselect",
+                return_value=[],
+            ),
+        ):
+            result = main()
 
         assert result == 0
-        captured = capsys.readouterr()
-        assert "No components selected" in captured.out
+        assert "Nothing selected" in capsys.readouterr().out
 
     @patch("sys.argv", ["bootstrap_installer.py"])
     @patch("ami.scripts.bootstrap_installer._dialogs.multiselect")

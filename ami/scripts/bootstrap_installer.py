@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import argparse
 import os
-import re
 import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, NamedTuple, cast
@@ -40,24 +39,24 @@ import ami.scripts.bootstrap_install as _bootstrap_install
 from ami.cli_components import dialogs as _dialogs
 from ami.cli_components import menu_selector as _menu
 from ami.cli_components.selection_dialog import DialogItem
-from ami.cli_components.text_input_utils import Colors
+from ami.scripts.bootstrap_installer_ui import (
+    BANNER,
+    CYAN,
+    DIM,
+    GREEN,
+    RED,
+    RESET,
+    YELLOW,
+    print_progress,
+    print_section,
+    print_status,
+    restore_terminal,
+)
 from ami.types.results import NamedComponentStatus
-from ami.utils.banner import generate_banner_lines
 
 if TYPE_CHECKING:
     from ami.cli_components.menu_selector import MenuItem
     from ami.scripts.bootstrap_components import Component
-
-# =============================================================================
-# ANSI Colors & Styles
-# =============================================================================
-CYAN = Colors.CYAN
-GREEN = Colors.GREEN
-YELLOW = Colors.YELLOW
-RED = Colors.RED
-BOLD = Colors.BOLD
-DIM = "\033[2m"
-RESET = Colors.RESET
 
 
 class MenuBuildResult(NamedTuple):
@@ -73,68 +72,6 @@ class InstallationResult(NamedTuple):
 
     success_count: int
     failed_labels: list[str]
-
-
-# =============================================================================
-# ASCII Art & Banners
-# =============================================================================
-
-_ART = generate_banner_lines()
-
-# Box inner width (between ║ characters) — sized to fit the art
-_BOX_WIDTH = max(64, max(len(line) for line in _ART) + 4)
-
-
-def _visible_width(s: str) -> int:
-    """Calculate visible width excluding ANSI escape codes."""
-    ansi_escape = re.compile(r"\x1b\[[0-9;]*m")
-    return len(ansi_escape.sub("", s))
-
-
-def _pad_to_width(content: str, total_width: int) -> str:
-    """Pad content to total visible width."""
-    visible = _visible_width(content)
-    padding = total_width - visible
-    return content + " " * max(0, padding)
-
-
-def _box_line(content: str) -> str:
-    """Create a box line with proper padding for visible width."""
-    return f"║{_pad_to_width(content, _BOX_WIDTH)}║"
-
-
-_BANNER_LINES = [
-    f"{CYAN}╔{'═' * _BOX_WIDTH}╗",
-    _box_line(""),
-    *[_box_line(f" {BOLD}{line}{RESET}{CYAN}") for line in _ART],
-    _box_line(""),
-    _box_line(f" {YELLOW}Bootstrap Component Installer{RESET}{CYAN}"),
-    _box_line(f" {DIM}Select components to install{RESET}{CYAN}"),
-    _box_line(""),
-    f"╚{'═' * _BOX_WIDTH}╝{RESET}",
-]
-BANNER = "\n".join(_BANNER_LINES)
-
-
-def print_section(title: str) -> None:
-    """Print a section header."""
-    print(f"\n{CYAN}┌{'─' * 58}┐{RESET}")
-    print(f"{CYAN}│{RESET} {BOLD}{title}{RESET}{' ' * (57 - len(title))}{CYAN}│{RESET}")
-    print(f"{CYAN}└{'─' * 58}┘{RESET}")
-
-
-def print_status(icon: str, message: str, color: str = RESET) -> None:
-    """Print a status message with icon."""
-    print(f"  {color}{icon}{RESET} {message}")
-
-
-def print_progress(current: int, total: int, label: str) -> None:
-    """Print progress indicator."""
-    bar_width = 30
-    filled = int(bar_width * current / total)
-    bar = f"{'█' * filled}{'░' * (bar_width - filled)}"
-    print(f"\n{CYAN}[{bar}]{RESET} {current}/{total}")
-    print(f"{BOLD}  ► {label}{RESET}")
 
 
 def _find_status_by_name(
@@ -206,6 +143,9 @@ def build_menu_items(
 ) -> MenuBuildResult:
     """Build menu items with status information.
 
+    Workspace repos are NOT included here — they have a dedicated first-step
+    dialog (`select_workspace_repos`). This dialog is for tools/components only.
+
     Returns:
         MenuBuildResult with menu_items, preselected_ids, and skippable_ids
     """
@@ -217,6 +157,8 @@ def build_menu_items(
 
     for group in groups:
         if not group.components:
+            continue
+        if group.group == _bootstrap_defs.WORKSPACE_REPOS_GROUP:
             continue
 
         # Core Dependencies are mandatory (disabled = locked)
@@ -271,6 +213,72 @@ def _extract_components(selected: list[MenuItem[Component]]) -> list[Component]:
     # MenuItem.value is T | str (uses id if value was None)
     # We know our values are Component instances, so filter non-strings
     return [item.value for item in selected if not isinstance(item.value, str)]
+
+
+def _is_mandatory_repo(comp: Component) -> bool:
+    """Mandatory workspace-repo entries are tagged in their description."""
+    return comp.description.startswith("[mandatory]")
+
+
+def select_workspace_repos(
+    statuses: list[NamedComponentStatus],
+) -> list[Component]:
+    """Step 1 of the TUI — dedicated workspace-repo selection.
+
+    Mandatory entries (ami-ci, ami-dataops) render locked-on so the user sees
+    the full workspace topology and can't deselect them. Optional entries
+    opt-in via checkbox. Already-cloned repos are marked skippable.
+    """
+    repos = list(_bootstrap_defs.WORKSPACE_REPOS)
+    if not repos:
+        return []
+
+    print_section("Step 1 of 2 — Select Workspace Repositories")
+    print(
+        f"  {DIM}Mandatory repos are pre-selected and locked. "
+        f"Optional repos opt-in below.{RESET}\n"
+    )
+
+    MenuItemClass = _menu.MenuItem
+    items: list[DialogItem] = []
+    preselected: set[str] = set()
+    skippable: set[str] = set()
+
+    for comp in repos:
+        status = _find_status_by_name(statuses, comp.name)
+        is_mandatory = _is_mandatory_repo(comp)
+        if is_mandatory:
+            preselected.add(comp.name)
+        if status and status.installed:
+            skippable.add(comp.name)
+        items.append(
+            MenuItemClass(
+                id=comp.name,
+                label=format_component_label(comp, status),
+                value=comp,
+                description=format_component_description(comp, status),
+                disabled=is_mandatory,
+            )
+        )
+
+    raw = _dialogs.multiselect(
+        items,
+        title="Workspace Repositories",
+        preselected=preselected,
+        skippable_ids=skippable,
+        max_height=20,
+    )
+    selected = cast(list["MenuItem[Component]"], raw)
+    chosen = _extract_components([s for s in selected if s.value is not None])
+
+    # Mandatory entries always come back even if disabled in the menu —
+    # but defend against UI quirks: re-add any missing mandatories.
+    chosen_names = {c.name for c in chosen}
+    for comp in repos:
+        if _is_mandatory_repo(comp) and comp.name not in chosen_names:
+            chosen.append(comp)
+
+    return chosen
 
 
 def _show_selection_summary(
@@ -391,31 +399,18 @@ def _run_from_defaults(defaults_file: Path) -> int:
     return _print_summary(install_result.success_count, install_result.failed_labels)
 
 
-def _restore_terminal() -> None:
-    """Restore terminal to a clean state."""
-    # Reset all ANSI attributes
-    sys.stdout.write(f"{RESET}")
-    # Show cursor (in case it was hidden)
-    sys.stdout.write("\033[?25h")
-    # Reset scrolling region
-    sys.stdout.write("\033[r")
-    # Move to bottom of screen
-    sys.stdout.write("\033[999E")
-    sys.stdout.flush()
-
-
 def main() -> int:
     """Main entry point for the bootstrap installer TUI."""
     try:
         return _main_impl()
     except (KeyboardInterrupt, SystemExit):
-        _restore_terminal()
+        restore_terminal()
         raise
     except Exception:
-        _restore_terminal()
+        restore_terminal()
         raise
     finally:
-        _restore_terminal()
+        restore_terminal()
 
 
 def _main_impl() -> int:
@@ -444,6 +439,14 @@ def _main_impl() -> int:
 
     print(BANNER)
     statuses = scan_components()
+
+    # Step 1 — dedicated workspace-repo selection (mandatory locked-on,
+    # optional opt-in). Repos clone first so subsequent component installs
+    # have the on-disk graph available.
+    repo_components = select_workspace_repos(statuses)
+
+    # Step 2 — components multi-select (everything except workspace repos).
+    print_section("Step 2 of 2 — Select Components")
     menu_build_result = build_menu_items(statuses)
     menu_items = menu_build_result.menu_items
     preselected = menu_build_result.preselected_ids
@@ -463,11 +466,13 @@ def _main_impl() -> int:
     selected = cast(list["MenuItem[Component]"], raw_selected)
     selected = [s for s in selected if s.value is not None]
 
-    if not selected:
-        print(f"\n{YELLOW}No components selected. Exiting.{RESET}")
+    component_components = _extract_components(selected)
+    components = [*repo_components, *component_components]
+
+    if not components:
+        print(f"\n{YELLOW}Nothing selected. Exiting.{RESET}")
         return 0
 
-    components = _extract_components(selected)
     _show_selection_summary(components, statuses)
 
     print()

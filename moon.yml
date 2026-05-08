@@ -60,6 +60,15 @@ tasks:
       - 'ami/**/*.py'
       - 'pyproject.toml'
       - 'Makefile'
+  workspace-repos-aligned:
+    # Asserts .moon/workspace.yml::projects and ami/config/workspace-clones.yaml
+    # reference the same repos with the same paths. Drift = split-brain
+    # between moon (update graph) and the bootstrap installer (clone graph).
+    command: 'uv run python ami/scripts/check_workspace_repos_aligned.py'
+    inputs:
+      - '.moon/workspace.yml'
+      - 'ami/config/workspace-clones.yaml'
+      - 'ami/scripts/check_workspace_repos_aligned.py'
   check:
     # Aggregator: deps fan out via moon's task DAG; command is a no-op
     # to avoid recursing back through the public make check shim.
@@ -68,6 +77,7 @@ tasks:
       - '~:lint'
       - '~:type-check'
       - '~:test'
+      - '~:workspace-repos-aligned'
   ci:
     command: 'make check'
     deps:
