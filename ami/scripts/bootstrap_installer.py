@@ -354,6 +354,19 @@ def _run_from_defaults(defaults_file: Path) -> int:
     print(f"{CYAN}Running in CI mode with defaults from:{RESET} {defaults_file}\n")
 
     component_names = _load_defaults(defaults_file)
+
+    # Mandatory workspace repos (e.g. ami-ci, ami-dataops) are always
+    # installed in CI mode regardless of install-defaults.yaml content,
+    # so the workspace-clones.yaml manifest stays the source of truth.
+    mandatory_repo_names = [
+        c.name
+        for c in _bootstrap_defs.WORKSPACE_REPOS
+        if c.description.startswith("[mandatory]")
+    ]
+    for name in mandatory_repo_names:
+        if name not in component_names:
+            component_names.append(name)
+
     print(f"  Components to install: {', '.join(component_names)}\n")
 
     # Resolve component names to Component objects

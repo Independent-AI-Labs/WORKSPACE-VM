@@ -7,12 +7,60 @@ Dependency direction: this file -> bootstrap_components, never reverse.
 
 import json
 
+import yaml
+
 from ami.core.env import PROJECT_ROOT
 from ami.scripts.bootstrap_components import (
     Component,
     ComponentType,
     GroupComponents,
 )
+
+WORKSPACE_REPOS_GROUP = "Workspace Repositories"
+WORKSPACE_CLONES_YAML = PROJECT_ROOT / "ami" / "config" / "workspace-clones.yaml"
+
+
+def _load_workspace_repo_components() -> list[Component]:
+    """Load workspace-clones.yaml and emit one Component per entry.
+
+    Mandatory entries are still rendered (locked-on by the TUI) so the
+    user sees the full workspace topology. Optional entries opt-in via
+    checkbox. install_component() routes WORKSPACE_REPO to
+    `ami-bootstrap-repos --include <id>` rather than a bootstrap shell
+    script.
+    """
+    if not WORKSPACE_CLONES_YAML.exists():
+        return []
+
+    try:
+        with open(WORKSPACE_CLONES_YAML) as f:
+            data = yaml.safe_load(f) or {}
+    except (OSError, yaml.YAMLError):
+        return []
+
+    clones = data.get("workspaceClones", {}) or {}
+    components: list[Component] = []
+    for entry_id, fields in clones.items():
+        if not isinstance(fields, dict):
+            continue
+        path = fields.get("path", "")
+        remote = fields.get("remote", "")
+        mandatory = bool(fields.get("mandatory", False))
+        marker = "[mandatory]" if mandatory else "[optional]"
+        components.append(
+            Component(
+                name=entry_id,
+                label=entry_id,
+                description=f"{marker} {remote} -> {path}",
+                type=ComponentType.WORKSPACE_REPO,
+                group=WORKSPACE_REPOS_GROUP,
+                # detect_path is the path to the cloned working tree;
+                # the TUI's status check (Component.get_status) treats
+                # the directory's existence as "installed".
+                detect_path=path,
+            )
+        )
+    return components
 
 
 def _get_package_version(package_name: str) -> str:
@@ -371,6 +419,9 @@ MISC = [
     ),
 ]
 
+# Workspace Repositories (data-driven from workspace-clones.yaml)
+WORKSPACE_REPOS: list[Component] = _load_workspace_repo_components()
+
 # All components grouped (CORE_DEPS first for installation order)
 ALL_COMPONENTS: list[Component] = [
     *CORE_DEPS,
@@ -382,6 +433,7 @@ ALL_COMPONENTS: list[Component] = [
     *BROWSER,
     *MATRIX,
     *MISC,
+    *WORKSPACE_REPOS,
 ]
 
 # Group names in order (Core Dependencies first)
@@ -395,6 +447,7 @@ GROUPS = [
     "Browser Automation",
     "Matrix & Communication",
     "Miscellaneous",
+    WORKSPACE_REPOS_GROUP,
 ]
 
 

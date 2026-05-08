@@ -33,3 +33,12 @@ components:
   # Miscellaneous
   - adb
   - ansible
+
+  # Workspace Repositories (data-driven from ami/config/workspace-clones.yaml)
+  # Mandatory entries (ami-ci, ami-dataops) clone via the bootstrap-repos
+  # walker regardless of this list. To pre-select OPTIONAL workspace repos in
+  # CI mode, add their IDs below — for example:
+  #   - ami-portal
+  #   - ami-srp
+  # By default no optional repos are pre-selected; CI installs only the
+  # mandatory pair.

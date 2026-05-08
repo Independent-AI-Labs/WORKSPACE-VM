@@ -23,6 +23,7 @@ class ComponentType(Enum):
 
     SCRIPT = "script"
     UV = "uv"
+    WORKSPACE_REPO = "workspace_repo"
 
 
 class ComponentStatus(BaseModel):

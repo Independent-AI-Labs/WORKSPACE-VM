@@ -16,6 +16,7 @@ from ami.scripts.bootstrap_component_defs import (
     MATRIX,
     MISC,
     SECURITY,
+    WORKSPACE_REPOS,
     get_component_by_name,
     get_components_by_group,
 )
@@ -25,7 +26,7 @@ from ami.scripts.bootstrap_components import (
     ComponentType,
 )
 
-EXPECTED_GROUP_COUNT = 9
+EXPECTED_GROUP_COUNT = 10
 
 
 class TestComponentType:
@@ -372,6 +373,7 @@ class TestComponentLists:
             + len(BROWSER)
             + len(MATRIX)
             + len(MISC)
+            + len(WORKSPACE_REPOS)
         )
         assert len(ALL_COMPONENTS) == total
 
@@ -395,6 +397,7 @@ class TestGroups:
             "Browser Automation",
             "Matrix & Communication",
             "Miscellaneous",
+            "Workspace Repositories",
         ]
         assert expected == GROUPS
 

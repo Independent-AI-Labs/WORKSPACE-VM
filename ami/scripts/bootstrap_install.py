@@ -86,7 +86,37 @@ def install_component(component: Component) -> bool:
     elif component.type == ComponentType.UV:
         # UV packages are handled by uv sync
         return True
+    elif component.type == ComponentType.WORKSPACE_REPO:
+        return run_workspace_repo_clone(component.name)
     return False
+
+
+def run_workspace_repo_clone(entry_id: str) -> bool:
+    """Invoke ami-bootstrap-repos --include <entry_id> for a single repo.
+
+    Mandatory entries clone unconditionally regardless of --include; the
+    explicit --include is harmless and keeps the call site uniform.
+    """
+    script_path = PROJECT_ROOT / "ami" / "scripts" / "bin" / "ami-bootstrap-repos"
+    if not script_path.exists():
+        print(
+            f"ERROR: ami-bootstrap-repos not found at {script_path}",
+            file=sys.stderr,
+        )
+        return False
+    try:
+        result = subprocess.run(
+            ["bash", str(script_path), "--include", entry_id],
+            cwd=str(PROJECT_ROOT),
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError) as exc:
+        print(
+            f"ERROR: failed to invoke ami-bootstrap-repos for {entry_id}: {exc}",
+            file=sys.stderr,
+        )
+        return False
+    return result.returncode == 0
 
 
 def _binary_is_runnable(component: Component) -> bool:
