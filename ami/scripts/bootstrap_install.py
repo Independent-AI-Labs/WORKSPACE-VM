@@ -53,10 +53,16 @@ def run_bootstrap_script(script_name: str) -> bool:
         env["BOOT_LINUX_DIR"] = str(PROJECT_ROOT / ".boot-linux")
         env["VENV_DIR"] = str(PROJECT_ROOT / ".venv")
 
+        # stdin=DEVNULL so bootstrap scripts that probe `[ -t 0 ]` see a
+        # non-TTY and take the non-interactive code path. The TUI itself owns
+        # the user's terminal — bootstrap scripts running underneath must
+        # never prompt (would freeze `make install` mid-walk; INCIDENT-2026-05-08
+        # gcloud "Reinstall? (y/N)" hang).
         result = subprocess.run(
             ["bash", str(script_path)],
             cwd=str(PROJECT_ROOT),
             env=env,
+            stdin=subprocess.DEVNULL,
             check=False,
         )
     except (OSError, subprocess.SubprocessError) as exc:
@@ -108,6 +114,7 @@ def run_workspace_repo_clone(entry_id: str) -> bool:
         result = subprocess.run(
             ["bash", str(script_path), "--include", entry_id],
             cwd=str(PROJECT_ROOT),
+            stdin=subprocess.DEVNULL,
             check=False,
         )
     except (OSError, subprocess.SubprocessError) as exc:
