@@ -288,7 +288,9 @@ class TestGetComponentsByGroup:
         by_group = {gc.group: gc.components for gc in result}
 
         assert any(c.name == "claude" for c in by_group["AI Coding Assistants"])
-        assert any(c.name == "podman" for c in by_group["Containers & Orchestration"])
+        assert any(
+            c.name == "podman" for c in by_group["Infrastructure & Orchestration"]
+        )
 
 
 class TestGetComponentByName:

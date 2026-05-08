@@ -14,6 +14,7 @@
 #   version_cmd    — argv to invoke for version detection (relative to repo root).
 #   version_pattern— regex with one capture group; first match wins.
 #   detect_cmd     — alternative argv when detect_path is unreliable.
+#   package_ref    — npm package name; version is resolved from scripts/package.json.
 #
 # Workspace repos are NOT listed here — they live in workspace-clones.yaml and
 # are loaded into a separate group ("Workspace Repositories") for the
@@ -24,14 +25,15 @@ groups:
   # runtime by the loader so it always sits at the bottom of the components
   # multi-select (and is also surfaced as a separate first-step dialog).
   - 'Core Dependencies'
+  - 'Languages & Compilers'
   - 'AI Coding Assistants'
-  - 'Containers & Orchestration'
-  - 'Development Tools'
-  - 'Security & Networking'
+  - 'Infrastructure & Orchestration'
+  - 'Cloud & Service CLIs'
+  - 'Networking'
+  - 'Shell Utilities'
   - 'Document Processing'
-  - 'Browser Automation'
+  - 'Browser & Device Automation'
   - 'Matrix & Communication'
-  - 'Miscellaneous'
 
 components:
   # =========================================================================
@@ -91,7 +93,32 @@ components:
     version_pattern: 'moon (\d+\.\d+\.\d+)'
 
   # =========================================================================
-  # AI Coding Assistants — npm-installed agent CLIs. The package version is
+  # Languages & Compilers — non-Python language toolchains that ship a
+  # compiler/runtime + package manager. (gcc lives under Core Dependencies
+  # because it's the foundation for building everything else.)
+  # =========================================================================
+  - name: go
+    label: 'Go'
+    description: 'Go language'
+    type: script
+    group: 'Languages & Compilers'
+    script: 'bootstrap_go.sh'
+    detect_path: '.boot-linux/go/bin/go'
+    version_cmd: ['.boot-linux/go/bin/go', 'version']
+    version_pattern: 'go(\d+\.\d+\.\d+)'
+
+  - name: rust
+    label: 'Rust'
+    description: 'Rust language & Cargo'
+    type: script
+    group: 'Languages & Compilers'
+    script: 'bootstrap_rust.sh'
+    detect_path: '.boot-linux/rust/bin/cargo'
+    version_cmd: ['.boot-linux/rust/bin/rustc', '--version']
+    version_pattern: 'rustc (\d+\.\d+\.\d+)'
+
+  # =========================================================================
+  # AI Coding Assistants — npm-installed agent CLIs. Package version is
   # resolved at load time from scripts/package.json (single source of truth
   # for the npm dependency set).
   # =========================================================================
@@ -129,13 +156,13 @@ components:
     version_pattern: '(\d+\.\d+\.\d+)'
 
   # =========================================================================
-  # Containers & Orchestration
+  # Infrastructure & Orchestration — container runtimes, k8s, IaC.
   # =========================================================================
   - name: podman
     label: 'Podman'
-    description: 'Container runtime'
+    description: 'Container runtime (rootless, daemonless)'
     type: script
-    group: 'Containers & Orchestration'
+    group: 'Infrastructure & Orchestration'
     script: 'bootstrap_podman.sh'
     detect_path: '.boot-linux/bin/podman'
     version_cmd: ['.boot-linux/bin/podman', '--version']
@@ -145,50 +172,30 @@ components:
     label: 'Kubernetes'
     description: 'k8s tools (kubectl, helm)'
     type: script
-    group: 'Containers & Orchestration'
+    group: 'Infrastructure & Orchestration'
     script: 'bootstrap_kubernetes.sh'
     detect_path: '.boot-linux/bin/kubectl'
     version_cmd: ['.boot-linux/bin/kubectl', 'version', '--client', '-o', 'json']
     version_pattern: '"gitVersion":\s*"v?(\d+\.\d+\.\d+)"'
 
+  - name: ansible
+    label: 'Ansible'
+    description: 'Infrastructure as Code / config management'
+    type: script
+    group: 'Infrastructure & Orchestration'
+    script: 'bootstrap_ansible.sh'
+    detect_path: '.boot-linux/python-env/bin/ansible'
+    version_cmd: ['.boot-linux/python-env/bin/ansible', '--version']
+    version_pattern: 'ansible.*?(\d+\.\d+\.\d+)'
+
   # =========================================================================
-  # Development Tools
+  # Cloud & Service CLIs — admin/API clients for external services.
   # =========================================================================
-  - name: go
-    label: 'Go'
-    description: 'Go language'
-    type: script
-    group: 'Development Tools'
-    script: 'bootstrap_go.sh'
-    detect_path: '.boot-linux/go/bin/go'
-    version_cmd: ['.boot-linux/go/bin/go', 'version']
-    version_pattern: 'go(\d+\.\d+\.\d+)'
-
-  - name: rust
-    label: 'Rust'
-    description: 'Rust language & Cargo'
-    type: script
-    group: 'Development Tools'
-    script: 'bootstrap_rust.sh'
-    detect_path: '.boot-linux/rust/bin/cargo'
-    version_cmd: ['.boot-linux/rust/bin/rustc', '--version']
-    version_pattern: 'rustc (\d+\.\d+\.\d+)'
-
-  - name: sd
-    label: 'sd'
-    description: 'sed alternative'
-    type: script
-    group: 'Development Tools'
-    script: 'bootstrap_sd.sh'
-    detect_path: '.boot-linux/bin/sd'
-    version_cmd: ['.boot-linux/bin/sd', '--version']
-    version_pattern: 'sd (\d+\.\d+\.\d+)'
-
   - name: gcloud
     label: 'Google Cloud CLI'
     description: 'Google Cloud SDK (gcloud)'
     type: script
-    group: 'Development Tools'
+    group: 'Cloud & Service CLIs'
     script: 'bootstrap_gcloud.sh'
     detect_path: '.boot-linux/bin/ami-gcloud'
     version_cmd: ['.gcloud/google-cloud-sdk/bin/gcloud', 'version', '--format=value(Google Cloud SDK)']
@@ -198,7 +205,7 @@ components:
     label: 'GitHub CLI'
     description: 'GitHub API client'
     type: script
-    group: 'Development Tools'
+    group: 'Cloud & Service CLIs'
     script: 'bootstrap_gh.sh'
     detect_path: '.boot-linux/bin/gh'
     version_cmd: ['.boot-linux/bin/gh', '--version']
@@ -208,28 +215,51 @@ components:
     label: 'HuggingFace CLI'
     description: 'HuggingFace Hub client'
     type: script
-    group: 'Development Tools'
+    group: 'Cloud & Service CLIs'
     script: 'bootstrap_hf.sh'
     detect_path: '.boot-linux/python-env/bin/hf'
     version_cmd: ['.boot-linux/python-env/bin/hf', 'version']
     version_pattern: '(\d+\.\d+\.\d+)'
 
   # =========================================================================
-  # Security & Networking
-  # Note: openssh/openssl/openvpn are system deps checked by pre-req.sh.
+  # Networking — tunnels, VPN clients, network probes.
+  # Note: openssh / openssl / openvpn are system deps checked by pre-req.sh.
   # =========================================================================
   - name: cloudflared
     label: 'Cloudflared'
-    description: 'CF tunnel client'
+    description: 'Cloudflare tunnel client'
     type: script
-    group: 'Security & Networking'
+    group: 'Networking'
     script: 'bootstrap_cloudflared.sh'
     detect_path: '.boot-linux/bin/cloudflared'
     version_cmd: ['.boot-linux/bin/cloudflared', '--version']
     version_pattern: '(\d+\.\d+\.\d+)'
 
   # =========================================================================
-  # Document Processing
+  # Shell Utilities — text/file manipulation, code metrics.
+  # =========================================================================
+  - name: sd
+    label: 'sd'
+    description: 'Modern sed replacement'
+    type: script
+    group: 'Shell Utilities'
+    script: 'bootstrap_sd.sh'
+    detect_path: '.boot-linux/bin/sd'
+    version_cmd: ['.boot-linux/bin/sd', '--version']
+    version_pattern: 'sd (\d+\.\d+\.\d+)'
+
+  - name: cloc
+    label: 'cloc'
+    description: 'Count Lines of Code'
+    type: script
+    group: 'Shell Utilities'
+    script: 'bootstrap_cloc.sh'
+    detect_path: '.boot-linux/bin/cloc'
+    version_cmd: ['.boot-linux/bin/cloc', '--version']
+    version_pattern: '(\d+\.\d+)'
+
+  # =========================================================================
+  # Document Processing — convert / typeset / manipulate documents.
   # =========================================================================
   - name: pandoc
     label: 'Pandoc'
@@ -272,20 +302,30 @@ components:
     version_pattern: 'wkhtmltopdf (\d+\.\d+\.\d+)'
 
   # =========================================================================
-  # Browser Automation
+  # Browser & Device Automation — drive headless browsers / Android devices.
   # =========================================================================
   - name: playwright
     label: 'Playwright'
     description: 'Browser automation (chromium + chrome)'
     type: script
-    group: 'Browser Automation'
+    group: 'Browser & Device Automation'
     script: 'bootstrap_playwright.sh'
     detect_path: '.boot-linux/playwright-browsers'
     version_cmd: ['.venv/bin/playwright', '--version']
     version_pattern: '(\d+\.\d+\.\d+)'
 
+  - name: adb
+    label: 'ADB'
+    description: 'Android Debug Bridge'
+    type: script
+    group: 'Browser & Device Automation'
+    script: 'bootstrap_adb.sh'
+    detect_path: '.boot-linux/bin/adb'
+    version_cmd: ['.boot-linux/bin/adb', '--version']
+    version_pattern: 'Android Debug Bridge version (\d+\.\d+\.\d+)'
+
   # =========================================================================
-  # Matrix & Communication
+  # Matrix & Communication — chat clients + admin tools for Synapse stacks.
   # =========================================================================
   - name: matrix_commander
     label: 'Matrix Cmdr'
@@ -306,26 +346,3 @@ components:
     detect_path: '.boot-linux/bin/synadm'
     version_cmd: ['.boot-linux/bin/synadm', '--version']
     version_pattern: '(\d+\.\d+\.\d+)'
-
-  # =========================================================================
-  # Miscellaneous
-  # =========================================================================
-  - name: adb
-    label: 'ADB'
-    description: 'Android Debug Bridge'
-    type: script
-    group: 'Miscellaneous'
-    script: 'bootstrap_adb.sh'
-    detect_path: '.boot-linux/bin/adb'
-    version_cmd: ['.boot-linux/bin/adb', '--version']
-    version_pattern: 'Android Debug Bridge version (\d+\.\d+\.\d+)'
-
-  - name: ansible
-    label: 'Ansible'
-    description: 'IT automation'
-    type: script
-    group: 'Miscellaneous'
-    script: 'bootstrap_ansible.sh'
-    detect_path: '.boot-linux/python-env/bin/ansible'
-    version_cmd: ['.boot-linux/python-env/bin/ansible', '--version']
-    version_pattern: 'ansible.*?(\d+\.\d+\.\d+)'
