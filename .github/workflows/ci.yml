@@ -1,0 +1,57 @@
+# moon-driven CI for the AMI-AGENTS umbrella repo (#35).
+#
+# Runs `moon ci` on every PR against main and on every push to main.
+# `--affected --base origin/main` on PRs scopes work to changed projects;
+# the push-to-main job runs the full check as a safety net.
+#
+# Notes:
+# - fetch-depth: 0 is required for `--affected` to compute the project
+#   graph diff against the base branch.
+# - `make install-ci` bootstraps the .boot-linux + .venv stack so moon
+#   tasks (which shell out to `make _<target>-impl`) find python/uv at
+#   the expected paths.
+
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  moon-ci:
+    name: moon ci
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout (full history for --affected)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: false
+
+      - name: Set up moon toolchain
+        uses: moonrepo/setup-toolchain@v0
+        with:
+          auto-install: true
+
+      - name: Bootstrap AMI workspace (install-ci)
+        run: make install-ci
+        env:
+          # CI is not a TTY; the bootstrap installer must never prompt.
+          AMI_NONINTERACTIVE: '1'
+
+      - name: Run moon ci (PR -- affected only)
+        if: github.event_name == 'pull_request'
+        run: moon ci --affected --base origin/${{ github.base_ref }}
+
+      - name: Run moon ci (push to main -- full check)
+        if: github.event_name == 'push'
+        run: moon ci
