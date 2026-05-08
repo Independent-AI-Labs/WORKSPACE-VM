@@ -1,11 +1,13 @@
 """Unit tests for scripts/bootstrap_install module."""
 
+import subprocess
 from pathlib import Path
 from typing import NamedTuple
 from unittest.mock import MagicMock, patch
 
 from ami.scripts.bootstrap_components import Component, ComponentType
 from ami.scripts.bootstrap_install import (
+    _binary_is_runnable,
     ensure_directories,
     get_bootstrap_dir,
     install_component,
@@ -286,6 +288,92 @@ class TestInstallEdgeCases:
         )
         result = install_component(comp)
         assert result is False
+
+
+class TestScriptDetectPathOverride:
+    """install_component returns True if script fails but detect_path exists."""
+
+    @patch("ami.scripts.bootstrap_install._binary_is_runnable", return_value=True)
+    @patch("ami.scripts.bootstrap_install.run_bootstrap_script", return_value=False)
+    def test_detect_path_exists_after_script_failure(
+        self, mock_run, mock_runnable
+    ) -> None:
+        comp = Component(
+            name="t",
+            label="T",
+            description="t",
+            type=ComponentType.SCRIPT,
+            group="Test",
+            script="t.sh",
+            detect_path="some/path",
+        )
+        with patch.object(Path, "exists", return_value=True):
+            assert install_component(comp) is True
+
+    @patch("ami.scripts.bootstrap_install._binary_is_runnable", return_value=False)
+    @patch("ami.scripts.bootstrap_install.run_bootstrap_script", return_value=False)
+    def test_detect_path_no_runnable_returns_false(
+        self, mock_run, mock_runnable
+    ) -> None:
+        comp = Component(
+            name="t",
+            label="T",
+            description="t",
+            type=ComponentType.SCRIPT,
+            group="Test",
+            script="t.sh",
+            detect_path="some/path",
+        )
+        with patch.object(Path, "exists", return_value=True):
+            assert install_component(comp) is False
+
+
+class TestBinaryIsRunnable:
+    """Tests for _binary_is_runnable helper."""
+
+    def test_no_version_cmd_returns_true(self) -> None:
+        comp = Component(
+            name="x",
+            label="x",
+            description="x",
+            type=ComponentType.SCRIPT,
+            group="Test",
+        )
+        assert _binary_is_runnable(comp) is True
+
+    def test_absolute_path_returns_true(self) -> None:
+        comp = Component(
+            name="x",
+            label="x",
+            description="x",
+            type=ComponentType.SCRIPT,
+            group="Test",
+            version_cmd=["/usr/bin/true", "--version"],
+        )
+        assert _binary_is_runnable(comp) is True
+
+    def test_in_tree_missing_returns_false(self) -> None:
+        comp = Component(
+            name="x",
+            label="x",
+            description="x",
+            type=ComponentType.SCRIPT,
+            group="Test",
+            version_cmd=["does/not/exist/binary", "--version"],
+        )
+        assert _binary_is_runnable(comp) is False
+
+
+class TestRunBootstrapScriptOSError:
+    """Cover run_bootstrap_script's OSError except branch."""
+
+    @patch("ami.scripts.bootstrap_install.subprocess.run")
+    @patch("ami.scripts.bootstrap_install.get_bootstrap_dir")
+    def test_subprocess_error_propagates_false(self, mock_dir, mock_run) -> None:
+        mock_dir.return_value = Path("/scripts")
+        mock_run.side_effect = subprocess.SubprocessError("boom")
+        with patch.object(Path, "exists", return_value=True):
+            assert run_bootstrap_script("t.sh") is False
 
 
 class TestRunWorkspaceRepoClone:

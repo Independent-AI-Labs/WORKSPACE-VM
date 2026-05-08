@@ -2,13 +2,7 @@
 
 unit:
   path: tests/unit
-  # Temporarily 89% during the moon-as-orchestrator migration (Phase 6
-  # deleted ami/scripts/update*.py + their tests; the loss of those
-  # modules' incidental coverage of sibling code dropped total from
-  # 92% → 89.49%). Raise back to 90% after Phase 7 (e2e tests) lands
-  # additional coverage for ami-bootstrap-repos and the moon-driven
-  # update walk path.
-  min_coverage: 89
+  min_coverage: 90
   source_path: ami
   runner: uv run python -m pytest
 
