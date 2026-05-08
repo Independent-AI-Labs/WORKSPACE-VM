@@ -1,5 +1,5 @@
 <p align="center">AMI Agents</p>
-<p align="center">Run Claude, Gemini, and Qwen coding agents on your own infra — behind hard safety walls.</p>
+<p align="center">Run Claude, Gemini, and Qwen coding agents on your own infra, behind hard safety walls.</p>
 
 <p align="center">
   <a href="https://github.com/Independent-AI-Labs/AMI-AGENTS/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-green?style=flat-square" /></a>
@@ -61,11 +61,11 @@ Read [`projects/AMI-CI/README.md`](projects/AMI-CI/README.md) before opening a P
 
 #### How is this different from running Claude Code raw?
 
-- **Hard safety walls.** `git-guard`, `podman-guard`, fail-closed hook validators in PATH — an agent can't bypass them by changing prompts.
+- **Hard safety walls.** `git-guard`, `podman-guard`, fail-closed hook validators sit in PATH. An agent can't bypass them by changing prompts.
 - **Provider-agnostic.** One session, one transcript, one policy across Claude, Gemini, Qwen.
-- **Sovereign by default.** Your Postgres, your Keycloak, your secrets — `AMI-DATAOPS` brings the whole stack up on your box.
+- **Sovereign by default.** Your Postgres, your Keycloak, your secrets. `AMI-DATAOPS` brings the whole stack up on your box.
 - **Workspace orchestrator.** moon walks the dep graph for you; `make update` pulls + syncs every repo in topological order.
-- **Hermetic toolchain.** `.boot-linux/` holds uv, python, gcc, moon, podman, gh — no system contamination.
+- **Hermetic toolchain.** `.boot-linux/` holds uv, python, gcc, moon, podman, gh. No system contamination.
 
 #### Why not just install Claude Code and OpenCode side by side?
 
