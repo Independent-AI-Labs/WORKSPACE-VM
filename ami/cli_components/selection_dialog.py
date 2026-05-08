@@ -277,11 +277,9 @@ class SelectionDialog:
         elif key == " " and self.multi:
             self._toggle_selection()
         elif key == "a" and self.multi:
-            for i, item in enumerate(self.items):
-                if not self._is_header(item):
-                    self.selected.add(i)
+            self._select_all()
         elif key == "n" and self.multi:
-            self.selected.clear()
+            self._deselect_all()
         elif key == ENTER:
             return KeyHandleResult(False, self._get_selection())
         elif key in (ESC, BACKSPACE):
@@ -364,6 +362,31 @@ class SelectionDialog:
             for i in toggleable:
                 self.selected.add(i)
                 self.skipped.discard(i)
+
+    def _select_all(self) -> None:
+        """Select every non-header, non-disabled item.
+
+        Also clears `skipped` for skippable items — otherwise the renderer
+        keeps drawing the skip checkbox (it checks `skipped` before the
+        regular selected/unselected prefix). Mirrors
+        `_toggle_group_selection`'s "select all" branch.
+        """
+        for i, item in enumerate(self.items):
+            if self._is_header(item) or self._is_disabled(item):
+                continue
+            self.selected.add(i)
+            self.skipped.discard(i)
+
+    def _deselect_all(self) -> None:
+        """Clear selection. Skippable items return to their skip state so the
+        UI matches the dialog's initial appearance — pressing `n` after `a`
+        should leave the dialog visually consistent with a fresh open."""
+        for i, item in enumerate(self.items):
+            if self._is_disabled(item):
+                continue
+            self.selected.discard(i)
+            if i in self.skippable:
+                self.skipped.add(i)
 
     def _toggle_skippable_item(self) -> None:
         """Toggle skippable item between skipped and selected (no unselect)."""
