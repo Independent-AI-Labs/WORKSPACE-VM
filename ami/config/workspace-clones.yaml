@@ -48,6 +48,6 @@ workspaceClones:
     path: 'projects/ZK-PORTAL'
     mandatory: false
   polymarket-tracker:
-    remote: 'git@github.com:Independent-AI-Labs/polymarket-insider-tracker.git'
+    remote: 'git@github.com:Independent-AI-Labs/POC-POLYMARKET-TRACKER.git'
     path: 'projects/polymarket-insider-tracker'
     mandatory: false
