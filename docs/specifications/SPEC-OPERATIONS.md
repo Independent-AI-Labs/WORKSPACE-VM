@@ -436,19 +436,16 @@ OpenBao health response codes:
 
 ### 5.3 Log Aggregation Pipeline (NFR-6.8)
 
-```
-Keycloak Events                    OpenBao Audit
-  │ (jboss-logging → stdout)         │ (file + stdout audit device)
-  │                                   │
-  └──── Docker log driver ────────────┘
-              │
-              v
-       Log Aggregation
-       (Loki + Grafana  OR  ELK)
-              │
-              v
-       Alert Rules → Notification Channels
-       (Grafana Alerting / Kibana Watcher)
+```mermaid
+flowchart TB
+    KC["Keycloak Events<br/>jboss-logging → stdout"]
+    OB["OpenBao Audit<br/>file + stdout audit device"]
+    DLD["Docker log driver"]
+    AGG["Log Aggregation<br/>Loki + Grafana  OR  ELK"]
+    AR["Alert Rules → Notification Channels<br/>Grafana Alerting / Kibana Watcher"]
+    KC --> DLD
+    OB --> DLD
+    DLD --> AGG --> AR
 ```
 
 Docker log driver configuration:

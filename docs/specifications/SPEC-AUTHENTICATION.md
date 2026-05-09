@@ -742,52 +742,21 @@ Tenant-scoped service accounts follow the naming convention `svc-{purpose}--{org
 
 All interactive user authentication uses the OIDC Authorization Code flow with PKCE (S256). This is the standard flow for browser-based applications.
 
-```
-Browser                    Portal (NextAuth)              Keycloak
-  │                              │                           │
-  │  1. GET /                    │                           │
-  │ ─────────────────────────>   │                           │
-  │                              │                           │
-  │  2. 302 → Keycloak /auth     │                           │
-  │ <─────────────────────────   │                           │
-  │                              │                           │
-  │  3. GET /realms/ami/protocol/openid-connect/auth         │
-  │      ?client_id=ami-portal                               │
-  │      &redirect_uri=.../api/auth/callback/keycloak        │
-  │      &response_type=code                                 │
-  │      &scope=openid email profile                         │
-  │      &code_challenge=<SHA256(verifier)>                  │
-  │      &code_challenge_method=S256                         │
-  │      &state=<csrf-token>                                 │
-  │ ──────────────────────────────────────────────────────>   │
-  │                                                          │
-  │  4. Login form (or SSO session cookie skip)              │
-  │ <──────────────────────────────────────────────────────   │
-  │                                                          │
-  │  5. POST credentials                                     │
-  │ ──────────────────────────────────────────────────────>   │
-  │                                                          │
-  │  6. 302 → Portal callback?code=AUTH_CODE&state=...       │
-  │ <──────────────────────────────────────────────────────   │
-  │                              │                           │
-  │  7. Follow redirect          │                           │
-  │ ─────────────────────────>   │                           │
-  │                              │  8. POST /token           │
-  │                              │     grant_type=           │
-  │                              │       authorization_code  │
-  │                              │     code=AUTH_CODE        │
-  │                              │     code_verifier=<plain> │
-  │                              │     client_id=ami-portal  │
-  │                              │     client_secret=<secret>│
-  │                              │ ────────────────────────> │
-  │                              │                           │
-  │                              │  9. {access_token,        │
-  │                              │      refresh_token,       │
-  │                              │      id_token}            │
-  │                              │ <──────────────────────── │
-  │                              │                           │
-  │  10. Set session cookie      │                           │
-  │ <─────────────────────────   │                           │
+```mermaid
+sequenceDiagram
+    participant B as Browser
+    participant P as Portal (NextAuth)
+    participant K as Keycloak
+    B->>P: 1. GET /
+    P-->>B: 2. 302 → Keycloak /auth
+    B->>K: 3. GET /realms/ami/protocol/openid-connect/auth<br/>client_id=ami-portal, redirect_uri=…/api/auth/callback/keycloak,<br/>response_type=code, scope=openid email profile,<br/>code_challenge=SHA256(verifier), method=S256, state=<csrf>
+    K-->>B: 4. Login form (or SSO cookie skip)
+    B->>K: 5. POST credentials
+    K-->>B: 6. 302 → Portal callback?code=AUTH_CODE&state=…
+    B->>P: 7. Follow redirect
+    P->>K: 8. POST /token grant_type=authorization_code,<br/>code=AUTH_CODE, code_verifier=<plain>,<br/>client_id=ami-portal, client_secret=<secret>
+    K-->>P: 9. {access_token, refresh_token, id_token}
+    P-->>B: 10. Set session cookie
 ```
 
 **Key points:**
@@ -800,18 +769,12 @@ Browser                    Portal (NextAuth)              Keycloak
 
 Service-to-service authentication for the Portal's Keycloak Admin API access:
 
-```
-Portal Backend                                  Keycloak
-  │                                                │
-  │  POST /realms/ami/protocol/openid-connect/token │
-  │    grant_type=client_credentials                │
-  │    client_id=ami-portal                         │
-  │    client_secret=<secret>                       │
-  │    scope=openid                                 │
-  │ ─────────────────────────────────────────────>  │
-  │                                                 │
-  │  { access_token, expires_in: 300 }              │
-  │ <─────────────────────────────────────────────  │
+```mermaid
+sequenceDiagram
+    participant P as Portal Backend
+    participant K as Keycloak
+    P->>K: POST /realms/ami/protocol/openid-connect/token<br/>grant_type=client_credentials, client_id=ami-portal,<br/>client_secret=<secret>, scope=openid
+    K-->>P: { access_token, expires_in: 300 }
 ```
 
 The Portal caches the service account token with a 30-second buffer before expiry (`TOKEN_BUFFER_MS = 30000` in `keycloak-admin.ts`).
@@ -820,21 +783,13 @@ The Portal caches the service account token with a 30-second buffer before expir
 
 Guest access uses NextAuth's Credentials provider with no password:
 
-```
-Browser                    Portal (NextAuth)
-  │                              │
-  │  POST /auth/signin/guest     │
-  │    callbackUrl=/             │
-  │ ─────────────────────────>   │
-  │                              │
-  │  signIn('guest', {})         │
-  │  → Credentials provider      │
-  │  → Returns { id, email,     │
-  │       name, roles: ['guest'] │
-  │     }                        │
-  │                              │
-  │  Set session cookie          │
-  │ <─────────────────────────   │
+```mermaid
+sequenceDiagram
+    participant B as Browser
+    participant P as Portal (NextAuth)
+    B->>P: POST /auth/signin/guest<br/>callbackUrl=/
+    Note over P: signIn('guest', {})<br/>→ Credentials provider<br/>→ { id, email, name, roles: ['guest'] }
+    P-->>B: Set session cookie
 ```
 
 Guest session has no Keycloak session; it exists only in the NextAuth JWT cookie. Guest users receive the `guest` role with `read` permission only.
@@ -845,20 +800,12 @@ Environment variables:
 
 ### 5.4 Token Refresh (NFR-2.2, NFR-2.7)
 
-```
-Portal Backend                                  Keycloak
-  │                                                │
-  │  POST /realms/ami/protocol/openid-connect/token │
-  │    grant_type=refresh_token                     │
-  │    refresh_token=<current_refresh_token>        │
-  │    client_id=ami-portal                         │
-  │    client_secret=<secret>                       │
-  │ ─────────────────────────────────────────────>  │
-  │                                                 │
-  │  { access_token: <new>,                         │
-  │    refresh_token: <new_rotated>,                │
-  │    expires_in: 300 }                            │
-  │ <─────────────────────────────────────────────  │
+```mermaid
+sequenceDiagram
+    participant P as Portal Backend
+    participant K as Keycloak
+    P->>K: POST /realms/ami/protocol/openid-connect/token<br/>grant_type=refresh_token, refresh_token=<current>,<br/>client_id=ami-portal, client_secret=<secret>
+    K-->>P: { access_token: <new>, refresh_token: <new_rotated>, expires_in: 300 }
 ```
 
 **Refresh token rotation** (NFR-2.7): Each refresh request issues a new refresh token and invalidates the old one. This is enforced by `revokeRefreshToken: true` and `refreshTokenMaxReuse: 0` in the realm config.
@@ -869,17 +816,13 @@ Portal Backend                                  Keycloak
 
 When a user logs out from any application, Keycloak sends a logout token to all registered backchannel logout URLs:
 
-```
-Keycloak                           Portal                    Trading
-  │                                  │                          │
-  │  POST /api/auth/backchannel-logout                          │
-  │    Content-Type: x-www-form-urlencoded                      │
-  │    logout_token=<JWT>            │                          │
-  │ ──────────────────────────────>  │                          │
-  │                                  │                          │
-  │  POST /api/v1/auth/backchannel-logout                       │
-  │    logout_token=<JWT>                                       │
-  │ ─────────────────────────────────────────────────────────>  │
+```mermaid
+sequenceDiagram
+    participant K as Keycloak
+    participant P as Portal
+    participant T as Trading
+    K->>P: POST /api/auth/backchannel-logout<br/>Content-Type: x-www-form-urlencoded<br/>logout_token=<JWT>
+    K->>T: POST /api/v1/auth/backchannel-logout<br/>logout_token=<JWT>
 ```
 
 **Logout token claims:**
@@ -909,23 +852,13 @@ The receiving application MUST:
 
 When the portal needs to access secrets on behalf of a user:
 
-```
-Portal Backend                                  OpenBao
-  │                                                │
-  │  POST /v1/auth/jwt/login                       │
-  │    { "role": "portal-user",                    │
-  │      "jwt": "<user's Keycloak access_token>" } │
-  │ ─────────────────────────────────────────────>  │
-  │                                                 │
-  │  OpenBao validates JWT via Keycloak JWKS        │
-  │  Extracts claims → maps to policies             │
-  │                                                 │
-  │  { "auth": {                                    │
-  │      "client_token": "<openbao-token>",         │
-  │      "policies": ["developer", "team-..."],     │
-  │      "lease_duration": 300                      │
-  │  }}                                             │
-  │ <─────────────────────────────────────────────  │
+```mermaid
+sequenceDiagram
+    participant P as Portal Backend
+    participant O as OpenBao
+    P->>O: POST /v1/auth/jwt/login<br/>{ role: "portal-user", jwt: <Keycloak access_token> }
+    Note over O: Validates JWT via Keycloak JWKS<br/>Extracts claims → maps to policies
+    O-->>P: { auth: { client_token: <openbao-token>,<br/>policies: ["developer", "team-…"],<br/>lease_duration: 300 } }
 ```
 
 The OpenBao token is stored **server-side only** (NFR-2.6) and is never sent to the browser. It has a 5-minute TTL matching the Keycloak access token (NFR-2.3). The portal re-obtains it as needed using the current Keycloak JWT.

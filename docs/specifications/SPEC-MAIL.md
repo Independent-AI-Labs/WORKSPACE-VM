@@ -38,28 +38,40 @@ Migration from stdlib to himalaya backend. All v1 features preserved, all REQ-MA
 
 ### Current (v1)
 
-```
-ami-mail (Python stdlib)
-  ├── send       → smtplib.SMTP → exim relay :2525 → Gmail
-  ├── send-block → smtplib.SMTP + imaplib.IMAP4_SSL (poll loop)
-  └── fetch      → imaplib.IMAP4_SSL
+```mermaid
+flowchart LR
+    subgraph V1["ami-mail (Python stdlib)"]
+        send[send]
+        block[send-block]
+        fetch[fetch]
+    end
+    send --> SMTP1[smtplib.SMTP]
+    block --> SMTP2[smtplib.SMTP]
+    block --> IMAP1["imaplib.IMAP4_SSL<br/>(poll loop)"]
+    fetch --> IMAP2[imaplib.IMAP4_SSL]
+    SMTP1 --> EXIM["exim relay :2525"]
+    SMTP2 --> EXIM
+    EXIM --> GMAIL[Gmail]
 ```
 
 Single file: `ami/scripts/bin/ami_mail.py` (309 lines). No config file. SMTP host/port/sender via env vars (`AMI_SMTP_HOST`, `AMI_SMTP_PORT`, `AMI_MAIL_FROM`). IMAP credentials passed as CLI args.
 
 ### Target (v2)
 
-```
-ami-mail (Python wrapper)
-  ├── reads ami/config/mail.yaml
-  ├── generates himalaya TOML config (per-account)
-  ├── translates secret refs → himalaya auth.command fields
-  └── invokes himalaya as subprocess for all operations
-
-himalaya (Rust CLI, .boot-linux/bin/himalaya)
-  ├── SMTP send (with MIME, attachments, threading)
-  ├── IMAP operations (list, read, search, move, delete, flags)
-  └── auth.command for credential retrieval at runtime
+```mermaid
+flowchart TB
+    subgraph PY["ami-mail (Python wrapper)"]
+        readY[reads ami/config/mail.yaml]
+        gen["generates himalaya TOML<br/>(per-account)"]
+        secrets["translates secret refs → auth.command"]
+        invoke[invokes himalaya as subprocess]
+    end
+    subgraph RS["himalaya (Rust CLI · .boot-linux/bin/himalaya)"]
+        smtp["SMTP send<br/>MIME · attachments · threading"]
+        imap["IMAP ops<br/>list · read · search · move · delete · flags"]
+        cred["auth.command credential retrieval"]
+    end
+    readY --> gen --> secrets --> invoke --> RS
 ```
 
 Same pattern as ami-docs wrapping pandoc: Python facade generating config, Rust binary doing the work.

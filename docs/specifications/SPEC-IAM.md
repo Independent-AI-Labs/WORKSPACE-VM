@@ -88,28 +88,27 @@ This specification is split into four domain-specific documents. Each translates
 
 ## Architecture
 
-```
-                         ┌─────────────────────────────────────┐
-                         │         Management Network          │
-                         │  (admin consoles, bootstrap CLI)    │
-                         └───────────┬─────────────────────────┘
-                                     │
-          ┌──────────────────────────┼──────────────────────────┐
-          │                          │                          │
-          v                          v                          v
-┌──────────────────┐    ┌──────────────────┐    ┌──────────────────┐
-│    Keycloak       │    │    OpenBao        │    │   PostgreSQL     │
-│  :8082 (HTTP)     │    │  :8200 (API)      │    │  :5432 (KC DB)   │
-│  Realm: ami       │    │  Storage: Raft    │    │  DB: keycloak    │
-└────────┬──────────┘    └────────┬──────────┘    └──────────────────┘
-         │                        │
-         │   OIDC / Admin API     │   JWT Auth / AppRole
-         │                        │
-┌────────┴────────────────────────┴───────────────────────────────┐
-│                      Application Network                        │
-│  AMI-PORTAL :3000 │ AMI-TRADING :8080 │ AMI-STREAMS (Matrix)   │
-│  Orchestrator     │ CI/CD             │ Cron/Backup            │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    MGMT["Management Network<br/>admin consoles · bootstrap CLI"]
+    KC["Keycloak :8082<br/>Realm: ami"]
+    OB["OpenBao :8200<br/>Storage: Raft"]
+    PG["PostgreSQL :5432<br/>DB: keycloak"]
+    subgraph APP["Application Network"]
+        direction LR
+        PORTAL["AMI-PORTAL<br/>:3000"]
+        TRADING["AMI-TRADING<br/>:8080"]
+        STREAMS["AMI-STREAMS<br/>Matrix"]
+        ORCH["Orchestrator"]
+        CI["CI/CD"]
+        CRON["Cron/Backup"]
+    end
+    MGMT --> KC
+    MGMT --> OB
+    MGMT --> PG
+    KC -- "OIDC / Admin API" --> APP
+    OB -- "JWT Auth / AppRole" --> APP
+    KC -.-> PG
 ```
 
 ## Trust Boundaries

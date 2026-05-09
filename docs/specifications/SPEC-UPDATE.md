@@ -60,35 +60,17 @@ The exclusion list is maintained as constants in `ami/scripts/update.py`. Runtim
 
 ## 2. Update Pipeline
 
-```
-┌─────────────────┐
-│ 1. Discover      │  Find every repo under root + projects/ (git-status-all style);
-│                  │  drop excluded and vendored entries.
-├─────────────────┤
-│ 2. Dirty Check   │  Run `git status --porcelain` per repo; collect all dirty repos,
-│                  │  fail the tier if any dirty and the tier requires clean state.
-├─────────────────┤
-│ 3. Fetch         │  `git fetch --all` per clean repo.
-│                  │  On failure: record reason, omit repo from selection set.
-├─────────────────┤
-│ 4. Merge Check   │  For each (repo, remote, current-branch) triple whose remote ref
-│                  │  exists and is strictly ahead of HEAD:
-│                  │    - count commits behind (HEAD..<remote>/<branch>)
-│                  │    - mark FF-eligible iff HEAD is ancestor of <remote>/<branch>
-├─────────────────┤
-│ 5. Report        │  Status table: one row per triple; FF-eligible / diverged label.
-├─────────────────┤
-│ 6. Select        │  Interactive multiselect (FF-eligible preselected; diverged
-│                  │  shown disabled) — or auto-select in CI mode.
-├─────────────────┤
-│ 7. Pull          │  `git pull --ff-only <remote> <branch>` per selected triple;
-│                  │  continue on failure.
-├─────────────────┤
-│ 8. Post-SYSTEM   │  After the SYSTEM tier: `uv sync --extra dev`, reinstall
-│                  │  AMI-DATAOPS as editable if present, regenerate native git hooks
-│                  │  in every SYSTEM repo from each repo's own .pre-commit-config.yaml.
-│                  │  Then proceed to APPS tier.
-└─────────────────┘
+```mermaid
+flowchart TB
+    S1["1. Discover<br/>Find every repo under root + projects/<br/>(git-status-all style); drop excluded + vendored."]
+    S2["2. Dirty Check<br/>git status --porcelain per repo; fail the tier if any<br/>dirty and the tier requires clean state."]
+    S3["3. Fetch<br/>git fetch --all per clean repo.<br/>On failure: record reason, omit from selection."]
+    S4["4. Merge Check<br/>For each (repo, remote, current-branch) where the remote<br/>ref is strictly ahead of HEAD: count commits behind,<br/>mark FF-eligible if HEAD is ancestor."]
+    S5["5. Report<br/>Status table: one row per triple;<br/>FF-eligible / diverged label."]
+    S6["6. Select<br/>Interactive multiselect (FF-eligible preselected,<br/>diverged disabled) — or auto-select in CI mode."]
+    S7["7. Pull<br/>git pull --ff-only &lt;remote&gt; &lt;branch&gt; per selected triple;<br/>continue on failure."]
+    S8["8. Post-SYSTEM<br/>uv sync --extra dev, reinstall AMI-DATAOPS as editable<br/>if present, regenerate native git hooks per SYSTEM repo<br/>from each repo's .pre-commit-config.yaml. Then APPS tier."]
+    S1 --> S2 --> S3 --> S4 --> S5 --> S6 --> S7 --> S8
 ```
 
 ---

@@ -37,17 +37,27 @@ The hook validation pipeline replaces the original guard system with a configura
 
 ### Core Components
 
-```
-hooks.yaml          HookManager           Validators           guards.py
-+-----------+      +-------------+      +----------------+    +-------------+
-| pre_bash: |----->| from_config |----->| CommandTier    |--->| (tier       |
-|   - tier  |      | run()       |      |   classify     |    |  classifier)|
-| pre_edit: |      | noop()      |      | EditSafety     |--->| edit check  |
-|   - trav  |      | create()    |      | PathTraversal  |--->| traversal   |
-|   - edit  |      +-------------+      | ContentSafety  |--->| comm check  |
-| post_out: |                           +----------------+    +-------------+
-|   - cont  |
-+-----------+
+```mermaid
+flowchart LR
+    Cfg["hooks.yaml<br/>pre_bash · pre_edit · post_output"]
+    HM["HookManager<br/>from_config / run / noop / create"]
+    subgraph V["Validators"]
+        CT[CommandTier]
+        ES[EditSafety]
+        PT[PathTraversal]
+        CS[ContentSafety]
+    end
+    subgraph G["guards.py"]
+        TC[tier classifier]
+        EC[edit check]
+        TR[traversal check]
+        CC[content check]
+    end
+    Cfg --> HM --> V
+    CT --> TC
+    ES --> EC
+    PT --> TR
+    CS --> CC
 ```
 
 ### Validator Details
