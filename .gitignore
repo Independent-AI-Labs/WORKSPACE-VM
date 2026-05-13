@@ -92,7 +92,9 @@ feedback-*.md
 *.meta
 
 # Metadata storage (separate git repos)
-.ami-metadata/
+# Operational data root — defined by AMI_DATA_ROOT env var.
+# No operational data lives in the workspace source tree.
+# See docs/requirements/REQ-METADATA.md.
 
 # Local gcloud CLI installation
 .gcloud/

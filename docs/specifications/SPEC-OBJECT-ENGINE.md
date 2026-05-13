@@ -9,6 +9,8 @@
 
 `srp-objects` is the persistence and query layer for ontology object instances. It provides a single `ObjectStore` trait with two backends (file and in-memory), an `Object` data model that wraps any ontology type in a generic container, link traversal via full directory scans (unvalidated-link model), and validation against `srp-ontology` metadata on every write.
 
+All operational data lives under `$AMI_DATA_ROOT/<project>/.ontology/`. Source repositories contain zero operational data. See [SPEC-METADATA.md](SPEC-METADATA.md) for the data root specification.
+
 See [SPEC-ONTOLOGY.md](SPEC-ONTOLOGY.md) for the type definitions and metadata registry this crate validates against.
 
 ## Crate Layout
@@ -427,17 +429,18 @@ if existing.version != expected_version {
 ## Directory Layout
 
 ```
-<project-root>/
-  .ontology/
-    ├── dark-mode-toggle.onto.md
-    ├── product-led-growth.onto.md
-    ├── seed-round-2026.onto.md
-    ├── obj_019ad1e0.onto.md        # unslugged object
-    ├── archive/
-    │   └── .deleted/               # renamed here on delete
-    ├── board.yaml                  # board config
-    └── project.yaml                # project metadata, namespaces, owners
+$AMI_DATA_ROOT/                   ← defined by AMI_DATA_ROOT env var
+└── <project>/                     ← source repo basename (e.g. AMI-SRP)
+    └── .ontology/                 ← FileObjectStore root
+        ├── <slug>.onto.md         ← slug-based filename
+        ├── obj_<uuid>.onto.md     ← fallback when slug absent
+        ├── archive/
+        │   └── .deleted/          ← renamed here on delete
+        ├── board.yaml             ← board config
+        └── project.yaml           ← project metadata, namespaces, owners
 ```
+
+See `SPEC-METADATA.md` for the full data root specification including project identity derivation, discovery protocol, and git strategy.
 
 ### project.yaml format
 
