@@ -9,6 +9,8 @@
 
 `srp-objects` is the persistence and query layer for ontology object instances. It provides a single `ObjectStore` trait with two backends (file and in-memory), an `Object` data model that wraps any ontology type in a generic container, link traversal via full directory scans (unvalidated-link model), and validation against `srp-ontology` metadata on every write.
 
+See [SPEC-ONTOLOGY.md](SPEC-ONTOLOGY.md) for the type definitions and metadata registry this crate validates against.
+
 ## Crate Layout
 
 ```
