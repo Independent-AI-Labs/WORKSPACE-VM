@@ -64,15 +64,17 @@ Unlike the previous revision, `AMI_DATA_ROOT` does NOT need to exist before use 
 
 ### FR-2: Per-project data repositories
 
-Every source project that needs operational data declares a data remote. This is a git URL — HTTPS or SSH — pointing to a repository dedicated to that project's `.onto.md` and `.task.md` files.
+Every source project that needs operational data MAY declare a data remote. This is a git URL pointing to a repository dedicated to that project's `.onto.md` and `.task.md` files. The declaration is optional — data repos are first-class and can exist without any source repo referencing them.
 
-The declaration is stored in the source repo's `.git/config`:
+When declared, the mapping is stored in the source repo's `.git/config`:
 ```
 [ami]
     data = git@github.com:org/ami-srp-data.git
 ```
 
-The operator runs `ami data clone git@github.com:org/ami-srp-data.git` from within the source repo. The CLI stores the declaration in `.git/config`. From that point forward, the declaration is the source of truth for that project's data location.
+The operator runs `ami data clone git@github.com:org/ami-srp-data.git` from within the source repo. The CLI stores the declaration in `.git/config`. From that point forward, the declaration enables auto-discovery of the data repo on new machines.
+
+**Standalone data repos:** Any git repository under `$AMI_DATA_ROOT` that contains `.tasks/` or `.ontology/` is a valid data repo. It can be cloned manually (`git clone <url> $AMI_DATA_ROOT/<name>`) and used immediately with `--project <name>`. No source repository is required.
 
 ### FR-3: Canonical project identity
 
