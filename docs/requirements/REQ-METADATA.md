@@ -9,47 +9,48 @@
 
 ## Purpose
 
-Define the absolute separation between source code repositories and operational data storage for every AMI project. Source repos contain only code, configuration templates, and specifications. All runtime data — tasks, ontology objects, board definitions, project configs, and generated artifacts — lives under a single data root defined by the `AMI_DATA_ROOT` environment variable. There is no fallback, no default, and no co-location mode.
+Define the absolute separation between source code repositories and operational data storage for every AMI project. Each source project declares a data remote — a separate git repository where its `.onto.md` and `.task.md` files live. The engine clones it to `$AMI_DATA_ROOT/<project>`, pulls before every read, writes with commit, and pushes immediately after every mutation. No operational data ever touches a source repo.
 
 ## Design principles
 
-Non-negotiable constraints on every implementation decision:
+1. **Absolute separation.** Source repos contain only code, configuration templates, and specifications. Operational data lives in per-project git repositories under `$AMI_DATA_ROOT`. A source repo cloned from origin contains zero operational state.
 
-1. **Absolute separation.** A source repo MUST NOT contain operational data in any tracked or untracked form. `.tasks/`, `.ontology/`, and any equivalent dot-directories are removed from project repos. A project cloned from source contains zero operational state.
+2. **One data repo per project.** Every source project has its own independent data repository. There is no shared monorepo. Project identity is canonical and derived from the source repo's remote origin URL.
 
-2. **One variable, no fallbacks.** `AMI_DATA_ROOT` is the sole mechanism for locating operational data. If the variable is unset, empty, or points to a non-existent directory, every store operation returns a hard error. There is no default path, no `~/ami-data` fallback, no `.ami-data-root` sidecar file, no `AMI_DATA_ROOT` in `.env` auto-detection. The operator sets it or nothing works.
+3. **Clone-on-declare.** The operator runs `ami data clone <remote-url>` once per project. The engine clones it to `$AMI_DATA_ROOT/<project>`. From that point forward, the CLONE is the ground truth — the operator never manually creates directories or runs `git init`.
 
-3. **Flat project namespace.** Under the data root, every project has one directory named by the project's canonical identifier (the source repo directory name — `AMI-SRP`, `AMI-PORTAL`, etc.). There is no nesting, no grouping hierarchy, no namespacing beyond the directory name.
+4. **Pull-before, push-after.** Before every read operation, the engine pulls the latest from the data remote. After every write operation, the engine commits and pushes. The data store is always operating against the freshest remote state. There is no offline mode.
 
-4. **Git at data root.** `$AMI_DATA_ROOT` is a git repository (or contains per-project git repos — see SPEC). The engine auto-commits operational data to this repo. Source repos never receive data commits. The audit trail lives with the data, not the code.
+5. **Reuse shell credentials.** The engine uses the same git credentials as the current shell session (SSH agent, credential helper, or git config). No separate authentication configuration. If the operator can `git push` from the shell, the engine can too.
+
+6. **No fallback, no default, no colocation.** `AMI_DATA_ROOT` must be set. The data remote must be declared. If either is missing, every store operation returns a hard error with a clear remediation message.
 
 ## Scope
 
 In scope:
-- The `AMI_DATA_ROOT` environment variable specification.
-- The data root directory layout and naming conventions.
-- How projects register in the data root (project identity).
-- How file stores (FileTaskStore, FileObjectStore) resolve paths against the data root.
-- How discovery works (PORTAL, CLI tools finding project data).
-- How git auto-commits operate in the separated model.
-- Migration from co-located `.tasks/` directories (one-time, operator-driven).
-- What gets removed from source repos (`.tasks/`, `.ontology/`, co-located references).
-- The `srp-store-common::discover` module's new contract.
+- Per-project data repository declaration via `ami data clone <remote-url>`.
+- `AMI_DATA_ROOT` environment variable specification.
+- Data root directory layout (one git repo per project).
+- Canonical project identity derivation from source repo remote URL.
+- Pull-before-read, commit-and-push-after-write synchronization.
+- How file stores resolve paths against the data root.
+- How git auto-commits operate (every write is a commit + push).
+- What gets removed from source repos.
 
 Out of scope:
-- PORTAL's `.meta/` CMS sidecar model (different concern — content annotation, not operational data).
-- `.claude/` and per-session agent state (unchanged — gitignored, local-only).
-- AMI-CI compliance infrastructure (`quality_exceptions.yaml`, `config/` — unchanged, tracked in source).
-- Secrets management (`.env`, credentials — unchanged).
-- Build artifacts (`target/`, `.next/`, `dist/` — unchanged).
-- XDG compliance beyond the `AMI_DATA_ROOT` pattern (no `XDG_DATA_HOME` integration needed).
+- PORTAL's `.meta/` CMS sidecar model (different concern — content annotation).
+- `.claude/` and per-session agent state (unchanged).
+- AMI-CI compliance infrastructure (unchanged, tracked in source).
+- Secrets management (unchanged).
+- Build artifacts (unchanged).
+- Shared data repos — every project gets its own.
 
 ## Cross-references
 
 - [SPEC-METADATA.md](../../docs/specifications/SPEC-METADATA.md) — Implementation specification.
-- `REQ-TASK-ENGINE.md` (AMI-SRP) — Task persistence, to be updated for data root.
-- `REQ-OBJECT-ENGINE.md` (AMI-SRP) — Object persistence, to be updated for data root.
-- `REQ-TASK-MANAGEMENT.md` (AMI-PORTAL) — UI layer, to be updated for data root discovery.
+- `REQ-TASK-ENGINE.md` (AMI-SRP) — Task persistence, to be updated.
+- `REQ-OBJECT-ENGINE.md` (AMI-SRP) — Object persistence, to be updated.
+- `REQ-TASK-MANAGEMENT.md` (AMI-PORTAL) — UI layer, to be updated.
 
 ---
 
@@ -57,126 +58,109 @@ Out of scope:
 
 ### FR-1: `AMI_DATA_ROOT` environment variable
 
-The variable MUST be an absolute filesystem path. It MUST point to an existing directory. Every project that reads or writes operational data MUST resolve its data paths relative to this variable. An unset, empty, relative, or non-existent `AMI_DATA_ROOT` is a hard error on every data operation — no store opens, no task is created, no object is read.
+The variable MUST be an absolute filesystem path. It is the parent directory under which per-project data repos are cloned. It MUST be set before any data operation. An unset, empty, or relative `AMI_DATA_ROOT` is a hard error.
 
-The variable is set once per machine (or per session). It is not per-project, not per-shell, not derived from CWD. The expectation is that it lives in shell profile (`~/.bashrc`, `~/.zshrc`) or systemd environment.
+Unlike the previous revision, `AMI_DATA_ROOT` does NOT need to exist before use — the engine creates it on first `ami data clone`. But if it IS set to a path that exists and is a file (not a directory), that is an error.
 
-### FR-2: Data root directory layout
+### FR-2: Per-project data repositories
+
+Every source project that needs operational data declares a data remote. This is a git URL — HTTPS or SSH — pointing to a repository dedicated to that project's `.onto.md` and `.task.md` files.
+
+The declaration is stored in the source repo's `.git/config`:
+```
+[ami]
+    data = git@github.com:org/ami-srp-data.git
+```
+
+The operator runs `ami data clone git@github.com:org/ami-srp-data.git` from within the source repo. The CLI stores the declaration in `.git/config`. From that point forward, the declaration is the source of truth for that project's data location.
+
+### FR-3: Canonical project identity
+
+The project's canonical name is derived from the DATA REMOTE URL, not the local source directory, not the source repo's origin. The name is the last path component of the remote URL, minus the `.git` suffix.
+
+```
+git@github.com:org/ami-srp-data.git      →  ami-srp-data
+https://github.com/org/my-project.git    →  my-project
+ssh://git@gitlab.com/team/tasks.git       →  tasks
+```
+
+This name is immutable. Renaming the data remote requires a new data repo. Multiple source clones of the same project (e.g., `~/work/ami-srp/` and `~/forks/ami-srp/`) auto-discover the same canonical name because they share the same `[ami] data` declaration in their `.git/config`.
+
+### FR-4: Data root directory layout
 
 ```
 $AMI_DATA_ROOT/
-├── AMI-SRP/
-│   ├── .tasks/              ← task files (*.task.md)
+├── ami-srp-data/           ← cloned from git@github.com:org/ami-srp-data.git
+│   ├── .git/
+│   ├── .tasks/              ← task files
 │   │   ├── board.yaml
 │   │   ├── project.yaml
 │   │   ├── templates/
 │   │   ├── archive/.deleted/
-│   │   └── <group>/
-│   ├── .ontology/           ← ontology object files (*.onto.md)
+│   │   └── *.task.md
+│   ├── .ontology/           ← ontology object files
 │   │   ├── board.yaml
 │   │   ├── project.yaml
-│   │   └── archive/.deleted/
-│   └── README.md            ← optional: describes this project's data
-├── AMI-PORTAL/
+│   │   ├── archive/.deleted/
+│   │   └── *.onto.md
+│   └── README.md
+├── ami-portal-data/        ← cloned from another remote
 │   └── .tasks/
-├── AMI-TRADING/
-│   ├── .tasks/
-│   └── .ontology/
-└── ...
+└── my-trading-data/        ← cloned from a third remote
+    └── .tasks/
 ```
 
-Every project directory under the data root is named by the project's canonical identifier — the source repo directory name. No two projects may share the same name (flat namespace, no nesting).
+Every directory under `$AMI_DATA_ROOT` IS a git repository. The directory name is the canonical project name (derived from the data remote URL). There is no nesting, no grouping, no monorepo.
 
-Project directories are created on first write via `create_dir_all`. The operator may pre-create them or let the engine handle it. Empty project directories are valid — they simply return empty listings.
+### FR-5: Clone on declare
 
-### FR-3: Project identity
+`ami data clone <remote-url>` performs:
 
-Every project identifies itself by its canonical name — the basename of its source repository. This is obtained at runtime:
+1. Derives the canonical project name from the remote URL.
+2. Creates `$AMI_DATA_ROOT/<project>/` via `git clone <remote-url> $AMI_DATA_ROOT/<project>`.
+3. If the clone succeeds: writes `[ami] data = <remote-url>` to the source repo's `.git/config`.
+4. If `AMI_DATA_ROOT` does not exist: creates it (`mkdir -p`) before cloning.
+5. If the project directory already exists and is a git repo: pulls instead of cloning (recovery from partial state).
+6. If the project directory exists but is NOT a git repo: hard error — `"$AMI_DATA_ROOT/<project> exists but is not a git repository. Remove it and retry."`
 
-- **Rust crates**: `env!("CARGO_PKG_NAME")` or the workspace member name.
-- **CLI tools**: `--project <name>` flag or derived from the current working directory by walking up to find a known project marker (e.g., `Cargo.toml` with a specific `[package] name`).
-- **PORTAL**: Already knows its own project identity; passes it to the store.
+### FR-6: Store path resolution
 
-The project name is never stored in a file within the source repo. There is no `.ami-project` marker file, no `.project-name` sidecar, no `project.yaml` in the source tree. The name is either explicit (CLI flag) or derivable from the source repo root's basename.
-
-### FR-4: Store path resolution
-
-Every file store (`FileTaskStore`, `FileObjectStore`) resolves its operational directory against `AMI_DATA_ROOT`. The concrete path is:
-
+File stores resolve their operational directory against the data root:
 ```
-$AMI_DATA_ROOT/<project-name>/.tasks/
-$AMI_DATA_ROOT/<project-name>/.ontology/
+$AMI_DATA_ROOT/<project>/.tasks/
+$AMI_DATA_ROOT/<project>/.ontology/
 ```
 
-The store's `open()` method takes the project name and constructs the full path. There is no provision for opening a store at an arbitrary path — every store is rooted under `AMI_DATA_ROOT/<project>/`.
+The `<project>` name is the canonical name from `[ami] data` in the source repo's `.git/config`. If the declaration is missing: hard error — `"No data remote configured. Run: ami data clone <remote-url>"`.
 
-Example:
-```rust
-// FileTaskStore::open("AMI-SRP")?
-// → resolves to $AMI_DATA_ROOT/AMI-SRP/.tasks/
-```
+### FR-7: Pull-before-read
 
-### FR-5: Discovery
+Before every `get`, `list`, `count`, `resolve_links`, or `backlinks` operation, the file store performs a `git pull` in the data repo. If the pull fails (network unreachable, auth expired, merge conflict), the read still proceeds against the local state — the pull is best-effort for reads. A warning is emitted to the event log.
 
-Project discovery walks `$AMI_DATA_ROOT` for immediate child directories. Every child directory that contains a `.tasks/` or `.ontology/` subdirectory is a project with operational data.
+### FR-8: Commit-and-push-after-write
 
-The discovery function (`srp-store-common::discover`) no longer walks arbitrary workspace roots — it ONLY walks `AMI_DATA_ROOT`. The concept of a "workspace root" for data discovery is replaced by the data root.
+After every `create`, `update`, `delete`, or `transition` operation, the file store:
 
-PORTAL's project listing API reads `AMI_DATA_ROOT` and returns the set of child directories containing `.tasks/`.
+1. Commits the changes to the data repo with a structured commit message.
+2. Pushes to the remote declared in `[ami] data`.
+3. If the push fails: the write succeeded locally but remote sync failed. The operation returns success with a warning. The next successful push catches up all pending commits.
+4. No push is faster than the write itself — the engine does not wait for network round-trips before returning success to the caller.
 
-### FR-6: Git auto-commits
+### FR-9: Git credential reuse
 
-When git auto-commits are enabled (`GitMode::On`), the engine commits to the git repository at the data root. This is ONE repository containing all project data, or optionally one repository per project directory (see SPEC for the decision).
+The engine uses `git2::Remote::push` and `git2::Remote::fetch` with the default credential callback — meaning it picks up the same SSH agent, credential helper, or git config that the shell uses. No additional configuration. If the operator can `git push` manually, the engine can push automatically.
 
-- If `$AMI_DATA_ROOT` is a git repository: commits go to that repo, with file paths prefixed by the project directory (e.g., `AMI-SRP/.tasks/some-task.task.md`).
-- If `$AMI_DATA_ROOT` is NOT a git repository: the engine initializes one on first write, or errors if `GitMode::On` is requested without a pre-existing repo (see SPEC).
-- Source repos are NEVER auto-committed to. The engine MUST NOT touch git repositories outside the data root.
+### FR-10: Discovery
 
-### FR-7: Migration from co-location
+`ami data discover` (or equivalent) walks `$AMI_DATA_ROOT` for immediate child directories. Every child that is a git repository with a `.tasks/` or `.ontology/` subdirectory is a discovered project.
 
-Existing projects with `.tasks/` or `.ontology/` directories inside their source repos MUST be migrated. This is an operator-driven, one-time process:
+PORTAL's project listing API uses the same discovery mechanism.
 
-1. Set `AMI_DATA_ROOT` to the desired data directory.
-2. Create the project subdirectory: `mkdir -p $AMI_DATA_ROOT/<project>/`
-3. Move the dot-directory: `mv .tasks/ $AMI_DATA_ROOT/<project>/.tasks/`
-4. Remove any remaining co-located references from `.gitignore` and documentation.
-5. Commit the source repo changes (removal of `.tasks/`, updated `.gitignore`).
+### FR-11: What gets removed from source repos
 
-There is no automated migration tool in v1. The operator owns this process.
+Every AMI project source repository MUST NOT contain `.tasks/`, `.ontology/`, any `*.task.md` or `*.onto.md` files, or any project config files (`board.yaml`, `project.yaml`).
 
-### FR-8: What gets removed from source repos
-
-Every AMI project source repository MUST NOT contain:
-
-- `.tasks/` directories or any `*.task.md` files.
-- `.ontology/` directories or any `*.onto.md` files.
-- Project-level `board.yaml` or `project.yaml` in the repo root.
-- `.tasks/.index/` directories or index caches.
-- Any reference to co-located data in `.gitignore`, README, or documentation.
-- `SRP_TASKS_WORKSPACE` references that imply co-location (PORTAL should use `AMI_DATA_ROOT` instead).
-
-What REMAINS in source repos:
-
-- `quality_exceptions.yaml` (compliance — reviewed on every PR).
-- `config/` (AMI-CI overrides — per-project, tracked).
-- `.claude/` (agent sessions — gitignored, local-only).
-- `src/`, `crates/`, `Cargo.toml`, `Makefile`, `moon.yml`, and all source code.
-- `docs/` (requirements, specifications).
-- `.env.example` (template only, secrets never committed).
-
-### FR-9: Error handling for missing data root
-
-When `AMI_DATA_ROOT` is unset, empty, relative, or points to a non-existent directory:
-
-- `FileTaskStore::open()` returns `StoreError::Backend("AMI_DATA_ROOT is not set or invalid: ...")`.
-- `FileObjectStore::open()` returns the equivalent `StoreError`.
-- PORTAL's API returns HTTP 500 with a clear message: "AMI_DATA_ROOT not configured".
-- CLI tools print an error to stderr and exit non-zero.
-- The error message MUST include the current value of `AMI_DATA_ROOT` (or state that it is unset) and MUST explain how to set it.
-
-### FR-10: Multiple projects on one machine
-
-A single machine may run multiple AMI projects simultaneously. All projects share the same `AMI_DATA_ROOT`. Each project's operational data is isolated in its own subdirectory. There is no project-level isolation mechanism beyond the directory name — two projects with the same canonical name WILL collide in the data root. Rename one source repo to resolve.
+`SRP_TASKS_WORKSPACE` is deprecated and removed from PORTAL's configuration surface.
 
 ---
 
@@ -184,28 +168,28 @@ A single machine may run multiple AMI projects simultaneously. All projects shar
 
 ### NFR-1: No magic files
 
-Source repos MUST NOT contain any file whose sole purpose is to declare the project's data root or project identity. No `.ami-data-root`, no `.ami-project`, no `project.yaml` in the source tree, no `data_root` field in `Cargo.toml` or `package.json`. The project name is derived from the repo directory basename; the data root is `AMI_DATA_ROOT`.
+Source repos MUST NOT contain `.ami-metadata/` or any file whose sole purpose is metadata configuration. The `[ami] data` section in `.git/config` is the only declaration mechanism.
 
 ### NFR-2: Single mechanism
 
-There is exactly one way to configure the data root: the `AMI_DATA_ROOT` environment variable. No CLI flag overrides, no config file overrides, no compile-time defaults, no runtime negotiation. One variable, one behavior.
+One way to declare the data remote: `[ami] data` in `.git/config`. No env vars, no CLI flags, no config files.
 
 ### NFR-3: Consistent across languages
 
-Every project — Rust, TypeScript, Python — resolves operational data paths using the same `AMI_DATA_ROOT` variable and the same directory layout convention. The implementation language differs; the contract does not.
+Every project resolves operational data paths identically regardless of implementation language.
 
 ### NFR-4: Backward incompatibility is explicit
 
-This specification deliberately breaks backward compatibility with any co-located `.tasks/` or `.ontology/` usage. The migration path (FR-7) is manual and operator-driven. There is no compatibility shim, no "fallback to repo root," no transitional period where both modes work.
+This specification deliberately breaks backward compatibility with co-located data. Migration is operator-driven: `mv .tasks/ $AMI_DATA_ROOT/<project>/.tasks/`, push data repo, run `ami data clone` on other machines.
 
 ---
 
 ## Open Questions
 
-1. **Git structure at data root**: One git repo for the entire data root (`$AMI_DATA_ROOT/.git`) or one git repo per project (`$AMI_DATA_ROOT/<project>/.git`)? Single repo is simpler for backup; per-project repos allow independent versioning and access control. SPEC must decide.
+1. **Pull-before-read: best-effort or hard requirement?** Current: best-effort (warn, proceed with stale data). Alternative: hard error if pull fails (no stale reads). Leaning best-effort for usability — a developer offline should still be able to read their local data.
 
-2. **Project identity derivation**: Should the project name always be passed explicitly (via `--project` flag or constructor argument), or should CLI tools auto-derive it from CWD? Explicit is unambiguous but verbose; auto-derivation is convenient but fragile when CWD differs from repo root.
+2. **Push-after-write: synchronous or background?** Current: synchronous (block until push completes). Alternative: background task that pushes periodically. Leaning synchronous — simpler reasoning, no queued state, immediate feedback if push fails.
 
-3. **PORTAL's `SRP_TASKS_WORKSPACE`**: Should this env var be removed in favor of `AMI_DATA_ROOT`, or should PORTAL use BOTH (data root for file stores, workspace for project discovery)? Current leaning: PORTAL uses `AMI_DATA_ROOT` for data, drops `SRP_TASKS_WORKSPACE`.
+3. **Data repo initial state:** Should `ami data clone` scaffold `.tasks/`, `.ontology/`, `board.yaml`, and `project.yaml` automatically, or should the empty repo be valid (files created on first write)? Leaning: empty repo is valid, files are created on first write.
 
-4. **Existing `.task.md` test fixtures**: Many test files in `srp-tasks/tests/` and `srp-tasks-cli-rs/tests/` create `.tasks/` directories in temp dirs. These are test artifacts, not operational data. Do they need to change? Leaning: no — test code creates temp dirs and sets a mock data root; the data root concept applies only to production store operations.
+4. **Multiple source projects sharing one data repo?** Current: prohibited (one data repo per project). Is there a use case for sharing? If two source projects want the same tasks, they should link to the same data remote. The `[ami] data` declaration allows this — just set it to the same URL.

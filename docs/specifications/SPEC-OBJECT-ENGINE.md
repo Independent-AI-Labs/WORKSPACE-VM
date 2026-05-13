@@ -429,18 +429,22 @@ if existing.version != expected_version {
 ## Directory Layout
 
 ```
-$AMI_DATA_ROOT/                   ← defined by AMI_DATA_ROOT env var
-└── <project>/                     ← source repo basename (e.g. AMI-SRP)
-    └── .ontology/                 ← FileObjectStore root
-        ├── <slug>.onto.md         ← slug-based filename
-        ├── obj_<uuid>.onto.md     ← fallback when slug absent
-        ├── archive/
-        │   └── .deleted/          ← renamed here on delete
-        ├── board.yaml             ← board config
-        └── project.yaml           ← project metadata, namespaces, owners
+$AMI_DATA_ROOT/                          ← created on first clone
+├── ami-srp-data/                        ← git clone, declared via [ami] data
+│   ├── .git/
+│   ├── .tasks/                          ← FileTaskStore root
+│   └── .ontology/                       ← FileObjectStore root
+│       ├── <slug>.onto.md
+│       ├── obj_<uuid>.onto.md
+│       ├── archive/.deleted/
+│       ├── board.yaml
+│       └── project.yaml
+├── ami-portal-data/                     ← separate git clone
+│   └── .tasks/
+└── ...
 ```
 
-See `SPEC-METADATA.md` for the full data root specification including project identity derivation, discovery protocol, and git strategy.
+Each directory is a standalone git repository. The engine pulls before every read and commits + pushes after every write. See `SPEC-METADATA.md` for the full data root specification including clone, sync, and credential handling.
 
 ### project.yaml format
 
