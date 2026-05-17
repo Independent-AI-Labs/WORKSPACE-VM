@@ -5,6 +5,7 @@ safe commands through to real git.
 """
 
 import os
+import pty
 import subprocess
 from pathlib import Path
 from typing import NamedTuple
@@ -59,9 +60,36 @@ def mock_env(tmp_path: Path) -> MockEnv:
 
 
 def run_git_cmd(cmd: str, env: dict) -> subprocess.CompletedProcess[str]:
-    """Runs a git command via the wrapper."""
-    return subprocess.run(
-        ["bash", "-c", cmd], env=env, capture_output=True, text=True, check=False
+    """Runs a git command via the wrapper with a PTY for foreground checks."""
+    master, slave = pty.openpty()
+    # Use a subshell with the slave PTY as its controlling terminal.
+    # This ensures pgrp == tpgid for foreground-sensitive checks.
+    process = subprocess.run(
+        ["bash", "-c", cmd],
+        env=env,
+        stdin=slave,
+        stdout=slave,
+        stderr=slave,
+        close_fds=True,
+        text=True,
+        capture_output=False,  # We read from the master instead
+        check=False,
+    )
+    os.close(slave)
+
+    output = ""
+    try:
+        while True:
+            chunk = os.read(master, 1024).decode()
+            if not chunk:
+                break
+            output += chunk
+    except OSError:  # silent-ok: EIO is expected on linux when slave closes
+        pass
+    os.close(master)
+
+    return subprocess.CompletedProcess(
+        args=cmd, returncode=process.returncode, stdout=output, stderr=""
     )
 
 
