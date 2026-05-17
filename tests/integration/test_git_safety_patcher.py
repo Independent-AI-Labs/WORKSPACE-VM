@@ -5,7 +5,6 @@ safe commands through to real git.
 """
 
 import os
-import pty
 import subprocess
 from pathlib import Path
 from typing import NamedTuple
@@ -60,36 +59,21 @@ def mock_env(tmp_path: Path) -> MockEnv:
 
 
 def run_git_cmd(cmd: str, env: dict) -> subprocess.CompletedProcess[str]:
-    """Runs a git command via the wrapper with a PTY for foreground checks."""
-    master, slave = pty.openpty()
-    # Use a subshell with the slave PTY as its controlling terminal.
-    # This ensures pgrp == tpgid for foreground-sensitive checks.
-    process = subprocess.run(
-        ["bash", "-c", cmd],
+    """Runs a git command via the wrapper using 'script' to simulate a TTY."""
+    # We use 'script' because it correctly handles PTY acquisition, setsid,
+    # and setting the foreground process group (tpgid == pgrp).
+    # This ensures the git-guard's background check behaves as if in a real shell.
+
+    # -q: quiet, -c: command, -e: return exit code of command
+    # /dev/null: log output to null (we capture stdout via subprocess)
+    wrapped_cmd = f"script -q -e -c '{cmd}' /dev/null"
+
+    return subprocess.run(
+        ["bash", "-c", wrapped_cmd],
         env=env,
-        stdin=slave,
-        stdout=slave,
-        stderr=slave,
-        close_fds=True,
+        capture_output=True,
         text=True,
-        capture_output=False,  # We read from the master instead
         check=False,
-    )
-    os.close(slave)
-
-    output = ""
-    try:
-        while True:
-            chunk = os.read(master, 1024).decode()
-            if not chunk:
-                break
-            output += chunk
-    except OSError:  # silent-ok: EIO is expected on linux when slave closes
-        pass
-    os.close(master)
-
-    return subprocess.CompletedProcess(
-        args=cmd, returncode=process.returncode, stdout=output, stderr=""
     )
 
 
