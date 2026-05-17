@@ -84,8 +84,12 @@ setup_node_env() {
         return 1
     }
 
+    # Resolve to absolute path so it survives directory changes in subshells (INCIDENT-2026-05-17)
+    local abs_venv_dir
+    abs_venv_dir="$(cd "$(dirname "$venv_dir")" && pwd)/$(basename "$venv_dir")"
+
     # Update PATH to prioritize the local node environment for subsequent commands
-    export PATH="$venv_dir/bin:$PATH"
+    export PATH="$abs_venv_dir/bin:$PATH"
 
     # Create symlinks in .boot-linux/bin/
     local bin_dir="$PWD/.boot-linux/bin"
