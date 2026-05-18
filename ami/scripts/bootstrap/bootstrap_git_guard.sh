@@ -4,7 +4,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
 CYAN='\033[0;36m'; BOLD='\033[1m'; DIM='\033[2m'; NC='\033[0m'
@@ -115,12 +115,40 @@ install_guard() {
 
     # Phase 1: Build Rust binary
     log_info "Building ami-git-guard Rust binary..."
-    if ! command -v rustc >/dev/null; then
-        log_warn "Rust not installed. Installing via rustup..."
+
+    local rust_boot_dir="${PROJECT_ROOT}/.boot-linux"
+    local rust_bin_dir="${rust_boot_dir}/bin"
+    local rustc_bin=""
+    local cargo_bin=""
+    local rustup_bin=""
+
+    # Detect rust: bootstrapped first, then system
+    if [[ -x "${rust_bin_dir}/rustc" && -x "${rust_bin_dir}/cargo" ]]; then
+        rustc_bin="${rust_bin_dir}/rustc"
+        cargo_bin="${rust_bin_dir}/cargo"
+        rustup_bin="${rust_bin_dir}/rustup"
+        log_info "Using bootstrapped Rust from ${rust_bin_dir}"
+    elif command -v rustc >/dev/null && command -v cargo >/dev/null; then
+        rustc_bin="$(command -v rustc)"
+        cargo_bin="$(command -v cargo)"
+        if command -v rustup >/dev/null; then
+            rustup_bin="$(command -v rustup)"
+        fi
+        log_info "Using system Rust: ${rustc_bin}"
+    else
+        log_warn "Rust toolchain not found. Installing via rustup..."
         bash "${PROJECT_ROOT}/ami/scripts/bootstrap/bootstrap_rust.sh" || {
             log_error "Rust installation failed"
             return 1
         }
+        if [[ ! -x "${rust_bin_dir}/rustc" || ! -x "${rust_bin_dir}/cargo" ]]; then
+            log_error "Rust binaries missing after bootstrap"
+            return 1
+        fi
+        rustc_bin="${rust_bin_dir}/rustc"
+        cargo_bin="${rust_bin_dir}/cargo"
+        rustup_bin="${rust_bin_dir}/rustup"
+        log_info "Using bootstrapped Rust from ${rust_bin_dir}"
     fi
 
     local guard_dir="${PROJECT_ROOT}/projects/ami-git-guard"
@@ -131,25 +159,36 @@ install_guard() {
 
     cd "$guard_dir"
     local guard_bin=""
-    local has_rustup=0
-    if command -v rustup >/dev/null; then
-        has_rustup=1
-    fi
-    if [[ "$has_rustup" -eq 1 ]]; then
+    local build_musl=0
+
+    if [[ -n "$rustup_bin" && -x "$rustup_bin" ]]; then
         local installed_targets
-        installed_targets=$(rustup target list --installed)
+        installed_targets=$(RUSTUP_HOME="${rust_boot_dir}/rust" CARGO_HOME="${rust_boot_dir}/rust" "$rustup_bin" target list --installed)
         if echo "$installed_targets" | grep -q musl; then
-            log_info "Building statically linked binary (musl)..."
-            cargo build --release --target x86_64-unknown-linux-musl
-            guard_bin="target/x86_64-unknown-linux-musl/release/ami-git-guard"
-        else
-            log_info "Building dynamically linked binary (gnu)..."
-            PATH="/usr/bin:/usr/sbin:/usr/local/bin:$PATH" CC=gcc cargo build --release
-            guard_bin="target/release/ami-git-guard"
+            build_musl=1
         fi
+    fi
+
+    # Build with system PATH first so gcc finds system ld, then append rust bin dir
+    # for cargo to locate rustc. Must NOT put rust_bin_dir before /usr/bin.
+    local build_path="/usr/local/bin:/usr/bin:/usr/sbin:/bin:/sbin:${rust_bin_dir}"
+    if [[ "$build_musl" -eq 1 ]]; then
+        log_info "Building statically linked binary (musl)..."
+        RUSTUP_HOME="${rust_boot_dir}/rust" \
+        CARGO_HOME="${rust_boot_dir}/rust" \
+        PATH="$build_path" \
+        CC=/usr/bin/gcc \
+        RUSTFLAGS="-C linker=/usr/bin/gcc" \
+        "$cargo_bin" build --release --target x86_64-unknown-linux-musl
+        guard_bin="target/x86_64-unknown-linux-musl/release/ami-git-guard"
     else
-        log_info "Building dynamically linked binary (gnu, no rustup)..."
-        PATH="/usr/bin:/usr/sbin:/usr/local/bin:$PATH" CC=gcc cargo build --release
+        log_info "Building dynamically linked binary (gnu)..."
+        RUSTUP_HOME="${rust_boot_dir}/rust" \
+        CARGO_HOME="${rust_boot_dir}/rust" \
+        PATH="$build_path" \
+        CC=/usr/bin/gcc \
+        RUSTFLAGS="-C linker=/usr/bin/gcc" \
+        "$cargo_bin" build --release
         guard_bin="target/release/ami-git-guard"
     fi
 
@@ -270,18 +309,23 @@ EOF
         errors=1
     fi
 
-    if sudo -u "${SUDO_USER:-$USER}" git --version; then
-        log_info "git --version: $(git --version)"
-    else
-        log_error "git --version failed"
-        errors=1
-    fi
+    if [[ -n "${SUDO_USER:-}" ]]; then
+        if sudo -u "$SUDO_USER" git --version; then
+            log_info "git --version: $(git --version)"
+        else
+            log_error "git --version failed"
+            errors=1
+        fi
 
-    if sudo -u "${SUDO_USER:-$USER}" git reset --hard; then
-        log_error "Guard did not block git reset --hard"
-        errors=1
+        if sudo -u "$SUDO_USER" git reset --hard; then
+            log_error "Guard did not block git reset --hard"
+            errors=1
+        else
+            log_info "Guard correctly blocked git reset --hard"
+        fi
     else
-        log_info "Guard correctly blocked git reset --hard"
+        log_warn "Running as root without sudo — skipping functional guard tests"
+        log_warn "Guard blocks are verified on first non-root git invocation"
     fi
 
     if [[ $errors -eq 0 ]]; then

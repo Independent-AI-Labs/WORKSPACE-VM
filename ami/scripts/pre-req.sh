@@ -471,10 +471,10 @@ if [[ ${#MISSING_ENTRIES[@]} -eq 0 ]]; then
 
     # In install mode, run git guard installer even when packages are satisfied
     if [[ "$MODE" == "install" ]]; then
-        local guard_script="${PROJECT_ROOT}/ami/scripts/bootstrap/bootstrap_git_guard.sh"
+        guard_script="${PROJECT_ROOT}/ami/scripts/bootstrap/bootstrap_git_guard.sh"
         if [[ -f "$guard_script" ]]; then
             echo ""
-            bash "$gurad_script" "install"
+            bash "$guard_script" "install"
         fi
     fi
 
