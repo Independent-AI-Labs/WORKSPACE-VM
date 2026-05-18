@@ -20,6 +20,9 @@ divert_is_active() {
 
 uninstall_guard() {
     log_info "Uninstalling git guard..."
+    if command -v chattr >/dev/null && [[ -f /usr/bin/git ]]; then
+        chattr -i /usr/bin/git
+    fi
     rm -f /usr/bin/git
     if divert_is_active; then
         dpkg-divert --rename --remove /usr/bin/git
@@ -47,6 +50,9 @@ uninstall_guard() {
 
 rollback_guard() {
     log_warn "Installation failed — rolling back..."
+    if command -v chattr >/dev/null && [[ -f /usr/bin/git ]]; then
+        chattr -i /usr/bin/git
+    fi
     rm -f /usr/bin/git
     if divert_is_active; then
         dpkg-divert --rename --remove /usr/bin/git
@@ -246,7 +252,10 @@ install_guard() {
         dpkg-divert --local --divert /usr/bin/git.distrib --rename --add /usr/bin/git
     fi
 
-    # Install guard binary
+    # Install guard binary (temporarily remove immutability if present)
+    if command -v chattr >/dev/null && [[ -f /usr/bin/git ]]; then
+        chattr -i /usr/bin/git
+    fi
     cp "$guard_bin" /usr/bin/git
     chown root:root /usr/bin/git
     chmod 4555 /usr/bin/git
