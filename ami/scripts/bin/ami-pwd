@@ -27,7 +27,7 @@ get_default_root() {
         curr="$(dirname "$curr")"
     done
     # Final fallback
-    echo "$HOME/Projects/AMI-ORCHESTRATOR/agents"
+    echo "$HOME/AMI-AGENTS"
 }
 
 # Get current root (from file, env, or default)

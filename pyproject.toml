@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61.0", "wheel"]
+requires = ["setuptools==80.10.2", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -18,28 +18,28 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
 ]
 dependencies = [
-    "uuid-utils==0.14.1",
+    "uuid-utils==0.15.0",
     "loguru==0.7.3",
     "pandas==2.2.3",
-    "numpy==2.4.4",
+    "numpy==2.4.5",
     "pydantic==2.13.4",
-    "pydantic-settings==2.14.0",
-    "click==8.3.3",
+    "pydantic-settings==2.14.1",
+    "click==8.4.0",
     "setuptools==80.10.2",
     "matrix-nio==0.25.2",
     "matrix-commander==8.0.5",
     "python-dotenv==1.2.2",
     "prometheus-client==0.25.0",
     "fastapi==0.136.1",
-    "uvicorn[standard]==0.46.0",
+    "uvicorn[standard]==0.47.0",
     "rfc8785==0.1.4",
-    "python-multipart==0.0.27",
+    "python-multipart==0.0.29",
     "psutil==7.2.2",
     "pyyaml==6.0.3",
     "nodeenv==1.10.0",
     "playwright==1.59.0",
     "synadm==0.49.2",
-    "google-auth==2.52.0",
+    "google-auth==2.53.0",
     "google-auth-oauthlib==1.4.0",
     "google-api-python-client==2.196.0",
     "tqdm==4.67.3",

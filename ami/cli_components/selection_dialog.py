@@ -154,13 +154,13 @@ class SelectionDialog:
         if isinstance(item, dict):
             value = item.get("id")
             return value if isinstance(value, str) else None
-        return getattr(item, "id", None)
+        return item.id if "id" in dir(item) else None
 
     def _item_parent_id(self, item: SelectableItem | SelectableItemDict) -> str | None:
         if isinstance(item, dict):
             value = item.get("parent_id")
             return value if isinstance(value, str) else None
-        return getattr(item, "parent_id", None)
+        return item.parent_id if "parent_id" in dir(item) else None
 
     def _build_descendants(self) -> None:
         """Resolve `parent_id` links into `idx -> [descendant_idx, ...]`."""

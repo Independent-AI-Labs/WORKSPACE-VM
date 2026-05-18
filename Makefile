@@ -76,10 +76,7 @@ ensure-dataops: ensure-repos  ## Compatibility alias for ensure-repos (data-driv
 sync-package: bootstrap-core ensure-ci ensure-dataops ## Sync package dependencies via uv
 	@echo "🔧 Syncing ami-agents..."
 	.boot-linux/bin/uv sync --extra dev
-	@if [ -f "projects/AMI-DATAOPS/pyproject.toml" ]; then \
-		echo "🔧 Installing ami-dataops (editable)..."; \
-		.boot-linux/bin/uv pip install -e projects/AMI-DATAOPS; \
-	fi
+
 	@echo "✅ Package 'ami-agents' installed with dev dependencies"
 
 # --- Component Targets ---
