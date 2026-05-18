@@ -29,6 +29,9 @@ uninstall_guard() {
         log_info "Removed dpkg-divert"
     fi
     if [[ -f /usr/bin/git.original ]]; then
+        if command -v chattr >/dev/null; then
+            chattr -i /usr/bin/git.original
+        fi
         mv /usr/bin/git.original /usr/bin/git
         chown root:root /usr/bin/git
         chmod 0755 /usr/bin/git
@@ -58,6 +61,9 @@ rollback_guard() {
         dpkg-divert --rename --remove /usr/bin/git
     fi
     if [[ -f /usr/bin/git.original ]]; then
+        if command -v chattr >/dev/null; then
+            chattr -i /usr/bin/git.original
+        fi
         mv /usr/bin/git.original /usr/bin/git
         chown root:root /usr/bin/git
         chmod 0755 /usr/bin/git
@@ -70,7 +76,7 @@ preflight_check() {
         local gmode gowner
         gmode=$(stat -c '%a' /usr/bin/git.original)
         gowner=$(stat -c '%U:%G' /usr/bin/git.original)
-        if [[ "$gmode" == "700" && "$gowner" == "root:root" ]]; then
+        if [[ "$gmode" == "755" && "$gowner" == "root:root" ]]; then
             if [[ -x /usr/bin/git ]]; then
                 local guard_mode
                 guard_mode=$(stat -c '%a' /usr/bin/git)
@@ -92,7 +98,7 @@ install_guard() {
     echo ""
     echo "This will:"
     echo "  - Build the ami-git-guard Rust binary from source"
-    echo "  - Relocate /usr/bin/git -> /usr/bin/git.original (0700 root-only)"
+    echo "  - Relocate /usr/bin/git -> /usr/bin/git.original (0755 root-owned)"
     echo "  - Install the guard as /usr/bin/git (4555 SUID root)"
     echo "  - Configure dpkg-divert to protect from apt overwrites"
     echo "  - Remove previous .boot-linux/bin/git wrapper"
@@ -233,7 +239,7 @@ install_guard() {
     if [[ ! -f /usr/bin/git.original ]]; then
         cp /usr/bin/git /usr/bin/git.original
         chown root:root /usr/bin/git.original
-        chmod 0700 /usr/bin/git.original
+        chmod 0755 /usr/bin/git.original
 
         local orig_hash copy_hash
         orig_hash=$(sha256sum /usr/bin/git | awk '{print $1}')
@@ -319,7 +325,7 @@ EOF
     local real_mode real_owner
     real_mode=$(stat -c '%a' /usr/bin/git.original)
     real_owner=$(stat -c '%U:%G' /usr/bin/git.original)
-    if [[ "$real_mode" != "700" || "$real_owner" != "root:root" ]]; then
+    if [[ "$real_mode" != "755" || "$real_owner" != "root:root" ]]; then
         log_error "git.original has wrong permissions: $real_mode $real_owner"
         errors=1
     fi
@@ -332,12 +338,17 @@ EOF
             errors=1
         fi
 
-        if sudo -u "$SUDO_USER" git reset --hard; then
+        local tmpdir
+        tmpdir=$(mktemp -d)
+        # Run block test in a temp directory (not a git repo) so even if the
+        # guard fails, git reset --hard is harmless ("not a git repository").
+        if sudo -u "$SUDO_USER" bash -c "cd '$tmpdir' && git reset --hard"; then
             log_error "Guard did not block git reset --hard"
             errors=1
         else
             log_info "Guard correctly blocked git reset --hard"
         fi
+        rm -rf "$tmpdir"
     else
         log_warn "Running as root without sudo — skipping functional guard tests"
         log_warn "Guard blocks are verified on first non-root git invocation"
@@ -347,7 +358,7 @@ EOF
         echo ""
         log_info "Git guard installation complete."
         log_info "  /usr/bin/git          (4555 SUID root)"
-        log_info "  /usr/bin/git.original (0700 root:root, immutable)"
+        log_info "  /usr/bin/git.original (0755 root:root, immutable)"
         log_info "  dpkg-divert configured"
         log_info "  apt hook registered"
         log_info "  audit log: /var/log/ami-git-guard/"
