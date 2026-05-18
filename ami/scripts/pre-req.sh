@@ -4,15 +4,11 @@ set -euo pipefail
 # =============================================================================
 # Pre-requisites Check & Installation Script
 # =============================================================================
-# Checks for required system dependencies, probes apt for exact package names,
-# and offers interactive auto-install with sudo.
-#
 # Usage:
-#   ./pre-req.sh              # Check + interactive prompt if missing
-#   ./pre-req.sh --install    # Auto-install missing packages (sudo)
-#   ./pre-req.sh --ci         # CI mode: check only, exit 1 if missing
+#   ./pre-req.sh [--install|--ci|--uninstall-git-guard|--reinstall-git-guard|--check-git-guard]
 #
 # Called by: make pre-req-check (via make install / make install-ci)
+# =============================================================================
 # =============================================================================
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -35,24 +31,40 @@ log_miss()  { echo -e "${RED}  ✗${NC} $*"; }
 log_probe() { echo -e "${CYAN}  →${NC} $*"; }
 log_section() { echo -e "\n${CYAN}${BOLD}═══ $* ═══${NC}\n"; }
 
-# Mode
-MODE="interactive"
+# Git guard flags — handled upfront, bypass dependency check
+GIT_GUARD_ACTION=""
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --install|-i) MODE="install";  shift ;;
         --ci)         MODE="ci";       shift ;;
+        --check-git-guard)   GIT_GUARD_ACTION="check"; shift ;;
+        --uninstall-git-guard) GIT_GUARD_ACTION="uninstall"; shift ;;
+        --reinstall-git-guard) GIT_GUARD_ACTION="reinstall"; shift ;;
         --help|-h)
             echo "Usage: $0 [OPTIONS]"
             echo ""
             echo "Options:"
-            echo "  --install, -i    Auto-install missing dependencies (requires sudo)"
-            echo "  --ci             CI mode: check only, non-interactive, exit 1 if missing"
-            echo "  --help, -h       Show this help message"
+            echo "  --install, -i           Auto-install missing dependencies (requires sudo)"
+            echo "  --ci                    CI mode: check only, exit 1 if missing"
+            echo "  --check-git-guard       Check git guard installation status"
+            echo "  --uninstall-git-guard   Remove SUID guard, restore system git"
+            echo "  --reinstall-git-guard   Force reinstall git guard"
+            echo "  --help, -h              Show this help message"
             exit 0
             ;;
         *) log_error "Unknown option: $1"; exit 1 ;;
     esac
 done
+
+# Handle git guard actions immediately (no dependency check needed)
+if [[ -n "$GIT_GUARD_ACTION" ]]; then
+    GIT_GUARD_SCRIPT="${SCRIPT_DIR}/bootstrap/bootstrap_git_guard.sh"
+    if [[ ! -f "$GIT_GUARD_SCRIPT" ]]; then
+        log_error "Git guard bootstrap script not found at $GIT_GUARD_SCRIPT"
+        exit 1
+    fi
+    exec bash "$GIT_GUARD_SCRIPT" "$GIT_GUARD_ACTION"
+fi
 
 # =============================================================================
 # Data structures for missing packages
@@ -287,21 +299,23 @@ install_missing() {
         fi
     elif [[ ${#bootstrap_installable[@]} -gt 0 ]]; then
         log_info "${GREEN}${BOLD}All missing dependencies resolved via bootstrap.${NC}"
+    elif [[ ${#MISSING_ENTRIES[@]} -eq 0 ]]; then
+        :  # Nothing missing — proceed to git guard
     else
         log_error "No installable or bootstrappable packages available."
         return 1
     fi
 
-    # Playwright system libs are checked in the check phase and included in
-    # MISSING_ENTRIES — they get installed via the apt-get block above.
+    local guard_script="${PROJECT_ROOT}/ami/scripts/bootstrap/bootstrap_git_guard.sh"
+    if [[ -f "$guard_script" ]]; then
+        bash "$guard_script" "install"
+    fi
 
     return 0
 }
-
 # =============================================================================
 # Interactive Prompt
 # =============================================================================
-
 prompt_install() {
     if [[ ${#MISSING_ENTRIES[@]} -eq 0 ]]; then
         return 0
@@ -454,6 +468,16 @@ log_section "Check Results"
 
 if [[ ${#MISSING_ENTRIES[@]} -eq 0 ]]; then
     log_info "${GREEN}${BOLD}All pre-requisites are satisfied!${NC}"
+
+    # In install mode, run git guard installer even when packages are satisfied
+    if [[ "$MODE" == "install" ]]; then
+        local guard_script="${PROJECT_ROOT}/ami/scripts/bootstrap/bootstrap_git_guard.sh"
+        if [[ -f "$guard_script" ]]; then
+            echo ""
+            bash "$gurad_script" "install"
+        fi
+    fi
+
     echo ""
     log_info "You can proceed with: ${BOLD}make install${NC}"
     exit 0

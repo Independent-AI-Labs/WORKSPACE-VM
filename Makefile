@@ -41,7 +41,6 @@ install: ## Install AMI Agents in editable mode with all setup
 	$(MAKE) setup-config && \
 	$(MAKE) install-bootstrap && \
 	$(MAKE) register-extensions && \
-	$(MAKE) install-git-guard && \
 	$(MAKE) install-hooks && \
 	$(MAKE) install-shell && \
 	echo "✨ Installation complete!" && \
@@ -57,7 +56,6 @@ install-ci: ## Non-interactive install for CI (uses install-defaults.yaml)
 	$(MAKE) setup-config && \
 	$(MAKE) install-bootstrap-ci && \
 	$(MAKE) register-extensions && \
-	$(MAKE) install-git-guard && \
 	$(MAKE) install-hooks && \
 	$(MAKE) install-shell && \
 	echo "✨ Installation complete (CI mode)!"
@@ -76,10 +74,7 @@ ensure-dataops: ensure-repos  ## Compatibility alias for ensure-repos (data-driv
 sync-package: bootstrap-core ensure-ci ensure-dataops ## Sync package dependencies via uv
 	@echo "🔧 Syncing ami-agents..."
 	.boot-linux/bin/uv sync --extra dev
-	@if [ -f "projects/AMI-DATAOPS/pyproject.toml" ]; then \
-		echo "🔧 Installing ami-dataops (editable)..."; \
-		.boot-linux/bin/uv pip install -e projects/AMI-DATAOPS; \
-	fi
+
 	@echo "✅ Package 'ami-agents' installed with dev dependencies"
 
 # --- Component Targets ---
@@ -101,18 +96,9 @@ bootstrap-core: ## Bootstrap core tools (uv, python, git-lfs/xet) into .boot-lin
 	@echo "✅ Core bootstrap complete"
 
 .PHONY: install-git-guard
-install-git-guard: ## Install git safety wrapper to .boot-linux/bin/git
-	@mkdir -p .boot-linux/bin
-	@if command -v git &> /dev/null; then \
-		SYSTEM_GIT=$$(command -v git); \
-		echo "🔒 Installing git-guard (system git: $$SYSTEM_GIT)"; \
-		cp ami/scripts/utils/git-guard .boot-linux/bin/git; \
-		chmod +x .boot-linux/bin/git; \
-		echo "✅ Git safety wrapper installed"; \
-	else \
-		echo "⚠️  System git not found — skipping git-guard installation"; \
-		echo "    Run: sudo make pre-req"; \
-	fi
+install-git-guard: ## (DEPRECATED) Git guard is now handled by sudo make pre-req
+	@echo "⚠️  install-git-guard is deprecated — git guard is now installed via sudo make pre-req"
+	@echo "    The SUID Rust guard at /usr/bin/git replaces the .boot-linux/bin/git wrapper."
 
 .PHONY: install-shell
 install-shell: ## Install AMI shell environment to ~/.bashrc

@@ -37,9 +37,9 @@ repos:
         always_run: true
       - id: check-dependency-versions
         name: Check Dependency Versions (strict pinning + latest)
-        entry: uv run python -m ami.ci.check_dependency_versions pyproject.toml
+        entry: bash -c 'uv run python -c "import ami.ci" 2>/dev/null || { echo "FAILED: ami.ci not installed — run: make sync" >&2; exit 1; }; exec uv run python -m ami.ci.check_dependency_versions "$@"' --
         language: system
-        pass_filenames: false
+        pass_filenames: true
         files: (pyproject\.toml|package\.json|docker-compose\.ya?ml|Dockerfile)$
       - id: check-banned-words
         name: Check Banned Words
@@ -86,6 +86,7 @@ repos:
         entry: "bash -c 'source projects/AMI-CI/lib/checks.sh && ci_block_coauthored \"$1\"' --"
         language: system
         stages: [commit-msg]
+
   - repo: local
     hooks:
       - id: block-coauthored-history
@@ -100,3 +101,4 @@ repos:
         language: system
         stages: [pre-push]
         pass_filenames: false
+
