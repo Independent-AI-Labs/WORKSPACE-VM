@@ -79,13 +79,6 @@ preflight_check() {
 }
 
 install_guard() {
-    if [[ "$MODE" != "reinstall" ]]; then
-        if preflight_check; then
-            log_info "To reinstall: sudo make pre-req --reinstall-git-guard"
-            return 0
-        fi
-    fi
-
     echo ""
     echo -e "${CYAN}${BOLD}═══════════════════════════════════════════════${NC}"
     echo -e "${CYAN}${BOLD} Git Guard Installation (SUID-root)${NC}"
@@ -206,31 +199,44 @@ install_guard() {
     fi
     log_info "Build successful: $(file "$guard_bin" | cut -d: -f2)"
 
-    # Phase 2: Detect bypass vectors
+    # Phase 2: Skip system install if guard is already installed and binary is identical
+    if [[ -f /usr/bin/git.original && -x /usr/bin/git ]]; then
+        local installed_hash built_hash
+        installed_hash=$(sha256sum /usr/bin/git | awk '{print $1}')
+        built_hash=$(sha256sum "$guard_bin" | awk '{print $1}')
+        if [[ "$installed_hash" == "$built_hash" ]]; then
+            log_info "Guard binary is up to date — skipping system installation"
+            return 0
+        fi
+    fi
+
+    # Phase 4: Detect bypass vectors
     for path in /snap/bin/git /usr/local/bin/git; do
         if [[ -x "$path" ]]; then
             log_warn "Alternative git found at $path — this bypasses the guard"
         fi
     done
 
-    # Phase 3: Divert + relocate git
+    # Phase 5: Divert + relocate git
     if [[ ! -x /usr/bin/git ]]; then
         log_error "System git not found at /usr/bin/git"
         return 1
     fi
 
-    # Copy to git.original first
-    cp /usr/bin/git /usr/bin/git.original
-    chown root:root /usr/bin/git.original
-    chmod 0700 /usr/bin/git.original
+    # Copy to git.original first (only on first install — never overwrite existing backup)
+    if [[ ! -f /usr/bin/git.original ]]; then
+        cp /usr/bin/git /usr/bin/git.original
+        chown root:root /usr/bin/git.original
+        chmod 0700 /usr/bin/git.original
 
-    local orig_hash copy_hash
-    orig_hash=$(sha256sum /usr/bin/git | awk '{print $1}')
-    copy_hash=$(sha256sum /usr/bin/git.original | awk '{print $1}')
-    if [[ "$orig_hash" != "$copy_hash" ]]; then
-        log_error "Checksum mismatch — git.original does not match"
-        rm -f /usr/bin/git.original
-        return 1
+        local orig_hash copy_hash
+        orig_hash=$(sha256sum /usr/bin/git | awk '{print $1}')
+        copy_hash=$(sha256sum /usr/bin/git.original | awk '{print $1}')
+        if [[ "$orig_hash" != "$copy_hash" ]]; then
+            log_error "Checksum mismatch — git.original does not match"
+            rm -f /usr/bin/git.original
+            return 1
+        fi
     fi
 
     # Configure dpkg-divert
