@@ -34,6 +34,14 @@ Every rule below is absolute. Violation means you are sabotaging the project.
 - No auto-generated messages (merge, fixup, squash) unless whitelisted.
 - No agent self-attribution lines (Co-authored-by, Claude, Anthropic email).
 
+## Rule 3.5: No Going Back — Only Forward
+
+- NEVER run `git reset`, `git checkout --hard`, `git rebase`, or `git commit --amend`.
+- History is immutable. What is committed stays committed.
+- If the working tree is dirty, commit it. If it's not ready, stash it (full or partial).
+- The only valid moves are: commit, stash, push. Everything else is forbidden.
+- The git guard enforces this at the system level. Do not try to circumvent it.
+
 ## Rule 4: Verify Before Commit
 
 Before every commit, run ALL of these that apply to the project:
@@ -51,7 +59,6 @@ All files under 512 lines                                  # Length
 The ami-git-guard repo (projects/ami-git-guard/) has its own pre-commit hooks
 (cargo-fmt, cargo-build, cargo-clippy) and pre-push hook (cargo-test).
 Run those from within the ami-git-guard directory. Do NOT skip them with `--no-verify`.
-
 If the project has a Makefile with a `check` or `preflight` target, run that too.
 
 ## Rule 5: Shell-First, Framework-Never for CI Hooks

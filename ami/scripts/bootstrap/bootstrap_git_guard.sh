@@ -20,18 +20,12 @@ divert_is_active() {
 
 uninstall_guard() {
     log_info "Uninstalling git guard..."
-    if command -v chattr >/dev/null && [[ -f /usr/bin/git ]]; then
-        chattr -i /usr/bin/git
-    fi
     rm -f /usr/bin/git
     if divert_is_active; then
         dpkg-divert --rename --remove /usr/bin/git
         log_info "Removed dpkg-divert"
     fi
     if [[ -f /usr/bin/git.original ]]; then
-        if command -v chattr >/dev/null; then
-            chattr -i /usr/bin/git.original
-        fi
         mv /usr/bin/git.original /usr/bin/git
         chown root:root /usr/bin/git
         chmod 0755 /usr/bin/git
@@ -53,9 +47,6 @@ uninstall_guard() {
 
 rollback_guard() {
     log_warn "Installation failed — rolling back..."
-    if command -v chattr >/dev/null && [[ -f /usr/bin/git ]]; then
-        chattr -i /usr/bin/git
-    fi
     rm -f /usr/bin/git
     if divert_is_active; then
         dpkg-divert --rename --remove /usr/bin/git
@@ -76,7 +67,7 @@ preflight_check() {
         local gmode gowner
         gmode=$(stat -c '%a' /usr/bin/git.original)
         gowner=$(stat -c '%U:%G' /usr/bin/git.original)
-        if [[ "$gmode" == "755" && "$gowner" == "root:root" ]]; then
+        if [[ "$gmode" == "700" && "$gowner" == "root:root" ]]; then
             if [[ -x /usr/bin/git ]]; then
                 local guard_mode
                 guard_mode=$(stat -c '%a' /usr/bin/git)
@@ -91,6 +82,13 @@ preflight_check() {
 }
 
 install_guard() {
+    if [[ "$MODE" != "reinstall" ]]; then
+        if preflight_check; then
+            log_info "To reinstall: sudo make pre-req --reinstall-git-guard"
+            return 0
+        fi
+    fi
+
     echo ""
     echo -e "${CYAN}${BOLD}═══════════════════════════════════════════════${NC}"
     echo -e "${CYAN}${BOLD} Git Guard Installation (SUID-root)${NC}"
@@ -98,7 +96,7 @@ install_guard() {
     echo ""
     echo "This will:"
     echo "  - Build the ami-git-guard Rust binary from source"
-    echo "  - Relocate /usr/bin/git -> /usr/bin/git.original (0755 root-owned)"
+    echo "  - Relocate /usr/bin/git -> /usr/bin/git.original (0700 root-only)"
     echo "  - Install the guard as /usr/bin/git (4555 SUID root)"
     echo "  - Configure dpkg-divert to protect from apt overwrites"
     echo "  - Remove previous .boot-linux/bin/git wrapper"
@@ -120,40 +118,18 @@ install_guard() {
 
     # Phase 1: Build Rust binary
     log_info "Building ami-git-guard Rust binary..."
-
-    local rust_boot_dir="${PROJECT_ROOT}/.boot-linux"
-    local rust_bin_dir="${rust_boot_dir}/bin"
-    local rustc_bin=""
-    local cargo_bin=""
-    local rustup_bin=""
-
-    # Detect rust: bootstrapped first, then system
-    if [[ -x "${rust_bin_dir}/rustc" && -x "${rust_bin_dir}/cargo" ]]; then
-        rustc_bin="${rust_bin_dir}/rustc"
-        cargo_bin="${rust_bin_dir}/cargo"
-        rustup_bin="${rust_bin_dir}/rustup"
-        log_info "Using bootstrapped Rust from ${rust_bin_dir}"
-    elif command -v rustc >/dev/null && command -v cargo >/dev/null; then
-        rustc_bin="$(command -v rustc)"
-        cargo_bin="$(command -v cargo)"
-        if command -v rustup >/dev/null; then
-            rustup_bin="$(command -v rustup)"
-        fi
-        log_info "Using system Rust: ${rustc_bin}"
-    else
-        log_warn "Rust toolchain not found. Installing via rustup..."
+    local boot_rust="${PROJECT_ROOT}/.boot-linux/bin"
+    if [[ -x "$boot_rust/rustc" ]]; then
+        log_info "Using bootstrapped Rust from $boot_rust"
+        export PATH="$boot_rust:$PATH"
+        export RUSTUP_HOME="${PROJECT_ROOT}/.boot-linux/rust"
+        export CARGO_HOME="${PROJECT_ROOT}/.boot-linux/cargo"
+    elif ! command -v rustc >/dev/null; then
+        log_warn "Rust not installed. Installing via rustup..."
         bash "${PROJECT_ROOT}/ami/scripts/bootstrap/bootstrap_rust.sh" || {
             log_error "Rust installation failed"
             return 1
         }
-        if [[ ! -x "${rust_bin_dir}/rustc" || ! -x "${rust_bin_dir}/cargo" ]]; then
-            log_error "Rust binaries missing after bootstrap"
-            return 1
-        fi
-        rustc_bin="${rust_bin_dir}/rustc"
-        cargo_bin="${rust_bin_dir}/cargo"
-        rustup_bin="${rust_bin_dir}/rustup"
-        log_info "Using bootstrapped Rust from ${rust_bin_dir}"
     fi
 
     local guard_dir="${PROJECT_ROOT}/projects/ami-git-guard"
@@ -164,36 +140,25 @@ install_guard() {
 
     cd "$guard_dir"
     local guard_bin=""
-    local build_musl=0
-
-    if [[ -n "$rustup_bin" && -x "$rustup_bin" ]]; then
-        local installed_targets
-        installed_targets=$(RUSTUP_HOME="${rust_boot_dir}/rust" CARGO_HOME="${rust_boot_dir}/rust" "$rustup_bin" target list --installed)
-        if echo "$installed_targets" | grep -q musl; then
-            build_musl=1
-        fi
+    local has_rustup=0
+    if command -v rustup >/dev/null; then
+        has_rustup=1
     fi
-
-    # Build with system PATH first so gcc finds system ld, then append rust bin dir
-    # for cargo to locate rustc. Must NOT put rust_bin_dir before /usr/bin.
-    local build_path="/usr/local/bin:/usr/bin:/usr/sbin:/bin:/sbin:${rust_bin_dir}"
-    if [[ "$build_musl" -eq 1 ]]; then
-        log_info "Building statically linked binary (musl)..."
-        RUSTUP_HOME="${rust_boot_dir}/rust" \
-        CARGO_HOME="${rust_boot_dir}/rust" \
-        PATH="$build_path" \
-        CC=/usr/bin/gcc \
-        RUSTFLAGS="-C linker=/usr/bin/gcc" \
-        "$cargo_bin" build --release --target x86_64-unknown-linux-musl
-        guard_bin="target/x86_64-unknown-linux-musl/release/ami-git-guard"
+    if [[ "$has_rustup" -eq 1 ]]; then
+        local installed_targets
+        installed_targets=$(rustup target list --installed)
+        if echo "$installed_targets" | grep -q musl; then
+            log_info "Building statically linked binary (musl)..."
+            cargo build --release --target x86_64-unknown-linux-musl
+            guard_bin="target/x86_64-unknown-linux-musl/release/ami-git-guard"
+        else
+            log_info "Building dynamically linked binary (gnu)..."
+            PATH="/usr/bin:/usr/sbin:/usr/local/bin:$PATH" CC=gcc cargo build --release
+            guard_bin="target/release/ami-git-guard"
+        fi
     else
-        log_info "Building dynamically linked binary (gnu)..."
-        RUSTUP_HOME="${rust_boot_dir}/rust" \
-        CARGO_HOME="${rust_boot_dir}/rust" \
-        PATH="$build_path" \
-        CC=/usr/bin/gcc \
-        RUSTFLAGS="-C linker=/usr/bin/gcc" \
-        "$cargo_bin" build --release
+        log_info "Building dynamically linked binary (gnu, no rustup)..."
+        PATH="/usr/bin:/usr/sbin:/usr/local/bin:$PATH" CC=gcc cargo build --release
         guard_bin="target/release/ami-git-guard"
     fi
 
@@ -211,44 +176,40 @@ install_guard() {
     fi
     log_info "Build successful: $(file "$guard_bin" | cut -d: -f2)"
 
-    # Phase 2: Skip system install if guard is already installed and binary is identical
-    if [[ -f /usr/bin/git.original && -x /usr/bin/git ]]; then
-        local installed_hash built_hash
-        installed_hash=$(sha256sum /usr/bin/git | awk '{print $1}')
-        built_hash=$(sha256sum "$guard_bin" | awk '{print $1}')
-        if [[ "$installed_hash" == "$built_hash" ]]; then
-            log_info "Guard binary is up to date — skipping system installation"
-            return 0
-        fi
-    fi
-
-    # Phase 4: Detect bypass vectors
+    # Phase 2: Detect bypass vectors
     for path in /snap/bin/git /usr/local/bin/git; do
         if [[ -x "$path" ]]; then
             log_warn "Alternative git found at $path — this bypasses the guard"
         fi
     done
 
-    # Phase 5: Divert + relocate git
-    if [[ ! -x /usr/bin/git ]]; then
-        log_error "System git not found at /usr/bin/git"
+    # Phase 3: Divert + relocate git
+    # Source for git.original — use git.distrib when diverted (not in use by checks)
+    local git_src=""
+    if divert_is_active && [[ -x /usr/bin/git.distrib ]]; then
+        git_src="/usr/bin/git.distrib"
+    elif [[ -x /usr/bin/git ]]; then
+        git_src="/usr/bin/git"
+    else
+        log_error "System git not found"
         return 1
     fi
 
-    # Copy to git.original first (only on first install — never overwrite existing backup)
-    if [[ ! -f /usr/bin/git.original ]]; then
-        cp /usr/bin/git /usr/bin/git.original
-        chown root:root /usr/bin/git.original
-        chmod 0755 /usr/bin/git.original
+    # Copy to git.original first (remove immutability if present from previous install)
+    if [[ -f /usr/bin/git.original ]] && command -v chattr >/dev/null; then
+        chattr -i /usr/bin/git.original
+    fi
+    cp "$git_src" /usr/bin/git.original
+    chown root:root /usr/bin/git.original
+    chmod 0700 /usr/bin/git.original
 
-        local orig_hash copy_hash
-        orig_hash=$(sha256sum /usr/bin/git | awk '{print $1}')
-        copy_hash=$(sha256sum /usr/bin/git.original | awk '{print $1}')
-        if [[ "$orig_hash" != "$copy_hash" ]]; then
-            log_error "Checksum mismatch — git.original does not match"
-            rm -f /usr/bin/git.original
-            return 1
-        fi
+    local src_hash copy_hash
+    src_hash=$(sha256sum "$git_src" | awk '{print $1}')
+    copy_hash=$(sha256sum /usr/bin/git.original | awk '{print $1}')
+    if [[ "$src_hash" != "$copy_hash" ]]; then
+        log_error "Checksum mismatch — git.original does not match"
+        rm -f /usr/bin/git.original
+        return 1
     fi
 
     # Configure dpkg-divert
@@ -325,40 +286,36 @@ EOF
     local real_mode real_owner
     real_mode=$(stat -c '%a' /usr/bin/git.original)
     real_owner=$(stat -c '%U:%G' /usr/bin/git.original)
-    if [[ "$real_mode" != "755" || "$real_owner" != "root:root" ]]; then
+    if [[ "$real_mode" != "700" || "$real_owner" != "root:root" ]]; then
         log_error "git.original has wrong permissions: $real_mode $real_owner"
         errors=1
     fi
 
-    if [[ -n "${SUDO_USER:-}" ]]; then
-        if sudo -u "$SUDO_USER" git --version; then
-            log_info "git --version: $(git --version)"
-        else
-            log_error "git --version failed"
-            errors=1
-        fi
-
-        local tmpdir
-        tmpdir=$(mktemp -d)
-        # Run block test in a temp directory (not a git repo) so even if the
-        # guard fails, git reset --hard is harmless ("not a git repository").
-        if sudo -u "$SUDO_USER" bash -c "cd '$tmpdir' && git reset --hard"; then
-            log_error "Guard did not block git reset --hard"
-            errors=1
-        else
-            log_info "Guard correctly blocked git reset --hard"
-        fi
-        rm -rf "$tmpdir"
+    if sudo -u "${SUDO_USER:-$USER}" git --version; then
+        log_info "git --version: $(git --version)"
     else
-        log_warn "Running as root without sudo — skipping functional guard tests"
-        log_warn "Guard blocks are verified on first non-root git invocation"
+        log_error "git --version failed"
+        errors=1
     fi
+
+    local tmpdir
+    tmpdir=$(mktemp -d)
+    chmod 755 "$tmpdir"
+    # Run destructive test in a temp directory (not a git repo) so even if the
+    # guard fails, git reset --hard is harmless ("not a git repository").
+    if sudo -u "${SUDO_USER:-$USER}" bash -c "cd '$tmpdir' && git reset --hard"; then
+        log_error "Guard did not block git reset --hard"
+        errors=1
+    else
+        log_info "Guard correctly blocked git reset --hard"
+    fi
+    rm -rf "$tmpdir"
 
     if [[ $errors -eq 0 ]]; then
         echo ""
         log_info "Git guard installation complete."
         log_info "  /usr/bin/git          (4555 SUID root)"
-        log_info "  /usr/bin/git.original (0755 root:root, immutable)"
+        log_info "  /usr/bin/git.original (0700 root:root, immutable)"
         log_info "  dpkg-divert configured"
         log_info "  apt hook registered"
         log_info "  audit log: /var/log/ami-git-guard/"

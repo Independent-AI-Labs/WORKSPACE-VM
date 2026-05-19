@@ -32,6 +32,7 @@ log_probe() { echo -e "${CYAN}  →${NC} $*"; }
 log_section() { echo -e "\n${CYAN}${BOLD}═══ $* ═══${NC}\n"; }
 
 # Git guard flags — handled upfront, bypass dependency check
+MODE="interactive"
 GIT_GUARD_ACTION=""
 while [[ $# -gt 0 ]]; do
     case "$1" in
