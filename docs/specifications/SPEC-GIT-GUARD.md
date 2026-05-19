@@ -1,4 +1,4 @@
-# Specification: AMI Git Guard (`ami-git-guard`)
+# Specification: RUST-GUARD — SUID Guard Framework (Git PoC)
 
 **Date:** 2026-05-18
 **Status:** DRAFT
@@ -15,7 +15,7 @@ User invokes: git <subcommand> [args...]
                     │
                     ▼
         /usr/bin/git (SUID root, 4555)
-        ami-git-guard Rust binary
+        rust-guard Rust binary
                     │
         ┌───────────┼────────────────┐
         │           │                │
@@ -488,7 +488,7 @@ Example:
 
 ### 7.2 Log Location
 
-`${HOME}/.ami-git-guard.log` — the HOME is the **real user's** home directory (from `getpwuid(getuid())`), not root's home. Since the guard runs as SUID root but the real UID is the invoking user, we must use the real UID to find the correct HOME.
+`${HOME}/.rust-guard.log` — the HOME is the **real user's** home directory (from `getpwuid(getuid())`), not root's home. Since the guard runs as SUID root but the real UID is the invoking user, we must use the real UID to find the correct HOME.
 
 ### 7.3 Secret-Safe Logging
 

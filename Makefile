@@ -96,8 +96,8 @@ bootstrap-core: ## Bootstrap core tools (uv, python, git-lfs/xet) into .boot-lin
 	@echo "✅ Core bootstrap complete"
 
 .PHONY: install-git-guard
-install-git-guard: ## (DEPRECATED) Git guard is now handled by sudo make pre-req
-	@echo "⚠️  install-git-guard is deprecated — git guard is now installed via sudo make pre-req"
+install-git-guard: ## (DEPRECATED) RUST-GUARD is now handled by sudo make pre-req
+	@echo "⚠️  install-git-guard is deprecated — rust guard is now installed via sudo make pre-req"
 	@echo "    The SUID Rust guard at /usr/bin/git replaces the .boot-linux/bin/git wrapper."
 
 .PHONY: install-shell

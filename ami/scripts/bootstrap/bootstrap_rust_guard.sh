@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Bootstrap: Build and install SUID git guard
+# Bootstrap: Build and install SUID rust guard (git PoC)
 # Called by: pre-req.sh (after apt dependencies installed)
 set -euo pipefail
 
@@ -19,7 +19,8 @@ divert_is_active() {
 }
 
 uninstall_guard() {
-    log_info "Uninstalling git guard..."
+    log_info "Uninstalling rust guard..."
+    rm -f /usr/bin/git
     rm -f /usr/bin/git
     if divert_is_active; then
         dpkg-divert --rename --remove /usr/bin/git
@@ -40,7 +41,7 @@ uninstall_guard() {
         log_error "Reinstall git: sudo apt install --reinstall git"
         return 1
     fi
-    rm -f /etc/apt/apt.conf.d/99git-guard
+    rm -f /etc/apt/apt.conf.d/99rust-guard
     log_info "Git guard uninstalled — /usr/bin/git restored"
     git --version
 }
@@ -84,18 +85,18 @@ preflight_check() {
 install_guard() {
     if [[ "$MODE" != "reinstall" ]]; then
         if preflight_check; then
-            log_info "To reinstall: sudo make pre-req --reinstall-git-guard"
+            log_info "To reinstall: sudo make pre-req --reinstall-rust-guard"
             return 0
         fi
     fi
 
     echo ""
     echo -e "${CYAN}${BOLD}═══════════════════════════════════════════════${NC}"
-    echo -e "${CYAN}${BOLD} Git Guard Installation (SUID-root)${NC}"
+    echo -e "${CYAN}${BOLD} Git Guard Installation (SUID-root, git PoC)${NC}"
     echo -e "${CYAN}${BOLD}═══════════════════════════════════════════════${NC}"
     echo ""
     echo "This will:"
-    echo "  - Build the ami-git-guard Rust binary from source"
+    echo "  - Build the rust-guard Rust binary from source"
     echo "  - Relocate /usr/bin/git -> /usr/bin/git.original (0700 root-only)"
     echo "  - Install the guard as /usr/bin/git (4555 SUID root)"
     echo "  - Configure dpkg-divert to protect from apt overwrites"
@@ -104,11 +105,11 @@ install_guard() {
     echo "  - Register apt post-invoke hook for change detection"
     echo ""
     echo "After installation, ONLY the SUID guard can invoke real git."
-    echo "To uninstall: sudo make pre-req --uninstall-git-guard"
+    echo "To uninstall: sudo make pre-req --uninstall-rust-guard"
     echo ""
 
     if [[ -t 0 ]] && [[ "$MODE" == "install" ]]; then
-        echo -ne "${CYAN}${BOLD}Proceed with git guard installation? [y/N] ${NC}"
+        echo -ne "${CYAN}${BOLD}Proceed with rust guard installation? [y/N] ${NC}"
         read -r response
         case "$response" in
             [yY][eE][sS]|[yY]) ;;
@@ -117,7 +118,7 @@ install_guard() {
     fi
 
     # Phase 1: Build Rust binary
-    log_info "Building ami-git-guard Rust binary..."
+    log_info "Building rust-guard Rust binary..."
     local boot_rust="${PROJECT_ROOT}/.boot-linux/bin"
     if [[ -x "$boot_rust/rustc" ]]; then
         log_info "Using bootstrapped Rust from $boot_rust"
@@ -132,7 +133,7 @@ install_guard() {
         }
     fi
 
-    local guard_dir="${PROJECT_ROOT}/projects/ami-git-guard"
+    local guard_dir="${PROJECT_ROOT}/projects/RUST-GUARD"
     if [[ ! -f "$guard_dir/Cargo.toml" ]]; then
         log_error "Rust project not found at $guard_dir"
         return 1
@@ -150,16 +151,16 @@ install_guard() {
         if echo "$installed_targets" | grep -q musl; then
             log_info "Building statically linked binary (musl)..."
             cargo build --release --target x86_64-unknown-linux-musl
-            guard_bin="target/x86_64-unknown-linux-musl/release/ami-git-guard"
+            guard_bin="target/x86_64-unknown-linux-musl/release/rust-guard"
         else
             log_info "Building dynamically linked binary (gnu)..."
             PATH="/usr/bin:/usr/sbin:/usr/local/bin:$PATH" CC=gcc cargo build --release
-            guard_bin="target/release/ami-git-guard"
+            guard_bin="target/release/rust-guard"
         fi
     else
         log_info "Building dynamically linked binary (gnu, no rustup)..."
         PATH="/usr/bin:/usr/sbin:/usr/local/bin:$PATH" CC=gcc cargo build --release
-        guard_bin="target/release/ami-git-guard"
+        guard_bin="target/release/rust-guard"
     fi
 
     if [[ ! -f "$guard_bin" ]]; then
@@ -253,22 +254,22 @@ install_guard() {
     # Register apt post-invoke hook
     # Apt config syntax: no shell redirections allowed inside DPkg::Post-Invoke
     # We write a helper script and invoke it from the apt config
-    cat > /etc/apt/apt.conf.d/99git-guard << 'EOF'
-DPkg::Post-Invoke { "/usr/lib/ami-git-guard/apt-check.sh"; };
+    cat > /etc/apt/apt.conf.d/99rust-guard << 'EOF'
+DPkg::Post-Invoke { "/usr/lib/rust-guard/apt-check.sh"; };
 EOF
-    mkdir -p /usr/lib/ami-git-guard
-    cat > /usr/lib/ami-git-guard/apt-check.sh << 'EOF'
+    mkdir -p /usr/lib/rust-guard
+    cat > /usr/lib/rust-guard/apt-check.sh << 'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 if dpkg -l git | grep -q '^ii' && [[ ! -f /usr/bin/git.original ]]; then
-    echo '[WARN] Git package changed but git guard not detected. Re-run: sudo make pre-req' >&2
+    echo '[WARN] Git package changed but rust guard not detected. Re-run: sudo make pre-req' >&2
 fi
 EOF
-    chmod 755 /usr/lib/ami-git-guard/apt-check.sh
+    chmod 755 /usr/lib/rust-guard/apt-check.sh
 
     # Create audit log directory
-    mkdir -p /var/log/ami-git-guard
-    chmod 1777 /var/log/ami-git-guard
+    mkdir -p /var/log/rust-guard
+    chmod 1777 /var/log/rust-guard
 
     # Verification
     echo ""
@@ -313,14 +314,14 @@ EOF
 
     if [[ $errors -eq 0 ]]; then
         echo ""
-        log_info "Git guard installation complete."
+        log_info "Rust guard (git PoC) installation complete."
         log_info "  /usr/bin/git          (4555 SUID root)"
         log_info "  /usr/bin/git.original (0700 root:root, immutable)"
         log_info "  dpkg-divert configured"
         log_info "  apt hook registered"
-        log_info "  audit log: /var/log/ami-git-guard/"
+        log_info "  audit log: /var/log/rust-guard/"
         echo ""
-        log_info "To verify: sudo make pre-req --check-git-guard"
+        log_info "To verify: sudo make pre-req --check-rust-guard"
     else
         log_error "Installation verification failed — rolling back"
         rollback_guard
@@ -332,7 +333,7 @@ EOF
 
 check_guard() {
     if preflight_check; then
-        log_info "Git guard status: INSTALLED"
+        log_info "Rust guard status: INSTALLED"
         if [[ -f /usr/bin/git ]]; then
             log_info "  /usr/bin/git: $(stat -c '%a %U:%G' /usr/bin/git)"
         else
@@ -348,7 +349,7 @@ check_guard() {
         else
             log_warn "  dpkg-divert: MISSING"
         fi
-        if [[ -f /etc/apt/apt.conf.d/99git-guard ]]; then
+        if [[ -f /etc/apt/apt.conf.d/99rust-guard ]]; then
             log_info "  apt hook: INSTALLED"
         else
             log_warn "  apt hook: MISSING"
@@ -363,7 +364,7 @@ check_guard() {
             log_warn "  immutable: SKIPPED (lsattr unavailable)"
         fi
     else
-        log_info "Git guard status: NOT INSTALLED"
+        log_info "Rust guard status: NOT INSTALLED"
         log_info "To install: sudo make pre-req"
     fi
 }

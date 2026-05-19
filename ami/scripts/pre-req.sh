@@ -5,7 +5,7 @@ set -euo pipefail
 # Pre-requisites Check & Installation Script
 # =============================================================================
 # Usage:
-#   ./pre-req.sh [--install|--ci|--uninstall-git-guard|--reinstall-git-guard|--check-git-guard]
+#   ./pre-req.sh [--install|--ci|--uninstall-rust-guard|--reinstall-rust-guard|--check-rust-guard]
 #
 # Called by: make pre-req-check (via make install / make install-ci)
 # =============================================================================
@@ -31,25 +31,25 @@ log_miss()  { echo -e "${RED}  ✗${NC} $*"; }
 log_probe() { echo -e "${CYAN}  →${NC} $*"; }
 log_section() { echo -e "\n${CYAN}${BOLD}═══ $* ═══${NC}\n"; }
 
-# Git guard flags — handled upfront, bypass dependency check
+# Rust guard flags — handled upfront, bypass dependency check
 MODE="interactive"
-GIT_GUARD_ACTION=""
+RUST_GUARD_ACTION=""
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --install|-i) MODE="install";  shift ;;
         --ci)         MODE="ci";       shift ;;
-        --check-git-guard)   GIT_GUARD_ACTION="check"; shift ;;
-        --uninstall-git-guard) GIT_GUARD_ACTION="uninstall"; shift ;;
-        --reinstall-git-guard) GIT_GUARD_ACTION="reinstall"; shift ;;
+        --check-rust-guard)   RUST_GUARD_ACTION="check"; shift ;;
+        --uninstall-rust-guard) RUST_GUARD_ACTION="uninstall"; shift ;;
+        --reinstall-rust-guard) RUST_GUARD_ACTION="reinstall"; shift ;;
         --help|-h)
             echo "Usage: $0 [OPTIONS]"
             echo ""
             echo "Options:"
             echo "  --install, -i           Auto-install missing dependencies (requires sudo)"
             echo "  --ci                    CI mode: check only, exit 1 if missing"
-            echo "  --check-git-guard       Check git guard installation status"
-            echo "  --uninstall-git-guard   Remove SUID guard, restore system git"
-            echo "  --reinstall-git-guard   Force reinstall git guard"
+            echo "  --check-rust-guard       Check rust guard installation status"
+            echo "  --uninstall-rust-guard   Remove SUID guard, restore system git"
+            echo "  --reinstall-rust-guard   Force reinstall rust guard"
             echo "  --help, -h              Show this help message"
             exit 0
             ;;
@@ -57,14 +57,14 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Handle git guard actions immediately (no dependency check needed)
-if [[ -n "$GIT_GUARD_ACTION" ]]; then
-    GIT_GUARD_SCRIPT="${SCRIPT_DIR}/bootstrap/bootstrap_git_guard.sh"
-    if [[ ! -f "$GIT_GUARD_SCRIPT" ]]; then
-        log_error "Git guard bootstrap script not found at $GIT_GUARD_SCRIPT"
+# Handle rust guard actions immediately (no dependency check needed)
+if [[ -n "$RUST_GUARD_ACTION" ]]; then
+    RUST_GUARD_SCRIPT="${SCRIPT_DIR}/bootstrap/bootstrap_rust_guard.sh"
+    if [[ ! -f "$RUST_GUARD_SCRIPT" ]]; then
+        log_error "Rust guard bootstrap script not found at $RUST_GUARD_SCRIPT"
         exit 1
     fi
-    exec bash "$GIT_GUARD_SCRIPT" "$GIT_GUARD_ACTION"
+    exec bash "$RUST_GUARD_SCRIPT" "$RUST_GUARD_ACTION"
 fi
 
 # =============================================================================
@@ -301,13 +301,13 @@ install_missing() {
     elif [[ ${#bootstrap_installable[@]} -gt 0 ]]; then
         log_info "${GREEN}${BOLD}All missing dependencies resolved via bootstrap.${NC}"
     elif [[ ${#MISSING_ENTRIES[@]} -eq 0 ]]; then
-        :  # Nothing missing — proceed to git guard
+        :  # Nothing missing — proceed to rust guard
     else
         log_error "No installable or bootstrappable packages available."
         return 1
     fi
 
-    local guard_script="${PROJECT_ROOT}/ami/scripts/bootstrap/bootstrap_git_guard.sh"
+    local guard_script="${PROJECT_ROOT}/ami/scripts/bootstrap/bootstrap_rust_guard.sh"
     if [[ -f "$guard_script" ]]; then
         bash "$guard_script" "install"
     fi
@@ -472,7 +472,7 @@ if [[ ${#MISSING_ENTRIES[@]} -eq 0 ]]; then
 
     # In install mode, run git guard installer even when packages are satisfied
     if [[ "$MODE" == "install" ]]; then
-        guard_script="${PROJECT_ROOT}/ami/scripts/bootstrap/bootstrap_git_guard.sh"
+        guard_script="${PROJECT_ROOT}/ami/scripts/bootstrap/bootstrap_rust_guard.sh"
         if [[ -f "$guard_script" ]]; then
             echo ""
             bash "$guard_script" "install"

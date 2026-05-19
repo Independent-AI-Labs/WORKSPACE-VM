@@ -1,4 +1,4 @@
-# Requirements: Git Guard Rust Binary (`ami-git-guard`)
+# Requirements: RUST-GUARD SUID Guard Framework (Git PoC)
 
 **Date:** 2026-05-18
 **Status:** DRAFT
@@ -130,7 +130,7 @@ This document specifies the requirements for the Rust binary. The installation/d
 
 ### 10. Audit Logging
 
-- **REQ-GGUARD-090**: Every blocked invocation shall be logged to `${HOME}/.ami-git-guard.log` with the following fields: timestamp (ISO 8601), blocked command/reason, current working directory, full argv, and real UID of the invoking user.
+- **REQ-GGUARD-090**: Every blocked invocation shall be logged to `${HOME}/.rust-guard.log` with the following fields: timestamp (ISO 8601), blocked command/reason, current working directory, full argv, and real UID of the invoking user.
 - **REQ-GGUARD-091**: Log lines shall be pipe-delimited for machine parsing: `timestamp | cwd | cmd | reason | uid=<uid>`.
 - **REQ-GGUARD-092**: If the log file cannot be opened (permission error, disk full, etc.), the block shall still be enforced — logging failure shall not bypass blocking.
 - **REQ-GGUARD-093**: The binary shall NOT log argument values that could contain secrets (e.g., the value portion of `-c` config overrides). Only the key portion shall be logged.
@@ -176,7 +176,7 @@ This document specifies the requirements for the Rust binary. The installation/d
 
 - **REQ-GGUARD-140**: The SUID git guard shall be installed exclusively by `sudo make pre-req` — not by `make install` or any other target. `make install` shall NOT touch the git binary or git guard.
 - **REQ-GGUARD-141**: The `sudo make pre-req` script shall inform the user **before** any git-related changes are made, including: that the existing system git will be relocated, that a SUID-root binary will be installed at `/usr/bin/git`, and that the real git will be restricted to mode 0700 root:root.
-- **REQ-GGUARD-142**: The installation script shall build the `ami-git-guard` Rust binary from source (`projects/ami-git-guard/`) before installing it. The build target shall be `x86_64-unknown-linux-musl` (static) with a fallback to `x86_64-unknown-linux-gnu` (dynamic).
+- **REQ-GGUARD-142**: The installation script shall build the `rust-guard` Rust binary from source (`projects/RUST-GUARD/`) before installing it. The build target shall be `x86_64-unknown-linux-musl` (static) with a fallback to `x86_64-unknown-linux-gnu` (dynamic).
 - **REQ-GGUARD-143**: Before relocating the real git, the script shall verify that: (a) the Rust binary compiled successfully, (b) the compiled binary is a valid ELF executable, and (c) `/usr/bin/git` exists and is the system git.
 - **REQ-GGUARD-144**: The script shall relocate the real git binary as follows:
   1. Copy `/usr/bin/git` to `/usr/bin/git.original`
@@ -184,7 +184,7 @@ This document specifies the requirements for the Rust binary. The installation/d
   3. Set permissions: `chmod 0700 /usr/bin/git.original`
   4. Verify the copy matches the original via checksum comparison
 - **REQ-GGUARD-145**: The script shall install the guard binary as follows:
-  1. Copy `projects/ami-git-guard/target/x86_64-unknown-linux-musl/release/ami-git-guard` to `/usr/bin/git`
+  1. Copy `projects/RUST-GUARD/target/x86_64-unknown-linux-musl/release/rust-guard` to `/usr/bin/git`
   2. Set ownership: `chown root:root /usr/bin/git`
   3. Set permissions: `chmod 4555 /usr/bin/git` (SUID root, world-executable)
 - **REQ-GGUARD-146**: After installation, the script shall verify correctness by:
@@ -194,7 +194,7 @@ This document specifies the requirements for the Rust binary. The installation/d
   4. Running `git reset --hard` as the current user and confirming it is blocked
 - **REQ-GGUARD-147**: If any step of the installation fails, the script shall attempt to restore the original state: copy `/usr/bin/git.original` back to `/usr/bin/git` and set permissions to 0755. A clear error message shall be displayed.
 - **REQ-GGUARD-148**: The installation script shall detect if the guard is already installed (by checking `/usr/bin/git.original` exists with mode 0700). If already installed, the script shall inform the user and skip re-installation unless a `--reinstall` flag is passed.
-- **REQ-GGUARD-149**: An uninstall procedure shall be available via `sudo make pre-req --uninstall-git-guard` which:
+- **REQ-GGUARD-149**: An uninstall procedure shall be available via `sudo make pre-req --uninstall-rust-guard` which:
   1. Removes `/usr/bin/git` (the SUID guard)
   2. Restores `/usr/bin/git.original` to `/usr/bin/git` with mode 0755
   3. Restores the dpkg diversion (removes it, returning `/usr/bin/git` to dpkg control)
@@ -202,18 +202,22 @@ This document specifies the requirements for the Rust binary. The installation/d
 - **REQ-GGUARD-150**: The installation script shall configure a `dpkg-divert` for `/usr/bin/git` to prevent the `git` apt package from overwriting the guard binary during `apt install git` or `apt upgrade`. The diversion shall redirect `/usr/bin/git` → `/usr/bin/git.distrib`.
 - **REQ-GGUARD-151**: The installation script shall remove the legacy bash wrapper at `.boot-linux/bin/git` to prevent PATH-based bypass. If `.boot-linux/bin/git` exists, it shall be removed (or replaced with a symlink to `/usr/bin/git`) during guard installation.
 - **REQ-GGUARD-152**: If the guard detects that `/usr/bin/git` has been replaced (e.g., by a manual override or failed divert), the guard binary shall refuse to `execve()` real git if the inode of `/usr/bin/git` does not match its own. This prevents a scenario where an attacker replaces the SUID binary at the filesystem level.
-- **REQ-GGUARD-153**: The installation script shall register an apt post-invoke hook (`/etc/apt/apt.conf.d/99git-guard`) that detects when the `git` package is installed, upgraded, or removed, and emits a warning directing the user to re-run `sudo make pre-req`. The hook shall NOT silently reinstall the guard — it only warns.
+- **REQ-GGUARD-153**: The installation script shall register an apt post-invoke hook (`/etc/apt/apt.conf.d/99rust-guard`) that detects when the `git` package is installed, upgraded, or removed, and emits a warning directing the user to re-run `sudo make pre-req`. The hook shall NOT silently reinstall the guard — it only warns.
 - **REQ-GGUARD-154**: The installation script shall detect and warn about alternative git installations (`snap`, `flatpak`, `nix`, `/usr/local/bin/git`). The user shall be informed that these provide alternate paths to git that bypass the guard. This is informational only — the guard does not attempt to disable them.
 
 ### 16. Rust Project Structure
 
-- **REQ-GGUARD-160**: The Rust project shall reside at `projects/ami-git-guard/` with the following layout:
+- **REQ-GGUARD-160**: The Rust project shall reside at `projects/RUST-GUARD/` with the following layout:
   ```
-  projects/ami-git-guard/
+  projects/RUST-GUARD/
   ├── Cargo.toml
   ├── Cargo.lock
   └── src/
-      └── main.rs
+      ├── main.rs
+      ├── block.rs
+      ├── exec.rs
+      ├── args.rs
+      └── log.rs
   ```
 - **REQ-GGUARD-161**: The `Cargo.toml` shall specify: `edition = "2021"`, `panic = "abort"`, `opt-level = "z"`, `lto = true`, `codegen-units = 1`, `strip = true`.
 - **REQ-GGUARD-162**: The only allowed dependency is `libc = "0.2"`. No other crates shall be used.

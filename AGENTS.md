@@ -47,18 +47,17 @@ Every rule below is absolute. Violation means you are sabotaging the project.
 Before every commit, run ALL of these that apply to the project:
 
 ```
-cargo test                                                # Rust (in projects/ami-git-guard/)
+cargo test                                                # Rust (in projects/RUST-GUARD/)
 python -m pytest                                           # Python
-cargo fmt --check                                          # Rust format (in projects/ami-git-guard/)
+cargo fmt --check                                          # Rust format (in projects/RUST-GUARD/)
 ruff format --check                                       # Python format
-cargo clippy -- -D warnings                                # Rust lint (in projects/ami-git-guard/)
+cargo clippy -- -D warnings                                # Rust lint (in projects/RUST-GUARD/)
 ruff check                                                # Python lint
 All files under 512 lines                                  # Length
-```
 
-The ami-git-guard repo (projects/ami-git-guard/) has its own pre-commit hooks
+The RUST-GUARD repo (projects/RUST-GUARD/) has its own pre-commit hooks
 (cargo-fmt, cargo-build, cargo-clippy) and pre-push hook (cargo-test).
-Run those from within the ami-git-guard directory. Do NOT skip them with `--no-verify`.
+Run those from within the RUST-GUARD directory. Do NOT skip them with `--no-verify`.
 If the project has a Makefile with a `check` or `preflight` target, run that too.
 
 ## Rule 5: Shell-First, Framework-Never for CI Hooks

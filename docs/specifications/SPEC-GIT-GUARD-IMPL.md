@@ -12,16 +12,16 @@
 ### 8.1 Crate Structure
 
 ```
-ami-git-guard/
+rust-guard/
 ├── Cargo.toml
 ├── Cargo.lock
 ├── .cargo/
 │   └── config.toml          # target = x86_64-unknown-linux-musl
 └── src/
-    └── main.rs              # single-file binary (~500 LOC)
+    └── main.rs              # multi-module binary (~500 LOC)
 ```
 
-A single `main.rs` is preferred over multiple modules. The binary is small enough that modularisation adds complexity without benefit. All logic lives in one file for auditability.
+A single package is preferred over multiple crates for a single guard binary.
 
 ### 8.2 Dependencies
 
@@ -57,7 +57,7 @@ Only two `unsafe` blocks are needed:
 
 ```toml
 [package]
-name = "ami-git-guard"
+name = "rust-guard"
 version = "0.1.0"
 edition = "2021"
 
@@ -179,13 +179,12 @@ The worst-case RCE allows the attacker to run arbitrary commands as root — whi
 
 | Path | Purpose |
 |------|---------|
-| `/usr/bin/git` | ami-git-guard SUID binary (installed) |
+| `/usr/bin/git` | rust-guard SUID binary (installed) |
 | `/usr/bin/git.original` | real git binary (relocated, 0700 root:root) |
-| `projects/ami-git-guard/` | Rust source code repository |
-| `projects/ami-git-guard/src/main.rs` | Single-file Rust implementation |
-| `projects/ami-git-guard/Cargo.toml` | Package manifest |
-| `projects/ami-git-guard/Cargo.lock` | Locked dependencies |
-| `projects/ami-git-guard/Makefile` | Build + install targets |
+| `projects/RUST-GUARD/` | Rust source code repository |
+| `projects/RUST-GUARD/src/main.rs` | Multi-module Rust implementation |
+| `projects/RUST-GUARD/Cargo.toml` | Package manifest |
+| `projects/RUST-GUARD/Cargo.lock` | Locked dependencies |
 
 ---
 

@@ -31,7 +31,7 @@ Before any git modification, the script shall display:
 ═══════════════════════════════════════════════
 
 This will:
-  • Build the ami-git-guard Rust binary from source
+  • Build the rust-guard Rust binary from source
   • Relocate /usr/bin/git → /usr/bin/git.original (mode 0700, root-only)
   • Install the guard as /usr/bin/git (mode 4555, SUID root)
 
@@ -67,7 +67,7 @@ This phase is unchanged from current behaviour.
 
 The script verifies:
 - Rust toolchain is installed (`rustc --version`)
-- The source directory exists at `projects/ami-git-guard/`
+- The source directory exists at `projects/RUST-GUARD/`
 - `Cargo.toml` is present
 
 If Rust is not installed, the script offers to install it via `rustup`:
@@ -81,17 +81,17 @@ In `--install` mode (non-interactive), the script installs rustup automatically.
 ### 4.2 Build Process
 
 ```bash
-cd projects/ami-git-guard
+cd projects/RUST-GUARD
 
 # Try musl (static) first, fall back to gnu (dynamic)
 if rustup target list --installed | grep -q musl; then
     echo "[INFO] Building statically linked binary (musl)..."
     cargo build --release --target x86_64-unknown-linux-musl
-    GUARD_BIN="target/x86_64-unknown-linux-musl/release/ami-git-guard"
+    GUARD_BIN="target/x86_64-unknown-linux-musl/release/rust-guard"
 else
     echo "[INFO] musl target not available — building dynamically linked (gnu)..."
     cargo build --release --target x86_64-unknown-linux-gnu
-    GUARD_BIN="target/x86_64-unknown-linux-gnu/release/ami-git-guard"
+    GUARD_BIN="target/x86_64-unknown-linux-gnu/release/rust-guard"
 fi
 ```
 

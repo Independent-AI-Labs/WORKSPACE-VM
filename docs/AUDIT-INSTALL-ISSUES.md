@@ -82,7 +82,7 @@ SMTP host/port/sender hardcoded in source. Now externalized via `os.getenv()` wi
 
 ## 8. Git Wrapper Recursion Loop — FIXED
 
-Separate patcher script conflicted with bootstrap symlink. Eliminated the patcher; bootstrap now installs `git-guard` directly. Real git symlinked to `real-git`.
+Separate patcher script conflicted with bootstrap symlink. Eliminated the patcher; bootstrap now installs `rust-guard` directly. Real git symlinked to `real-git`.
 
 ---
 

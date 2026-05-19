@@ -51,3 +51,7 @@ workspaceClones:
     remote: 'git@github.com:Independent-AI-Labs/POC-POLYMARKET-TRACKER.git'
     path: 'projects/polymarket-insider-tracker'
     mandatory: false
+  rust-guard:
+    remote: 'git@github.com:Independent-AI-Labs/RUST-GUARD.git'
+    path: 'projects/RUST-GUARD'
+    mandatory: true
