@@ -21,12 +21,14 @@ divert_is_active() {
 uninstall_guard() {
     log_info "Uninstalling rust guard..."
     rm -f /usr/bin/git
-    rm -f /usr/bin/git
     if divert_is_active; then
         dpkg-divert --rename --remove /usr/bin/git
         log_info "Removed dpkg-divert"
     fi
     if [[ -f /usr/bin/git.original ]]; then
+        if command -v chattr >/dev/null; then
+            chattr -i /usr/bin/git.original 2>/dev/null || true  # silent-ok: chattr may be absent, uninstall continues
+        fi
         mv /usr/bin/git.original /usr/bin/git
         chown root:root /usr/bin/git
         chmod 0755 /usr/bin/git
@@ -41,8 +43,14 @@ uninstall_guard() {
         log_error "Reinstall git: sudo apt install --reinstall git"
         return 1
     fi
+    # Clean up all guard-related system paths (current + former ami-git-guard)
     rm -f /etc/apt/apt.conf.d/99rust-guard
-    log_info "Git guard uninstalled — /usr/bin/git restored"
+    rm -f /etc/apt/apt.conf.d/99git-guard
+    rm -rf /usr/lib/rust-guard
+    rm -rf /usr/lib/ami-git-guard
+    rm -rf /var/log/rust-guard
+    rm -rf /var/log/ami-git-guard
+    log_info "Git guard uninstalled — /usr/bin/git restored, system paths cleaned"
     git --version
 }
 
