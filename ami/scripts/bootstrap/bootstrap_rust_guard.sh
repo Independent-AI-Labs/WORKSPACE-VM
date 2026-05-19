@@ -135,8 +135,18 @@ install_guard() {
 
     local guard_dir="${PROJECT_ROOT}/projects/RUST-GUARD"
     if [[ ! -f "$guard_dir/Cargo.toml" ]]; then
-        log_error "Rust project not found at $guard_dir"
-        return 1
+        log_info "RUST-GUARD project not found at $guard_dir — cloning from remote..."
+        local guard_remote
+        guard_remote=$(grep -A3 'rust-guard:' "${PROJECT_ROOT}/ami/config/workspace-clones.yaml" | grep 'remote:' | awk '{print $2}' | tr -d "'\"")
+        if [[ -z "$guard_remote" ]]; then
+            guard_remote="git@github.com:Independent-AI-Labs/RUST-GUARD.git"
+        fi
+        mkdir -p "$(dirname "$guard_dir")"
+        if ! git clone "$guard_remote" "$guard_dir"; then
+            log_error "Failed to clone RUST-GUARD from $guard_remote"
+            return 1
+        fi
+        log_info "RUST-GUARD cloned from $guard_remote"
     fi
 
     cd "$guard_dir"
