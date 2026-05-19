@@ -145,6 +145,17 @@ install_guard() {
     local guard_dir="${PROJECT_ROOT}/projects/RUST-GUARD"
     if [[ ! -f "$guard_dir/Cargo.toml" ]]; then
         log_info "RUST-GUARD project not found at $guard_dir — cloning from remote..."
+
+        # Forward SSH_AUTH_SOCK from the original user into sudo if missing
+        if [[ -z "${SSH_AUTH_SOCK:-}" ]] && [[ -n "${SUDO_USER:-}" ]]; then
+            local user_ssh_sock
+            user_ssh_sock=$(sudo -u "$SUDO_USER" printenv SSH_AUTH_SOCK 2>/dev/null || true)  # silent-ok: user may not have SSH agent running
+            if [[ -n "$user_ssh_sock" && -S "$user_ssh_sock" ]]; then
+                export SSH_AUTH_SOCK="$user_ssh_sock"
+                log_info "Forwarded SSH agent socket from $SUDO_USER"
+            fi
+        fi
+
         local guard_remote
         guard_remote=$(grep -A3 'rust-guard:' "${PROJECT_ROOT}/ami/config/workspace-clones.yaml" | grep 'remote:' | awk '{print $2}' | tr -d "'\"")
         if [[ -z "$guard_remote" ]]; then
