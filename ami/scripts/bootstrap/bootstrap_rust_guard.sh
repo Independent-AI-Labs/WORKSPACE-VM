@@ -20,15 +20,16 @@ divert_is_active() {
 
 uninstall_guard() {
     log_info "Uninstalling rust guard..."
+    if command -v chattr >/dev/null; then
+        chattr -i /usr/bin/git 2>/dev/null || true  # silent-ok: chattr may be absent or file already mutable
+        chattr -i /usr/bin/git.original 2>/dev/null || true  # silent-ok: same
+    fi
     rm -f /usr/bin/git
     if divert_is_active; then
         dpkg-divert --rename --remove /usr/bin/git
         log_info "Removed dpkg-divert"
     fi
     if [[ -f /usr/bin/git.original ]]; then
-        if command -v chattr >/dev/null; then
-            chattr -i /usr/bin/git.original 2>/dev/null || true  # silent-ok: chattr may be absent, uninstall continues
-        fi
         mv /usr/bin/git.original /usr/bin/git
         chown root:root /usr/bin/git
         chmod 0755 /usr/bin/git
