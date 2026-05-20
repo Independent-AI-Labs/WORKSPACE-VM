@@ -1,0 +1,25 @@
+[Unit]
+Description=LlamaServer Vulkan (Qwen3.6-35B-A3B MoE, 256K context, dual Arc A770)
+After=network.target
+
+[Service]
+Type=simple
+User={{ ansible_user | default('ami') }}
+Group={{ ansible_group_names[0] | default('ami') }}
+ExecStart={{ llama_server_path }} \
+    -m {{ llama_model_path }} \
+    -c {{ llama_context_size }} \
+    -ngl {{ llama_gpu_layers }} \
+    -sm layer \
+    -ts 1/2 \
+    --host {{ llama_server_host }} \
+    --port {{ llama_server_port }} \
+    -t 4
+Environment=LD_LIBRARY_PATH={{ vulkan_build_lib }}:{{ ansible_env.LD_LIBRARY_PATH | default('') }}
+StandardOutput=journal
+StandardError=journal
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

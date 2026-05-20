@@ -26,6 +26,7 @@ groups:
   # multi-select (and is also surfaced as a separate first-step dialog).
   - 'Core Dependencies'
   - 'Languages & Compilers'
+  - 'Hardware Monitoring'
   - 'AI Coding Assistants'
   - 'Infrastructure & Orchestration'
   - 'Cloud & Service CLIs'
@@ -156,6 +157,19 @@ components:
     version_pattern: '(\d+\.\d+\.\d+)'
 
   # =========================================================================
+  # Hardware Monitoring — GPU metrics and diagnostics.
+  # =========================================================================
+  - name: intel_xpu_smi
+    label: 'Intel XPU-SMI'
+    description: 'Intel GPU monitoring & diagnostics (Arc A770, Flex, Max)'
+    type: script
+    group: 'Hardware Monitoring'
+    script: 'bootstrap_intel_xpu_smi.sh'
+    detect_path: '/usr/bin/xpu-smi'
+    version_cmd: ['/usr/bin/xpu-smi', '-v']
+    version_pattern: 'v?(\d+\.\d+\.\d+)'
+
+  # =========================================================================
   # Infrastructure & Orchestration — container runtimes, k8s, IaC.
   # =========================================================================
   - name: podman
@@ -187,6 +201,36 @@ components:
     detect_path: '.boot-linux/python-env/bin/ansible'
     version_cmd: ['.boot-linux/python-env/bin/ansible', '--version']
     version_pattern: 'ansible.*?(\d+\.\d+\.\d+)'
+
+  - name: llama_cpu
+    label: 'llama.cpp (CPU)'
+    description: 'LLM inference server — CPU backend'
+    type: script
+    group: 'Infrastructure & Orchestration'
+    script: 'bootstrap_llama_cpu.sh'
+    detect_path: 'projects/llama.cpp/build-cpu/bin/llama-server'
+    version_cmd: ['projects/llama.cpp/build-cpu/bin/llama-server', '--version']
+    version_pattern: '(\d+\.\d+)'
+
+  - name: llama_sycl
+    label: 'llama.cpp (SYCL)'
+    description: 'LLM inference server — Intel oneAPI SYCL backend'
+    type: script
+    group: 'Infrastructure & Orchestration'
+    script: 'bootstrap_llama_sycl.sh'
+    detect_path: 'projects/llama.cpp/build-sycl/bin/llama-server'
+    version_cmd: ['projects/llama.cpp/build-sycl/bin/llama-server', '--version']
+    version_pattern: '(\d+\.\d+)'
+
+  - name: llama_vulkan
+    label: 'llama.cpp (Vulkan)'
+    description: 'LLM inference server — Vulkan compute backend'
+    type: script
+    group: 'Infrastructure & Orchestration'
+    script: 'bootstrap_llama_vulkan.sh'
+    detect_path: 'projects/llama.cpp/build-vulkan/bin/llama-server'
+    version_cmd: ['projects/llama.cpp/build-vulkan/bin/llama-server', '--version']
+    version_pattern: '(\d+\.\d+)'
 
   # =========================================================================
   # Cloud & Service CLIs — admin/API clients for external services.

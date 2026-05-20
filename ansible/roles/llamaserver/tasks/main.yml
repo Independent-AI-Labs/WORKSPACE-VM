@@ -1,0 +1,50 @@
+---
+- name: Validate llama_server_path exists
+  ansible.builtin.stat:
+    path: "{{ playbook_dir }}/../projects/llama.cpp/build-{{ llama_flavor }}/bin/llama-server"
+  register: server_bin
+
+- name: Validate llama_model_path exists
+  ansible.builtin.stat:
+    path: "{{ llama_model_path }}"
+  register: model_file
+
+- name: Ensure llamaserver config directory exists
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/.config/llamaserver"
+    state: directory
+    mode: '0755'
+
+- name: Ensure systemd user directory exists
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/.config/systemd/user"
+    state: directory
+    mode: '0755'
+
+- name: Load API key from .env
+  ansible.builtin.set_fact:
+    llama_api_key: "{{ lookup('env', 'LLAMA_API_KEY') }}"
+
+- name: Deploy llamaserver EnvironmentFile (with port)
+  ansible.builtin.copy:
+    content: |
+      LLAMA_API_KEY={{ llama_api_key }}
+      LLAMA_ARG_PORT={{ llama_flavor_ports[llama_flavor] }}
+    dest: "{{ ansible_env.HOME }}/.config/llamaserver/llamaserver-{{ llama_flavor }}.env"
+    mode: '0600'
+    backup: false
+
+- name: Deploy llamaserver systemd unit template (shared, uses %i)
+  ansible.builtin.template:
+    src: llamaserver.service.j2
+    dest: "{{ ansible_env.HOME }}/.config/systemd/user/llamaserver@.service"
+    mode: '0644'
+    backup: false
+
+- name: Daemon-reload systemd user instance
+  ansible.builtin.command: systemctl --user daemon-reload
+  changed_when: true
+
+- name: Enable and start llamaserver@{{ llama_flavor }}.service
+  ansible.builtin.command: systemctl --user enable --now llamaserver@{{ llama_flavor }}.service
+  changed_when: true

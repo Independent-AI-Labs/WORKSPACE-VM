@@ -38,6 +38,7 @@ install: ## Install AMI Agents in editable mode with all setup
 	echo "📝 Log: $(INSTALL_LOG)"; \
 	$(MAKE) pre-req-check && \
 	$(MAKE) sync-package && \
+	$(MAKE) bootstrap-gitleaks && \
 	$(MAKE) setup-config && \
 	$(MAKE) install-bootstrap && \
 	$(MAKE) register-extensions && \
@@ -53,6 +54,7 @@ install-ci: ## Non-interactive install for CI (uses install-defaults.yaml)
 	echo "📝 Log: $(INSTALL_LOG)"; \
 	$(MAKE) pre-req-check && \
 	$(MAKE) sync-package && \
+	$(MAKE) bootstrap-gitleaks && \
 	$(MAKE) setup-config && \
 	$(MAKE) install-bootstrap-ci && \
 	$(MAKE) register-extensions && \
@@ -94,6 +96,10 @@ bootstrap-core: ## Bootstrap core tools (uv, python, git-lfs/xet) into .boot-lin
 	@bash ami/scripts/bootstrap/bootstrap_python.sh
 	@bash ami/scripts/bootstrap/bootstrap_git_xet.sh
 	@echo "✅ Core bootstrap complete"
+
+.PHONY: bootstrap-gitleaks
+bootstrap-gitleaks: ## Bootstrap gitleaks (requires AMI-CI to be cloned first)
+	@bash projects/AMI-CI/scripts/bootstrap-gitleaks
 
 .PHONY: install-git-guard
 install-git-guard: ## (DEPRECATED) RUST-GUARD is now handled by sudo make pre-req
@@ -293,3 +299,8 @@ update-deps: ## Update Python dependencies only
 uninstall: ## Uninstall ami-agents
 	@echo "🗑️  Uninstalling ami-agents..."
 	.boot-linux/bin/uv pip uninstall ami-agents -y
+
+# ==============================================================================
+# LlamaServer — multi-flavor build + deployment (cpu, sycl, vulkan)
+# ==============================================================================
+-include Makefile.llamaserver

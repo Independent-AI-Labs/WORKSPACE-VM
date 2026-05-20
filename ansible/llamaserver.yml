@@ -1,0 +1,20 @@
+---
+- name: Deploy LlamaServer (any backend)
+  hosts: localhost
+  gather_facts: true
+
+  roles:
+    - role: llamaserver
+      when: llama_flavor is defined
+
+  vars:
+    llama_model_path: "{{ lookup('env', 'LLAMA_MODEL_PATH') | default('/home/ami/AMI-AGENTS/models/Qwen3.6-35B-A3B-UD-Q4_K_M.gguf', true) }}"
+    llama_server_host: "{{ lookup('env', 'LLAMA_SERVER_HOST') | default('0.0.0.0', true) }}"
+    llama_context_size: "{{ lookup('env', 'LLAMA_CONTEXT_SIZE') | default('200000', true) }}"
+    llama_gpu_layers: "{{ lookup('env', 'LLAMA_GPU_LAYERS') | default('99', true) }}"
+    llama_threads: "{{ lookup('env', 'LLAMA_THREADS') | default('4', true) }}"
+    llama_parallel: "{{ lookup('env', 'LLAMA_PARALLEL') | default('2', true) }}"
+    llama_flavor_ports:
+        cpu: 8081
+        sycl: 8082
+        vulkan: 8080

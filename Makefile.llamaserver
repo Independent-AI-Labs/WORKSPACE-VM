@@ -1,0 +1,141 @@
+# LlamaServer Makefile targets
+# Supports multiple build flavors for heterogeneous GPU clustering
+#
+# Build flavors: cpu sycl vulkan [opencl cuda ...]
+# Default flavor: vulkan
+#
+# Usage:
+#   make build-llama FLAVOR=vulkan        # build specific flavor
+#   make build-llama-all                   # build all flavors
+#   make install-llamaserver FLAVOR=vulkan # deploy systemd service
+#   make uninstall-llamaserver FLAVOR=sycl
+#   make reinstall-llamaserver FLAVOR=vulkan
+#   make restart-llamaserver FLAVOR=vulkan
+#   make logs-llamaserver FLAVOR=vulkan    # tail journalctl
+#   make status-llamaserver FLAVOR=vulkan
+#   make list-llamaserver                  # all running llamaserver@ units
+
+# ==============================================================================
+# Flavor Registry — edit this list to add new build flavors
+# ==============================================================================
+LLAMA_FLAVORS := cpu sycl vulkan
+
+# ==============================================================================
+# Build Targets — delegate to persisted scripts in scripts/setup/
+# ==============================================================================
+
+.PHONY: build-llama
+build-llama: ## Build llama.cpp for FLAVOR=(cpu|sycl|vulkan)
+ifeq ($(FLAVOR),)
+	$(error FLAVOR is required. Usage: make build-llama FLAVOR=vulkan)
+endif
+	@if [ -x "projects/llama.cpp/build-$(FLAVOR)/bin/llama-server" ]; then \
+		echo "✅ llama.cpp ($(FLAVOR)) already built at projects/llama.cpp/build-$(FLAVOR)/bin/llama-server"; \
+		echo "   (use: make clean-llama FLAVOR=$(FLAVOR) to rebuild)"; \
+	else \
+		echo "Building llama.cpp ($(FLAVOR))..."; \
+		bash scripts/setup/build-llama-$(FLAVOR).sh && \
+		echo "✅ $(FLAVOR) build complete"; \
+	fi
+
+.PHONY: build-llama-all
+build-llama-all: ## Build all llama.cpp flavors in parallel
+	@echo "Building all flavors: $(LLAMA_FLAVORS)..."
+	@for flavor in $(LLAMA_FLAVORS); do \
+		$(MAKE) build-llama FLAVOR=$$flavor & \
+	done
+	@wait
+	@echo "✅ All builds complete"
+
+.PHONY: clean-llama
+clean-llama: ## Clean llama.cpp build for FLAVOR=(cpu|sycl|vulkan)
+ifeq ($(FLAVOR),)
+	$(error FLAVOR is required. Usage: make clean-llama FLAVOR=vulkan)
+endif
+	@rm -rf projects/llama.cpp/build-$(FLAVOR)
+	@echo "✅ Cleaned build-$(FLAVOR)"
+
+.PHONY: clean-llama-all
+clean-llama-all: ## Clean all llama.cpp builds
+	@rm -rf $(foreach f,$(LLAMA_FLAVORS),projects/llama.cpp/build-$(f))
+	@echo "✅ All builds cleaned"
+
+# ==============================================================================
+# Pre-Requisite Targets — one per dependency, separate sudo invocations
+# ==============================================================================
+
+.PHONY: pre-req-intel
+pre-req-intel: ## Install Intel GPU drivers, OpenCL runtime, media stack (sudo)
+	@sudo bash scripts/setup/install-intel-pre-req.sh
+
+.PHONY: pre-req-vulkan
+pre-req-vulkan: ## Install Vulkan SDK (sudo)
+	@sudo bash scripts/setup/install-vulkan-dev.sh
+
+.PHONY: pre-req-oneapi
+pre-req-oneapi: ## Install Intel oneAPI DPC++ compiler + MKL (sudo)
+	@sudo bash scripts/setup/install-oneapi-dev.sh
+
+# ==============================================================================
+# Service Targets — systemd template unit llamaserver@FLAVOR
+# ==============================================================================
+
+.PHONY: install-llamaserver
+install-llamaserver: ## Deploy systemd unit for FLAVOR (requires pre-built binary)
+ifeq ($(FLAVOR),)
+	$(error FLAVOR is required. Usage: make install-llamaserver FLAVOR=vulkan)
+endif
+	@cd ansible && \
+		export $$(grep -v '^\s*#' "$(HOME)/AMI-AGENTS/.env" 2>/dev/null | xargs) && \
+		ansible-playbook \
+			--diff \
+			-e "llama_flavor=$(FLAVOR)" \
+			llamaserver.yml
+	@echo "✅ llamaserver@$(FLAVOR) deployed"
+
+.PHONY: uninstall-llamaserver
+uninstall-llamaserver: ## Stop and disable llamaserver@FLAVOR
+ifeq ($(FLAVOR),)
+	$(error FLAVOR is required. Usage: make uninstall-llamaserver FLAVOR=vulkan)
+endif
+	@systemctl --user stop llamaserver@$(FLAVOR).service 2>/dev/null || true
+	@systemctl --user disable llamaserver@$(FLAVOR).service 2>/dev/null || true
+	@rm -f "$(HOME)/.config/systemd/user/llamaserver@$(FLAVOR).service"
+	@rm -f "$(HOME)/.config/llamaserver/llamaserver-$(FLAVOR).env"
+	@systemctl --user daemon-reload
+	@echo "✅ llamaserver@$(FLAVOR) removed"
+
+.PHONY: reinstall-llamaserver
+reinstall-llamaserver: ## Rebuild and redeploy llamaserver@FLAVOR
+ifeq ($(FLAVOR),)
+	$(error FLAVOR is required. Usage: make reinstall-llamaserver FLAVOR=vulkan)
+endif
+	$(MAKE) clean-llama FLAVOR=$(FLAVOR)
+	$(MAKE) build-llama FLAVOR=$(FLAVOR)
+	$(MAKE) install-llamaserver FLAVOR=$(FLAVOR)
+
+.PHONY: restart-llamaserver
+restart-llamaserver: ## Restart llamaserver@FLAVOR (no rebuild)
+ifeq ($(FLAVOR),)
+	$(error FLAVOR is required. Usage: make restart-llamaserver FLAVOR=vulkan)
+endif
+	@systemctl --user restart llamaserver@$(FLAVOR).service
+	@echo "✅ llamaserver@$(FLAVOR) restarted"
+
+.PHONY: status-llamaserver
+status-llamaserver: ## Show status of llamaserver@FLAVOR
+ifeq ($(FLAVOR),)
+	$(error FLAVOR is required. Usage: make status-llamaserver FLAVOR=vulkan)
+endif
+	@systemctl --user status llamaserver@$(FLAVOR).service --no-pager
+
+.PHONY: logs-llamaserver
+logs-llamaserver: ## Tail logs for llamaserver@FLAVOR (default 50 lines)
+ifeq ($(FLAVOR),)
+	$(error FLAVOR is required. Usage: make logs-llamaserver FLAVOR=vulkan)
+endif
+	@journalctl --user -u llamaserver@$(FLAVOR).service -n $(or $(LINES),50) -f
+
+.PHONY: list-llamaserver
+list-llamaserver: ## List all installed llamaserver@ units
+	@systemctl --user --no-pager list-units 'llamaserver@*.service'

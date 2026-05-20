@@ -159,3 +159,8 @@ projects/
 ruff.toml
 mypy.toml
 .qwen/
+
+CMakeFiles/
+
+models/
+
