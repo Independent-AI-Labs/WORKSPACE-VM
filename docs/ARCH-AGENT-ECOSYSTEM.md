@@ -1,10 +1,10 @@
 # AMI Agent Ecosystem: Cross-Repo Architecture
 
-**Date:** 2026-03-01
-**Status:** DRAFT
+**Date:** 2026-05-20
+**Status:** ACTIVE
 **Type:** Architecture
 
-> **Implementation note (2026-04-05):** This document describes the **target architecture**. Currently implemented: BootloaderAgent (ReAct loop), multi-provider runtime (Claude/Qwen/Gemini CLI), hook validation pipeline, command tier system, and config-driven provider routing. **Not yet implemented:** A2A protocol, ami-agentd gateway, Podman container isolation, UDS mesh, interaction logging, OIDC auth. Agents currently run directly on host via CLI subprocesses.
+> **Implementation status (2026-05-20):** This document describes the operational architecture. Implemented: BootloaderAgent (ReAct loop), multi-provider runtime (Claude/Qwen/Gemini CLI), Podman container isolation, and A2A v0.3 protocol over UDS. Agents run within Podman containers managed by `ami-agentd`. Security controls (iptables, UDS-only communication) are active. Pending: Full OIDC integration in gateway and cross-host A2A mesh.
 
 > How containerised AI agents, the gateway, chat UI, task engine, and A2A protocol connect across AMI-AGENTS, AMI-TRADING, and AMI-SRP.
 

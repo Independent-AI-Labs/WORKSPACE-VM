@@ -21,9 +21,6 @@ For requirements docs (`requirements/REQ-*.md`) and full specifications (`specif
 ### Migration plans
 
 - [`../projects/docs/MOON-MIGRATION-PLAN.md`](../projects/docs/MOON-MIGRATION-PLAN.md) — workspace orchestrator migration to moon
-- [`specifications/SPEC-AUTH-OIDC-PROVIDER.md`](specifications/SPEC-AUTH-OIDC-PROVIDER.md) — unified OIDC provider design
-- [`specifications/SPEC-AUTH-BASE-MIGRATION.md`](specifications/SPEC-AUTH-BASE-MIGRATION.md) — base/opsec to AMI-AUTH code migration
-- [`specifications/SPEC-AUTH-CONSUMER-MIGRATION.md`](specifications/SPEC-AUTH-CONSUMER-MIGRATION.md) — Portal/Trading/Matrix cutover to OIDC
 
 ### Incident postmortems
 
