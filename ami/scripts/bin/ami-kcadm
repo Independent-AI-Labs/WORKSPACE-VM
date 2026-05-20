@@ -2,4 +2,26 @@
 # ami-kcadm: Keycloak Admin CLI wrapper
 # Executes kcadm.sh inside the ami-keycloak container
 set -euo pipefail
+
+case "${1:-}" in
+    --help|-h)
+        echo "ami-kcadm — Keycloak Admin CLI wrapper"
+        echo ""
+        echo "Usage: ami-kcadm <command> [options]"
+        echo ""
+        echo "Executes kcadm.sh inside the ami-keycloak container."
+        echo "Requires: podman running with ami-keycloak container."
+        echo ""
+        echo "Common commands:"
+        echo "  config              Configure server connection"
+        echo "  get <resource>      Get resources"
+        echo "  create <resource>   Create resources"
+        echo "  update <resource>   Update resources"
+        echo "  delete <resource>   Delete resources"
+        echo ""
+        echo "Setup: make compose-deploy in AMI-DATAOPS"
+        exit 0
+        ;;
+esac
+
 exec podman exec -it ami-keycloak /opt/keycloak/bin/kcadm.sh "$@"
