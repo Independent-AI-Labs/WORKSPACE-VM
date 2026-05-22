@@ -4,7 +4,12 @@ All structured data uses TypedDict or Pydantic models with KNOWN fields.
 NO generic container types allowed.
 """
 
+from typing import TYPE_CHECKING
+
 from typing_extensions import TypedDict
+
+if TYPE_CHECKING:
+    from ami.scripts.bootstrap_components import Component
 
 
 # === Process Environment ===
@@ -203,13 +208,13 @@ class ComponentsByGroup(TypedDict, total=False):
     """Components organized by group name."""
 
     # Use total=False since all groups are optional
-    ai_coding_assistants: list[object]
-    containers_orchestration: list[object]
-    development_tools: list[object]
-    security_networking: list[object]
-    document_processing: list[object]
-    matrix_communication: list[object]
-    miscellaneous: list[object]
+    ai_coding_assistants: list["Component"]
+    containers_orchestration: list["Component"]
+    development_tools: list["Component"]
+    security_networking: list["Component"]
+    document_processing: list["Component"]
+    matrix_communication: list["Component"]
+    miscellaneous: list["Component"]
 
 
 # Note: ComponentsByGroup uses underscored keys for valid Python identifiers

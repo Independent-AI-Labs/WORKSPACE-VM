@@ -26,7 +26,7 @@ class SelectableItem(Protocol):
     label: str
     description: str
     is_header: bool
-    value: str | object
+    value: object
     disabled: bool  # If True, item is greyed out and permanently selected
     parent_id: str | None  # If set, toggling the parent cascades to this item
 
@@ -38,7 +38,7 @@ class SelectableItemDict(TypedDict, total=False):
     label: str
     description: str
     is_header: bool
-    value: str | object
+    value: object
     disabled: bool  # If True, item is greyed out and permanently selected
     parent_id: str | None  # If set, toggling the parent cascades to this item
 

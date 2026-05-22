@@ -25,8 +25,7 @@ if TYPE_CHECKING:
     from io import TextIOWrapper
 
 # A log record is a dict whose values are JSON-friendly scalars or lists.
-# object (not Any) keeps the type loose without tripping the "no Any" ban.
-LogRecord: TypeAlias = dict[str, object]
+LogRecord: TypeAlias = dict[str, str | int | float | bool | None | list[str]]
 LogFn: TypeAlias = Callable[[LogRecord], None]
 
 

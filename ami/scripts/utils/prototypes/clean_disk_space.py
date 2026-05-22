@@ -10,7 +10,21 @@ import json
 import shutil
 import subprocess
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, TypedDict, cast
+
+
+class PodmanItem(TypedDict, total=False):
+    """Parsed JSON output from Podman commands."""
+
+    Id: str
+    ID: str
+    Names: list[str] | str
+    Repository: str
+    Tag: str
+    Size: str
+    Created: str
+    State: str
+
 
 KB_PER_UNIT = 1024
 MIN_SIZE_KB = 1024  # Skip targets smaller than 1 MB
@@ -51,7 +65,7 @@ class DiskCleaner:
             print("[INFO] Running in DRY RUN mode. Use --force to execute deletions.")
             self.dry_run = True
 
-    def get_json_items(self, cmd: list[str]) -> list[object]:
+    def get_json_items(self, cmd: list[str]) -> list[PodmanItem]:
         """Helper to parse Podman JSON output."""
         output = run_cmd(cmd)
         if not output:
