@@ -23,9 +23,15 @@ preflight: pre-req-check ## Verify environment and pre-requisites
 pre-req-check: ## Check system pre-requisites (runs automatically on install)
 	@bash ami/scripts/pre-req.sh
 
+# Pass args to pre-req.sh via PRE_REQ_ARGS:
+#   sudo make pre-req                           # default: --install
+#   sudo make pre-req PRE_REQ_ARGS="--reinstall-rust-guard"
+#   sudo make pre-req PRE_REQ_ARGS="--uninstall-rust-guard"
+PRE_REQ_ARGS ?= --install
+
 .PHONY: pre-req
 pre-req: ## Install system pre-requisites (requires sudo)
-	@bash ami/scripts/pre-req.sh --install
+	@bash ami/scripts/pre-req.sh $(PRE_REQ_ARGS)
 
 # --- Main Installation Flow ---
 

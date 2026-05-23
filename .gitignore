@@ -164,3 +164,6 @@ CMakeFiles/
 
 models/
 
+# OpenAI-compatible provider config (machine-specific)
+opencode.json
+
