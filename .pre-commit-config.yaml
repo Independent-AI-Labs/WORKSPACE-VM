@@ -52,6 +52,13 @@ repos:
         entry: "bash -c 'source projects/AMI-CI/lib/checks.sh && ci_check_file_length'"
         language: system
         pass_filenames: false
+      - id: check-markdown-docs
+        name: Check Markdown Documentation References
+        entry: "uv run python -m ami.ci.check_markdown_docs --check-remote"
+        language: system
+        types: [markdown]
+        pass_filenames: true
+
       - id: check-init-files
         name: Enforce Empty __init__.py Files (CRITICAL SECURITY REQUIREMENT)
         entry: "bash -c 'source projects/AMI-CI/lib/checks.sh && ci_check_init_files \"$@\"' --"
