@@ -34,6 +34,12 @@ if [[ "$#" -gt 0 && ("$1" == "-h" || "$1" == "--help") ]]; then
     exit 0
 fi
 
+if [[ "$#" -gt 0 && "$1" == "--version" ]]; then
+    VERSION="$(git -C "$AMI_ROOT" describe --always --dirty 2>/dev/null || echo "unknown")"
+    echo "ami-run (AMI Orchestrator) ${VERSION}"
+    exit 0
+fi
+
 KNOWN_CMDS="python uv podman docker node npm npx java wrap bash sh tests ansible ansible-playbook ansible-galaxy status systemd cargo rustc go kubectl helm extras doctor storage"
 if [[ $# -gt 0 ]] && [[ " $KNOWN_CMDS " == *" $1 "* ]]; then
     SUBCOMMAND="$1"
