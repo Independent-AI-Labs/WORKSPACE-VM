@@ -127,8 +127,8 @@ components:
     type: script
     group: 'AI Coding Assistants'
     script: 'bootstrap_opencode.sh'
-    detect_path: '.boot-linux/.opencode-installed'
-    version_cmd: ['opencode', '--version']
+    detect_path: '.boot-linux/bin/opencode'
+    version_cmd: ['.boot-linux/bin/opencode', '--version']
     version_pattern: '(\d+\.\d+\.\d+)'
 
   # =========================================================================

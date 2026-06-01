@@ -6,6 +6,10 @@ while [[ "$AMI_ROOT" != "/" && ! -f "$AMI_ROOT/pyproject.toml" ]]; do
     AMI_ROOT="$(dirname "$AMI_ROOT")"
 done
 export AMI_ROOT && cd "$AMI_ROOT"
+BOOT_DIR="${BOOT_LINUX_DIR:-${AMI_ROOT}/.boot-linux}"
+NPX="${BOOT_DIR}/bin/npx"
+OPN="${BOOT_DIR}/bin/opencode"
+
 if [[ "$1" == "--help" ]] || [[ "$1" == "-h" ]]; then
     echo "ami-oc — opencode AI agent wrapper with AMI welcome context"
     echo "Usage: ami-oc [task...]"
@@ -13,14 +17,11 @@ if [[ "$1" == "--help" ]] || [[ "$1" == "-h" ]]; then
     echo "  With arguments:    runs opencode with the given task"
     exit 0
 fi
-if [[ "$1" == "--version" ]] || [[ "$1" == "-V" ]]; then
-    opencode --version 2>/dev/null || echo "unknown"
-    exit 0
-fi
+
 WELCOME=$("$AMI_ROOT/ami/scripts/bin/ami-welcome" 2>/dev/null || echo "AMI-AGENTS workspace")
 if [[ $# -gt 0 ]]; then
-    exec npx opencode run "$WELCOME"$'\n\n'"Task: $*" --dir "$AMI_ROOT"
+    exec "$NPX" opencode run "$WELCOME"$'\n\n'"Task: $*" --dir "$AMI_ROOT"
 else
     printf '%b\n' "$WELCOME" && echo ""
-    exec npx opencode
+    exec "$NPX" opencode
 fi

@@ -125,14 +125,14 @@ uninstall-shell: ## Remove AMI shell environment from ~/.bashrc
 	@bash ami/scripts/shell/shell-setup --uninstall
 
 .PHONY: install-opencode
-install-opencode: ## Install opencode-ai globally via npm
+install-opencode: ## Install opencode-ai into .venv via hermetic npm
 	@echo "📦 Installing opencode-ai..."
 	@bash ami/scripts/bootstrap/bootstrap_opencode.sh
 
 .PHONY: update-opencode
-update-opencode: ## Update opencode-ai to latest
-	@npm update -g opencode-ai
-	@echo "✅ opencode-ai updated"
+update-opencode: ## Update opencode-ai to latest (re-runs bootstrap)
+	@echo "🔄 Updating opencode-ai..."
+	@bash ami/scripts/bootstrap/bootstrap_opencode.sh
 
 .PHONY: sync
 sync: sync-package install-hooks ## Sync deps + reinstall hooks
