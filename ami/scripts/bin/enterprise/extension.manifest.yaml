@@ -13,8 +13,9 @@ extensions:
     container: ami-keycloak
     installHint: "make compose-deploy in AMI-DATAOPS"
     check:
-      command: ["{binary}", "--help"]
-      healthExpect: "kcadm"
+      command: ["{binary}", "--version"]
+      versionPattern: "(\\d+\\.\\d+\\.\\d+)"
+      healthExpect: "."
       timeout: 5
     deps:
       - name: ami-keycloak
@@ -34,6 +35,7 @@ extensions:
       - install
     bannerPriority: 140
     check:
-      command: ["{binary}", "--help"]
-      healthExpect: "playwright"
+      command: ["{binary}", "--version"]
+      versionPattern: "(\\d+\\.\\d+\\.\\d+)"
+      healthExpect: "."
       timeout: 5

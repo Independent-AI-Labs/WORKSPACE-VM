@@ -7,6 +7,11 @@ extensions:
       - run
       - session
     bannerPriority: 10
+    check:
+      command: ["{binary}", "--version"]
+      versionPattern: "(\\d+\\.\\d+\\.\\d+)"
+      healthExpect: "."
+      timeout: 5
 
   - name: ami
     binary: ami/scripts/bin/ami-run

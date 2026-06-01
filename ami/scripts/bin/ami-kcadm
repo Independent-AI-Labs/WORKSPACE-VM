@@ -22,6 +22,10 @@ case "${1:-}" in
         echo "Setup: make compose-deploy in AMI-DATAOPS"
         exit 0
         ;;
+    --version|-V)
+        podman exec ami-keycloak java -jar /opt/keycloak/lib/quarkus-run.jar --version 2>/dev/null || echo "unknown"
+        exit 0
+        ;;
 esac
 
 exec podman exec -it ami-keycloak /opt/keycloak/bin/kcadm.sh "$@"
