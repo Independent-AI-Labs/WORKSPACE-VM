@@ -13,6 +13,10 @@ if [[ "$1" == "--help" ]] || [[ "$1" == "-h" ]]; then
     echo "  With arguments:    runs opencode with the given task"
     exit 0
 fi
+if [[ "$1" == "--version" ]] || [[ "$1" == "-V" ]]; then
+    opencode --version 2>/dev/null || echo "unknown"
+    exit 0
+fi
 WELCOME=$("$AMI_ROOT/ami/scripts/bin/ami-welcome" 2>/dev/null || echo "AMI-AGENTS workspace")
 if [[ $# -gt 0 ]]; then
     exec npx opencode run "$WELCOME"$'\n\n'"Task: $*" --dir "$AMI_ROOT"

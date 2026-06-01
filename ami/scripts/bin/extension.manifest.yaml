@@ -5,7 +5,13 @@ extensions:
     category: core
     features:
       - run
+      - session
     bannerPriority: 10
+    check:
+      command: ["{binary}", "--version"]
+      versionPattern: "(\\d+\\.\\d+\\.\\d+)"
+      healthExpect: "."
+      timeout: 5
 
   - name: ami
     binary: ami/scripts/bin/ami-run
@@ -60,14 +66,6 @@ extensions:
       command: ["{binary}", "--help"]
       healthExpect: "ami-repo"
       timeout: 5
-
-  - name: opencode
-    binary: ami/scripts/bin/ami-oc
-    description: opencode AI agent (session management via opencode session)
-    category: core
-    features:
-      - session
-    bannerPriority: 55
 
   # ami-update extension removed: the umbrella orchestration now lives
   # in moon via `moon run :update` (walks every project's update task
