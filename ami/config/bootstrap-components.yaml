@@ -127,7 +127,7 @@ components:
     type: script
     group: 'AI Coding Assistants'
     script: 'bootstrap_opencode.sh'
-    detect_path: '.boot-linux/bin/ami-oc'
+    detect_cmd: ['opencode', '--version']
     version_cmd: ['opencode', '--version']
     version_pattern: '(\d+\.\d+\.\d+)'
 
