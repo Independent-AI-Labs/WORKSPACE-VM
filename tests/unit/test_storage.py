@@ -55,7 +55,7 @@ class TestMain:
         with (
             patch("ami.cli_components.storage.analyze") as mock_analyze,
             patch("ami.cli_components.storage.get_container_sizes", return_value=[]),
-            patch("sys.argv", ["ami-storage"]),
+            patch("sys.argv", ["ami-storage", "--no-fs-scan", "--no-tmp-scan"]),
         ):
             rc = storage.main()
         assert rc == 0
@@ -68,7 +68,10 @@ class TestMain:
         with (
             patch("ami.cli_components.storage.analyze") as mock_analyze,
             patch("ami.cli_components.storage.get_container_sizes", return_value=[]),
-            patch("sys.argv", ["ami-storage", "--no-breakdown"]),
+            patch(
+                "sys.argv",
+                ["ami-storage", "--no-breakdown", "--no-fs-scan", "--no-tmp-scan"],
+            ),
         ):
             rc = storage.main()
         assert rc == 0
@@ -90,7 +93,10 @@ class TestMain:
         with (
             patch("ami.cli_components.storage.analyze") as mock_analyze,
             patch("ami.cli_components.storage.get_container_sizes", return_value=[]),
-            patch("sys.argv", ["ami-storage", "/tmp/xyz"]),
+            patch(
+                "sys.argv",
+                ["ami-storage", "/tmp/xyz", "--no-fs-scan", "--no-tmp-scan"],
+            ),
         ):
             storage.main()
         mock_analyze.assert_called_once_with("/tmp/xyz")

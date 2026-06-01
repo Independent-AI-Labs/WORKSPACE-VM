@@ -21,8 +21,29 @@ def human_readable(size_in_kb: int) -> str:
     return f"{val:.2f} PB"
 
 
-def analyze(path: str) -> None:
-    """Run du to calculate disk usage for immediate children of the given path."""
+def _run_du(path_str: str, same_fs: bool) -> str | None:
+    """Run du and return stdout, or None on failure."""
+    cmd = ["du", "-ak", "-d", "1", path_str]
+    if same_fs:
+        cmd.insert(1, "-x")
+    try:
+        result = subprocess.run(
+            cmd, capture_output=True, text=True, check=False
+        )  # silent-ok: errors caught by enclosing try/except
+    except Exception as e:
+        print(f"Critical error running du: {e}")
+        return None
+    else:
+        return result.stdout
+
+
+def analyze(path: str, same_fs: bool = False) -> None:
+    """Run du to calculate disk usage for immediate children of the given path.
+
+    Args:
+        path: Directory to scan.
+        same_fs: If True, add -x flag to stay on the same filesystem.
+    """
     resolved = Path(path).expanduser()
     if not resolved.exists():
         print(f"Error: Path '{resolved}' does not exist.")
@@ -30,13 +51,8 @@ def analyze(path: str) -> None:
 
     print(f"Scanning '{resolved}' for disk usage... (This may take a moment)")
 
-    cmd = ["du", "-ak", "-d", "1", str(resolved)]
-
-    try:
-        result = subprocess.run(cmd, capture_output=True, text=True, check=False)
-        output = result.stdout
-    except Exception as e:
-        print(f"Critical error running du: {e}")
+    output = _run_du(str(resolved), same_fs)
+    if output is None:
         return
 
     lines = output.strip().split("\n")
