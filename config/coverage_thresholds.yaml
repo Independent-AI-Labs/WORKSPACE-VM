@@ -8,6 +8,6 @@ unit:
 
 integration:
   path: tests/integration
-  min_coverage: 10
+  min_coverage: 50
   source_path: ami
   runner: uv run python -m pytest
