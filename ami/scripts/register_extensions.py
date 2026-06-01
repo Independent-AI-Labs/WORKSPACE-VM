@@ -151,7 +151,7 @@ def update_bashrc_path(bin_dir: Path) -> None:
     update every shell rc that exists. If neither exists (pure-fish,
     container minimal image, fresh user account) we emit a stderr warning
     so the operator knows to add the PATH manually — skipping without a
-    warning leaves `ami-claude` and friends unreachable from interactive
+    warning leaves `ami-oc` and friends unreachable from interactive
     shells without any signal that the install was incomplete.
     """
     home = Path.home()

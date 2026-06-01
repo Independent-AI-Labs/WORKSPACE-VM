@@ -188,8 +188,8 @@ echo "[PASS] Critical dependencies loadable."
 # --- Check 4: AMI package importable ---
 echo "Verifying ami package imports..."
 .venv/bin/python -c "
-from ami.core.config import get_config
-from ami.types.events import StreamEvent
+from ami.config_utils import get_project_root
+from ami.types.results import NamedComponentStatus
 from ami.cli_components.tui import BoxStyle
 print('AMI core imports successful')
 " 2>&1 | tee ami_import_test.log

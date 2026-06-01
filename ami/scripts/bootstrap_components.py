@@ -7,7 +7,7 @@ from enum import Enum
 
 from pydantic import BaseModel
 
-from ami.core.env import PROJECT_ROOT
+from ami.config_utils import PROJECT_ROOT
 
 __all__ = [
     "PROJECT_ROOT",

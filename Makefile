@@ -47,6 +47,7 @@ install: ## Install AMI Agents in editable mode with all setup
 	$(MAKE) bootstrap-gitleaks && \
 	$(MAKE) setup-config && \
 	$(MAKE) install-bootstrap && \
+	$(MAKE) install-opencode && \
 	$(MAKE) register-extensions && \
 	$(MAKE) install-hooks && \
 	$(MAKE) install-shell && \
@@ -63,6 +64,7 @@ install-ci: ## Non-interactive install for CI (uses install-defaults.yaml)
 	$(MAKE) bootstrap-gitleaks && \
 	$(MAKE) setup-config && \
 	$(MAKE) install-bootstrap-ci && \
+	$(MAKE) install-opencode && \
 	$(MAKE) register-extensions && \
 	$(MAKE) install-hooks && \
 	$(MAKE) install-shell && \
@@ -122,17 +124,15 @@ install-shell: ## Install AMI shell environment to ~/.bashrc
 uninstall-shell: ## Remove AMI shell environment from ~/.bashrc
 	@bash ami/scripts/shell/shell-setup --uninstall
 
-.PHONY: install-node-agents
-install-node-agents: ## Install Node.js CLI agents (claude, gemini, qwen)
-	@echo "📦 Installing Node.js CLI agents..."
-	@bash ami/scripts/bootstrap/bootstrap_agents.sh
-	@echo "✅ Node.js CLI agents installed"
+.PHONY: install-opencode
+install-opencode: ## Install opencode-ai globally via npm
+	@echo "📦 Installing opencode-ai..."
+	@bash ami/scripts/bootstrap/bootstrap_opencode.sh
 
-.PHONY: update-node-agents
-update-node-agents: ## Update Node.js CLI agents to latest versions and reinstall
-	@echo "🔍 Checking for CLI updates..."
-	@uv run ami/tools/update_cli_versions.py --auto-update --force
-	@$(MAKE) install-node-agents
+.PHONY: update-opencode
+update-opencode: ## Update opencode-ai to latest
+	@npm update -g opencode-ai
+	@echo "✅ opencode-ai updated"
 
 .PHONY: sync
 sync: sync-package install-hooks ## Sync deps + reinstall hooks

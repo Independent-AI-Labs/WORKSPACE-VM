@@ -29,44 +29,20 @@ def test_aliases_exist_and_respond_to_help() -> None:
 
     expected_functions = [
         "ami-run",
-        "ami-agent",
+        "ami-oc",
         "ami-repo",
         "ami",
         "ami-backup",
         "ami-restore",
-        "ami-claude",
-        "ami-gemini",
-        "ami-qwen",
     ]
 
     expected_aliases: list[str] = []
 
     for func_name in expected_functions:
-        if func_name in ["ami-claude", "ami-gemini", "ami-qwen"]:
-            bash_test_cmd = [
-                "bash",
-                "-c",
-                f"source {script_path} >/dev/null 2>&1 && type -t {func_name}",
-            ]
-
-            result = subprocess.run(
-                bash_test_cmd, check=False, capture_output=True, text=True
-            )
-            assert result.returncode == 0, (
-                f"Function {func_name} does not exist: {result.stderr}"
-            )
-
-            output = result.stdout.strip()
-            assert output in [
-                "function",
-                "builtin",
-                "file",
-            ], f"{func_name} is not a function/command: {output}"
-            continue
-
         bash_test_cmd = [
             "bash",
             "-c",
+            f'export PATH="{AMI_ROOT}/.venv/bin:{AMI_ROOT}/.boot-linux/bin:$PATH" && '
             f"source {script_path} >/dev/null 2>&1 && type -t {func_name}",
         ]
 
@@ -141,23 +117,5 @@ def test_aliases_exist_and_respond_to_help() -> None:
         )
 
 
-def test_cli_agents_available() -> None:
-    """Test that CLI agents are available and respond."""
-    script_path = AMI_ROOT / "ami" / "scripts" / "shell" / "shell-setup"
-
-    cli_agents = ["ami-claude", "ami-gemini", "ami-qwen"]
-
-    for agent in cli_agents:
-        bash_test_cmd = ["bash", "-c", f"source {script_path} && type -t {agent}"]
-
-        result = subprocess.run(
-            bash_test_cmd, check=False, capture_output=True, text=True
-        )
-        assert result.returncode == 0, (
-            f"CLI agent {agent} does not exist: {result.stderr}"
-        )
-
-
 if __name__ == "__main__":
     test_aliases_exist_and_respond_to_help()
-    test_cli_agents_available()

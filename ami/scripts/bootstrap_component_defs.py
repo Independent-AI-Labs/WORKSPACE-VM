@@ -21,7 +21,7 @@ import json
 import yaml
 from pydantic import BaseModel, ConfigDict, Field
 
-from ami.core.env import PROJECT_ROOT
+from ami.config_utils import PROJECT_ROOT
 from ami.scripts.bootstrap_components import (
     Component,
     ComponentType,

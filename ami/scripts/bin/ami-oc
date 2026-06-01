@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -e
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+AMI_ROOT="$SCRIPT_DIR"
+while [[ "$AMI_ROOT" != "/" && ! -f "$AMI_ROOT/pyproject.toml" ]]; do
+    AMI_ROOT="$(dirname "$AMI_ROOT")"
+done
+export AMI_ROOT && cd "$AMI_ROOT"
+WELCOME=$("$AMI_ROOT/ami/scripts/bin/ami-welcome" 2>/dev/null || echo "AMI-AGENTS workspace")
+if [[ $# -gt 0 ]]; then
+    exec npx opencode run "$WELCOME\n\nTask: $*" --dir "$AMI_ROOT"
+else
+    printf '%b\n' "$WELCOME" && echo ""
+    exec npx opencode
+fi

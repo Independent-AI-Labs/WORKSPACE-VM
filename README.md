@@ -20,7 +20,7 @@ sudo make pre-req
 # 2. Workspace bootstrap (TUI)
 make install
 ```
-*The `make install` TUI handles the federated dependency graph. Choose the sub-projects relevant to your development focus. Once finished, `ami-agent` will be available in your path.*
+*The `make install` TUI handles the federated dependency graph. Choose the sub-projects relevant to your development focus. Once finished, `ami-oc` (opencode wrapper) will be available in your path.*
 
 ---
 
@@ -65,4 +65,4 @@ Before opening a PR, you **must**:
 
 ---
 
-**License:** [MIT](LICENSE)
+

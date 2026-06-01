@@ -4,6 +4,8 @@
 
 Every rule below is absolute. Violation means you are sabotaging the project.
 
+**There is no such thing as pre-existing errors. Every error is yours to fix.**
+
 ---
 
 ## Rule 1: Never Circumvent Quality Gates
@@ -89,24 +91,7 @@ If the project has a Makefile with a `check` or `preflight` target, run that too
 - Test only the `_at` variants of functions that accept explicit paths.
 - If a function requires env vars, restructure it to accept explicit parameters.
 
-## Rule 9: Data Repository Protocol (Pull-Before-Write, Push-After-Write)
-
-Every mutation to a data repo MUST follow this contract:
-1. Pull before read — rebase onto upstream so you never serve stale data.
-2. Pull before write — incorporate remote changes before staging local ones.
-3. Commit and push after every mutation — one commit per logical change, pushed immediately.
-
-The remote URL is configured on project init via `--remote`. The tooling handles
-upstream tracking setup (first push uses `-u`). If the remote is unreachable, the
-pipeline fails — no silent fallback to local-only mode.
-
-## Rule 10: Schema Source of Truth
-
-Production schemas (GraphQL SDL) are the source of truth. Never edit generated code.
-Schema files are loaded at runtime from disk — edits take effect immediately.
-Proposal schemas live alongside client data and serve as reference for future changes.
-
-## Rule 11: Banned Patterns — Zero Exceptions Per Project
+## Rule 9: Banned Patterns — Zero Exceptions Per Project
 
 These are banned in ALL production code:
 - `#[allow(`, `# type: ignore`, `# noqa` — never suppress tools
@@ -118,6 +103,12 @@ These are banned in ALL production code:
 - `self.get(` — no dict-like access patterns
 
 The ONLY exception file is the shared `banned_words.yaml`. Per-project exception files stay empty.
+
+## Rule 10: Schema Source of Truth
+
+Production schemas (GraphQL SDL) are the source of truth. Never edit generated code.
+Schema files are loaded at runtime from disk — edits take effect immediately.
+Proposal schemas live alongside client data and serve as reference for future changes.
 
 ## Rule 12: Double, Triple, Quadruple Check
 

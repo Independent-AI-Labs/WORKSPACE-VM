@@ -7,7 +7,7 @@ warn_unused_configs = true
 # PEP 420 namespace package support (ami has no __init__.py)
 namespace_packages = true
 explicit_package_bases = true
-mypy_path = ".:projects/AMI-CI"
+mypy_path = ".:projects/AMI-CI:projects/AMI-DATAOPS"
 exclude = [
     "(?x)(^tmp/|^.venv/|^venv/|^dist/|^build/|^.eggs/|^__pycache__/|.*\\.egg-info/|^.pytest_cache/|^.git/|^projects/|^\\.boot-linux/)"
 ]
@@ -100,10 +100,8 @@ disallow_untyped_calls = false
 module = ["ami.scripts.backup.common.auth", "ami.dataops.backup.common.auth"]
 disallow_untyped_calls = false
 
-# AMI cli_components - internal package without py.typed marker
-[[tool.mypy.overrides]]
-module = ["ami.cli_components", "ami.cli_components.*"]
-ignore_missing_imports = true
+# AMI cli_components/ami.types — namespace packages in AMI-DATAOPS
+# Resolved via mypy_path, no ignore_missing_imports needed
 
 # NO CHEATING FOR OUR OWN CODE. Fix the types.
 

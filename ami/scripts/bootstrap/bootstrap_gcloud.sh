@@ -66,7 +66,7 @@ if [ -f "$GCLOUD_SDK_DIR/bin/gcloud" ]; then
     CURRENT_VERSION=$("$GCLOUD_SDK_DIR/bin/gcloud" version --format="value(Google Cloud SDK)" 2>/dev/null || echo "unknown")
     echo "gcloud CLI already installed (version: $CURRENT_VERSION)"
 
-    # Check if running non-interactively (from ami-agent or CI)
+    # Check if running non-interactively (from ami-oc or CI)
     if [ -t 0 ]; then
         # Interactive mode - ask for confirmation
         echo

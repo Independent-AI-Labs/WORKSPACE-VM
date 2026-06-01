@@ -1,18 +1,11 @@
 extensions:
-  - name: ami-agent
-    binary: ami/scripts/bin/ami-agent
-    description: AMI Orchestrator main entry point
+  - name: ami-oc
+    binary: ami/scripts/bin/ami-oc
+    description: opencode AI agent wrapper with AMI welcome context
     category: core
     features:
-      - --print
-      - --interactive-editor
-      - --query
+      - run
     bannerPriority: 10
-    check:
-      command: ["{binary}", "--version"]
-      versionPattern: "(\\d+\\.\\d+\\.\\d+)"
-      healthExpect: "ami-agent"
-      timeout: 5
 
   - name: ami
     binary: ami/scripts/bin/ami-run
@@ -68,17 +61,13 @@ extensions:
       healthExpect: "ami-repo"
       timeout: 5
 
-  - name: ami-transcripts
-    binary: ami/scripts/bin/ami_transcripts.py
-    description: Transcript session management and search
+  - name: opencode
+    binary: ami/scripts/bin/ami-oc
+    description: opencode AI agent (session management via opencode session)
     category: core
     features:
-      - list
-      - show
-      - search
-      - replay
-      - resume
-    bannerPriority: 50
+      - session
+    bannerPriority: 55
 
   # ami-update extension removed: the umbrella orchestration now lives
   # in moon via `moon run :update` (walks every project's update task
