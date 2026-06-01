@@ -15,7 +15,7 @@ if [[ "$1" == "--help" ]] || [[ "$1" == "-h" ]]; then
 fi
 WELCOME=$("$AMI_ROOT/ami/scripts/bin/ami-welcome" 2>/dev/null || echo "AMI-AGENTS workspace")
 if [[ $# -gt 0 ]]; then
-    exec npx opencode run "$WELCOME\n\nTask: $*" --dir "$AMI_ROOT"
+    exec npx opencode run "$WELCOME"$'\n\n'"Task: $*" --dir "$AMI_ROOT"
 else
     printf '%b\n' "$WELCOME" && echo ""
     exec npx opencode

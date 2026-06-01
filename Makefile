@@ -290,11 +290,17 @@ _dead-code-impl:
 
 .PHONY: update
 update: ## Update workspace via moon — walks every project topologically (^:update)
-	@moon run :update
+	@TMP_WS=$$(mktemp) && \
+	awk -f ami/scripts/filter_moon_workspace.awk .moon/workspace.yml > "$$TMP_WS" && \
+	MOON_WORKSPACE="$$TMP_WS" moon run :update; \
+	RET=$$?; rm -f "$$TMP_WS"; exit $$RET
 
 .PHONY: update-ci
 update-ci: ## Update via moon (non-interactive — same as `make update`, alias kept for CI)
-	@moon run :update
+	@TMP=$$(mktemp) && \
+	awk -f ami/scripts/filter_moon_workspace.awk .moon/workspace.yml > "$$TMP" && \
+	MOON_WORKSPACE="$$TMP" moon run :update; \
+	RET=$$?; rm -f "$$TMP"; exit $$RET
 
 .PHONY: update-deps
 update-deps: ## Update Python dependencies only
