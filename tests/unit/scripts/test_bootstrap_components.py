@@ -287,7 +287,7 @@ class TestGetComponentsByGroup:
         result = get_components_by_group()
         by_group = {gc.group: gc.components for gc in result}
 
-        assert any(c.name == "claude" for c in by_group["AI Coding Assistants"])
+        assert any(c.name == "opencode" for c in by_group["AI Coding Assistants"])
         assert any(
             c.name == "podman" for c in by_group["Infrastructure & Orchestration"]
         )
@@ -298,10 +298,10 @@ class TestGetComponentByName:
 
     def test_finds_existing_component(self) -> None:
         """Test finds existing component by name."""
-        comp = get_component_by_name("claude")
+        comp = get_component_by_name("opencode")
 
         assert comp is not None
-        assert comp.name == "claude"
+        assert comp.name == "opencode"
 
     def test_returns_none_for_nonexistent(self) -> None:
         """Test returns None for nonexistent component."""
