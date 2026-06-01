@@ -9,4 +9,5 @@ fi
 
 echo "[${OP}] Installing opencode-ai..."
 npm install -g opencode-ai@latest
+touch .boot-linux/.opencode-installed
 echo "[${OP}] opencode-ai $(opencode --version 2>/dev/null || npx opencode --version) installed"
