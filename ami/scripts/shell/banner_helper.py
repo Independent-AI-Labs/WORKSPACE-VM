@@ -43,9 +43,19 @@ _COLORS = {
     "red": "\033[38;5;203m",
     "green": "\033[0;32m",
 }
-_DIM = "\033[2m"
-_NC = "\033[0m"
-_BOLD = "\033[1m"
+
+
+class _Style:
+    DIM = "\033[2m"
+    NC = "\033[0m"
+    BOLD = "\033[1m"
+
+
+def _enable_plain() -> None:
+    _Style.DIM = ""
+    _Style.NC = ""
+    _Style.BOLD = ""
+
 
 # Fallback props for unknown categories
 _UNKNOWN_ICON = "\U0001f539"  # blue diamond
@@ -150,7 +160,7 @@ def _format_partial_line(
     desc = ext.entry.get("description", "")
     desc = _truncate_to_fit(desc, _visible_len(suffix))
     pad = max(1, _NAME_PAD - len(name))
-    return f"  {color}> {name}{_NC}{' ' * pad}\u2192 {desc} {suffix}"
+    return f"  {color}> {name}{_Style.NC}{' ' * pad}\u2192 {desc} {suffix}"
 
 
 def _format_features(ext: ResolvedExtension) -> str | None:
@@ -162,7 +172,7 @@ def _format_features(ext: ResolvedExtension) -> str | None:
     budget = _LINE_BUDGET - _FEATURES_PAD
     if len(joined) > budget:
         joined = joined[: max(0, budget - 1)].rstrip() + _ELLIPSIS
-    return f"{indent}{_DIM}{joined}{_NC}"
+    return f"{indent}{_Style.DIM}{joined}{_Style.NC}"
 
 
 def _run_check_with_countdown(
@@ -263,9 +273,9 @@ def _print_extension(
     yellow = _COLORS["gold"]
     if version_ok is False:
         label = version_reason or "version mismatch"
-        suffix = f"{yellow}v{version or '?'} \u26a0 {label}{_NC}"
+        suffix = f"{yellow}v{version or '?'} \u26a0 {label}{_Style.NC}"
     elif version:
-        suffix = f"{green}v{version}{_NC}"
+        suffix = f"{green}v{version}{_Style.NC}"
     elif skip_check:
         # Don't render green ✓ when we never ran the check. INCIDENT-2026-
         # 05-05: ami-kcadm needs `podman exec` into ami-keycloak; if the
@@ -274,11 +284,11 @@ def _print_extension(
         # user's actual `ami-kcadm` invocation would fail with no warning.
         # Surface the missing container so the user knows what to start.
         joined = ", ".join(failed_containers)
-        suffix = f"{yellow}\u26a0 container not running: {joined}{_NC}"
+        suffix = f"{yellow}\u26a0 container not running: {joined}{_Style.NC}"
     elif health_ok:
-        suffix = f"{green}\u2713{_NC}"
+        suffix = f"{green}\u2713{_Style.NC}"
     else:
-        suffix = f"{red}\u2717{_NC}"
+        suffix = f"{red}\u2717{_Style.NC}"
 
     line = _format_partial_line(ext, color, suffix)
     print(line)
@@ -330,7 +340,7 @@ def output_banner(
             color = _color_for(cat_name)
             icon = _icon_for(cat_name)
             title = _title_for(cat_name)
-            print(f"{color}{icon} {title}:{_NC}")
+            print(f"{color}{icon} {title}:{_Style.NC}")
             print()
 
             for ext in visible:
@@ -348,7 +358,7 @@ _STATUS_PAD = 18  # column width for name in extras/doctor output
 
 
 def _print_hidden(exts: list[ResolvedExtension]) -> None:
-    print(f"{_BOLD}Hidden Extensions:{_NC}")
+    print(f"{_Style.BOLD}Hidden Extensions:{_Style.NC}")
     for ext in exts:
         name = ext.entry["name"]
         desc = ext.entry.get("description", "")
@@ -358,38 +368,39 @@ def _print_hidden(exts: list[ResolvedExtension]) -> None:
 
 
 def _print_degraded(exts: list[ResolvedExtension]) -> None:
-    print(f"{_BOLD}Degraded Extensions:{_NC}")
+    print(f"{_Style.BOLD}Degraded Extensions:{_Style.NC}")
     yellow = _COLORS["gold"]
     for ext in exts:
         name = ext.entry["name"]
         desc = ext.entry.get("description", "")
         pad = max(1, _STATUS_PAD - len(name))
-        print(f"  {name}{' ' * pad}{desc}  {yellow}DEGRADED{_NC} ({ext.reason})")
+        print(f"  {name}{' ' * pad}{desc}  {yellow}DEGRADED{_Style.NC} ({ext.reason})")
     print()
 
 
 def _print_mismatched(exts: list[ResolvedExtension]) -> None:
-    print(f"{_BOLD}Version-Mismatched Extensions:{_NC}")
+    print(f"{_Style.BOLD}Version-Mismatched Extensions:{_Style.NC}")
     yellow = _COLORS["gold"]
     for ext in exts:
         name = ext.entry["name"]
         desc = ext.entry.get("description", "")
         pad = max(1, _STATUS_PAD - len(name))
         print(
-            f"  {name}{' ' * pad}{desc}  {yellow}VERSION_MISMATCH{_NC} ({ext.reason})",
+            f"  {name}{' ' * pad}{desc}"
+            f"  {yellow}VERSION_MISMATCH{_Style.NC} ({ext.reason})",
         )
     print()
 
 
 def _print_unavailable(exts: list[ResolvedExtension]) -> None:
-    print(f"{_BOLD}Unavailable Extensions:{_NC}")
+    print(f"{_Style.BOLD}Unavailable Extensions:{_Style.NC}")
     red = _COLORS["red"]
     for ext in exts:
         name = ext.entry["name"]
         desc = ext.entry.get("description", "")
         hint = ext.entry.get("installHint", "")
         pad = max(1, _STATUS_PAD - len(name))
-        line = f"  {name}{' ' * pad}{desc}  {red}UNAVAILABLE{_NC} ({ext.reason})"
+        line = f"  {name}{' ' * pad}{desc}  {red}UNAVAILABLE{_Style.NC} ({ext.reason})"
         if hint:
             line += f" (install: {hint})"
         print(line)
@@ -451,7 +462,17 @@ def main() -> None:
         action="store_true",
         help="Skip health/version checks for faster output",
     )
+    parser.add_argument(
+        "--plain",
+        action="store_true",
+        help="Strip ANSI color codes (machine-readable output)",
+    )
     args = parser.parse_args()
+
+    if args.plain:
+        for k in _COLORS:
+            _COLORS[k] = ""
+        _enable_plain()
 
     quiet = args.quiet or os.environ.get("AMI_QUIET_MODE") == "1"
 

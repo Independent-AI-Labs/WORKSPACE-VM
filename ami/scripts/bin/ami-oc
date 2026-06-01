@@ -22,7 +22,7 @@ if [[ "$1" == "--version" ]] || [[ "$1" == "-V" ]]; then
     exit 0
 fi
 
-WELCOME=$("$AMI_ROOT/ami/scripts/bin/ami-welcome" 2>/dev/null || echo "AMI-AGENTS workspace")
+WELCOME=$("$AMI_ROOT/ami/scripts/bin/ami-welcome" --plain 2>/dev/null || echo "AMI-AGENTS workspace")
 printf '%b\n' "$WELCOME" && echo ""
 if [[ $# -gt 0 ]]; then
     exec "$NPX" opencode run "$WELCOME"$'\n\n'"Task: $*"

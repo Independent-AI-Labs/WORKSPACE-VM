@@ -8,6 +8,16 @@ BLUE='\033[0;34m'
 RED='\033[38;5;203m'
 NC='\033[0m'
 
+# Unset colors when --plain is active
+for arg in "$@"; do
+    if [[ "$arg" == "--plain" ]]; then
+        GREEN=''
+        BLUE=''
+        RED=''
+        NC=''
+    fi
+done
+
 # Define quiet mode echo function
 _ami_echo() {
     if [[ "$AMI_QUIET_MODE" != "1" ]]; then
@@ -43,8 +53,10 @@ display_banner() {
     local _banner_helper="$AMI_ROOT/ami/scripts/shell/banner_helper.py"
     if [[ -f "$_banner_helper" ]]; then
         local _quiet_flag=""
+        local _plain_flag=""
         [[ "$AMI_QUIET_MODE" == "1" ]] && _quiet_flag="--quiet"
-        python3 "$_banner_helper" --mode banner $_quiet_flag 2>/dev/null || true
+        [[ -z "$GREEN" ]] && _plain_flag="--plain"
+        python3 "$_banner_helper" --mode banner $_quiet_flag $_plain_flag 2>/dev/null || true  # silent-ok: helper is best-effort banner display
     fi
 }
 
