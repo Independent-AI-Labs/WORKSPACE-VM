@@ -23,7 +23,7 @@ if [[ -d "$AMI_ROOT/projects" ]]; then
         [[ -d "${project_dir%/}/ami" ]] && PROJECT_PATHS="${project_dir%/}:${PROJECT_PATHS}"
     done
 fi
-export PYTHONPATH="${PROJECT_PATHS}$AMI_ROOT:${PYTHONPATH:-}"
+export PYTHONPATH="$AMI_ROOT:${PROJECT_PATHS}${PYTHONPATH:-}"
 
 if [[ "$#" -gt 0 && ("$1" == "-h" || "$1" == "--help") ]]; then
     echo "run: Universal execution wrapper for AMI Orchestrator"

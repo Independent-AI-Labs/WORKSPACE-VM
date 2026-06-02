@@ -34,13 +34,11 @@ sys.path.insert(
 )
 sys.path.insert(0, str(Path(__file__).parent))
 
+import ami.scripts.bootstrap_component_defs as _bootstrap_defs
+import ami.scripts.bootstrap_install as _bootstrap_install
 from ami.cli_components import dialogs as _dialogs
 from ami.cli_components import menu_selector as _menu
 from ami.cli_components.selection_dialog import DialogItem
-from ami.types.results import NamedComponentStatus
-
-import ami.scripts.bootstrap_component_defs as _bootstrap_defs
-import ami.scripts.bootstrap_install as _bootstrap_install
 from ami.scripts.bootstrap_installer_ui import (
     BANNER,
     CYAN,
@@ -54,10 +52,10 @@ from ami.scripts.bootstrap_installer_ui import (
     print_status,
     restore_terminal,
 )
+from ami.types.results import NamedComponentStatus
 
 if TYPE_CHECKING:
     from ami.cli_components.menu_selector import MenuItem
-
     from ami.scripts.bootstrap_components import Component
 
 

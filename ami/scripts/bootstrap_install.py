@@ -11,9 +11,8 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import NamedTuple
 
-from ami.types.results import InstallationResult
-
 from ami.scripts.bootstrap_components import PROJECT_ROOT, Component, ComponentType
+from ami.types.results import InstallationResult
 
 
 class CategorizedComponents(NamedTuple):

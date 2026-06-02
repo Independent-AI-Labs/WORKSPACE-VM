@@ -10,7 +10,6 @@ import re
 import sys
 
 from ami.cli_components.text_input_utils import Colors
-
 from ami.utils.banner import generate_banner_lines
 
 CYAN = Colors.CYAN
