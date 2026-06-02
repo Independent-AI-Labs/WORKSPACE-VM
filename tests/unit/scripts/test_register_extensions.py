@@ -19,7 +19,7 @@ class TestCreateWrapper:
         assert wrapper.exists()
         assert wrapper.stat().st_mode & stat.S_IXUSR
         content = wrapper.read_text()
-        assert "ami-run" in content
+        assert "run" in content
         assert "scripts/main.py" in content
 
 

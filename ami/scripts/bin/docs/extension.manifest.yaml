@@ -1,6 +1,6 @@
 extensions:
-  - name: ami-docs
-    binary: ami/scripts/bin/ami_docs.py
+  - name: docs
+    binary: ami/scripts/bin/docs.py
     description: Document conversion and PDF generation
     category: docs
     features:

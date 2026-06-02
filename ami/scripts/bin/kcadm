@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# ami-kcadm: Keycloak Admin CLI wrapper
+# kcadm: Keycloak Admin CLI wrapper
 # Executes kcadm.sh inside the ami-keycloak container
 set -euo pipefail
 
 case "${1:-}" in
     --help|-h)
-        echo "ami-kcadm — Keycloak Admin CLI wrapper"
+        echo "kcadm — Keycloak Admin CLI wrapper"
         echo ""
-        echo "Usage: ami-kcadm <command> [options]"
+        echo "Usage: kcadm <command> [options]"
         echo ""
         echo "Executes kcadm.sh inside the ami-keycloak container."
         echo "Requires: podman running with ami-keycloak container."

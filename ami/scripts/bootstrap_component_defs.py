@@ -41,6 +41,19 @@ PACKAGE_JSON = PROJECT_ROOT / "scripts" / "package.json"
 # ---------------------------------------------------------------------------
 
 
+class RequiresEntry(BaseModel):
+    """One system dependency entry — checked by pre-req.sh."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    check_cmd: str | None = None
+    check_type: str | None = None
+    apt_package: str | None = None
+    bootstrap_script: str | None = None
+    description: str
+    optional: bool = False
+
+
 class ComponentManifestEntry(BaseModel):
     """One entry in ami/config/bootstrap-components.yaml::components."""
 
@@ -56,10 +69,9 @@ class ComponentManifestEntry(BaseModel):
     detect_path: str | None = None
     version_pattern: str | None = None
     version_cmd: list[str] | None = None
-    # Either a literal package spec ("foo@1.2.3") or a reference into
-    # scripts/package.json's dependencies. package_ref wins if both set.
     package: str | None = None
     package_ref: str | None = None
+    requires: list[RequiresEntry] | None = None
 
     def to_component(self, pkg_versions: dict[str, str]) -> Component:
         package = self.package
@@ -88,6 +100,7 @@ class BootstrapManifest(BaseModel):
 
     groups: list[str] = Field(default_factory=list)
     components: list[ComponentManifestEntry] = Field(default_factory=list)
+    requires: list[RequiresEntry] = Field(default_factory=list)
 
 
 class WorkspaceCloneEntry(BaseModel):
@@ -98,7 +111,7 @@ class WorkspaceCloneEntry(BaseModel):
     remote: str
     path: str
     mandatory: bool = False
-    # Optional minimum tag — ami-bootstrap-repos refuses to proceed if the
+    # Optional minimum tag — bootstrap-repos refuses to proceed if the
     # cloned working tree is older than this. Format: 'vX.Y.Z'.
     minTag: str | None = None
 
@@ -150,7 +163,7 @@ def _load_workspace_repo_components() -> list[Component]:
     Mandatory entries are still rendered (locked-on by the TUI) so the user
     sees the full workspace topology. Optional entries opt-in via checkbox.
     install_component() routes WORKSPACE_REPO to
-    `ami-bootstrap-repos --include <id>` instead of a bootstrap shell script.
+    `bootstrap-repos --include <id>` instead of a bootstrap shell script.
     """
     if not WORKSPACE_CLONES_YAML.exists():
         return []

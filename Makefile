@@ -15,23 +15,17 @@ help: ## Show this help message
 # --- Preflight ---
 
 .PHONY: preflight
-preflight: pre-req-check ## Verify environment and pre-requisites
+preflight: bootstrap-check ## Verify environment and dependencies
 
-# --- Pre-requisites Check ---
+# --- Bootstrap (system dependencies) ---
 
-.PHONY: pre-req-check
-pre-req-check: ## Check system pre-requisites (runs automatically on install)
+.PHONY: bootstrap-check
+bootstrap-check: ## Check system dependencies (runs automatically on install)
 	@bash ami/scripts/pre-req.sh
 
-# Pass args to pre-req.sh via PRE_REQ_ARGS:
-#   sudo make pre-req                           # default: --install
-#   sudo make pre-req PRE_REQ_ARGS="--reinstall-rust-guard"
-#   sudo make pre-req PRE_REQ_ARGS="--uninstall-rust-guard"
-PRE_REQ_ARGS ?= --install
-
-.PHONY: pre-req
-pre-req: ## Install system pre-requisites (requires sudo)
-	@bash ami/scripts/pre-req.sh $(PRE_REQ_ARGS)
+.PHONY: bootstrap
+bootstrap: ## Install system dependencies (requires sudo)
+	@bash ami/scripts/pre-req.sh --install
 
 # --- Main Installation Flow ---
 
@@ -42,11 +36,11 @@ install: ## Install AMI Agents in editable mode with all setup
 	@exec > >(awk -W interactive -v LOG="$(INSTALL_LOG)" '{ ts=strftime("[%Y-%m-%dT%H:%M:%S]"); print $$0; print ts, $$0 >> LOG; fflush(); }') 2>&1; \
 	echo "🚀 Installing AMI Agents..."; \
 	echo "📝 Log: $(INSTALL_LOG)"; \
-	$(MAKE) pre-req-check && \
+	$(MAKE) bootstrap-check && \
 	$(MAKE) sync-package && \
 	$(MAKE) bootstrap-gitleaks && \
 	$(MAKE) setup-config && \
-	$(MAKE) install-bootstrap && \
+	$(MAKE) install-bootstrap-ci && \
 	$(MAKE) install-opencode && \
 	$(MAKE) register-extensions && \
 	$(MAKE) install-hooks && \
@@ -59,7 +53,7 @@ install-ci: ## Non-interactive install for CI (uses install-defaults.yaml)
 	@exec > >(awk -W interactive -v LOG="$(INSTALL_LOG)" '{ ts=strftime("[%Y-%m-%dT%H:%M:%S]"); print $$0; print ts, $$0 >> LOG; fflush(); }') 2>&1; \
 	echo "🚀 Installing AMI Agents (CI mode)..."; \
 	echo "📝 Log: $(INSTALL_LOG)"; \
-	$(MAKE) pre-req-check && \
+	$(MAKE) bootstrap-check && \
 	$(MAKE) sync-package && \
 	$(MAKE) bootstrap-gitleaks && \
 	$(MAKE) setup-config && \
@@ -72,7 +66,7 @@ install-ci: ## Non-interactive install for CI (uses install-defaults.yaml)
 
 .PHONY: ensure-repos
 ensure-repos: ## Clone every workspace repo per moon.yml metadata.workspaceClones (mandatory + opt-in via --include)
-	@bash ami/scripts/bin/ami-bootstrap-repos --pull
+	@bash ami/scripts/bin/bootstrap-repos --pull
 
 .PHONY: ensure-ci
 ensure-ci: ensure-repos  ## Compatibility alias for ensure-repos (data-driven via moon.yml)
@@ -88,10 +82,6 @@ sync-package: bootstrap-core ensure-ci ensure-dataops ## Sync package dependenci
 	@echo "✅ Package 'ami-agents' installed with dev dependencies"
 
 # --- Component Targets ---
-
-.PHONY: install-bootstrap
-install-bootstrap: ## Interactive TUI to select and install optional bootstrap components
-	@.venv/bin/python ami/scripts/bootstrap_installer.py
 
 .PHONY: install-bootstrap-ci
 install-bootstrap-ci: ## Non-interactive bootstrap using defaults file
@@ -110,8 +100,8 @@ bootstrap-gitleaks: ## Bootstrap gitleaks (requires AMI-CI to be cloned first)
 	@bash projects/AMI-CI/scripts/bootstrap-gitleaks
 
 .PHONY: install-git-guard
-install-git-guard: ## (DEPRECATED) RUST-GUARD is now handled by sudo make pre-req
-	@echo "⚠️  install-git-guard is deprecated — rust guard is now installed via sudo make pre-req"
+install-git-guard: ## (DEPRECATED) RUST-GUARD is now handled by sudo make bootstrap
+	@echo "⚠️  install-git-guard is deprecated — rust guard is now installed via sudo make bootstrap"
 	@echo "    The SUID Rust guard at /usr/bin/git replaces the .boot-linux/bin/git wrapper."
 
 .PHONY: install-shell

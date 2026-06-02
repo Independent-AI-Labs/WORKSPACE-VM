@@ -4,7 +4,6 @@
 import sys
 
 import psutil
-
 from ami.types.results import ColorPair
 
 # ANSI Color IDs for gradient logic (Standard 256-color palette)

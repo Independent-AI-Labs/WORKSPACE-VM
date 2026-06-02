@@ -278,10 +278,10 @@ def _print_extension(
         suffix = f"{green}v{version}{_Style.NC}"
     elif skip_check:
         # Don't render green ✓ when we never ran the check. INCIDENT-2026-
-        # 05-05: ami-kcadm needs `podman exec` into ami-keycloak; if the
+        # 05-05: kcadm needs `podman exec` into ami-keycloak; if the
         # container isn't running we skip the live --help and previously
         # defaulted to ✓ (because health_ok stayed True), then later the
-        # user's actual `ami-kcadm` invocation would fail with no warning.
+        # user's actual `kcadm` invocation would fail with no warning.
         # Surface the missing container so the user knows what to start.
         joined = ", ".join(failed_containers)
         suffix = f"{yellow}\u26a0 container not running: {joined}{_Style.NC}"

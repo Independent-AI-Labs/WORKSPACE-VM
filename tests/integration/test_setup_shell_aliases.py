@@ -28,10 +28,9 @@ def test_aliases_exist_and_respond_to_help() -> None:
     assert script_path.exists(), f"Setup script does not exist: {script_path}"
 
     expected_functions = [
-        "ami-run",
-        "ami-oc",
-        "ami-repo",
-        "ami",
+        "run",
+        "oc",
+        "repo",
         "ami-backup",
         "ami-restore",
     ]

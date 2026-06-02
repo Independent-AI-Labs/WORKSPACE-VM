@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Pre-requisites — Apt Probing & Installation
+# Bootstrap — Apt Probing & Installation
 # =============================================================================
 # Sourced by pre-req.sh — not standalone
 # =============================================================================
@@ -15,19 +15,15 @@ probe_apt_package() {
         return
     fi
 
-    if [[ "$pkg" == "gcc-bootstrap" ]]; then
-        RESOLVED_PACKAGES[$pkg]="GCC 15.1.0 (Dyne.org musl — direct download)"
-        RESOLVED_STATUS[$pkg]="bootstrap"
-        return 0
-    fi
-    if [[ "$pkg" == "gitleaks-bootstrap" ]]; then
-        RESOLVED_PACKAGES[$pkg]="gitleaks — GitHub release binary (supply-chain verified)"
+    # Bootstrap-type packages handled by their scripts
+    if [[ "$pkg" == "gitleaks" ]]; then
+        RESOLVED_PACKAGES[$pkg]="gitleaks — GitHub release binary"
         RESOLVED_STATUS[$pkg]="bootstrap"
         return 0
     fi
 
     local pkg_info=""
-    pkg_info=$(apt-cache show "$pkg" 2>/dev/null) || true  # silent-ok: package may not exist in apt, handled below
+    pkg_info=$(apt-cache show "$pkg" 2>/dev/null) || true  # silent-ok: pkg may not exist in apt repos, handled below
 
     if [[ -z "$pkg_info" ]]; then
         RESOLVED_STATUS[$pkg]="unavailable"
@@ -48,8 +44,6 @@ probe_all_missing() {
         return
     fi
 
-    log_section "Probing apt for Available Packages"
-
     local unique_pkgs=()
     declare -A seen=()
 
@@ -63,18 +57,13 @@ probe_all_missing() {
     done
 
     for pkg in "${unique_pkgs[@]}"; do
-        if probe_apt_package "$pkg"; then
-            log_probe "$pkg → ${RESOLVED_PACKAGES[$pkg]}"
-        else
-            log_probe "$pkg → ${RED}not available in apt${NC}"
-            RESOLVED_STATUS[$pkg]="unavailable"
-        fi
+        probe_apt_package "$pkg"
     done
 }
 
 install_missing() {
     if [[ ${#MISSING_ENTRIES[@]} -eq 0 ]]; then
-        log_info "Nothing to install — all pre-requisites satisfied."
+        log_info "Nothing to install — all dependencies satisfied."
         return 0
     fi
 
@@ -119,16 +108,7 @@ install_missing() {
 
     for _bpkg in "${bootstrap_installable[@]:-}"; do
         case "$_bpkg" in
-            gcc-bootstrap)
-                log_info "Bootstrapping GCC/musl C compiler from direct download..."
-                if bash "${PROJECT_ROOT}/ami/scripts/bootstrap/bootstrap_gcc.sh"; then
-                    log_info "✓ GCC/musl bootstrapped successfully"
-                else
-                    log_error "✗ GCC/musl bootstrap failed"
-                    return 1
-                fi
-                ;;
-            gitleaks-bootstrap)
+            gitleaks)
                 log_info "Bootstrapping gitleaks from GitHub release..."
                 if bash "${PROJECT_ROOT}/projects/AMI-CI/scripts/bootstrap-gitleaks"; then
                     log_info "✓ gitleaks bootstrapped successfully"
@@ -157,7 +137,7 @@ install_missing() {
     elif [[ ${#MISSING_ENTRIES[@]} -eq 0 ]]; then
         :
     else
-        log_error "No installable or bootstrappable packages available."
+        log_error "No installable packages available."
         return 1
     fi
 

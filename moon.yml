@@ -22,7 +22,7 @@ tags:
 # Workspace clone manifest lives in ami/config/workspace-clones.yaml
 # (moon.yml schema doesn't accept arbitrary top-level metadata fields).
 # That separate file is the single source of truth for "what repos
-# belong to the AMI workspace" — read by ami/scripts/bin/ami-bootstrap-repos.
+# belong to the AMI workspace" — read by ami/scripts/bin/bootstrap-repos.
 
 dependsOn:
   - 'ami-ci'

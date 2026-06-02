@@ -151,7 +151,7 @@ class TestInstallComponent:
 
     @patch("ami.scripts.bootstrap_install.run_workspace_repo_clone", return_value=True)
     def test_installs_workspace_repo_via_walker(self, mock_walker) -> None:
-        """Test WORKSPACE_REPO routes to ami-bootstrap-repos walker."""
+        """Test WORKSPACE_REPO routes to bootstrap-repos walker."""
         comp = Component(
             name="ami-portal",
             label="ami-portal",
@@ -381,7 +381,7 @@ class TestRunWorkspaceRepoClone:
 
     @patch("ami.scripts.bootstrap_install.subprocess.run")
     def test_invokes_ami_bootstrap_repos_with_include(self, mock_run) -> None:
-        """Test routes to ami-bootstrap-repos --include <id>."""
+        """Test routes to bootstrap-repos --include <id>."""
         mock_run.return_value = MagicMock(returncode=0)
         with patch.object(Path, "exists", return_value=True):
             assert run_workspace_repo_clone("ami-portal") is True
@@ -398,7 +398,7 @@ class TestRunWorkspaceRepoClone:
             assert run_workspace_repo_clone("ami-portal") is False
 
     def test_returns_false_if_walker_missing(self) -> None:
-        """Test returns False if ami-bootstrap-repos does not exist."""
+        """Test returns False if bootstrap-repos does not exist."""
         with patch.object(Path, "exists", return_value=False):
             assert run_workspace_repo_clone("ami-portal") is False
 

@@ -99,15 +99,15 @@ def install_component(component: Component) -> bool:
 
 
 def run_workspace_repo_clone(entry_id: str) -> bool:
-    """Invoke ami-bootstrap-repos --include <entry_id> for a single repo.
+    """Invoke bootstrap-repos --include <entry_id> for a single repo.
 
     Mandatory entries clone unconditionally regardless of --include; the
     explicit --include is harmless and keeps the call site uniform.
     """
-    script_path = PROJECT_ROOT / "ami" / "scripts" / "bin" / "ami-bootstrap-repos"
+    script_path = PROJECT_ROOT / "ami" / "scripts" / "bin" / "bootstrap-repos"
     if not script_path.exists():
         print(
-            f"ERROR: ami-bootstrap-repos not found at {script_path}",
+            f"ERROR: bootstrap-repos not found at {script_path}",
             file=sys.stderr,
         )
         return False
@@ -120,7 +120,7 @@ def run_workspace_repo_clone(entry_id: str) -> bool:
         )
     except (OSError, subprocess.SubprocessError) as exc:
         print(
-            f"ERROR: failed to invoke ami-bootstrap-repos for {entry_id}: {exc}",
+            f"ERROR: failed to invoke bootstrap-repos for {entry_id}: {exc}",
             file=sys.stderr,
         )
         return False

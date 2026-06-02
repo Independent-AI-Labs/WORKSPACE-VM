@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# ami-bootstrap-repos: clone-if-missing every workspace repo listed in
+# bootstrap-repos: clone-if-missing every workspace repo listed in
 # the AGENTS root moon.yml's `metadata.workspaceClones` block.
 #
 # Replaces the hardcoded `ensure-ci` / `ensure-dataops` Makefile
@@ -15,12 +15,12 @@
 # graph operation.
 #
 # Usage:
-#   ami-bootstrap-repos                           # mandatory only
-#   ami-bootstrap-repos --include ami-portal      # mandatory + portal
-#   ami-bootstrap-repos --include ami-portal,ami-srp
-#   ami-bootstrap-repos --all                     # mandatory + ALL optional
-#   ami-bootstrap-repos --pull                    # also git-pull existing repos
-#   ami-bootstrap-repos --include ami-portal --pull
+#   bootstrap-repos                           # mandatory only
+#   bootstrap-repos --include ami-portal      # mandatory + portal
+#   bootstrap-repos --include ami-portal,ami-srp
+#   bootstrap-repos --all                     # mandatory + ALL optional
+#   bootstrap-repos --pull                    # also git-pull existing repos
+#   bootstrap-repos --include ami-portal --pull
 
 set -euo pipefail
 
@@ -186,8 +186,8 @@ while IFS='|' read -r entry_id remote path mandatory min_tag; do
 done <<<"$ENTRIES"
 
 if [[ $errors -gt 0 ]]; then
-    echo "❌ ami-bootstrap-repos finished with $errors error(s); $processed processed, $skipped optional skipped" >&2
+    echo "❌ bootstrap-repos finished with $errors error(s); $processed processed, $skipped optional skipped" >&2
     exit 1
 fi
 
-echo "✅ ami-bootstrap-repos: $processed processed, $skipped optional skipped"
+echo "✅ bootstrap-repos: $processed processed, $skipped optional skipped"

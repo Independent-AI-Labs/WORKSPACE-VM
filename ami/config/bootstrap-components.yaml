@@ -1,13 +1,23 @@
-# Bootstrap component manifest — loaded by ami/scripts/bootstrap_component_defs.py.
+# Bootstrap component manifest — loaded by ami/scripts/bootstrap_component_defs.py
+# and ami/scripts/pre-req.sh (via inline Python YAML parsing).
 #
-# Single source of truth for "what bootstrap components exist." Edit here, not
-# in Python. Each entry maps 1:1 to a `Component` model (see
-# bootstrap_components.py). Group ordering controls TUI display order.
+# Single source of truth for:
+#   1. System dependencies (top-level requires) — checked by pre-req.sh
+#   2. Bootstrap components (components) — installed by install-bootstrap-ci
+#   3. Workspace repos — in workspace-clones.yaml, loaded via the same Python module
+#
+# requires fields:
+#   check_cmd      — binary name to check for existence on PATH
+#   apt_package    — Debian/Ubuntu package name (for apt install)
+#   description    — human-readable description
+#   bootstrap_script — shell script to run if apt package unavailable
+#   optional       — if true, missing dep is non-fatal (default false)
+#   check_type     — special check type: c-compiler | network-tools | playwright-libs
 #
 # Component fields:
 #   name           — stable identifier (used by install-defaults.yaml refs).
-#   label          — short human label shown in TUI.
-#   description    — one-line description shown next to the label.
+#   label          — short human label.
+#   description    — one-line description.
 #   type           — script | uv | workspace_repo. Determines installer path.
 #   script         — bash script under ami/scripts/bootstrap/ (script type only).
 #   detect_path    — relative path; existence => installed.
@@ -15,15 +25,9 @@
 #   version_pattern— regex with one capture group; first match wins.
 #   detect_cmd     — alternative argv when detect_path is unreliable.
 #   package_ref    — npm package name; version is resolved from scripts/package.json.
-#
-# Workspace repos are NOT listed here — they live in workspace-clones.yaml and
-# are loaded into a separate group ("Workspace Repositories") for the
-# repo-selection step of the boot installer.
+#   requires       — system prerequisites for this component (checked by pre-req.sh).
 
 groups:
-  # Group ordering = TUI display order. Workspace Repositories is appended at
-  # runtime by the loader so it always sits at the bottom of the components
-  # multi-select (and is also surfaced as a separate first-step dialog).
   - 'Core Dependencies'
   - 'Languages & Compilers'
   - 'Hardware Monitoring'
@@ -36,12 +40,53 @@ groups:
   - 'Browser & Device Automation'
   - 'Matrix & Communication'
 
+# ---------------------------------------------------------------------------
+# System dependencies — checked by pre-req.sh on every make install.
+# Union of requires (top-level) + all components[].requires = full check list.
+# ---------------------------------------------------------------------------
+requires:
+  - check_cmd: make
+    apt_package: make
+    description: GNU Make
+
+  - check_cmd: curl
+    apt_package: curl
+    description: curl
+
+  - check_type: c-compiler
+    description: C compiler (gcc/cc/clang)
+
+  - check_cmd: git
+    apt_package: git
+    description: Git version control
+
+  - check_cmd: tar
+    apt_package: tar
+    description: tar archiver
+
+  - check_cmd: gzip
+    apt_package: gzip
+    description: gzip compression
+
+  - check_cmd: dpkg-deb
+    apt_package: dpkg
+    description: dpkg-deb extractor
+
+  - check_type: network-tools
+    description: curl or wget (at least one required)
+
+  - check_cmd: Xvfb
+    apt_package: xvfb
+    description: X Virtual Framebuffer (headless display)
+    optional: true
+
+  - check_cmd: gitleaks
+    description: Gitleaks (secret scanning)
+    bootstrap_script: projects/AMI-CI/scripts/bootstrap-gitleaks
+
 components:
   # =========================================================================
-  # Core Dependencies — installed FIRST, before everything else.
-  # System dependencies (git, openssh, openssl, openvpn) are checked by
-  # pre-req.sh and installed via `sudo make pre-req` — they are NOT bootstrap
-  # components.
+  # Core Dependencies
   # =========================================================================
   - name: uv
     label: 'uv'
@@ -94,9 +139,7 @@ components:
     version_pattern: 'moon (\d+\.\d+\.\d+)'
 
   # =========================================================================
-  # Languages & Compilers — non-Python language toolchains that ship a
-  # compiler/runtime + package manager. (gcc lives under Core Dependencies
-  # because it's the foundation for building everything else.)
+  # Languages & Compilers
   # =========================================================================
   - name: go
     label: 'Go'
@@ -119,7 +162,7 @@ components:
     version_pattern: 'rustc (\d+\.\d+\.\d+)'
 
   # =========================================================================
-  # AI Coding Assistant — opencode-ai globally installed via npm.
+  # AI Coding Assistant
   # =========================================================================
   - name: opencode
     label: 'opencode'
@@ -132,7 +175,7 @@ components:
     version_pattern: '(\d+\.\d+\.\d+)'
 
   # =========================================================================
-  # Hardware Monitoring — GPU metrics and diagnostics.
+  # Hardware Monitoring
   # =========================================================================
   - name: intel_xpu_smi
     label: 'Intel XPU-SMI'
@@ -145,7 +188,7 @@ components:
     version_pattern: 'v?(\d+\.\d+\.\d+)'
 
   # =========================================================================
-  # Infrastructure & Orchestration — container runtimes, k8s, IaC.
+  # Infrastructure & Orchestration
   # =========================================================================
   - name: podman
     label: 'Podman'
@@ -208,7 +251,7 @@ components:
     version_pattern: '(\d+\.\d+)'
 
   # =========================================================================
-  # Cloud & Service CLIs — admin/API clients for external services.
+  # Cloud & Service CLIs
   # =========================================================================
   - name: gcloud
     label: 'Google Cloud CLI'
@@ -216,7 +259,7 @@ components:
     type: script
     group: 'Cloud & Service CLIs'
     script: 'bootstrap_gcloud.sh'
-    detect_path: '.boot-linux/bin/ami-gcloud'
+    detect_path: '.boot-linux/bin/gcloud'
     version_cmd: ['.gcloud/google-cloud-sdk/bin/gcloud', 'version', '--format=value(Google Cloud SDK)']
     version_pattern: '(\d+\.\d+\.\d+)'
 
@@ -241,8 +284,7 @@ components:
     version_pattern: '(\d+\.\d+\.\d+)'
 
   # =========================================================================
-  # Networking — tunnels, VPN clients, network probes.
-  # Note: openssh / openssl / openvpn are system deps checked by pre-req.sh.
+  # Networking
   # =========================================================================
   - name: cloudflared
     label: 'Cloudflared'
@@ -255,7 +297,7 @@ components:
     version_pattern: '(\d+\.\d+\.\d+)'
 
   # =========================================================================
-  # Shell Utilities — text/file manipulation, code metrics.
+  # Shell Utilities
   # =========================================================================
   - name: sd
     label: 'sd'
@@ -278,7 +320,7 @@ components:
     version_pattern: '(\d+\.\d+)'
 
   # =========================================================================
-  # Document Processing — convert / typeset / manipulate documents.
+  # Document Processing
   # =========================================================================
   - name: pandoc
     label: 'Pandoc'
@@ -321,7 +363,7 @@ components:
     version_pattern: 'wkhtmltopdf (\d+\.\d+\.\d+)'
 
   # =========================================================================
-  # Browser & Device Automation — drive headless browsers / Android devices.
+  # Browser & Device Automation
   # =========================================================================
   - name: playwright
     label: 'Playwright'
@@ -332,6 +374,9 @@ components:
     detect_path: '.boot-linux/playwright-browsers'
     version_cmd: ['.venv/bin/playwright', '--version']
     version_pattern: '(\d+\.\d+\.\d+)'
+    requires:
+      - check_type: playwright-libs
+        description: Playwright browser dependencies
 
   - name: adb
     label: 'ADB'
@@ -344,7 +389,7 @@ components:
     version_pattern: 'Android Debug Bridge version (\d+\.\d+\.\d+)'
 
   # =========================================================================
-  # Matrix & Communication — chat clients + admin tools for Synapse stacks.
+  # Matrix & Communication
   # =========================================================================
   - name: matrix_commander
     label: 'Matrix Cmdr'

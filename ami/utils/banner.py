@@ -32,19 +32,16 @@ def generate_banner_text(
     font: str = "small",
     project_root: Path | None = None,
 ) -> str:
-    """Generate ASCII art for the project version only.
+    """Generate ASCII art for hostname and project version.
 
-    Renders just the bare version string (e.g. ``0.3.0``) in a compact
-    font so the whole banner stays within an 80-column terminal. The
-    word ``OpenAMI`` and the ``v`` prefix are intentionally dropped --
-    the surrounding shell banner already labels the product, and the
-    bigger ``standard`` figlet text overflowed 80 cols on every long
-    version string.
+    Renders the hostname and version string (e.g. ``MyComputer v0.4``)
+    in a compact font so the whole banner stays within an 80-column
+    terminal.
     """
     version = get_project_version(project_root)
-    raw = text2art(version, font=font)
+    text = f"MyComputer v{version}"
+    raw = text2art(text, font=font)
     lines = [line.rstrip() for line in raw.splitlines()]
-    # Strip trailing empty lines
     while lines and not lines[-1]:
         lines.pop()
     return "\n".join(lines)

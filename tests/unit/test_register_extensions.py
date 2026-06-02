@@ -27,7 +27,7 @@ class TestCreateWrapper:
         assert target.exists()
         assert os.access(target, os.X_OK)
         content = target.read_text()
-        assert "ami-run" in content
+        assert "run" in content
         assert "scripts/test.py" in content
 
     def test_wrapper_is_bash_script(self, tmp_path: Path) -> None:

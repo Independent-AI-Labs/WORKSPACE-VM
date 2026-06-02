@@ -1,5 +1,5 @@
 extensions:
-  - name: ami-gcloud
+  - name: gcloud
     binary: .gcloud/google-cloud-sdk/bin/gcloud
     description: Google Cloud CLI (gcloud SDK)
     category: dev

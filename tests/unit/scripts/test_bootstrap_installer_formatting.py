@@ -4,6 +4,8 @@ from typing import cast
 from unittest.mock import MagicMock, patch
 
 from ami.cli_components.selection_dialog import SelectableItem
+from ami.types.results import NamedComponentStatus
+
 from ami.scripts.bootstrap_components import (
     Component,
     ComponentStatus,
@@ -23,7 +25,6 @@ from ami.scripts.bootstrap_installer import (
     print_status,
     scan_components,
 )
-from ami.types.results import NamedComponentStatus
 
 EXPECTED_MENU_ITEM_COUNT = 2
 

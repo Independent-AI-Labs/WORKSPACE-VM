@@ -446,7 +446,7 @@ if [ "$TEST_BOOTSTRAP" = "1" ]; then
 fi
 echo "  - Moon graph integrity: PASS"
 echo "  - Tag filter sanity: PASS"
-echo "  - ami-bootstrap-repos walk: PASS"
+echo "  - bootstrap-repos walk: PASS"
 echo "  - Moon caching (cold + cached): PASS"
 echo "  - Update-walk ordering: PASS"
 echo ""

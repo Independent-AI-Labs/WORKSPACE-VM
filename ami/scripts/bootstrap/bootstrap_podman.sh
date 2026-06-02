@@ -284,7 +284,7 @@ if [[ -f "${PODMAN_DIR}/usr/local/lib/podman/rootlessport" ]]; then
 fi
 
 # Note: podman-compose is installed via pyproject.toml dependencies
-# Run: uv sync or ami-run uv sync to install it
+# Run: uv sync or run uv sync to install it
 
 # Docker alias symlinks (docker → podman) are created by register_extensions.py,
 # not here. Bootstrap only installs the podman binary itself.
@@ -388,7 +388,7 @@ log_warn "  - podman volume/container/network/image prune"
 log_warn "  Use real-podman to bypass (at your own risk)"
 log_info ""
 log_info "To use Podman:"
-log_info "  1. Run: ami-run commands (Podman is auto-available)"
+    log_info "  1. Run: run commands (Podman is auto-available)"
 log_info "  2. Or activate venv: source ${VENV_DIR}/bin/activate"
 log_info "  3. Run podman commands: podman ps, podman-compose up, etc."
 log_info "  4. Or use docker commands: docker ps, docker-compose up (they map to podman)"

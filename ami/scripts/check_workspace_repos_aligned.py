@@ -6,7 +6,7 @@ Both files list the workspace's repos but for different consumers:
     :update`, `moon ci --affected`, every cross-project task walk).
   - ami/config/workspace-clones.yaml::workspaceClones — the boot installer's
     repo-selection step + the chicken-egg-safe clone walker
-    (ami-bootstrap-repos).
+    (bootstrap-repos).
 
 If a repo lives in one but not the other, you get split-brain: moon updates
 something the installer never clones, or the installer clones something moon

@@ -151,11 +151,11 @@ class TestBannerLog:
 class TestRunCheck:
     def test_ami_welcome_healthy(self):
         entry = {
-            "name": "ami-welcome",
-            "binary": "ami/scripts/bin/ami-welcome",
+            "name": "welcome",
+            "binary": "ami/scripts/bin/welcome",
             "check": {
                 "command": ["{binary}", "--help"],
-                "healthExpect": "ami-welcome",
+                "healthExpect": "welcome",
                 "timeout": 5,
             },
         }
@@ -176,7 +176,7 @@ class TestRunCheck:
         assert result.healthy is False
 
     def test_empty_command_rejected(self):
-        entry = {"name": "bad-ext", "binary": "ami/scripts/bin/ami-welcome"}
+        entry = {"name": "bad-ext", "binary": "ami/scripts/bin/welcome"}
         result = run_check(entry, PROJECT_ROOT)
         assert isinstance(result, HealthCheckResult)
 

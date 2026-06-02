@@ -1,6 +1,6 @@
 extensions:
-  - name: ami-oc
-    binary: ami/scripts/bin/ami-oc
+  - name: oc
+    binary: ami/scripts/bin/oc
     description: opencode AI agent wrapper with AMI welcome context
     category: core
     features:
@@ -13,28 +13,8 @@ extensions:
       healthExpect: "."
       timeout: 5
 
-  - name: ami
-    binary: ami/scripts/bin/ami-run
-    description: Unified CLI for services and system management
-    category: core
-    features:
-      - ansible
-      - systemd
-      - podman
-      - kubectl
-      - helm
-      - status
-      - storage
-      - extras
-      - doctor
-    bannerPriority: 20
-    check:
-      command: ["{binary}", "--help"]
-      healthExpect: "ami-run"
-      timeout: 5
-
-  - name: ami-run
-    binary: ami/scripts/bin/ami-run
+  - name: run
+    binary: ami/scripts/bin/run
     description: Universal project execution wrapper
     category: core
     features:
@@ -48,11 +28,11 @@ extensions:
     bannerPriority: 30
     check:
       command: ["{binary}", "--help"]
-      healthExpect: "ami-run"
+      healthExpect: "run"
       timeout: 5
 
-  - name: ami-repo
-    binary: ami/scripts/bin/ami-repo
+  - name: repo
+    binary: ami/scripts/bin/repo
     description: Git repository and server management
     category: core
     features:
@@ -64,7 +44,7 @@ extensions:
     bannerPriority: 40
     check:
       command: ["{binary}", "--help"]
-      healthExpect: "ami-repo"
+      healthExpect: "repo"
       timeout: 5
 
   # ami-update extension removed: the umbrella orchestration now lives
@@ -73,19 +53,19 @@ extensions:
   # workspace root or `moon run :update` directly. See
   # `kind-weaving-kahan` plan / MOON-MIGRATION-PLAN.md v0.2.0 Phase 6.
 
-  - name: ami-welcome
-    binary: ami/scripts/bin/ami-welcome
+  - name: welcome
+    binary: ami/scripts/bin/welcome
     description: Print the AMI Orchestrator banner
     category: core
     hidden: true
     bannerPriority: 60
     check:
       command: ["{binary}", "--help"]
-      healthExpect: "ami-welcome"
+      healthExpect: "welcome"
       timeout: 5
 
-  - name: ami-pwd
-    binary: ami/scripts/bin/ami-pwd
+  - name: pwd
+    binary: ami/scripts/bin/pwd
     description: AMI root directory finder
     category: core
     features:
@@ -95,5 +75,5 @@ extensions:
     bannerPriority: 70
     check:
       command: ["{binary}", "--help"]
-      healthExpect: "ami-pwd"
+      healthExpect: "pwd"
       timeout: 5

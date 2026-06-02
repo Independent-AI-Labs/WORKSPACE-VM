@@ -14,16 +14,16 @@ from pathlib import Path
 def create_parser() -> argparse.ArgumentParser:
     """Create argument parser."""
     parser = argparse.ArgumentParser(
-        prog="ami-repo",
+        prog="repo",
         description="Git repository and server management for AMI Orchestrator",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  ami-repo status          Show repository status
-  ami-repo status-all      Show status across all repos
-  ami-repo pull            Pull latest changes
-  ami-repo push            Push local changes
-  ami-repo sync            Pull and push (sync with remote)
+  repo status          Show repository status
+  repo status-all      Show status across all repos
+  repo pull            Pull latest changes
+  repo push            Push local changes
+  repo sync            Pull and push (sync with remote)
         """,
     )
 

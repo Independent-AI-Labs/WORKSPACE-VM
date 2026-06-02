@@ -8,7 +8,7 @@
 #
 #   Phase 9:  moon project-graph integrity + mandatory tier 0+1 present
 #   Phase 10: tag filtering — --tags python returns >0 projects
-#   Phase 11: ami-bootstrap-repos data-driven walk (no-op against
+#   Phase 11: bootstrap-repos data-driven walk (no-op against
 #             already-cloned workspace; catches script regressions)
 #   Phase 12: cacheable check task — cold ami-ci:lint vs cached run
 #   Phase 13: update-walk topology — ami-agents:update graph
@@ -74,34 +74,34 @@ if [ -n "$MOON" ]; then
     echo "[PASS] tags resolve: --tags python returns $PYTHON_COUNT projects"
 fi
 
-# --- Phase 11: ami-bootstrap-repos data-driven walk ---
+# --- Phase 11: bootstrap-repos data-driven walk ---
 echo ""
 echo "=========================================="
-echo "PHASE 11: ami-bootstrap-repos data-driven clone walk"
+echo "PHASE 11: bootstrap-repos data-driven clone walk"
 echo "=========================================="
 
-if [ ! -x "ami/scripts/bin/ami-bootstrap-repos" ]; then
-    echo "[FAIL] ami-bootstrap-repos missing or not executable"
+if [ ! -x "ami/scripts/bin/bootstrap-repos" ]; then
+    echo "[FAIL] bootstrap-repos missing or not executable"
     exit 1
 fi
 if [ ! -f "ami/config/workspace-clones.yaml" ]; then
     echo "[FAIL] ami/config/workspace-clones.yaml missing"
     exit 1
 fi
-echo "[PASS] ami-bootstrap-repos + workspace-clones.yaml present"
+echo "[PASS] bootstrap-repos + workspace-clones.yaml present"
 
-bash ami/scripts/bin/ami-bootstrap-repos > bootstrap_repos.log 2>&1
+bash ami/scripts/bin/bootstrap-repos > bootstrap_repos.log 2>&1
 if [ $? -ne 0 ]; then
-    echo "[FAIL] ami-bootstrap-repos failed against already-cloned workspace"
+    echo "[FAIL] bootstrap-repos failed against already-cloned workspace"
     head bootstrap_repos.log
     exit 1
 fi
-if ! grep -q "ami-bootstrap-repos:" bootstrap_repos.log; then
-    echo "[FAIL] ami-bootstrap-repos didn't emit expected status line"
+if ! grep -q "bootstrap-repos:" bootstrap_repos.log; then
+    echo "[FAIL] bootstrap-repos didn't emit expected status line"
     head bootstrap_repos.log
     exit 1
 fi
-echo "[PASS] ami-bootstrap-repos walk succeeded"
+echo "[PASS] bootstrap-repos walk succeeded"
 
 # --- Phase 12: cacheable check task ---
 echo ""

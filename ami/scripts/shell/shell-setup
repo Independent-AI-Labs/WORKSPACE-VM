@@ -187,6 +187,23 @@ export PLAYWRIGHT_BROWSERS_PATH="$AMI_ROOT/.boot-linux/playwright-browsers"
 # Headless X server for browser automation (Xvfb on display :99)
 export DISPLAY="${DISPLAY:-:99}"
 
+# AMI SSH keys — auto-add to ssh-agent if project .ssh/ keys exist
+_ami_ssh_setup() {
+    local ssh_dir="$AMI_ROOT/.ssh"
+    [[ -d "$ssh_dir" ]] || return 0
+    command -v ssh-add &>/dev/null || return 0
+    for key in "$ssh_dir"/*; do
+        [[ -f "$key" ]] || continue
+        [[ "$key" = *.pub ]] && continue
+        [[ "$(basename "$key")" = known_hosts ]] && continue
+        [[ "$(basename "$key")" = config ]] && continue
+        ssh-add -l &>/dev/null | grep -qF "$(ssh-keygen -lf "$key" 2>/dev/null | awk '{print $2}')" 2>/dev/null && continue
+        ssh-add "$key" 2>/dev/null || true
+    done
+}
+_ami_ssh_setup
+unset _ami_ssh_setup
+
 # Import helper functions
 source "$AGENTS_SCRIPTS/utils/module_helpers.sh"
 
@@ -196,8 +213,8 @@ _verify_extensions
 # ============================================================================
 # Aliases
 # ============================================================================
-alias @="ami-oc"
-alias msg="ami-oc"
+alias @="oc"
+alias msg="oc"
 
 # ============================================================================
 # Display banner on welcome

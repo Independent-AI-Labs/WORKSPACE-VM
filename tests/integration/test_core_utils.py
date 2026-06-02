@@ -105,7 +105,7 @@ class TestUuidUtils:
 
 class TestVersionEnforcer:
     def test_no_constraints_passthrough(self):
-        entry = {"name": "no-constraints", "binary": "ami/scripts/bin/ami-welcome"}
+        entry = {"name": "no-constraints", "binary": "ami/scripts/bin/welcome"}
         ext = ResolvedExtension(
             entry=entry,
             manifest_path=Path("/fake/manifest.yaml"),
@@ -136,12 +136,12 @@ class TestVersionEnforcer:
 
     def test_version_mismatch_detected(self):
         entry = {
-            "name": "ami-welcome",
-            "binary": "ami/scripts/bin/ami-welcome",
+            "name": "welcome",
+            "binary": "ami/scripts/bin/welcome",
             "maxVersion": "0.0.1",
             "check": {
                 "command": ["{binary}", "--help"],
-                "healthExpect": "ami-welcome",
+                "healthExpect": "welcome",
                 "timeout": 5,
             },
         }
@@ -157,12 +157,12 @@ class TestVersionEnforcer:
 
     def test_version_match_passes(self):
         entry = {
-            "name": "ami-welcome",
-            "binary": "ami/scripts/bin/ami-welcome",
+            "name": "welcome",
+            "binary": "ami/scripts/bin/welcome",
             "minVersion": "0.0.0",
             "check": {
                 "command": ["{binary}", "--help"],
-                "healthExpect": "ami-welcome",
+                "healthExpect": "welcome",
                 "timeout": 5,
             },
         }
@@ -184,10 +184,10 @@ class TestVersionEnforcer:
 class TestRegisterExtensions:
     def test_create_wrapper_creates_executable(self, tmp_path: Path):
         script_path = tmp_path / "test-wrapper"
-        create_wrapper(script_path, PROJECT_ROOT, "ami/scripts/bin/ami-welcome")
+        create_wrapper(script_path, PROJECT_ROOT, "ami/scripts/bin/welcome")
         assert script_path.exists()
         content = script_path.read_text()
-        assert "ami-welcome" in content
+        assert "welcome" in content
 
     def test_create_symlink_creates_link(self, tmp_path: Path):
         target = tmp_path / "target.sh"

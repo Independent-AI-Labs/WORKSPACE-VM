@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# ami-run: Universal execution wrapper for AMI Orchestrator
+# run: Universal execution wrapper for AMI Orchestrator
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
-AMI_ROOT="$("$SCRIPT_DIR/ami-pwd")"
+AMI_ROOT="$("$SCRIPT_DIR/pwd")"
 export AMI_ROOT
 
 VENV_DIR="$AMI_ROOT/.venv"
-VENV_PYTHON="$AMI_ROOT/.venv/bin/python"
+VENV_PYTHON="/home/ami/AMI-AGENTS/.venv/bin/python"
 BOOT_DIR="$AMI_ROOT/.boot-linux"
 
 [[ -f "$AMI_ROOT/.env" ]] && export $(grep -v '^#' "$AMI_ROOT/.env" | xargs) || true
@@ -26,9 +26,9 @@ fi
 export PYTHONPATH="${PROJECT_PATHS}$AMI_ROOT:${PYTHONPATH:-}"
 
 if [[ "$#" -gt 0 && ("$1" == "-h" || "$1" == "--help") ]]; then
-    echo "ami-run: Universal execution wrapper for AMI Orchestrator"
+    echo "run: Universal execution wrapper for AMI Orchestrator"
     echo ""
-    echo "Usage: ami-run [subcommand] [args...]"
+    echo "Usage: run [subcommand] [args...]"
     echo ""
     echo "Subcommands: python, uv, node, npm, npx, cargo, rustc, go"
     exit 0
@@ -36,7 +36,7 @@ fi
 
 if [[ "$#" -gt 0 && "$1" == "--version" ]]; then
     VERSION="$(git -C "$AMI_ROOT" describe --always --dirty 2>/dev/null || echo "unknown")"
-    echo "ami-run (AMI Orchestrator) ${VERSION}"
+    echo "run (AMI Orchestrator) ${VERSION}"
     exit 0
 fi
 
@@ -105,7 +105,7 @@ case "$SUBCOMMAND" in
         exec sh "${ARGS[@]}"
         ;;
     wrap)
-        [[ ${#ARGS[@]} -lt 2 ]] && echo "Usage: ami-run wrap <id> <cmd>" >&2 && exit 1
+        [[ ${#ARGS[@]} -lt 2 ]] && echo "Usage: run wrap <id> <cmd>" >&2 && exit 1
         SVC_ID="${ARGS[0]}"
         CMD=("${ARGS[@]:1}")
         R_DIR="$AMI_ROOT/.runtime/wrapped/$SVC_ID"

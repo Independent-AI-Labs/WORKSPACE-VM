@@ -166,7 +166,7 @@ class TestExtensionInstallation:
                 f"{ext_name} (.py binary) should be a wrapper, not a symlink"
             )
             content = cmd_path.read_text()
-            assert "ami-run" in content, f"{ext_name} wrapper should call ami-run"
+            assert "run" in content, f"{ext_name} wrapper should call run"
         else:
             # Non-Python binaries are symlinks OR already in .boot-linux/bin/
             # (bootstrap-created wrappers that register_extensions skips)
@@ -306,7 +306,7 @@ class TestExtensionBinaries:
         shebang = get_binary_shebang(ext.binary)
 
         if ext.binary.endswith(".py"):
-            pass  # Python scripts run via ami-run, no shebang needed
+            pass  # Python scripts run via run, no shebang needed
         elif shebang:
             issues = validate_shebang_paths(shebang)
             assert not issues, (
@@ -327,7 +327,7 @@ class TestHiddenExtensions:
         visible = [ext for ext in ALL_EXTENSIONS if not ext.hidden]
 
         hidden_names = [ext.name for ext in hidden]
-        assert "ami-pwd" in hidden_names, "ami-pwd should be marked as hidden"
+        assert "pwd" in hidden_names, "pwd should be marked as hidden"
 
         msg = f"Too many hidden: {len(hidden)} vs {len(visible)} visible"
         assert len(visible) > len(hidden), msg

@@ -2,16 +2,19 @@
 set -euo pipefail
 
 # =============================================================================
-# Pre-requisites Check & Installation Script
+# Bootstrap — install system dependencies and bootstrap tools.
 # =============================================================================
 # Usage:
-#   ./pre-req.sh [--install|--ci|--uninstall-rust-guard|--reinstall-rust-guard|--check-rust-guard]
+#   sudo make bootstrap                       # install missing system deps
+#   make bootstrap-check                      # check only, report missing
 #
-# Called by: make pre-req-check (via make install / make install-ci)
+# Reads ami/config/bootstrap-components.yaml as the single source of truth
+# for what system dependencies and bootstrap scripts exist.
 # =============================================================================
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+COMPONENTS_YAML="${PROJECT_ROOT}/ami/config/bootstrap-components.yaml"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -26,45 +29,153 @@ log_warn()  { echo -e "${YELLOW}[WARN]${NC} $*"; }
 log_error() { echo -e "${RED}[ERROR]${NC} $*"; }
 log_ok()    { echo -e "${GREEN}  ✓${NC} $*"; }
 log_miss()  { echo -e "${RED}  ✗${NC} $*"; }
-log_probe() { echo -e "${CYAN}  →${NC} $*"; }
 log_section() { echo -e "\n${CYAN}${BOLD}═══ $* ═══${NC}\n"; }
 
-MODE="interactive"
-RUST_GUARD_ACTION=""
-while [[ $# -gt 0 ]]; do
-    case "$1" in
-        --install|-i) MODE="install";  shift ;;
-        --ci)         MODE="ci";       shift ;;
-        --check-rust-guard)   RUST_GUARD_ACTION="check"; shift ;;
-        --uninstall-rust-guard) RUST_GUARD_ACTION="uninstall"; shift ;;
-        --reinstall-rust-guard) RUST_GUARD_ACTION="reinstall"; shift ;;
-        --help|-h)
-            echo "Usage: $0 [OPTIONS]"
-            echo ""
-            echo "Options:"
-            echo "  --install, -i           Auto-install missing dependencies (requires sudo)"
-            echo "  --ci                    CI mode: check only, exit 1 if missing"
-            echo "  --check-rust-guard       Check rust guard installation status"
-            echo "  --uninstall-rust-guard   Remove SUID guard, restore system git"
-            echo "  --reinstall-rust-guard   Force reinstall rust guard"
-            echo "  --help, -h              Show this help message"
-            exit 0
-            ;;
-        *) log_error "Unknown option: $1"; exit 1 ;;
-    esac
-done
+MODE="${1:-check}"
+install_mode=false
+[[ "$MODE" == "--install" ]] && install_mode=true
 
-if [[ -n "$RUST_GUARD_ACTION" ]]; then
-    RUST_GUARD_SCRIPT="${SCRIPT_DIR}/bootstrap/bootstrap_rust_guard.sh"
-    if [[ ! -f "$RUST_GUARD_SCRIPT" ]]; then
-        log_error "Rust guard bootstrap script not found at $RUST_GUARD_SCRIPT"
-        exit 1
-    fi
-    exec bash "$RUST_GUARD_SCRIPT" "$RUST_GUARD_ACTION"
-fi
+# =============================================================================
+# Read dependency entries from YAML via inline Python
+# =============================================================================
+read_requires() {
+    python3 - "$COMPONENTS_YAML" <<'PYEOF'
+import sys
 
-declare -a MISSING_ENTRIES=()
+yaml_path = sys.argv[1]
 
+with open(yaml_path) as f:
+    text = f.read()
+
+entries = []
+
+def emit_entry(entry_dict, comp_name=None):
+    """Output one dependency entry as a pipe-delimited line."""
+    check_cmd = entry_dict.get("check_cmd", "")
+    check_type = entry_dict.get("check_type", "")
+    apt_pkg = entry_dict.get("apt_package", "")
+    bootstrap = entry_dict.get("bootstrap_script", "")
+    desc = entry_dict.get("description", "")
+    optional = str(entry_dict.get("optional", False)).lower() == "true"
+
+    if check_type:
+        line = f"type|{check_type}|{desc}"
+        if comp_name:
+            line = f"{line}|{comp_name}"
+        entries.append(line)
+    elif check_cmd:
+        line = f"cmd|{check_cmd}|{apt_pkg}|{desc}|{bootstrap}|{optional}"
+        if comp_name:
+            line = f"{line}|{comp_name}"
+        entries.append(line)
+
+
+# State machine
+in_top_requires = False
+in_components = False
+in_component = False
+in_component_requires = False
+current_component = ""
+current_entry = {}
+entry_indent = -1
+
+for raw in text.splitlines():
+    line = raw.rstrip()
+    if not line or line.lstrip().startswith("#"):
+        continue
+    indent = len(line) - len(line.lstrip())
+    stripped = line.strip().rstrip(":")
+
+    # Top-level keys
+    if indent == 0:
+        if current_entry and (in_top_requires or in_component_requires):
+            emit_entry(current_entry, current_component if in_component_requires else None)
+            current_entry = {}
+        in_top_requires = (stripped == "requires")
+        in_components = (stripped == "components")
+        in_component = False
+        in_component_requires = False
+        continue
+
+    # Top-level requires entries at indent 2
+    if in_top_requires and indent == 2 and stripped.startswith("- "):
+        if current_entry:
+            emit_entry(current_entry)
+            current_entry = {}
+        entry_indent = indent
+        key = stripped[2:].strip()
+        if ":" in key:
+            k, v = key.split(":", 1)
+            current_entry[k.strip()] = v.strip().strip("'\"")
+        continue
+
+    # Top-level requires field at indent 4
+    if in_top_requires and indent == 4 and not stripped.startswith("- "):
+        if ":" in stripped:
+            k, v = stripped.split(":", 1)
+            current_entry[k.strip()] = v.strip().strip("'\"")
+        continue
+
+    # Component entries at indent 2
+    if in_components and indent == 2 and stripped.startswith("- "):
+        # Emit component-level requires before moving to next component
+        if current_entry and in_component_requires:
+            emit_entry(current_entry, current_component)
+            current_entry = {}
+        in_component = True
+        in_component_requires = False
+        current_component = ""
+        continue
+
+    # Component field at indent 4
+    if in_component and indent == 4 and not stripped.startswith("- "):
+        if ":" in stripped:
+            k, v = stripped.split(":", 1)
+            k = k.strip()
+            v = v.strip()
+            if k == "name":
+                current_component = v.strip("'\"")
+            elif k == "requires":
+                in_component_requires = True
+                current_entry = {}
+        continue
+
+    # Component requires entries at indent 6
+    if in_component and in_component_requires and indent == 6 and stripped.startswith("- "):
+        if current_entry:
+            emit_entry(current_entry, current_component)
+            current_entry = {}
+        key = stripped[2:].strip()
+        if ":" in key:
+            k, v = key.split(":", 1)
+            current_entry[k.strip()] = v.strip().strip("'\"")
+        continue
+
+    # Component requires field at indent 8
+    if in_component and in_component_requires and indent == 8:
+        if ":" in stripped:
+            k, v = stripped.split(":", 1)
+            current_entry[k.strip()] = v.strip().strip("'\"")
+        continue
+
+# Emit last entry
+if current_entry:
+    comp = current_component if in_component_requires else None
+    emit_entry(current_entry, comp)
+
+# Emit hardcoded playwright-libs if not already present
+has_playwright = any("playwright-libs" in e for e in entries)
+if not has_playwright:
+    entries.append("type|playwright-libs|Playwright browser dependencies")
+
+for e in entries:
+    print(e)
+PYEOF
+}
+
+# =============================================================================
+# Binary finding
+# =============================================================================
 SYSTEM_PATHS="/usr/bin /usr/sbin /usr/local/bin /usr/local/sbin /snap/bin"
 
 find_binary() {
@@ -88,58 +199,51 @@ find_binary() {
 
 first_line() { local _out; _out="$1"; echo "${_out%%$'\n'*}"; }
 
-check_command() {
-    local cmd="$1"
-    local package="$2"
-    local description="$3"
+# =============================================================================
+# Check functions
+# =============================================================================
+check_cmd() {
+    local cmd="$1" pkg="$2" desc="$3"
+    local found_path="" version="" raw=""
 
-    local found_path=""
     if found_path=$(find_binary "$cmd"); then
-        local version="" raw=""
         raw=$("$found_path" --version 2>&1) || raw=""
         version=$(first_line "$raw" | cut -c1-60)
-        if [[ -z "$version" ]]; then
-            raw=$("$found_path" -V 2>&1) || raw=""
-            version=$(first_line "$raw" | cut -c1-60)
-        fi
-        if [[ -z "$version" ]]; then
-            raw=$("$found_path" version 2>&1) || raw=""
-            version=$(first_line "$raw" | cut -c1-60)
-        fi
+        [[ -z "$version" ]] && { raw=$("$found_path" -V 2>&1) || raw=""; version=$(first_line "$raw" | cut -c1-60); }
+        [[ -z "$version" ]] && { raw=$("$found_path" version 2>&1) || raw=""; version=$(first_line "$raw" | cut -c1-60); }
         if [[ -n "$version" ]]; then
-            log_ok "$description ${DIM}($version)${NC}"
+            log_ok "$desc ${DIM}($version)${NC}"
         else
-            log_ok "$description ${DIM}(found at $found_path)${NC}"
+            log_ok "$desc ${DIM}(found at $found_path)${NC}"
         fi
+        return 0
     else
-        log_miss "$description ${DIM}(not found — needs: $package)${NC}"
-        MISSING_ENTRIES+=("${cmd}|${package}|${description}")
+        log_miss "$desc ${DIM}(not found — needs: $pkg)${NC}"
+        [[ -n "$pkg" ]] && MISSING_ENTRIES+=("${cmd}|${pkg}|${desc}")
+        return 1
     fi
 }
 
 check_c_compiler() {
     local compilers=("gcc" "cc" "clang")
-
     for compiler in "${compilers[@]}"; do
         local found_path=""
         if found_path=$(find_binary "$compiler"); then
-            local version raw
+            local raw version
             raw=$("$found_path" --version 2>&1) || raw=""
             version=$(first_line "$raw" | cut -c1-60)
             log_ok "C compiler: $version"
             return 0
         fi
     done
-
     log_miss "No C compiler found (need gcc, cc, or clang)"
-    MISSING_ENTRIES+=("gcc|gcc-bootstrap|C compiler (gcc/cc/clang)")
+    MISSING_ENTRIES+=("gcc|gcc|C compiler (gcc/cc/clang)")
     return 1
 }
 
-check_playwright() {
-    log_section "Browser Automation (Playwright)"
-    local _pw_missing=0
+check_playwright_libs() {
     local _pw_libs=(libnss3 libgbm1 libatk-bridge2.0-0t64 libpango-1.0-0 libcairo2 libcups2t64 libdrm2 libdbus-1-3 libxkbcommon0 libxrandr2)
+    local _pw_missing=0
     for lib in "${_pw_libs[@]}"; do
         if dpkg -s "$lib" &>/dev/null 2>&1; then
             :
@@ -153,144 +257,81 @@ check_playwright() {
 }
 
 check_network_tools() {
-    log_section "Network Tools"
     if ! find_binary curl &>/dev/null && ! find_binary wget &>/dev/null; then
         log_miss "Neither curl nor wget found (need at least one)"
-        local _already=false
-        for entry in "${MISSING_ENTRIES[@]:-}"; do
-            [[ "$entry" == curl\|* ]] && { _already=true; break; }
-        done
-        [[ "$_already" == "false" ]] && MISSING_ENTRIES+=("curl|curl|curl or wget")
+        MISSING_ENTRIES+=("curl|curl|curl or wget")
     else
         find_binary curl &>/dev/null && log_ok "curl available"
         find_binary wget &>/dev/null && log_ok "wget available"
     fi
 }
 
-prompt_install() {
-    if [[ ${#MISSING_ENTRIES[@]} -eq 0 ]]; then
-        return 0
-    fi
-
-    echo ""
-    log_warn "${BOLD}Missing ${#MISSING_ENTRIES[@]} package(s):${NC}"
-    echo ""
-
-    for entry in "${MISSING_ENTRIES[@]}"; do
-        IFS='|' read -r cmd pkg desc <<< "$entry"
-        local resolved="${RESOLVED_PACKAGES[$pkg]:-not available}"
-        local status="${RESOLVED_STATUS[$pkg]:-unknown}"
-        if [[ "$status" == "available" ]]; then
-            echo -e "  ${RED}✗${NC} $desc"
-            echo -e "    ${DIM}apt package: $pkg ($resolved)${NC}"
-        elif [[ "$status" == "bootstrap" ]]; then
-            echo -e "  ${RED}✗${NC} $desc"
-            echo -e "    ${CYAN}bootstrap: $resolved (no sudo needed)${NC}"
-        else
-            echo -e "  ${RED}✗${NC} $desc"
-            echo -e "    ${RED}not available — install manually${NC}"
-        fi
-    done
-
-    echo ""
-
-    local any_installable=false
-    for entry in "${MISSING_ENTRIES[@]}"; do
-        local pkg="${entry#*|}"
-        pkg="${pkg%%|*}"
-        local status="${RESOLVED_STATUS[$pkg]:-}"
-        if [[ "$status" == "available" || "$status" == "bootstrap" ]]; then
-            any_installable=true
-            break
-        fi
-    done
-
-    if [[ "$any_installable" == "false" ]]; then
-        log_error "None of the missing packages are available in apt."
-        log_error "Install them manually, then retry: make install"
-        return 1
-    fi
-
-    log_info "To install missing packages, run:"
-    log_info "${BOLD}  sudo make pre-req${NC}"
-    return 0
-}
-
 # =============================================================================
-# Apt Probing & Installation (sourced from sub-file)
+# Apt probing & install
 # =============================================================================
 # shellcheck source=pre-req-apt.sh
 source "${SCRIPT_DIR}/pre-req-apt.sh"
 
 # =============================================================================
-# Main Check Phase
+# Main
 # =============================================================================
+declare -a MISSING_ENTRIES=()
 
-log_section "System Pre-requisites Check"
+log_section "System Pre-requisites"
 log_info "Project: ${PROJECT_ROOT}"
 echo ""
 
-log_section "Core Build Tools"
-check_command "make" "make" "GNU Make" || true  # silent-ok: non-fatal check, accumulates MISSING_ENTRIES
-check_command "curl" "curl" "curl" || true  # silent-ok: non-fatal check, accumulates MISSING_ENTRIES
-check_c_compiler || true  # silent-ok: non-fatal check, accumulates MISSING_ENTRIES
+# Read dependency entries from YAML
+log_section "Checking Dependencies"
+while IFS='|' read -r entry_type rest; do
+    case "$entry_type" in
+        cmd)
+            IFS='|' read -r check_cmd_val apt_pkg desc bootstrap optional comp_name <<< "$rest"
+            [[ -n "$check_cmd_val" ]] && check_cmd "$check_cmd_val" "$apt_pkg" "$desc"
+            ;;
+        type)
+            IFS='|' read -r check_type_val desc comp_name <<< "$rest"
+            case "$check_type_val" in
+                c-compiler)  check_c_compiler ;;
+                network-tools) check_network_tools ;;
+                playwright-libs) check_playwright_libs ;;
+            esac
+            ;;
+    esac
+done < <(read_requires)
 
-log_section "System Dependencies"
-check_command "git" "git" "Git version control" || true  # silent-ok: non-fatal check, accumulates MISSING_ENTRIES
-check_command "ssh" "openssh-client" "OpenSSH client" || true  # silent-ok: non-fatal check, accumulates MISSING_ENTRIES
-check_command "sshd" "openssh-server" "OpenSSH server" || true  # silent-ok: non-fatal check, accumulates MISSING_ENTRIES
-check_command "openssl" "openssl" "OpenSSL toolkit" || true  # silent-ok: non-fatal check, accumulates MISSING_ENTRIES
-check_command "openvpn" "openvpn" "OpenVPN client" || true  # silent-ok: non-fatal check, accumulates MISSING_ENTRIES
-
-log_section "Additional Tools"
-check_command "tar" "tar" "tar archiver" || true  # silent-ok: non-fatal check, accumulates MISSING_ENTRIES
-check_command "gzip" "gzip" "gzip compression" || true  # silent-ok: non-fatal check, accumulates MISSING_ENTRIES
-check_command "dpkg-deb" "dpkg" "dpkg-deb extractor" || true  # silent-ok: non-fatal check, accumulates MISSING_ENTRIES
-check_command "gitleaks" "gitleaks-bootstrap" "Gitleaks (secret scanning)"
-check_command "Xvfb" "xvfb" "X Virtual Framebuffer (headless display)" || true  # silent-ok: non-fatal, accumulated
-
-check_playwright
-check_network_tools
-
+# Probe apt for missing
 probe_all_missing
 
 echo ""
-log_section "Check Results"
+log_section "Results"
 
 if [[ ${#MISSING_ENTRIES[@]} -eq 0 ]]; then
-    log_info "${GREEN}${BOLD}All pre-requisites are satisfied!${NC}"
+    log_info "${GREEN}${BOLD}All dependencies satisfied!${NC}"
 
-    if [[ "$MODE" == "install" ]]; then
-        guard_script="${PROJECT_ROOT}/ami/scripts/bootstrap/bootstrap_rust_guard.sh"
-        if [[ -f "$guard_script" ]]; then
-            echo ""
-            bash "$guard_script" "install"
-        fi
+    # Run rust guard install
+    guard_script="${PROJECT_ROOT}/ami/scripts/bootstrap/bootstrap_rust_guard.sh"
+    if [[ -f "$guard_script" ]]; then
+        echo ""
+        bash "$guard_script" "install"
     fi
 
     echo ""
-    log_info "You can proceed with: ${BOLD}make install${NC}"
+    log_info "Proceed with: ${BOLD}make install${NC}"
     exit 0
 fi
 
-case "$MODE" in
-    ci)
-        log_error "${BOLD}Missing ${#MISSING_ENTRIES[@]} package(s) — CI mode, failing.${NC}"
-        echo ""
-        for entry in "${MISSING_ENTRIES[@]}"; do
-            IFS='|' read -r cmd pkg desc <<< "$entry"
-            echo -e "  ${RED}✗${NC} $desc (needs: $pkg)"
-        done
-        echo ""
-        log_error "Run: sudo make pre-req"
-        exit 1
-        ;;
-    install)
-        install_missing
-        exit $?
-        ;;
-    interactive|*)
-        prompt_install
-        exit $?
-        ;;
-esac
+if [[ "$install_mode" == "false" ]]; then
+    log_warn "${BOLD}Missing ${#MISSING_ENTRIES[@]} dependencies:${NC}"
+    echo ""
+    for entry in "${MISSING_ENTRIES[@]}"; do
+        IFS='|' read -r cmd pkg desc <<< "$entry"
+        echo -e "  ${RED}✗${NC} $desc (needs: $pkg)"
+    done
+    echo ""
+    log_info "Run: ${BOLD}sudo make bootstrap${NC}"
+    exit 1
+fi
+
+# Install mode
+install_missing

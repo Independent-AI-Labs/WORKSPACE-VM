@@ -23,10 +23,11 @@ from ami.scripts.shell.version_enforcer import enforce_versions
 
 
 def create_wrapper(path: Path, ami_root: Path, script: str) -> None:
-    """Create wrapper script that calls ami-run with the script."""
+    """Create wrapper script that calls run with the script."""
     wrapper = f"""#!/usr/bin/env bash
-exec "{ami_root}/ami/scripts/bin/ami-run" "{ami_root}/{script}" "$@"
+exec "{ami_root}/ami/scripts/bin/run" "{ami_root}/{script}" "$@"
 """
+    path.unlink(missing_ok=True)
     path.write_text(wrapper)
     path.chmod(path.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
 
@@ -151,7 +152,7 @@ def update_bashrc_path(bin_dir: Path) -> None:
     update every shell rc that exists. If neither exists (pure-fish,
     container minimal image, fresh user account) we emit a stderr warning
     so the operator knows to add the PATH manually — skipping without a
-    warning leaves `ami-oc` and friends unreachable from interactive
+    warning leaves `oc` and friends unreachable from interactive
     shells without any signal that the install was incomplete.
     """
     home = Path.home()

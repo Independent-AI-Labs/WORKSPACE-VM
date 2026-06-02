@@ -1,9 +1,9 @@
-"""Verify ami-oc correctly delivers welcome context to opencode agent.
+"""Verify oc correctly delivers welcome context to opencode agent.
 
-The agent must receive the ami-welcome banner properly separated
+The agent must receive the welcome banner properly separated
 from the user's task by two actual newline characters, not literal
 backslash-n text. This test validates the bash string construction
-pattern used in ami/scripts/bin/ami-oc.
+pattern used in ami/scripts/bin/oc.
 """
 
 from __future__ import annotations
@@ -11,7 +11,7 @@ from __future__ import annotations
 import subprocess
 
 
-class TestAmiOcMessageFormat:
+class TestOcMessageFormat:
     def test_dollar_single_quote_produces_real_newlines(self):
         """Verify $'\\n\\n' in bash produces actual newlines, not literal \\n."""
         result = subprocess.run(

@@ -14,8 +14,8 @@
 #   2  — bad invocation / setup error
 #   3  — himalaya unavailable but findings present (operator MUST see logs)
 #
-# Run via ami-cron weekly:
-#   ami-cron add "0 4 * * 1" "$HOME/AMI-AGENTS/scripts/services/ami_gitleaks_sweep.sh" --label gitleaks-sweep
+# Run via cron weekly:
+#   cron add "0 4 * * 1" "$HOME/AMI-AGENTS/scripts/services/ami_gitleaks_sweep.sh" --label gitleaks-sweep
 
 set -euo pipefail
 

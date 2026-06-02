@@ -40,7 +40,7 @@ hard_deny:
     message: "Piping to python forbidden"
   - pattern: '\bpip3?\b'
     message: "Use uv sync instead of pip"
-  - pattern: '(?<!ami-)\bruff\b'
+  - pattern: '(?<!run )\bruff\b'
     message: "Use scripts/git-commit for linting"
   - pattern: '^\s*cd\b'
     message: "Use absolute paths instead of cd"
@@ -95,8 +95,7 @@ tiers:
       - '\bcargo\b'
       - '\buv\b'
       - '\bxargs\b'
-      - '\bami-\w+\b'
-      - '\bami\s+'
+      - '\b(oc|run|repo|welcome|pwd|kcadm|browser|vpn|tunnel|ssl|docs|gcloud)\b'
       - '\bscripts/'
       - '\bcurl\b'
       - '\bwget\b'

@@ -39,19 +39,19 @@ def _find_tool(name: str) -> str | None:
 
 
 def _print_help() -> None:
-    print("ami-docs: Document production tools\n")
-    print("Usage: ami-docs <tool> [tool-args...]\n")
+    print("docs: Document production tools\n")
+    print("Usage: docs <tool> [tool-args...]\n")
     print("Tools:")
     for name, desc in TOOLS.items():
         installed = "installed" if _find_tool(name) else "not found"
         print(f"  {name:<16} {desc} ({installed})")
     print("\nExamples:")
-    print("  ami-docs pandoc README.md -o README.pdf")
-    print("  ami-docs pandoc README.md -t docx -o README.docx")
-    print("  ami-docs wkhtmltopdf report.html report.pdf")
-    print("  ami-docs pdflatex paper.tex")
-    print("  ami-docs xelatex paper.tex")
-    print("  ami-docs pdfjam --nup 2x2 slides.pdf --outfile handout.pdf")
+    print("  docs pandoc README.md -o README.pdf")
+    print("  docs pandoc README.md -t docx -o README.docx")
+    print("  docs wkhtmltopdf report.html report.pdf")
+    print("  docs pdflatex paper.tex")
+    print("  docs xelatex paper.tex")
+    print("  docs pdfjam --nup 2x2 slides.pdf --outfile handout.pdf")
 
 
 _MIN_ARGS = 2

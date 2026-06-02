@@ -1,4 +1,4 @@
-"""Unit tests for ami/scripts/bin/ami-bootstrap-repos bash walker.
+"""Unit tests for ami/scripts/bin/bootstrap-repos bash walker.
 
 The walker is bash but its YAML-parsing logic and clone/skip/pull
 control flow are critical infrastructure: a misread of
@@ -23,7 +23,7 @@ import pytest
 
 from ami.config_utils import PROJECT_ROOT as REPO_ROOT
 
-WALKER = REPO_ROOT / "ami" / "scripts" / "bin" / "ami-bootstrap-repos"
+WALKER = REPO_ROOT / "ami" / "scripts" / "bin" / "bootstrap-repos"
 
 
 def _make_fake_repo_root(tmp_path: Path, clones_yaml_text: str) -> Path:
@@ -40,7 +40,7 @@ def _make_fake_repo_root(tmp_path: Path, clones_yaml_text: str) -> Path:
     (cfg_dir / "workspace-clones.yaml").write_text(clones_yaml_text)
     bin_dir = tmp_path / "ami" / "scripts" / "bin"
     bin_dir.mkdir(parents=True)
-    walker_copy = bin_dir / "ami-bootstrap-repos"
+    walker_copy = bin_dir / "bootstrap-repos"
     shutil.copy(WALKER, walker_copy)
     walker_copy.chmod(walker_copy.stat().st_mode | stat.S_IEXEC)
     return walker_copy
@@ -236,7 +236,7 @@ class TestErrorPaths:
         _make_fake_git(stub, tmp_path / "git-calls.log")
         result = _run_walker(walker, "--help", stub_dir=stub)
         assert result.returncode == 0
-        assert "Usage" in result.stdout or "ami-bootstrap-repos" in result.stdout
+        assert "Usage" in result.stdout or "bootstrap-repos" in result.stdout
 
 
 class TestEmptyManifest:
