@@ -35,11 +35,15 @@ core: ## Bootstrap uv + python + git-xet (prereq for sync-package)
 
 .PHONY: install
 install: ## Interactive TUI to select and install components
-	@.venv/bin/python ami/scripts/bootstrap_installer.py
+	@.venv/bin/python ami/scripts/bootstrap_installer.py && \
+	$(MAKE) register-extensions && \
+	bash ami/scripts/shell/shell-setup --welcome
 
 .PHONY: install-ci
 install-ci: ## Non-interactive component install (uses install-defaults.yaml)
-	@.venv/bin/python ami/scripts/bootstrap_installer.py --defaults ami/config/install-defaults.yaml
+	@.venv/bin/python ami/scripts/bootstrap_installer.py --defaults ami/config/install-defaults.yaml && \
+	$(MAKE) register-extensions && \
+	echo "✨ Installation complete (CI mode)!"
 
 # --- Repos ---
 
