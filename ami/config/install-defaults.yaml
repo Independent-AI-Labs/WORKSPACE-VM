@@ -26,6 +26,9 @@ components:
   # Security & Networking
   - cloudflared
 
+  # Browser & Device Automation
+  - playwright
+
   # Document Processing
   - pandoc
   - texlive
