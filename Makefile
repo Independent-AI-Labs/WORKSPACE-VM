@@ -40,7 +40,7 @@ install: ## Install AMI Agents in editable mode with all setup
 	$(MAKE) sync-package && \
 	$(MAKE) bootstrap-gitleaks && \
 	$(MAKE) setup-config && \
-	$(MAKE) install-bootstrap-ci && \
+	$(MAKE) install-bootstrap && \
 	$(MAKE) install-opencode && \
 	$(MAKE) register-extensions && \
 	$(MAKE) install-hooks && \
@@ -82,6 +82,10 @@ sync-package: bootstrap-core ensure-ci ensure-dataops ## Sync package dependenci
 	@echo "✅ Package 'ami-agents' installed with dev dependencies"
 
 # --- Component Targets ---
+
+.PHONY: install-bootstrap
+install-bootstrap: ## Interactive TUI to select and install optional bootstrap components
+	@.venv/bin/python ami/scripts/bootstrap_installer.py
 
 .PHONY: install-bootstrap-ci
 install-bootstrap-ci: ## Non-interactive bootstrap using defaults file
