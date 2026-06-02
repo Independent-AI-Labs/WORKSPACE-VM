@@ -25,6 +25,15 @@ extensions:
       - rustc
       - cargo
       - go
+      - ansible
+      - systemd
+      - podman
+      - kubectl
+      - helm
+      - status
+      - storage
+      - extras
+      - doctor
     bannerPriority: 30
     check:
       command: ["{binary}", "--help"]
