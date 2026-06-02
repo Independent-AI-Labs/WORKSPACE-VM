@@ -203,7 +203,7 @@ first_line() { local _out; _out="$1"; echo "${_out%%$'\n'*}"; }
 # Check functions
 # =============================================================================
 check_cmd() {
-    local cmd="$1" pkg="$2" desc="$3"
+    local cmd="$1" pkg="$2" desc="$3" optional="${4:-False}"
     local found_path="" version="" raw=""
 
     if found_path=$(find_binary "$cmd"); then
@@ -218,8 +218,12 @@ check_cmd() {
         fi
         return 0
     else
-        log_miss "$desc ${DIM}(not found — needs: $pkg)${NC}"
-        [[ -n "$pkg" ]] && MISSING_ENTRIES+=("${cmd}|${pkg}|${desc}")
+        if [[ "$optional" == "True" ]]; then
+            log_warn "$desc ${DIM}(optional — not found)${NC}"
+        else
+            log_miss "$desc ${DIM}(not found — needs: $pkg)${NC}"
+            [[ -n "$pkg" ]] && MISSING_ENTRIES+=("${cmd}|${pkg}|${desc}")
+        fi
         return 1
     fi
 }
@@ -269,8 +273,8 @@ check_network_tools() {
 # =============================================================================
 # Apt probing & install
 # =============================================================================
-# shellcheck source=pre-req-apt.sh
-source "${SCRIPT_DIR}/pre-req-apt.sh"
+# shellcheck source=initial-setup-apt.sh
+source "${SCRIPT_DIR}/initial-setup-apt.sh"
 
 # =============================================================================
 # Main
@@ -287,7 +291,7 @@ while IFS='|' read -r entry_type rest; do
     case "$entry_type" in
         cmd)
             IFS='|' read -r check_cmd_val apt_pkg desc bootstrap optional comp_name <<< "$rest"
-            [[ -n "$check_cmd_val" ]] && check_cmd "$check_cmd_val" "$apt_pkg" "$desc"
+            [[ -n "$check_cmd_val" ]] && check_cmd "$check_cmd_val" "$apt_pkg" "$desc" "$optional"
             ;;
         type)
             IFS='|' read -r check_type_val desc comp_name <<< "$rest"

@@ -9,129 +9,53 @@ SHELL := /bin/bash
 help: ## Show this help message
 	@echo "AMI Agents - Available targets:"
 	@echo ""
-	@echo "Other Targets:"
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  %%-28s %%s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
-# --- Preflight ---
+# --- Init — system dependencies ---
 
-.PHONY: preflight
-preflight: bootstrap-check ## Verify environment and dependencies
+.PHONY: init-check
+init-check: ## Check system dependencies
+	@bash ami/scripts/initial-setup.sh
 
-# --- Bootstrap (system dependencies) ---
+.PHONY: init
+init: ## Install system dependencies (requires sudo)
+	@bash ami/scripts/initial-setup.sh --install
 
-.PHONY: bootstrap-check
-bootstrap-check: ## Check system dependencies (runs automatically on install)
-	@bash ami/scripts/pre-req.sh
+# --- Core prereqs ---
 
-.PHONY: bootstrap
-bootstrap: ## Install system dependencies (requires sudo)
-	@bash ami/scripts/pre-req.sh --install
-
-# --- Main Installation Flow ---
-
-INSTALL_LOG := install-$(shell date +%Y%m%d-%H%M%S).log
-
-.PHONY: install
-install: ## Install AMI Agents in editable mode with all setup
-	@exec > >(awk -W interactive -v LOG="$(INSTALL_LOG)" '{ ts=strftime("[%Y-%m-%dT%H:%M:%S]"); print $$0; print ts, $$0 >> LOG; fflush(); }') 2>&1; \
-	echo "🚀 Installing AMI Agents..."; \
-	echo "📝 Log: $(INSTALL_LOG)"; \
-	$(MAKE) bootstrap-check && \
-	$(MAKE) sync-package && \
-	$(MAKE) bootstrap-gitleaks && \
-	$(MAKE) setup-config && \
-	$(MAKE) install-bootstrap && \
-	$(MAKE) install-opencode && \
-	$(MAKE) register-extensions && \
-	$(MAKE) install-hooks && \
-	$(MAKE) install-shell && \
-	echo "✨ Installation complete!" && \
-	bash ami/scripts/shell/shell-setup --welcome
-
-.PHONY: install-ci
-install-ci: ## Non-interactive install for CI (uses install-defaults.yaml)
-	@exec > >(awk -W interactive -v LOG="$(INSTALL_LOG)" '{ ts=strftime("[%Y-%m-%dT%H:%M:%S]"); print $$0; print ts, $$0 >> LOG; fflush(); }') 2>&1; \
-	echo "🚀 Installing AMI Agents (CI mode)..."; \
-	echo "📝 Log: $(INSTALL_LOG)"; \
-	$(MAKE) bootstrap-check && \
-	$(MAKE) sync-package && \
-	$(MAKE) bootstrap-gitleaks && \
-	$(MAKE) setup-config && \
-	$(MAKE) install-bootstrap-ci && \
-	$(MAKE) install-opencode && \
-	$(MAKE) register-extensions && \
-	$(MAKE) install-hooks && \
-	$(MAKE) install-shell && \
-	echo "✨ Installation complete (CI mode)!"
-
-.PHONY: ensure-repos
-ensure-repos: ## Clone every workspace repo per moon.yml metadata.workspaceClones (mandatory + opt-in via --include)
-	@bash ami/scripts/bin/bootstrap-repos --pull
-
-.PHONY: ensure-ci
-ensure-ci: ensure-repos  ## Compatibility alias for ensure-repos (data-driven via moon.yml)
-
-.PHONY: ensure-dataops
-ensure-dataops: ensure-repos  ## Compatibility alias for ensure-repos (data-driven via moon.yml)
-
-.PHONY: sync-package
-sync-package: bootstrap-core ensure-ci ensure-dataops ## Sync package dependencies via uv
-	@echo "🔧 Syncing ami-agents..."
-	.boot-linux/bin/uv sync --extra dev
-
-	@echo "✅ Package 'ami-agents' installed with dev dependencies"
-
-# --- Component Targets ---
-
-.PHONY: install-bootstrap
-install-bootstrap: ## Interactive TUI to select and install optional bootstrap components
-	@.venv/bin/python ami/scripts/bootstrap_installer.py
-
-.PHONY: install-bootstrap-ci
-install-bootstrap-ci: ## Non-interactive bootstrap using defaults file
-	@.venv/bin/python ami/scripts/bootstrap_installer.py --defaults ami/config/install-defaults.yaml
-
-.PHONY: bootstrap-core
-bootstrap-core: ## Bootstrap core tools (uv, python, git-lfs/xet) into .boot-linux
+.PHONY: core
+core: ## Bootstrap uv + python + git-xet (prereq for sync-package)
 	@echo "🔧 Bootstrapping core tools..."
 	@bash ami/scripts/bootstrap/bootstrap_uv.sh
 	@bash ami/scripts/bootstrap/bootstrap_python.sh
 	@bash ami/scripts/bootstrap/bootstrap_git_xet.sh
 	@echo "✅ Core bootstrap complete"
 
-.PHONY: bootstrap-gitleaks
-bootstrap-gitleaks: ## Bootstrap gitleaks (requires AMI-CI to be cloned first)
-	@bash projects/AMI-CI/scripts/bootstrap-gitleaks
+# --- Install — component selection ---
 
-.PHONY: install-git-guard
-install-git-guard: ## (DEPRECATED) RUST-GUARD is now handled by sudo make bootstrap
-	@echo "⚠️  install-git-guard is deprecated — rust guard is now installed via sudo make bootstrap"
-	@echo "    The SUID Rust guard at /usr/bin/git replaces the .boot-linux/bin/git wrapper."
+.PHONY: install
+install: ## Interactive TUI to select and install components
+	@.venv/bin/python ami/scripts/bootstrap_installer.py
 
-.PHONY: install-shell
-install-shell: ## Install AMI shell environment to ~/.bashrc
-	@echo "🐚 Installing shell environment..."
-	@bash ami/scripts/shell/shell-setup --install
-	@echo "✅ Shell environment installed"
+.PHONY: install-ci
+install-ci: ## Non-interactive component install (uses install-defaults.yaml)
+	@.venv/bin/python ami/scripts/bootstrap_installer.py --defaults ami/config/install-defaults.yaml
 
-.PHONY: uninstall-shell
-uninstall-shell: ## Remove AMI shell environment from ~/.bashrc
-	@bash ami/scripts/shell/shell-setup --uninstall
+# --- Repos ---
 
-.PHONY: install-opencode
-install-opencode: ## Install opencode-ai into .venv via hermetic npm
-	@echo "📦 Installing opencode-ai..."
-	@bash ami/scripts/bootstrap/bootstrap_opencode.sh
+.PHONY: ensure-repos
+ensure-repos: ## Clone every workspace repo per moon.yml metadata
+	@bash ami/scripts/bin/bootstrap-repos --pull
 
-.PHONY: update-opencode
-update-opencode: ## Update opencode-ai to latest (re-runs bootstrap)
-	@echo "🔄 Updating opencode-ai..."
-	@bash ami/scripts/bootstrap/bootstrap_opencode.sh
+# --- Package sync ---
 
-.PHONY: sync
-sync: sync-package install-hooks ## Sync deps + reinstall hooks
+.PHONY: sync-package
+sync-package: core ensure-repos ## Sync package dependencies via uv
+	@echo "🔧 Syncing ami-agents..."
+	.boot-linux/bin/uv sync --extra dev
+	@echo "✅ Package 'ami-agents' installed with dev dependencies"
 
-# --- Config & Utilities ---
+# --- Config ---
 
 .PHONY: setup-config
 setup-config: setup-automation setup-linter-config ## Setup configuration files
@@ -170,30 +94,34 @@ setup-automation: ## Setup automation configuration
 		echo "ℹ️  Automation configuration already exists at ami/config/automation.yaml"; \
 	fi
 
+# --- Extensions ---
+
 .PHONY: register-extensions
-register-extensions: ## Register extensions in .bashrc
+register-extensions: ## Register extensions in .boot-linux/bin
 	@echo "🔌 Registering extensions in ~/.bashrc..."
 	@.venv/bin/python ami/scripts/register_extensions.py
 
-.PHONY: clean
-clean: ## Clean build artifacts
-	@echo "🧹 Cleaning build artifacts..."
-	rm -rf build/
-	rm -rf dist/
-	rm -rf *.egg-info/
-	find . -type d -name __pycache__ -exec rm -rf {} +
-	find . -type f -name "*.pyc" -delete
+# --- Shell ---
 
-.PHONY: dev
-dev: install install-hooks ## Install for development with code quality tools and hooks
+.PHONY: install-shell
+install-shell: ## Install AMI shell environment to ~/.bashrc
+	@echo "🐚 Installing shell environment..."
+	@bash ami/scripts/shell/shell-setup --install
+	@echo "✅ Shell environment installed"
+
+.PHONY: uninstall-shell
+uninstall-shell: ## Remove AMI shell environment from ~/.bashrc
+	@bash ami/scripts/shell/shell-setup --uninstall
+
+# --- Hooks ---
 
 .PHONY: install-hooks
-install-hooks: ensure-ci ## Install native git hooks (no pre-commit dependency)
+install-hooks: ensure-repos ## Install native git hooks
 	@bash projects/AMI-CI/scripts/cleanup-precommit 2>/dev/null || true
 	bash projects/AMI-CI/scripts/generate-hooks
 
 .PHONY: install-hooks-recursive
-install-hooks-recursive: ensure-ci ## Install hooks in workspace + every nested .git under projects/
+install-hooks-recursive: ensure-repos ## Install hooks in workspace + every nested .git under projects/
 	@echo "🔗 Installing hooks in workspace root..."
 	@bash projects/AMI-CI/scripts/cleanup-precommit 2>/dev/null || true
 	@bash projects/AMI-CI/scripts/generate-hooks
@@ -205,8 +133,64 @@ install-hooks-recursive: ensure-ci ## Install hooks in workspace + every nested 
 		  echo "⚠️  Hook install failed in $$repo (skipping)"; \
 	done
 
+.PHONY: check-hooks
+check-hooks: ensure-repos ## Preview generated hooks (dry-run)
+	bash projects/AMI-CI/scripts/generate-hooks --dry-run
+
+# --- Quality & Test ---
+
+.PHONY: test
+test: ## Run tests (delegates to moon for caching)
+	@moon run ami-agents:test
+
+.PHONY: lint
+lint: ## Run linters (delegates to moon for caching)
+	@moon run ami-agents:lint
+
+.PHONY: type-check
+type-check: ## Run type checker (delegates to moon for caching)
+	@moon run ami-agents:type-check
+
+.PHONY: check
+check: ## Run all checks (lint + type-check + test, with caching)
+	@moon run ami-agents:check
+
+.PHONY: dead-code
+dead-code: ## Run AST-based dead code analysis (delegates to moon for caching)
+	@moon run ami-agents:dead-code
+
+# --- Update ---
+
+.PHONY: update
+update: ## Update workspace via moon — walks every project topologically (^:update)
+	@TMP_WS=$$(mktemp) && \
+	awk -f ami/scripts/filter_moon_workspace.awk .moon/workspace.yml > "$$TMP_WS" && \
+	MOON_WORKSPACE="$$TMP_WS" moon run :update; \
+	RET=$$?; rm -f "$$TMP_WS"; exit $$RET
+
+.PHONY: update-deps
+update-deps: ## Update Python dependencies only
+	@echo "🔄 Updating Python dependencies..."
+	.boot-linux/bin/uv update
+
+.PHONY: uninstall
+uninstall: ## Uninstall ami-agents
+	@echo "🗑️  Uninstalling ami-agents..."
+	.boot-linux/bin/uv pip uninstall ami-agents -y
+
+# --- Utility ---
+
+.PHONY: clean
+clean: ## Clean build artifacts
+	@echo "🧹 Cleaning build artifacts..."
+	rm -rf build/
+	rm -rf dist/
+	rm -rf *.egg-info/
+	find . -type d -name __pycache__ -exec rm -rf {} +
+	find . -type f -name "*.pyc" -delete
+
 .PHONY: scaffold-recursive
-scaffold-recursive: ensure-ci ## Scaffold quality_exceptions.yaml in every strict-tier repo missing it
+scaffold-recursive: ensure-repos ## Scaffold quality_exceptions.yaml in every strict-tier repo
 	@bash projects/AMI-CI/scripts/walk-projects | while IFS= read -r repo; do \
 		_tier=$$(bash -c "source projects/AMI-CI/lib/checks_quality.sh && \
 			ci_resolve_tier '$$repo' \
@@ -222,7 +206,7 @@ scaffold-recursive: ensure-ci ## Scaffold quality_exceptions.yaml in every stric
 	done
 
 .PHONY: check-compliance-recursive
-check-compliance-recursive: ensure-ci ## Audit every nested repo for AMI-CI contract compliance
+check-compliance-recursive: ensure-repos ## Audit every nested repo for AMI-CI contract compliance
 	@_failed=0; \
 	bash projects/AMI-CI/scripts/walk-projects | while IFS= read -r repo; do \
 		echo ""; \
@@ -231,80 +215,6 @@ check-compliance-recursive: ensure-ci ## Audit every nested repo for AMI-CI cont
 			_failed=$$((_failed + 1)); \
 	done; \
 	[ $$_failed -eq 0 ]
-
-# --- Quality & Test ---
-
-.PHONY: test
-test: ## Run tests (delegates to moon for caching)
-	@moon run ami-agents:test
-
-.PHONY: _test-impl
-_test-impl:
-	@echo "🧪 Running tests..."
-	pytest
-
-.PHONY: lint
-lint: ## Run linters (delegates to moon for caching)
-	@moon run ami-agents:lint
-
-.PHONY: _lint-impl
-_lint-impl:
-	@echo "🔍 Running linters..."
-	uv run ruff check --config res/config/ruff.toml .
-	uv run ruff format --config res/config/ruff.toml --check .
-
-.PHONY: type-check
-type-check: ## Run type checker (delegates to moon for caching)
-	@moon run ami-agents:type-check
-
-.PHONY: _type-check-impl
-_type-check-impl:
-	@echo "📝 Running type checker..."
-	mypy .
-
-.PHONY: check
-check: ## Run all checks (lint + type-check + test, with caching)
-	@moon run ami-agents:check
-
-.PHONY: check-hooks
-check-hooks: ensure-ci ## Preview generated hooks (dry-run)
-	bash projects/AMI-CI/scripts/generate-hooks --dry-run
-
-.PHONY: cleanup-precommit
-cleanup-precommit: ## Remove pre-commit package and cache
-	bash projects/AMI-CI/scripts/cleanup-precommit
-
-.PHONY: dead-code
-dead-code: ## Run AST-based dead code analysis (delegates to moon for caching)
-	@moon run ami-agents:dead-code
-
-.PHONY: _dead-code-impl
-_dead-code-impl:
-	.boot-linux/bin/uv run python -m ami.ci.check_dead_code
-
-.PHONY: update
-update: ## Update workspace via moon — walks every project topologically (^:update)
-	@TMP_WS=$$(mktemp) && \
-	awk -f ami/scripts/filter_moon_workspace.awk .moon/workspace.yml > "$$TMP_WS" && \
-	MOON_WORKSPACE="$$TMP_WS" moon run :update; \
-	RET=$$?; rm -f "$$TMP_WS"; exit $$RET
-
-.PHONY: update-ci
-update-ci: ## Update via moon (non-interactive — same as `make update`, alias kept for CI)
-	@TMP=$$(mktemp) && \
-	awk -f ami/scripts/filter_moon_workspace.awk .moon/workspace.yml > "$$TMP" && \
-	MOON_WORKSPACE="$$TMP" moon run :update; \
-	RET=$$?; rm -f "$$TMP"; exit $$RET
-
-.PHONY: update-deps
-update-deps: ## Update Python dependencies only
-	@echo "🔄 Updating Python dependencies..."
-	.boot-linux/bin/uv update
-
-.PHONY: uninstall
-uninstall: ## Uninstall ami-agents
-	@echo "🗑️  Uninstalling ami-agents..."
-	.boot-linux/bin/uv pip uninstall ami-agents -y
 
 # ==============================================================================
 # LlamaServer — multi-flavor build + deployment (cpu, sycl, vulkan)

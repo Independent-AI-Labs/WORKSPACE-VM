@@ -1,9 +1,9 @@
 # Bootstrap component manifest — loaded by ami/scripts/bootstrap_component_defs.py
-# and ami/scripts/pre-req.sh (via inline Python YAML parsing).
+# and ami/scripts/initial-setup.sh (via inline Python YAML parsing).
 #
 # Single source of truth for:
-#   1. System dependencies (top-level requires) — checked by pre-req.sh
-#   2. Bootstrap components (components) — installed by install-bootstrap-ci
+#   1. System dependencies (top-level requires) — checked by initial-setup.sh
+#   2. Bootstrap components (components) — installed by make install / make install-ci
 #   3. Workspace repos — in workspace-clones.yaml, loaded via the same Python module
 #
 # requires fields:
@@ -25,7 +25,7 @@
 #   version_pattern— regex with one capture group; first match wins.
 #   detect_cmd     — alternative argv when detect_path is unreliable.
 #   package_ref    — npm package name; version is resolved from scripts/package.json.
-#   requires       — system prerequisites for this component (checked by pre-req.sh).
+#   requires       — system prerequisites for this component (checked by initial-setup.sh).
 
 groups:
   - 'Core Dependencies'
@@ -41,7 +41,7 @@ groups:
   - 'Matrix & Communication'
 
 # ---------------------------------------------------------------------------
-# System dependencies — checked by pre-req.sh on every make install.
+# System dependencies — checked by initial-setup.sh on every make install.
 # Union of requires (top-level) + all components[].requires = full check list.
 # ---------------------------------------------------------------------------
 requires:

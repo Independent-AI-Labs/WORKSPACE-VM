@@ -2,9 +2,8 @@
 # Used by: make install-ci
 # Edit this file to change which components are installed by default
 #
-# NOTE: Only include components that bootstrap from direct downloads.
-# System dependencies (git, openssh, openssl, openvpn) are checked by pre-req.sh
-# and installed via: sudo make pre-req
+# System dependencies are checked by: make init-check
+# and installed via: sudo make init
 
 components:
   # Core Dependencies (installed FIRST)
@@ -12,6 +11,7 @@ components:
   - python
 
   # AI Coding Assistants
+  - opencode
   - claude
   - gemini
   - qwen

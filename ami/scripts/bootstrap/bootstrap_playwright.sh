@@ -3,7 +3,7 @@ set -euo pipefail
 
 # Bootstrap Playwright browsers into .boot-linux/playwright-browsers/
 # Downloads chromium and chrome binaries. Does NOT install system deps (no sudo).
-# System deps must be installed separately via 'sudo make pre-req'.
+# System deps must be installed separately via 'sudo sudo make init'.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
@@ -48,7 +48,7 @@ done
 if [[ ${#MISSING_LIBS[@]} -gt 0 ]]; then
     log_warn "Missing system libraries for Playwright: ${MISSING_LIBS[*]}"
     log_warn "Browsers will be downloaded but may not work until you run:"
-    log_warn "  sudo make pre-req"
+    log_warn "  sudo sudo make init"
     echo "" >&2
 fi
 
@@ -73,11 +73,11 @@ if [[ ${#MISSING_LIBS[@]} -eq 0 ]]; then
     else
         rm -f "$VERIFY_IMG"
         log_warn "Chromium verification failed — browser may need system deps"
-        log_warn "Run: sudo make pre-req"
+        log_warn "Run: sudo sudo make init"
     fi
 else
     log_warn "Skipping browser verification — system deps missing"
-    log_warn "Run: sudo make pre-req"
+    log_warn "Run: sudo sudo make init"
 fi
 
 log_success "Playwright bootstrap complete"

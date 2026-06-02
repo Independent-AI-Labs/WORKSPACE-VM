@@ -2,7 +2,7 @@
 # =============================================================================
 # Bootstrap — Apt Probing & Installation
 # =============================================================================
-# Sourced by pre-req.sh — not standalone
+# Sourced by initial-setup.sh — not standalone
 # =============================================================================
 
 declare -A RESOLVED_PACKAGES=()

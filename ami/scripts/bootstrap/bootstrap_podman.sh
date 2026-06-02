@@ -157,7 +157,7 @@ if [[ ${#MISSING_SYS_DEPS[@]} -gt 0 ]]; then
     done
     log_warn ""
     log_warn "To install missing dependencies, run:"
-    log_warn "  sudo make pre-req"
+    log_warn "  sudo make init"
     log_warn ""
     log_warn "Continuing with Podman installation (may have limited rootless functionality)..."
 fi
@@ -167,7 +167,7 @@ APPARMOR_USERNS=$(sysctl -n kernel.apparmor_restrict_unprivileged_userns 2>/dev/
 if [[ "$APPARMOR_USERNS" == "1" ]]; then
     log_warn "AppArmor restricts unprivileged user namespaces on this kernel"
     log_warn "Podman may require manual AppArmor profile setup for full rootless mode"
-    log_warn "Run 'sudo make pre-req' to install system dependencies"
+    log_warn "Run 'sudo make init' to install system dependencies"
 else
     log_info "AppArmor userns restriction not active"
 fi

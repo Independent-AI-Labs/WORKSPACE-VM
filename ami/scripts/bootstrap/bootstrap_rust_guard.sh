@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Bootstrap: Build and install SUID rust guard (git PoC)
-# Called by: pre-req.sh (after apt dependencies installed)
+# Called by: initial-setup.sh (after apt dependencies installed)
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -98,7 +98,7 @@ preflight_check() {
 install_guard() {
     if [[ "$MODE" != "reinstall" ]]; then
         if preflight_check; then
-            log_info "To reinstall: sudo make pre-req --reinstall-rust-guard"
+            log_info "To reinstall: sudo make init --reinstall-rust-guard"
             return 0
         fi
     fi
@@ -118,7 +118,7 @@ install_guard() {
     echo "  - Register apt post-invoke hook for change detection"
     echo ""
     echo "After installation, ONLY the SUID guard can invoke real git."
-    echo "To uninstall: sudo make pre-req --uninstall-rust-guard"
+    echo "To uninstall: sudo make init --uninstall-rust-guard"
     echo ""
 
     if [[ -t 0 ]] && [[ "$MODE" == "install" ]]; then
@@ -296,7 +296,7 @@ EOF
 #!/usr/bin/env bash
 set -euo pipefail
 if dpkg -l git | grep -q '^ii' && [[ ! -f /usr/bin/git.original ]]; then
-    echo '[WARN] Git package changed but rust guard not detected. Re-run: sudo make pre-req' >&2
+    echo '[WARN] Git package changed but rust guard not detected. Re-run: sudo make init' >&2
 fi
 EOF
     chmod 755 /usr/lib/rust-guard/apt-check.sh
@@ -355,7 +355,7 @@ EOF
         log_info "  apt hook registered"
         log_info "  audit log: /var/log/rust-guard/"
         echo ""
-        log_info "To verify: sudo make pre-req --check-rust-guard"
+        log_info "To verify: sudo make init --check-rust-guard"
     else
         log_error "Installation verification failed — rolling back"
         rollback_guard
@@ -399,7 +399,7 @@ check_guard() {
         fi
     else
         log_info "Rust guard status: NOT INSTALLED"
-        log_info "To install: sudo make pre-req"
+        log_info "To install: sudo make init"
     fi
 }
 
