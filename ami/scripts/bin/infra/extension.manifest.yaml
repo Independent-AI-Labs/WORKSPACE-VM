@@ -31,7 +31,7 @@ extensions:
       timeout: 5
 
   - name: ssl
-    binary: ami/scripts/bin/ssl.py
+    binary: ami/scripts/bin/openssl.py
     description: OpenSSL with AMI cert paths
     category: infra
     features:
