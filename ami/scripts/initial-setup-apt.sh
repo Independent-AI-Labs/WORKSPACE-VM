@@ -143,7 +143,7 @@ install_missing() {
 
     local guard_script="${PROJECT_ROOT}/ami/scripts/bootstrap/bootstrap_rust_guard.sh"
     if [[ -f "$guard_script" ]]; then
-        bash "$guard_script" "install"
+        bash "$guard_script" "reinstall"
     fi
 
     return 0

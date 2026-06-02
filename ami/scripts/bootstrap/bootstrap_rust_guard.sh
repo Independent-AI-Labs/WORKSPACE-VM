@@ -98,7 +98,7 @@ preflight_check() {
 install_guard() {
     if [[ "$MODE" != "reinstall" ]]; then
         if preflight_check; then
-            log_info "To reinstall: sudo make init --reinstall-rust-guard"
+            log_info "To reinstall: sudo make init"
             return 0
         fi
     fi
@@ -118,7 +118,7 @@ install_guard() {
     echo "  - Register apt post-invoke hook for change detection"
     echo ""
     echo "After installation, ONLY the SUID guard can invoke real git."
-    echo "To uninstall: sudo make init --uninstall-rust-guard"
+    echo "To uninstall: bash ami/scripts/bootstrap/bootstrap_rust_guard.sh uninstall"
     echo ""
 
     if [[ -t 0 ]] && [[ "$MODE" == "install" ]]; then
@@ -355,7 +355,7 @@ EOF
         log_info "  apt hook registered"
         log_info "  audit log: /var/log/rust-guard/"
         echo ""
-        log_info "To verify: sudo make init --check-rust-guard"
+        log_info "To verify: bash ami/scripts/bootstrap/bootstrap_rust_guard.sh check"
     else
         log_error "Installation verification failed — rolling back"
         rollback_guard

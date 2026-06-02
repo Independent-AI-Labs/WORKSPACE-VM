@@ -317,7 +317,7 @@ if [[ ${#MISSING_ENTRIES[@]} -eq 0 ]]; then
     guard_script="${PROJECT_ROOT}/ami/scripts/bootstrap/bootstrap_rust_guard.sh"
     if [[ -f "$guard_script" ]]; then
         echo ""
-        bash "$guard_script" "install"
+        bash "$guard_script" "reinstall"
     fi
 
     echo ""
