@@ -218,9 +218,10 @@ check_cmd() {
         fi
         return 0
     else
-        if [[ "$optional" == "True" ]]; then
-            log_warn "$desc ${DIM}(optional — not found)${NC}"
-        else
+    if [[ "$optional" == "True" ]]; then
+        log_warn "$desc ${DIM}(optional — not found)${NC}"
+        return 0
+    else
             log_miss "$desc ${DIM}(not found — needs: $pkg)${NC}"
             [[ -n "$pkg" ]] && MISSING_ENTRIES+=("${cmd}|${pkg}|${desc}")
         fi
@@ -291,7 +292,9 @@ while IFS='|' read -r entry_type rest; do
     case "$entry_type" in
         cmd)
             IFS='|' read -r check_cmd_val apt_pkg desc bootstrap optional comp_name <<< "$rest"
-            [[ -n "$check_cmd_val" ]] && check_cmd "$check_cmd_val" "$apt_pkg" "$desc" "$optional"
+            if [[ -n "$check_cmd_val" ]]; then
+                check_cmd "$check_cmd_val" "$apt_pkg" "$desc" "$optional" || true  # silent-ok: returns 1 as status signal, not error
+            fi
             ;;
         type)
             IFS='|' read -r check_type_val desc comp_name <<< "$rest"
