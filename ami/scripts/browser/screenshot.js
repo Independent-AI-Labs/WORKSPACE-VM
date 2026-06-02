@@ -45,7 +45,7 @@ function parseArgs() {
 
 (async () => {
   const opts = parseArgs();
-  const browser = await chromium.launch();
+  const browser = await chromium.launch({ headless: true });
   const page = await browser.newPage({ viewport: { width: opts.width, height: opts.height } });
 
   try {

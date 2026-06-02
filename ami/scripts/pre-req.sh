@@ -211,27 +211,9 @@ prompt_install() {
         return 1
     fi
 
-    if [[ "$MODE" == "interactive" ]] && [[ -t 0 ]]; then
-        echo -ne "${CYAN}${BOLD}Auto-install missing packages using sudo? [y/N] ${NC}"
-        read -r response
-        case "$response" in
-            [yY][eE][sS]|[yY])
-                echo ""
-                install_missing
-                return $?
-                ;;
-            *)
-                echo ""
-                log_info "Skipping auto-install."
-                log_info "To install later, run: ${BOLD}sudo make pre-req${NC}"
-                return 1
-                ;;
-        esac
-    else
-        log_info "To install missing packages, run:"
-        log_info "${BOLD}  sudo make pre-req${NC}"
-        return 1
-    fi
+    log_info "To install missing packages, run:"
+    log_info "${BOLD}  sudo make pre-req${NC}"
+    return 0
 }
 
 # =============================================================================
@@ -265,6 +247,7 @@ check_command "tar" "tar" "tar archiver" || true  # silent-ok: non-fatal check, 
 check_command "gzip" "gzip" "gzip compression" || true  # silent-ok: non-fatal check, accumulates MISSING_ENTRIES
 check_command "dpkg-deb" "dpkg" "dpkg-deb extractor" || true  # silent-ok: non-fatal check, accumulates MISSING_ENTRIES
 check_command "gitleaks" "gitleaks-bootstrap" "Gitleaks (secret scanning)"
+check_command "Xvfb" "xvfb" "X Virtual Framebuffer (headless display)" || true  # silent-ok: non-fatal, accumulated
 
 check_playwright
 check_network_tools

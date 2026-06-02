@@ -57,6 +57,10 @@ uninstall_guard() {
 
 rollback_guard() {
     log_warn "Installation failed — rolling back..."
+    if command -v chattr >/dev/null; then
+        chattr -i /usr/bin/git 2>/dev/null || true  # silent-ok: chattr may fail if attribute already absent or binary missing during rollback
+        chattr -i /usr/bin/git.original 2>/dev/null || true  # silent-ok: chattr may fail if attribute already absent or original missing during rollback
+    fi
     rm -f /usr/bin/git
     if divert_is_active; then
         dpkg-divert --rename --remove /usr/bin/git

@@ -184,6 +184,9 @@ setup_paths
 # Playwright browsers path (installed to .boot-linux/ instead of ~/.cache/)
 export PLAYWRIGHT_BROWSERS_PATH="$AMI_ROOT/.boot-linux/playwright-browsers"
 
+# Headless X server for browser automation (Xvfb on display :99)
+export DISPLAY="${DISPLAY:-:99}"
+
 # Import helper functions
 source "$AGENTS_SCRIPTS/utils/module_helpers.sh"
 
