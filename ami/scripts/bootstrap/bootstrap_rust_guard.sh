@@ -166,10 +166,11 @@ install_guard() {
             guard_remote="git@github.com:Independent-AI-Labs/RUST-GUARD.git"
         fi
         mkdir -p "$(dirname "$guard_dir")"
-        if ! git clone "$guard_remote" "$guard_dir"; then
+        if ! sudo -u "${SUDO_USER:-$USER}" git clone "$guard_remote" "$guard_dir"; then
             log_error "Failed to clone RUST-GUARD from $guard_remote"
             return 1
         fi
+        chown -R root:root "$guard_dir" 2>/dev/null || true  # silent-ok: non-fatal if sudo user owns dir
         log_info "RUST-GUARD cloned from $guard_remote"
     fi
 

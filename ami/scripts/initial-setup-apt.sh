@@ -15,13 +15,6 @@ probe_apt_package() {
         return
     fi
 
-    # Bootstrap-type packages handled by their scripts
-    if [[ "$pkg" == "gitleaks" ]]; then
-        RESOLVED_PACKAGES[$pkg]="gitleaks — GitHub release binary"
-        RESOLVED_STATUS[$pkg]="bootstrap"
-        return 0
-    fi
-
     local pkg_info=""
     pkg_info=$(apt-cache show "$pkg" 2>/dev/null) || true  # silent-ok: pkg may not exist in apt repos, handled below
 
@@ -67,8 +60,32 @@ install_missing() {
         return 0
     fi
 
+    # Split bootstrap entries (|bootstrap| prefix) from apt entries
+    local bootstrap_entries=()
+    local apt_entries=()
+    for entry in "${MISSING_ENTRIES[@]}"; do
+        if [[ "$entry" == *"|bootstrap|"* ]]; then
+            bootstrap_entries+=("$entry")
+        else
+            apt_entries+=("$entry")
+        fi
+    done
+
+    # Run bootstrap scripts
+    for entry in "${bootstrap_entries[@]}"; do
+        IFS='|' read -r cmd _ _ script <<< "$entry"
+        log_info "Bootstrapping $cmd..."
+        if bash "${PROJECT_ROOT}/${script}"; then
+            log_info "✓ $cmd bootstrapped successfully"
+        else
+            log_error "✗ $cmd bootstrap failed"
+            return 1
+        fi
+    done
+
+    [[ ${#apt_entries[@]} -eq 0 ]] && MISSING_ENTRIES=() || MISSING_ENTRIES=("${apt_entries[@]}")
+
     local apt_installable=()
-    local bootstrap_installable=()
     local unavail=()
 
     for entry in "${MISSING_ENTRIES[@]}"; do
@@ -83,9 +100,6 @@ install_missing() {
                     [[ "$existing" == "$pkg" ]] && already=true && break
                 done
                 [[ "$already" == "false" ]] && apt_installable+=("$pkg")
-                ;;
-            bootstrap)
-                bootstrap_installable+=("$pkg")
                 ;;
             *)
                 local already=false
@@ -106,20 +120,6 @@ install_missing() {
         echo ""
     fi
 
-    for _bpkg in "${bootstrap_installable[@]:-}"; do
-        case "$_bpkg" in
-            gitleaks)
-                log_info "Bootstrapping gitleaks from GitHub release..."
-                if bash "${PROJECT_ROOT}/projects/AMI-CI/scripts/bootstrap-gitleaks"; then
-                    log_info "✓ gitleaks bootstrapped successfully"
-                else
-                    log_error "✗ gitleaks bootstrap failed"
-                    return 1
-                fi
-                ;;
-        esac
-    done
-
     if [[ ${#apt_installable[@]} -gt 0 ]]; then
         log_info "Installing ${#apt_installable[@]} package(s) via apt: ${apt_installable[*]}"
         echo ""
@@ -132,13 +132,8 @@ install_missing() {
             log_error "Failed to install packages via apt."
             return 1
         fi
-    elif [[ ${#bootstrap_installable[@]} -gt 0 ]]; then
+    elif [[ ${#bootstrap_entries[@]} -gt 0 ]]; then
         log_info "${GREEN}${BOLD}All missing dependencies resolved via bootstrap.${NC}"
-    elif [[ ${#MISSING_ENTRIES[@]} -eq 0 ]]; then
-        :
-    else
-        log_error "No installable packages available."
-        return 1
     fi
 
     local guard_script="${PROJECT_ROOT}/ami/scripts/bootstrap/bootstrap_rust_guard.sh"

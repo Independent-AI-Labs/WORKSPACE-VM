@@ -203,7 +203,7 @@ first_line() { local _out; _out="$1"; echo "${_out%%$'\n'*}"; }
 # Check functions
 # =============================================================================
 check_cmd() {
-    local cmd="$1" pkg="$2" desc="$3" optional="${4:-False}"
+    local cmd="$1" pkg="$2" desc="$3" optional="${4:-False}" bootstrap="${5:-}"
     local found_path="" version="" raw=""
 
     if found_path=$(find_binary "$cmd"); then
@@ -222,10 +222,15 @@ check_cmd() {
         log_warn "$desc ${DIM}(optional — not found)${NC}"
         return 0
     else
+        if [[ -n "$bootstrap" ]]; then
+            log_miss "$desc ${DIM}(not found — bootstrap)${NC}"
+            MISSING_ENTRIES+=("${cmd}|bootstrap|${bootstrap}")
+        elif [[ -n "$pkg" ]]; then
             log_miss "$desc ${DIM}(not found — needs: $pkg)${NC}"
-            [[ -n "$pkg" ]] && MISSING_ENTRIES+=("${cmd}|${pkg}|${desc}")
+            MISSING_ENTRIES+=("${cmd}|${pkg}|${desc}")
         fi
         return 1
+    fi
     fi
 }
 
@@ -293,7 +298,7 @@ while IFS='|' read -r entry_type rest; do
         cmd)
             IFS='|' read -r check_cmd_val apt_pkg desc bootstrap optional comp_name <<< "$rest"
             if [[ -n "$check_cmd_val" ]]; then
-                check_cmd "$check_cmd_val" "$apt_pkg" "$desc" "$optional" || true  # silent-ok: returns 1 as status signal, not error
+                check_cmd "$check_cmd_val" "$apt_pkg" "$desc" "$optional" "$bootstrap" || true  # silent-ok: returns 1 as status signal, not error
             fi
             ;;
         type)
