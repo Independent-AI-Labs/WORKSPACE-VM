@@ -4,10 +4,10 @@
 import argparse
 import os
 
-from ami.cli_components.legend import Legend, LegendGroup, LegendItem
+from ami.cli.legend import Legend, LegendGroup, LegendItem
 
 # Import from sub-modules for internal use
-from ami.cli_components.status_containers import (
+from ami.cli.status_containers import (
     _parse_port_mapping,
     _print_orphans,
     _print_service_children,
@@ -16,7 +16,7 @@ from ami.cli_components.status_containers import (
     get_container_stats,
     get_podman_containers,
 )
-from ami.cli_components.status_systemd import (
+from ami.cli.status_systemd import (
     SYSTEMD_PREFIXES,
     _extract_compose_info,
     _parse_systemd_details,
@@ -29,7 +29,7 @@ from ami.cli_components.status_systemd import (
 
 # ── Backward-compatible re-exports ──────────────────────────────────────────
 # Tests and external consumers may import these names from this module.
-from ami.cli_components.status_utils import (
+from ami.cli.status_utils import (
     DISPLAY_WIDTH,
     I_BOOT,
     I_FAIL,

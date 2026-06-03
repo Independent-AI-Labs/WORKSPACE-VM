@@ -6,7 +6,7 @@ import os
 import re
 from typing import cast
 
-from ami.cli_components.status_utils import (
+from ami.cli.status_utils import (
     C_DIM,
     C_RESET,
     DISPLAY_WIDTH,

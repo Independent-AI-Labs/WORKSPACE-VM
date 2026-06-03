@@ -14,7 +14,7 @@ from pathlib import Path
 
 import psutil
 
-from ami.cli_components.status_containers import get_container_sizes
+from ami.cli.status_containers import get_container_sizes
 from ami.scripts.utils.analyze_disk_usage import analyze
 from ami.scripts.utils.sys_info import ProgressBar, get_size_str
 

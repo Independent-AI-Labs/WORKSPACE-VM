@@ -8,7 +8,7 @@ from pathlib import Path
 
 import yaml
 
-from ami.cli_components.status_utils import (
+from ami.cli.status_utils import (
     C_DIM,
     C_RESET,
     DISPLAY_WIDTH,
