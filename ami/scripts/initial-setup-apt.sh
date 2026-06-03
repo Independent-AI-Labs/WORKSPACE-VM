@@ -20,7 +20,7 @@ probe_apt_package() {
 
     if [[ -z "$pkg_info" ]]; then
         RESOLVED_STATUS[$pkg]="unavailable"
-        return 1
+        return 0
     fi
 
     local version="" arch=""
@@ -41,6 +41,12 @@ probe_all_missing() {
     declare -A seen=()
 
     for entry in "${MISSING_ENTRIES[@]}"; do
+        # Bootstrap entries (format: cmd|bootstrap|script) have no apt
+        # package to probe.  Skipping them prevents probe_apt_package
+        # from returning 1 (unavailable) and triggering set -e crash.
+        if [[ "$entry" == *"|bootstrap|"* ]]; then
+            continue
+        fi
         local pkg="${entry#*|}"
         pkg="${pkg%%|*}"
         if [[ -z "${seen[$pkg]:-}" ]]; then
