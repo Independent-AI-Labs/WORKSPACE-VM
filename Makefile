@@ -56,7 +56,12 @@ ensure-repos: ## Clone every workspace repo per moon.yml metadata
 .PHONY: sync-package
 sync-package: core ensure-repos ## Sync package dependencies via uv
 	@echo "🔧 Syncing ami-agents..."
-	.boot-linux/bin/uv sync --extra dev
+	@# Reinstall editable workspace packages so namespace finders
+	@# regenerate with correct MAPPING after sub-repos are pulled.
+	.boot-linux/bin/uv sync --extra dev \
+		--reinstall-package ami-agents \
+		--reinstall-package ami-ci \
+		--reinstall-package ami-dataops
 	@echo "✅ Package 'ami-agents' installed with dev dependencies"
 
 # --- Config ---
