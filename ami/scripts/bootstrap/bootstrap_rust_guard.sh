@@ -135,9 +135,6 @@ install_guard() {
     local boot_rust="${PROJECT_ROOT}/.boot-linux/bin"
     if [[ -x "$boot_rust/rustc" ]]; then
         log_info "Using bootstrapped Rust from $boot_rust"
-        export PATH="$boot_rust:$PATH"
-        export RUSTUP_HOME="${PROJECT_ROOT}/.boot-linux/rust"
-        export CARGO_HOME="${PROJECT_ROOT}/.boot-linux/cargo"
     elif ! command -v rustc >/dev/null; then
         log_warn "Rust not installed. Installing via rustup..."
         bash "${PROJECT_ROOT}/ami/scripts/bootstrap/bootstrap_rust.sh" || {
@@ -145,6 +142,9 @@ install_guard() {
             return 1
         }
     fi
+    export PATH="$boot_rust:$PATH"
+    export RUSTUP_HOME="${PROJECT_ROOT}/.boot-linux/rust"
+    export CARGO_HOME="${PROJECT_ROOT}/.boot-linux/rust"
 
     local guard_dir="${PROJECT_ROOT}/projects/RUST-GUARD"
     if [[ ! -f "$guard_dir/Cargo.toml" ]]; then
