@@ -34,6 +34,7 @@ _EXPECTED_CATEGORIES = [
     "enterprise",
     "dev",
     "infra",
+    "research",
     "docs",
     "agents",
 ]
