@@ -448,7 +448,7 @@ def output_doctor(
 def main() -> None:
     """CLI entry point for banner_helper."""
     parser = argparse.ArgumentParser(
-        prog="ami",
+        prog="banner",
         description=("AMI banner helper: extension display (banner, extras, doctor)."),
     )
     parser.add_argument(

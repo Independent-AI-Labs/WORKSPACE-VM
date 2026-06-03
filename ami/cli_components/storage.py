@@ -125,7 +125,7 @@ def _print_container_sizes() -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        prog="ami storage",
+        prog="storage",
         description=(
             "Aggregated storage report: root disk, repo breakdown, container sizes."
         ),
