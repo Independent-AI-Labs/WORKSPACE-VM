@@ -1,6 +1,6 @@
 # AMI Orchestrator - Managed Services Inventory
 #
-# This file is read by ami/cli_components/status_systemd.py
+# This file is read by workspace/cli_components/status_systemd.py
 # to determine which services are managed (vs orphan).
 
 compose_services:

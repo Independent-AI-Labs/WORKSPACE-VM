@@ -4,8 +4,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from ami.scripts.bootstrap_components import Component, ComponentStatus, ComponentType
-from ami.scripts.find_duplicates import (
+from workspace.scripts.bootstrap_components import (
+    Component,
+    ComponentStatus,
+    ComponentType,
+)
+from workspace.scripts.find_duplicates import (
     DuplicateResult,
     find_duplicates,
     get_all_filenames,

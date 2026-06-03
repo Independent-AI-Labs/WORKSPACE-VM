@@ -46,7 +46,7 @@ jobs:
         run: make install-ci
         env:
           # CI is not a TTY; the bootstrap installer must never prompt.
-          AMI_NONINTERACTIVE: '1'
+          WORKSPACE_NONINTERACTIVE: '1'
 
       - name: Run moon ci (PR -- affected only)
         if: github.event_name == 'pull_request'

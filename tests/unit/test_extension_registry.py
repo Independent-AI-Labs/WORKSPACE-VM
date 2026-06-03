@@ -1,4 +1,4 @@
-"""Unit tests for ami.scripts.shell.extension_registry."""
+"""Unit tests for workspace.scripts.shell.extension_registry."""
 
 from __future__ import annotations
 
@@ -10,8 +10,8 @@ from unittest.mock import patch
 import pytest
 import yaml
 
-import ami.scripts.shell.extension_registry as reg
-from ami.scripts.shell.extension_registry import (
+import workspace.scripts.shell.extension_registry as reg
+from workspace.scripts.shell.extension_registry import (
     ExtensionEntry,
     Status,
     check_additional_deps,
@@ -281,19 +281,19 @@ class TestCheckDep:
         assert not check_dep(dep, tmp_path)
 
     def test_system_package_found(self) -> None:
-        mod_path = "ami.scripts.shell.extension_registry.shutil.which"
+        mod_path = "workspace.scripts.shell.extension_registry.shutil.which"
         with patch(mod_path, return_value="/usr/bin/ls"):
             dep = {"type": "system-package", "name": "ls"}
             assert check_dep(dep, Path("/"))
 
     def test_system_package_missing(self) -> None:
-        mod_path = "ami.scripts.shell.extension_registry.shutil.which"
+        mod_path = "workspace.scripts.shell.extension_registry.shutil.which"
         with patch(mod_path, return_value=None):
             dep = {"type": "system-package", "name": "nope"}
             assert not check_dep(dep, Path("/"))
 
     def test_container_calls_check_container(self) -> None:
-        mod_path = "ami.scripts.shell.extension_registry.check_container"
+        mod_path = "workspace.scripts.shell.extension_registry.check_container"
         with patch(mod_path, return_value=True):
             dep = {
                 "type": "container",

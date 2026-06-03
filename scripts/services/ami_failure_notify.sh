@@ -8,7 +8,7 @@
 # the polymarket account (independentailabs@gmail.com Gmail SMTP).
 #
 # Exit codes:
-#   0  — email sent (or AMI_FAILURE_NOTIFY_DRY_RUN=1 honored)
+#   0  — email sent (or WORKSPACE_FAILURE_NOTIFY_DRY_RUN=1 honored)
 #   2  — bad invocation
 #   3  — himalaya not on PATH
 #   4  — himalaya send failed (this is intentionally non-zero so the failure
@@ -20,14 +20,14 @@
 
 set -euo pipefail
 
-readonly TO_ADDR="${AMI_FAILURE_NOTIFY_TO:-independentailabs@gmail.com}"
-readonly FROM_ADDR="${AMI_FAILURE_NOTIFY_FROM:-independentailabs@gmail.com}"
-readonly HIMALAYA_ACCOUNT="${AMI_FAILURE_NOTIFY_ACCOUNT:-polymarket}"
+readonly TO_ADDR="${WORKSPACE_FAILURE_NOTIFY_TO:-independentailabs@gmail.com}"
+readonly FROM_ADDR="${WORKSPACE_FAILURE_NOTIFY_FROM:-independentailabs@gmail.com}"
+readonly HIMALAYA_ACCOUNT="${WORKSPACE_FAILURE_NOTIFY_ACCOUNT:-polymarket}"
 # Resolve binary + config relative to $HOME so the script is portable across
 # operator workstations (no hardcoded user prefix). Override with
-# AMI_HIMALAYA_BIN / AMI_HIMALAYA_CONFIG if needed.
-readonly HIMALAYA_BIN="${AMI_HIMALAYA_BIN:-${HOME}/AMI-AGENTS/.boot-linux/bin/himalaya}"
-readonly HIMALAYA_CONFIG="${AMI_HIMALAYA_CONFIG:-${XDG_CONFIG_HOME:-${HOME}/.config}/himalaya/config.toml}"
+# WORKSPACE_HIMALAYA_BIN / WORKSPACE_HIMALAYA_CONFIG if needed.
+readonly HIMALAYA_BIN="${WORKSPACE_HIMALAYA_BIN:-${HOME}/AMI-AGENTS/.boot-linux/bin/himalaya}"
+readonly HIMALAYA_CONFIG="${WORKSPACE_HIMALAYA_CONFIG:-${XDG_CONFIG_HOME:-${HOME}/.config}/himalaya/config.toml}"
 
 log() {
     # Tag every log line with a recognizable prefix so journalctl filtering
@@ -111,7 +111,7 @@ EOF
 # Dry-run mode: log what would have been sent and exit 0. Used by the
 # ami-failure-notify-test.service verification step so we don't actually
 # blast operator inboxes during smoke tests.
-if [[ "${AMI_FAILURE_NOTIFY_DRY_RUN:-0}" == "1" ]]; then
+if [[ "${WORKSPACE_FAILURE_NOTIFY_DRY_RUN:-0}" == "1" ]]; then
     log "DRY_RUN=1 — not invoking himalaya. would-send subject: ${SUBJECT}"
     log "DRY_RUN=1 — would-send body length: ${#message} bytes"
     log "DRY_RUN=1 — to=${TO_ADDR} from=${FROM_ADDR} account=${HIMALAYA_ACCOUNT}"

@@ -8,7 +8,7 @@
       when: llama_flavor is defined
 
   vars:
-    llama_model_path: "{{ lookup('env', 'LLAMA_MODEL_PATH') | default('/home/ami/AMI-AGENTS/models/Qwen3.6-35B-A3B-UD-Q4_K_M.gguf', true) }}"
+    llama_model_path: "{{ lookup('env', 'LLAMA_MODEL_PATH') | default('/home/workspace/AMI-AGENTS/models/Qwen3.6-35B-A3B-UD-Q4_K_M.gguf', true) }}"
     llama_server_host: "{{ lookup('env', 'LLAMA_SERVER_HOST') | default('0.0.0.0', true) }}"
     llama_context_size: "{{ lookup('env', 'LLAMA_CONTEXT_SIZE') | default('200000', true) }}"
     llama_gpu_layers: "{{ lookup('env', 'LLAMA_GPU_LAYERS') | default('99', true) }}"

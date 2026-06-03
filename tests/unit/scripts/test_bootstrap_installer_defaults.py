@@ -12,8 +12,8 @@ from unittest.mock import patch
 
 import pytest
 
-from ami.scripts.bootstrap_components import Component, ComponentType
-from ami.scripts.bootstrap_installer import (
+from workspace.scripts.bootstrap_components import Component, ComponentType
+from workspace.scripts.bootstrap_installer import (
     InstallationResult,
     _load_defaults,
     _run_from_defaults,
@@ -53,7 +53,7 @@ class TestLoadDefaults:
 class TestRunFromDefaults:
     """Tests for _run_from_defaults."""
 
-    @patch("ami.scripts.bootstrap_installer._run_installation")
+    @patch("workspace.scripts.bootstrap_installer._run_installation")
     def test_runs_installation_with_resolved_components(
         self, mock_run, tmp_path: Path
     ) -> None:
@@ -68,7 +68,7 @@ class TestRunFromDefaults:
         components = mock_run.call_args[0][0]
         assert any(c.name == "uv" for c in components)
 
-    @patch("ami.scripts.bootstrap_installer._run_installation")
+    @patch("workspace.scripts.bootstrap_installer._run_installation")
     def test_warns_on_unknown_component(self, mock_run, tmp_path: Path, capsys) -> None:
         f = tmp_path / "defaults.yaml"
         f.write_text("components:\n  - uv\n  - zzz_does_not_exist_zzz\n")
@@ -80,7 +80,7 @@ class TestRunFromDefaults:
         assert "Unknown component 'zzz_does_not_exist_zzz'" in out
         assert rc == 0
 
-    @patch("ami.scripts.bootstrap_installer._run_installation")
+    @patch("workspace.scripts.bootstrap_installer._run_installation")
     def test_no_valid_components_short_circuits(self, mock_run, tmp_path: Path) -> None:
         # An entry that resolves to nothing; combined with no mandatory repos
         # being defined in the patched WORKSPACE_REPOS, _run_installation
@@ -88,14 +88,14 @@ class TestRunFromDefaults:
         f = tmp_path / "defaults.yaml"
         f.write_text("components:\n  - zzz_does_not_exist_zzz\n")
         with patch(
-            "ami.scripts.bootstrap_installer._bootstrap_defs.WORKSPACE_REPOS", []
+            "workspace.scripts.bootstrap_installer._bootstrap_defs.WORKSPACE_REPOS", []
         ):
             rc = _run_from_defaults(f)
 
         assert rc == 0
         mock_run.assert_not_called()
 
-    @patch("ami.scripts.bootstrap_installer._run_installation")
+    @patch("workspace.scripts.bootstrap_installer._run_installation")
     def test_appends_mandatory_workspace_repos(self, mock_run, tmp_path: Path) -> None:
         f = tmp_path / "defaults.yaml"
         f.write_text("components:\n  - uv\n")
@@ -140,11 +140,11 @@ class TestRunFromDefaults:
         # there too — patch the module-level list seen by the resolver.
         with (
             patch(
-                "ami.scripts.bootstrap_installer._bootstrap_defs.WORKSPACE_REPOS",
+                "workspace.scripts.bootstrap_installer._bootstrap_defs.WORKSPACE_REPOS",
                 [fake_mandatory, fake_optional],
             ),
             patch(
-                "ami.scripts.bootstrap_installer._bootstrap_defs.get_component_by_name",
+                "workspace.scripts.bootstrap_installer._bootstrap_defs.get_component_by_name",
                 side_effect=_resolve,
             ),
         ):
@@ -162,7 +162,7 @@ class TestRunFromDefaults:
 class TestMainEntryDispatch:
     """Tests for main() argv dispatch."""
 
-    @patch("ami.scripts.bootstrap_installer._run_from_defaults", return_value=0)
+    @patch("workspace.scripts.bootstrap_installer._run_from_defaults", return_value=0)
     def test_main_routes_to_defaults_mode(
         self, mock_defaults, monkeypatch, tmp_path: Path
     ) -> None:

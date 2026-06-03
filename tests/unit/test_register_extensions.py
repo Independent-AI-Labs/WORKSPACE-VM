@@ -1,4 +1,4 @@
-"""Unit tests for ami.scripts.register_extensions."""
+"""Unit tests for workspace.scripts.register_extensions."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from unittest.mock import patch
 import pytest
 import yaml
 
-from ami.scripts.register_extensions import (
+from workspace.scripts.register_extensions import (
     create_symlink,
     create_wrapper,
     fix_stale_shebang,

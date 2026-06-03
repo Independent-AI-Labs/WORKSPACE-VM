@@ -12,7 +12,7 @@ from typing import NamedTuple
 
 import pytest
 
-from ami.scripts.shell.extension_registry import (
+from workspace.scripts.shell.extension_registry import (
     discover_manifests,
     resolve_extensions,
 )

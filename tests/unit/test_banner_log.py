@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from unittest.mock import patch
 
-from ami.scripts.shell.banner_log import (
+from workspace.scripts.shell.banner_log import (
     CheckRecord,
     _write_record,
     banner_log_session,
@@ -43,7 +43,7 @@ class TestBannerLogSession:
         # Make logs/ creation fail
         with (
             patch(
-                "ami.scripts.shell.banner_log.Path.mkdir",
+                "workspace.scripts.shell.banner_log.Path.mkdir",
                 side_effect=OSError("denied"),
             ),
             banner_log_session(tmp_path, "banner") as log,

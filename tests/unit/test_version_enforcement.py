@@ -5,14 +5,14 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import patch
 
-from ami.scripts.shell.extension_registry import ResolvedExtension, Status
-from ami.scripts.shell.run_check import (
+from workspace.scripts.shell.extension_registry import ResolvedExtension, Status
+from workspace.scripts.shell.run_check import (
     HealthCheckResult,
     _check_version_constraint,
     _compare_semver,
     _parse_semver,
 )
-from ami.scripts.shell.version_enforcer import enforce_versions
+from workspace.scripts.shell.version_enforcer import enforce_versions
 
 
 class TestParseSemver:
@@ -84,7 +84,7 @@ class TestCheckVersionConstraint:
         assert "no version extracted" in (reason or "")
 
 
-_VERSION_ENFORCER_RUN = "ami.scripts.shell.version_enforcer.run_check"
+_VERSION_ENFORCER_RUN = "workspace.scripts.shell.version_enforcer.run_check"
 
 
 class TestEnforceVersions:

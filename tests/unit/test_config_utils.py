@@ -3,7 +3,7 @@
 from pathlib import Path
 from unittest.mock import patch
 
-from ami.config_utils import get_config_path, get_vendor_config_path
+from workspace.config_utils import get_config_path, get_vendor_config_path
 
 
 class TestGetConfigPath:

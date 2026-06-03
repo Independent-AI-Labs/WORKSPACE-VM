@@ -7,13 +7,13 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from ami.scripts.register_extensions import (
+from workspace.scripts.register_extensions import (
     _register_one,
     register_extensions,
     remove_bashrc_functions,
     update_bashrc_path,
 )
-from ami.scripts.shell.extension_registry import ResolvedExtension, Status
+from workspace.scripts.shell.extension_registry import ResolvedExtension, Status
 
 
 class TestUpdateBashrcPath:
@@ -131,7 +131,8 @@ class TestRegisterExtensionsEntry:
         monkeypatch.setattr(Path, "home", lambda: tmp_path)
         with (
             patch(
-                "ami.scripts.register_extensions.discover_manifests", return_value=[]
+                "workspace.scripts.register_extensions.discover_manifests",
+                return_value=[],
             ),
         ):
             register_extensions()
@@ -166,11 +167,11 @@ class TestRegisterExtensionsEntry:
         )
         with (
             patch(
-                "ami.scripts.register_extensions.discover_manifests",
+                "workspace.scripts.register_extensions.discover_manifests",
                 return_value=[MagicMock()],
             ),
             patch(
-                "ami.scripts.register_extensions.resolve_extensions",
+                "workspace.scripts.register_extensions.resolve_extensions",
                 return_value=[ready, unavail],
             ),
         ):

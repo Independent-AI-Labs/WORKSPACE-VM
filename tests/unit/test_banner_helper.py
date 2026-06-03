@@ -1,11 +1,11 @@
-"""Unit tests for ami.scripts.shell.banner_helper."""
+"""Unit tests for workspace.scripts.shell.banner_helper."""
 
 from __future__ import annotations
 
 from pathlib import Path
 from unittest.mock import patch
 
-from ami.scripts.shell.banner_helper import (
+from workspace.scripts.shell.banner_helper import (
     _BannerCtx,
     _color_for,
     _format_features,
@@ -19,7 +19,7 @@ from ami.scripts.shell.banner_helper import (
     output_doctor,
     output_extras,
 )
-from ami.scripts.shell.extension_registry import (
+from workspace.scripts.shell.extension_registry import (
     ResolvedExtension,
     Status,
 )
@@ -196,7 +196,7 @@ class TestHasFailedContainerDep:
             {"name": "ctr", "type": "container", "container": "x"},
         ]
         with patch(
-            "ami.scripts.shell.banner_helper.check_dep",
+            "workspace.scripts.shell.banner_helper.check_dep",
             return_value=False,
         ):
             assert _has_failed_container_dep(ext, Path("/tmp"))
@@ -278,16 +278,18 @@ class TestMain:
     def test_banner_mode(self) -> None:
         with (
             patch(
-                "ami.scripts.shell.banner_helper.find_ami_root",
+                "workspace.scripts.shell.banner_helper.find_ami_root",
                 return_value=Path("/tmp"),
             ),
             patch(
-                "ami.scripts.shell.banner_helper.discover_manifests", return_value=[]
+                "workspace.scripts.shell.banner_helper.discover_manifests",
+                return_value=[],
             ),
             patch(
-                "ami.scripts.shell.banner_helper.resolve_extensions", return_value=[]
+                "workspace.scripts.shell.banner_helper.resolve_extensions",
+                return_value=[],
             ),
-            patch("ami.scripts.shell.banner_helper.output_banner") as mock_banner,
+            patch("workspace.scripts.shell.banner_helper.output_banner") as mock_banner,
             patch("sys.argv", ["banner_helper.py", "--mode", "banner", "--quiet"]),
         ):
             main()
@@ -296,16 +298,18 @@ class TestMain:
     def test_extras_mode(self) -> None:
         with (
             patch(
-                "ami.scripts.shell.banner_helper.find_ami_root",
+                "workspace.scripts.shell.banner_helper.find_ami_root",
                 return_value=Path("/tmp"),
             ),
             patch(
-                "ami.scripts.shell.banner_helper.discover_manifests", return_value=[]
+                "workspace.scripts.shell.banner_helper.discover_manifests",
+                return_value=[],
             ),
             patch(
-                "ami.scripts.shell.banner_helper.resolve_extensions", return_value=[]
+                "workspace.scripts.shell.banner_helper.resolve_extensions",
+                return_value=[],
             ),
-            patch("ami.scripts.shell.banner_helper.output_extras") as mock_extras,
+            patch("workspace.scripts.shell.banner_helper.output_extras") as mock_extras,
             patch("sys.argv", ["banner_helper.py", "--mode", "extras"]),
         ):
             main()
@@ -314,20 +318,22 @@ class TestMain:
     def test_doctor_mode(self) -> None:
         with (
             patch(
-                "ami.scripts.shell.banner_helper.find_ami_root",
+                "workspace.scripts.shell.banner_helper.find_ami_root",
                 return_value=Path("/tmp"),
             ),
             patch(
-                "ami.scripts.shell.banner_helper.discover_manifests", return_value=[]
+                "workspace.scripts.shell.banner_helper.discover_manifests",
+                return_value=[],
             ),
             patch(
-                "ami.scripts.shell.banner_helper.resolve_extensions", return_value=[]
+                "workspace.scripts.shell.banner_helper.resolve_extensions",
+                return_value=[],
             ),
             patch(
-                "ami.scripts.shell.banner_helper.enforce_versions",
+                "workspace.scripts.shell.banner_helper.enforce_versions",
                 side_effect=lambda exts, _root: exts,
             ) as mock_enforce,
-            patch("ami.scripts.shell.banner_helper.output_doctor") as mock_doctor,
+            patch("workspace.scripts.shell.banner_helper.output_doctor") as mock_doctor,
             patch("sys.argv", ["banner_helper.py", "--mode", "doctor"]),
         ):
             main()
@@ -337,16 +343,18 @@ class TestMain:
     def test_quiet_from_env(self) -> None:
         with (
             patch(
-                "ami.scripts.shell.banner_helper.find_ami_root",
+                "workspace.scripts.shell.banner_helper.find_ami_root",
                 return_value=Path("/tmp"),
             ),
             patch(
-                "ami.scripts.shell.banner_helper.discover_manifests", return_value=[]
+                "workspace.scripts.shell.banner_helper.discover_manifests",
+                return_value=[],
             ),
             patch(
-                "ami.scripts.shell.banner_helper.resolve_extensions", return_value=[]
+                "workspace.scripts.shell.banner_helper.resolve_extensions",
+                return_value=[],
             ),
-            patch("ami.scripts.shell.banner_helper.output_banner") as mock_banner,
+            patch("workspace.scripts.shell.banner_helper.output_banner") as mock_banner,
             patch("sys.argv", ["banner_helper.py"]),
             patch.dict("os.environ", {"AMI_QUIET_MODE": "1"}),
         ):

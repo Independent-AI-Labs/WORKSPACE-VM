@@ -12,7 +12,7 @@ from unittest.mock import patch
 import pytest
 from pydantic import ValidationError
 
-from ami.scripts import bootstrap_component_defs as defs
+from workspace.scripts import bootstrap_component_defs as defs
 
 
 class TestLoadWorkspaceRepoComponents:

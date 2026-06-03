@@ -9,27 +9,27 @@ from __future__ import annotations
 import contextlib
 from pathlib import Path
 
-from ami.config_utils import (
+from workspace.config_utils import (
     PROJECT_ROOT,
     _ProjectRootCache,
     get_config_path,
     get_project_root,
     get_vendor_config_path,
 )
-from ami.scripts.register_extensions import (
+from workspace.scripts.register_extensions import (
     create_symlink,
     create_wrapper,
     fix_stale_shebang,
 )
-from ami.scripts.shell.banner_log import _timestamp, _write_record
-from ami.scripts.shell.extension_registry import ResolvedExtension, Status
-from ami.scripts.shell.version_enforcer import enforce_versions
-from ami.utils.banner import (
+from workspace.scripts.shell.banner_log import _timestamp, _write_record
+from workspace.scripts.shell.extension_registry import ResolvedExtension, Status
+from workspace.scripts.shell.version_enforcer import enforce_versions
+from workspace.utils.banner import (
     generate_banner_lines,
     generate_banner_text,
     get_project_version,
 )
-from ami.utils.uuid_utils import uuid7
+from workspace.utils.uuid_utils import uuid7
 
 _UUID_V4_LENGTH = 36
 _UUID_UNIQUE_COUNT = 100

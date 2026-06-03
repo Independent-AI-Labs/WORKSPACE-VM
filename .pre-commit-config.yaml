@@ -3,7 +3,7 @@ repos:
     hooks:
       - id: check-unstaged
         name: Block Unstaged Changes
-        entry: "bash -c 'source projects/AMI-CI/lib/checks.sh && ci_check_unstaged'"
+        entry: "bash -c 'source projects/CI/lib/checks.sh && ci_check_unstaged'"
         language: system
         pass_filenames: false
         always_run: true
@@ -21,7 +21,7 @@ repos:
         always_run: true
       - id: block-sensitive-files
         name: Block Sensitive Files
-        entry: "bash -c 'source projects/AMI-CI/lib/checks.sh && ci_block_sensitive_files \"$@\"' --"
+        entry: "bash -c 'source projects/CI/lib/checks.sh && ci_block_sensitive_files \"$@\"' --"
         language: system
       - id: gitleaks
         name: Block secrets in staged content (gitleaks)
@@ -31,47 +31,47 @@ repos:
         always_run: true
       - id: ci-check-silent-swallow
         name: Block silent error-swallow patterns (staged diff)
-        entry: "bash -c 'source projects/AMI-CI/lib/checks.sh && ci_check_silent_swallow'"
+        entry: "bash -c 'source projects/CI/lib/checks.sh && ci_check_silent_swallow'"
         language: system
         pass_filenames: false
         always_run: true
       - id: check-dependency-versions
         name: Check Dependency Versions (strict pinning + latest)
-        entry: bash -c 'uv run python -c "import ami.ci" 2>/dev/null || { echo "FAILED: ami.ci not installed — run: make sync" >&2; exit 1; }; exec uv run python -m ami.ci.check_dependency_versions "$@"' --
+        entry: bash -c 'uv run python -c "import ci" 2>/dev/null || { echo "FAILED: ci not installed — run: make sync" >&2; exit 1; }; exec uv run python -m ci.check_dependency_versions "$@"' --
         language: system
         pass_filenames: true
         files: (pyproject\.toml|package\.json|docker-compose\.ya?ml|Dockerfile)$
       - id: check-banned-words
         name: Check Banned Words
-        entry: "bash -c 'source projects/AMI-CI/lib/checks.sh && ci_check_banned_words'"
+        entry: "bash -c 'source projects/CI/lib/checks.sh && ci_check_banned_words'"
         language: system
         pass_filenames: false
         stages: [pre-commit]
       - id: check-file-length
         name: Check File Length (max 512 lines)
-        entry: "bash -c 'source projects/AMI-CI/lib/checks.sh && ci_check_file_length'"
+        entry: "bash -c 'source projects/CI/lib/checks.sh && ci_check_file_length'"
         language: system
         pass_filenames: false
       - id: check-markdown-docs
         name: Check Markdown Documentation References
-        entry: "uv run python -m ami.ci.check_markdown_docs --check-remote"
+        entry: "uv run python -m ci.check_markdown_docs --check-remote"
         language: system
         types: [markdown]
         pass_filenames: true
 
       - id: check-init-files
         name: Enforce Empty __init__.py Files (CRITICAL SECURITY REQUIREMENT)
-        entry: "bash -c 'source projects/AMI-CI/lib/checks.sh && ci_check_init_files \"$@\"' --"
+        entry: "bash -c 'source projects/CI/lib/checks.sh && ci_check_init_files \"$@\"' --"
         language: system
         files: __init__\.py$
       - id: check-py-not-executable
         name: Forbid +x bit on .py modules (hermetic-bootstrap guard)
-        entry: "bash -c 'source projects/AMI-CI/lib/checks.sh && ci_check_py_not_executable \"$@\"' --"
+        entry: "bash -c 'source projects/CI/lib/checks.sh && ci_check_py_not_executable \"$@\"' --"
         language: system
         files: \.py$
       - id: check-no-dead-imports
         name: Forbid deleting .py modules that are still imported
-        entry: "bash -c 'source projects/AMI-CI/lib/checks.sh && ci_check_no_dead_imports'"
+        entry: "bash -c 'source projects/CI/lib/checks.sh && ci_check_no_dead_imports'"
         language: system
         pass_filenames: false
         always_run: true
@@ -80,17 +80,17 @@ repos:
         entry: uv run python -m mypy
         language: system
         pass_filenames: false
-        args: [ --config-file, res/config/mypy.toml, --exclude, projects/, ami ]
+        args: [ --config-file, res/config/mypy.toml, --exclude, projects/, workspace ]
         files: \.py$
         exclude: ^projects/
       - id: check-commit-message
         name: Check Commit Message Format
-        entry: "bash -c 'source projects/AMI-CI/lib/checks.sh && ci_check_commit_message \"$1\"' --"
+        entry: "bash -c 'source projects/CI/lib/checks.sh && ci_check_commit_message \"$1\"' --"
         language: system
         stages: [commit-msg]
       - id: block-coauthored
         name: Block Co-authored Commits
-        entry: "bash -c 'source projects/AMI-CI/lib/checks.sh && ci_block_coauthored \"$1\"' --"
+        entry: "bash -c 'source projects/CI/lib/checks.sh && ci_block_coauthored \"$1\"' --"
         language: system
         stages: [commit-msg]
 
@@ -98,13 +98,13 @@ repos:
     hooks:
       - id: block-coauthored-history
         name: Block Commits with Blocked Patterns (full history scan)
-        entry: "bash -c 'source projects/AMI-CI/lib/checks.sh && ci_block_coauthored_history'"
+        entry: "bash -c 'source projects/CI/lib/checks.sh && ci_block_coauthored_history'"
         language: system
         stages: [pre-push]
         pass_filenames: false
       - id: verify-coverage
         name: Verify Test Coverage (Unit >90%, Integration >75%)
-        entry: "bash -c 'source projects/AMI-CI/lib/checks.sh && ci_verify_coverage'"
+        entry: "bash -c 'source projects/CI/lib/checks.sh && ci_verify_coverage'"
         language: system
         stages: [pre-push]
         pass_filenames: false

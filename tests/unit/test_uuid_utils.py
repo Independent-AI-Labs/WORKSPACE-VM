@@ -3,7 +3,7 @@
 import time
 import uuid
 
-from ami.utils.uuid_utils import uuid7
+from workspace.utils.uuid_utils import uuid7
 
 # Test constants
 UUID_VERSION_7 = 7

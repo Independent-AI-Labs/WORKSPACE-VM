@@ -277,15 +277,15 @@ if [ "$TEST_BOOTSTRAP" = "1" ]; then
 
     # --- 6b: Run bootstrap installer with appropriate config ---
     if [ "$FULL_INSTALL" = "1" ]; then
-        INSTALL_CONFIG="ami/config/install-all.yaml"
+        INSTALL_CONFIG="workspace/config/install-all.yaml"
         echo "Using full install config: $INSTALL_CONFIG"
     else
-        INSTALL_CONFIG="ami/config/install-defaults.yaml"
+        INSTALL_CONFIG="workspace/config/install-defaults.yaml"
         echo "Using default install config: $INSTALL_CONFIG"
     fi
 
     echo "Running bootstrap installer..."
-    .venv/bin/python ami/scripts/bootstrap_installer.py --defaults "$INSTALL_CONFIG" 2>&1 | tee bootstrap.log
+    .venv/bin/python workspace/scripts/bootstrap_installer.py --defaults "$INSTALL_CONFIG" 2>&1 | tee bootstrap.log
     if [ ${PIPESTATUS[0]} -ne 0 ]; then
         echo "[FAIL] Bootstrap installer failed."
         cat bootstrap.log

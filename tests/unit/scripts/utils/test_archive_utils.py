@@ -1,4 +1,4 @@
-"""Unit tests for scripts/utils/archive_utils.py (ami.scripts.utils.archive_utils)."""
+"""Unit tests for scripts/utils/archive_utils.py."""
 
 import tempfile
 from pathlib import Path
@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from ami.scripts.utils.archive_utils import (
+from workspace.scripts.utils.archive_utils import (
     ArchiveError,
     _should_exclude_path,
     create_archive,

@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=https://moonrepo.dev/schemas/project.json
 #
-# moon project config for ami-agents (workspace umbrella repo).
+# moon project config for workspace (workspace umbrella repo).
 # Workspace-level overlay only — see projects/docs/MOON-MIGRATION-PLAN.md.
 # Per-repo tasks (lint, test, build, install, etc.) live in the Makefile
 # and are invoked directly when working inside this repo. moon does not
@@ -9,7 +9,7 @@
 $schema: 'https://moonrepo.dev/schemas/project.json'
 
 project:
-  name: 'ami-agents'
+  name: 'workspace'
   description: 'AMI workspace umbrella repo and Python orchestrator'
 
 language: 'python'
@@ -19,20 +19,20 @@ tags:
   - 'umbrella'
   - 'python'
 
-# Workspace clone manifest lives in ami/config/workspace-clones.yaml
+# Workspace clone manifest lives in workspace/config/workspace-clones.yaml
 # (moon.yml schema doesn't accept arbitrary top-level metadata fields).
 # That separate file is the single source of truth for "what repos
-# belong to the AMI workspace" — read by ami/scripts/bin/bootstrap-repos.
+# belong to the AMI workspace" — read by workspace/scripts/bin/bootstrap-repos.
 
 dependsOn:
-  - 'ami-ci'
-  - 'ami-dataops'
+  - 'ci'
+  - 'dataops'
 
 tasks:
   lint:
     command: 'make _lint-impl'
     inputs:
-      - 'ami/**/*.py'
+      - 'workspace/**/*.py'
       - 'tests/**/*.py'
       - 'scripts/**/*'
       - 'pyproject.toml'
@@ -41,14 +41,14 @@ tasks:
   type-check:
     command: 'make _type-check-impl'
     inputs:
-      - 'ami/**/*.py'
+      - 'workspace/**/*.py'
       - 'pyproject.toml'
       - 'res/config/mypy.toml'
       - 'Makefile'
   test:
     command: 'make _test-impl'
     inputs:
-      - 'ami/**/*.py'
+      - 'workspace/**/*.py'
       - 'tests/**/*.py'
       - 'scripts/**/*'
       - 'res/**/*'
@@ -57,18 +57,18 @@ tasks:
   dead-code:
     command: 'make _dead-code-impl'
     inputs:
-      - 'ami/**/*.py'
+      - 'workspace/**/*.py'
       - 'pyproject.toml'
       - 'Makefile'
   workspace-repos-aligned:
-    # Asserts .moon/workspace.yml::projects and ami/config/workspace-clones.yaml
+    # Asserts .moon/workspace.yml::projects and workspace/config/workspace-clones.yaml
     # reference the same repos with the same paths. Drift = split-brain
     # between moon (update graph) and the bootstrap installer (clone graph).
-    command: 'uv run python ami/scripts/check_workspace_repos_aligned.py'
+    command: 'uv run python workspace/scripts/check_workspace_repos_aligned.py'
     inputs:
       - '.moon/workspace.yml'
-      - 'ami/config/workspace-clones.yaml'
-      - 'ami/scripts/check_workspace_repos_aligned.py'
+      - 'workspace/config/workspace-clones.yaml'
+      - 'workspace/scripts/check_workspace_repos_aligned.py'
   check:
     # Aggregator: deps fan out via moon's task DAG; command is a no-op
     # to avoid recursing back through the public make check shim.

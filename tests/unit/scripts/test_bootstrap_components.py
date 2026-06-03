@@ -4,7 +4,7 @@ import subprocess
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from ami.scripts.bootstrap_component_defs import (
+from workspace.scripts.bootstrap_component_defs import (
     ALL_COMPONENTS,
     GROUPS,
     WORKSPACE_REPOS,
@@ -12,7 +12,7 @@ from ami.scripts.bootstrap_component_defs import (
     get_component_by_name,
     get_components_by_group,
 )
-from ami.scripts.bootstrap_components import (
+from workspace.scripts.bootstrap_components import (
     Component,
     ComponentStatus,
     ComponentType,
@@ -68,7 +68,7 @@ class TestComponent:
         assert comp.label == "Test"
         assert comp.type == ComponentType.SCRIPT
 
-    @patch("ami.scripts.bootstrap_components.PROJECT_ROOT", Path("/test/root"))
+    @patch("workspace.scripts.bootstrap_components.PROJECT_ROOT", Path("/test/root"))
     def test_get_status_with_detect_path(self) -> None:
         """Test get_status with path detection."""
         comp = Component(
@@ -85,7 +85,7 @@ class TestComponent:
 
         assert status.installed is True
 
-    @patch("ami.scripts.bootstrap_components.PROJECT_ROOT", Path("/test/root"))
+    @patch("workspace.scripts.bootstrap_components.PROJECT_ROOT", Path("/test/root"))
     def test_get_status_path_not_found(self) -> None:
         """Test get_status when path not found."""
         comp = Component(
@@ -102,8 +102,8 @@ class TestComponent:
 
         assert status.installed is False
 
-    @patch("ami.scripts.bootstrap_components.PROJECT_ROOT", Path("/test/root"))
-    @patch("ami.scripts.bootstrap_components.subprocess.run")
+    @patch("workspace.scripts.bootstrap_components.PROJECT_ROOT", Path("/test/root"))
+    @patch("workspace.scripts.bootstrap_components.subprocess.run")
     def test_get_status_with_detect_cmd(self, mock_run) -> None:
         """Test get_status with command detection."""
         mock_run.return_value = MagicMock(
@@ -124,8 +124,8 @@ class TestComponent:
         assert status.installed is True
         assert status.version == "1.0.0"
 
-    @patch("ami.scripts.bootstrap_components.PROJECT_ROOT", Path("/test/root"))
-    @patch("ami.scripts.bootstrap_components.subprocess.run")
+    @patch("workspace.scripts.bootstrap_components.PROJECT_ROOT", Path("/test/root"))
+    @patch("workspace.scripts.bootstrap_components.subprocess.run")
     def test_get_status_cmd_fails(self, mock_run) -> None:
         """Test get_status when command fails."""
         mock_run.return_value = MagicMock(returncode=1, stdout="", stderr="error")
@@ -143,8 +143,8 @@ class TestComponent:
 
         assert status.installed is False
 
-    @patch("ami.scripts.bootstrap_components.PROJECT_ROOT", Path("/test/root"))
-    @patch("ami.scripts.bootstrap_components.subprocess.run")
+    @patch("workspace.scripts.bootstrap_components.PROJECT_ROOT", Path("/test/root"))
+    @patch("workspace.scripts.bootstrap_components.subprocess.run")
     def test_get_status_cmd_timeout(self, mock_run) -> None:
         """Test get_status when command times out."""
         mock_run.side_effect = subprocess.TimeoutExpired(cmd="test", timeout=5)
@@ -162,8 +162,8 @@ class TestComponent:
 
         assert status.installed is False
 
-    @patch("ami.scripts.bootstrap_components.PROJECT_ROOT", Path("/test/root"))
-    @patch("ami.scripts.bootstrap_components.subprocess.run")
+    @patch("workspace.scripts.bootstrap_components.PROJECT_ROOT", Path("/test/root"))
+    @patch("workspace.scripts.bootstrap_components.subprocess.run")
     def test_get_status_file_not_found(self, mock_run) -> None:
         """Test get_status when command not found."""
         mock_run.side_effect = FileNotFoundError()
@@ -363,7 +363,7 @@ class TestComponentVersionParsing:
         )
         assert comp._get_version_from_cmd() is None
 
-    @patch("ami.scripts.bootstrap_components.subprocess.run")
+    @patch("workspace.scripts.bootstrap_components.subprocess.run")
     def test_get_version_from_cmd_timeout(self, mock_run):
         """Test returns None on timeout."""
         mock_run.side_effect = subprocess.TimeoutExpired("cmd", 5)
@@ -377,7 +377,7 @@ class TestComponentVersionParsing:
         )
         assert comp._get_version_from_cmd() is None
 
-    @patch("ami.scripts.bootstrap_components.subprocess.run")
+    @patch("workspace.scripts.bootstrap_components.subprocess.run")
     def test_get_version_from_cmd_success(self, mock_run):
         """Test extracts version from successful command."""
         mock_run.return_value = MagicMock(returncode=0, stdout="test v1.2.3", stderr="")
@@ -392,7 +392,7 @@ class TestComponentVersionParsing:
         )
         assert comp._get_version_from_cmd() == "1.2.3"
 
-    @patch("ami.scripts.bootstrap_components.subprocess.run")
+    @patch("workspace.scripts.bootstrap_components.subprocess.run")
     def test_get_version_from_cmd_nonzero_exit(self, mock_run):
         """Test returns None on non-zero exit."""
         mock_run.return_value = MagicMock(returncode=1, stdout="", stderr="err")

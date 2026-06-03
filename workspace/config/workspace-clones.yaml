@@ -1,0 +1,57 @@
+# Workspace clone manifest — read by ami/scripts/bin/bootstrap-repos.
+#
+# Single source of truth for "what repos belong to the AMI workspace."
+# Mandatory entries always clone; optional entries opt-in via
+# `bootstrap-repos --include <id>,<id>` or `--all`.
+# minTag (optional) — abort if the cloned working tree's nearest tag
+# is older than this (forwards-compat protection).
+
+workspaceClones:
+  ci:
+    remote: 'git@github.com:Independent-AI-Labs/AMI-CI.git'
+    path: 'projects/CI'
+    mandatory: true
+  dataops:
+    remote: 'git@github.com:Independent-AI-Labs/AMI-DATAOPS.git'
+    path: 'projects/DATAOPS'
+    mandatory: true
+  ami-docs:
+    remote: 'git@github.com:Independent-AI-Labs/AMI-DOCS.git'
+    path: 'projects/docs'
+    mandatory: false
+  ami-portal:
+    remote: 'git@github.com:Independent-AI-Labs/AMI-PORTAL.git'
+    path: 'projects/AMI-PORTAL'
+    mandatory: false
+  ami-srp:
+    remote: 'git@github.com:Independent-AI-Labs/AMI-SRP.git'
+    path: 'projects/AMI-SRP'
+    mandatory: false
+  ami-browser:
+    remote: 'git@github.com:Independent-AI-Labs/AMI-BROWSER.git'
+    path: 'projects/AMI-BROWSER'
+    mandatory: false
+  ami-streams:
+    remote: 'git@github.com:Independent-AI-Labs/AMI-STREAMS.git'
+    path: 'projects/AMI-STREAMS'
+    mandatory: false
+  ami-trading:
+    remote: 'git@github.com:Independent-AI-Labs/AMI-TRADING.git'
+    path: 'projects/AMI-TRADING'
+    mandatory: false
+  rust-trading:
+    remote: 'git@github.com:Independent-AI-Labs/RUST-TRADING.git'
+    path: 'projects/RUST-TRADING'
+    mandatory: false
+  zk-portal:
+    remote: 'git@github.com:Independent-AI-Labs/ZK-PORTAL.git'
+    path: 'projects/ZK-PORTAL'
+    mandatory: false
+  polymarket-tracker:
+    remote: 'git@github.com:Independent-AI-Labs/POC-POLYMARKET-TRACKER.git'
+    path: 'projects/polymarket-insider-tracker'
+    mandatory: false
+  rust-guard:
+    remote: 'git@github.com:Independent-AI-Labs/RUST-GUARD.git'
+    path: 'projects/RUST-GUARD'
+    mandatory: true

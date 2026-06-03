@@ -21,7 +21,7 @@ from pathlib import Path
 
 import pytest
 
-from ami.config_utils import PROJECT_ROOT as REPO_ROOT
+from workspace.config_utils import PROJECT_ROOT as REPO_ROOT
 
 WALKER = REPO_ROOT / "ami" / "scripts" / "bin" / "bootstrap-repos"
 

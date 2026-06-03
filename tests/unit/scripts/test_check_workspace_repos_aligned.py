@@ -9,7 +9,7 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import patch
 
-from ami.scripts import check_workspace_repos_aligned as mod
+from workspace.scripts import check_workspace_repos_aligned as mod
 
 MOON_OK = """\
 projects:

@@ -1,4 +1,4 @@
-"""Unit tests for ami.scripts.shell.extension_registry."""
+"""Unit tests for workspace.scripts.shell.extension_registry."""
 
 from __future__ import annotations
 
@@ -9,8 +9,8 @@ from unittest.mock import patch
 
 import yaml
 
-import ami.scripts.shell.extension_registry as reg
-from ami.scripts.shell.extension_registry import (
+import workspace.scripts.shell.extension_registry as reg
+from workspace.scripts.shell.extension_registry import (
     DEFAULT_CATEGORY_ORDER,
     DEFAULT_CATEGORY_PROPS,
     EXCLUDE_DIRS,
@@ -64,7 +64,7 @@ def _valid_entry(**overrides: object) -> ExtensionEntry:
     return base
 
 
-_RUN_PATH = "ami.scripts.shell.extension_registry.subprocess.run"
+_RUN_PATH = "workspace.scripts.shell.extension_registry.subprocess.run"
 
 
 class TestRunCheck:
@@ -342,7 +342,7 @@ class TestGetContainerRuntime:
         def _which(x: str) -> str | None:
             return "/usr/bin/podman" if x == "podman" else None
 
-        mod_path = "ami.scripts.shell.extension_registry.shutil.which"
+        mod_path = "workspace.scripts.shell.extension_registry.shutil.which"
         with patch(mod_path, side_effect=_which):
             assert get_container_runtime() == "podman"
 
@@ -350,12 +350,12 @@ class TestGetContainerRuntime:
         def _which(x: str) -> str | None:
             return "/usr/bin/docker" if x == "docker" else None
 
-        mod_path = "ami.scripts.shell.extension_registry.shutil.which"
+        mod_path = "workspace.scripts.shell.extension_registry.shutil.which"
         with patch(mod_path, side_effect=_which):
             assert get_container_runtime() == "docker"
 
     def test_none_found(self) -> None:
-        mod_path = "ami.scripts.shell.extension_registry.shutil.which"
+        mod_path = "workspace.scripts.shell.extension_registry.shutil.which"
         with patch(mod_path, return_value=None):
             assert get_container_runtime() is None
 

@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 import pytest
 
-from ami.scripts.find_duplicates import main
+from workspace.scripts.find_duplicates import main
 
 
 class TestFindDuplicatesMain:

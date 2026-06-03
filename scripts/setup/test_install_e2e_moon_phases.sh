@@ -11,7 +11,7 @@
 #   Phase 11: bootstrap-repos data-driven walk (no-op against
 #             already-cloned workspace; catches script regressions)
 #   Phase 12: cacheable check task — cold ami-ci:lint vs cached run
-#   Phase 13: update-walk topology — ami-agents:update graph
+#   Phase 13: update-walk topology — workspace:update graph
 #             includes ami-ci:update + ami-dataops:update nodes
 #
 # All phases skip cleanly when moon binary isn't on PATH (smoke-test
@@ -43,7 +43,7 @@ else
     fi
     echo "[PASS] moon project-graph parses cleanly"
 
-    for expected in ami-agents ami-ci ami-dataops; do
+    for expected in workspace ami-ci ami-dataops; do
         if ! grep -q "\"id\": \"$expected\"" moon_graph.json; then
             echo "[FAIL] moon graph missing required project: $expected"
             exit 1
@@ -80,17 +80,17 @@ echo "=========================================="
 echo "PHASE 11: bootstrap-repos data-driven clone walk"
 echo "=========================================="
 
-if [ ! -x "ami/scripts/bin/bootstrap-repos" ]; then
+if [ ! -x "workspace/scripts/bin/bootstrap-repos" ]; then
     echo "[FAIL] bootstrap-repos missing or not executable"
     exit 1
 fi
-if [ ! -f "ami/config/workspace-clones.yaml" ]; then
-    echo "[FAIL] ami/config/workspace-clones.yaml missing"
+if [ ! -f "workspace/config/workspace-clones.yaml" ]; then
+    echo "[FAIL] workspace/config/workspace-clones.yaml missing"
     exit 1
 fi
 echo "[PASS] bootstrap-repos + workspace-clones.yaml present"
 
-bash ami/scripts/bin/bootstrap-repos > bootstrap_repos.log 2>&1
+bash workspace/scripts/bin/bootstrap-repos > bootstrap_repos.log 2>&1
 if [ $? -ne 0 ]; then
     echo "[FAIL] bootstrap-repos failed against already-cloned workspace"
     head bootstrap_repos.log
@@ -143,9 +143,9 @@ echo "PHASE 13: update-walk ordering (^:update walks tier 0 → 1 → 2)"
 echo "=========================================="
 
 if [ -n "$MOON" ]; then
-    "$MOON" action-graph "ami-agents:update" --dot > update_graph.dot 2>&1
+    "$MOON" action-graph "workspace:update" --dot > update_graph.dot 2>&1
     if [ $? -ne 0 ]; then
-        echo "[FAIL] moon action-graph ami-agents:update failed"
+        echo "[FAIL] moon action-graph workspace:update failed"
         head update_graph.dot
         exit 1
     fi

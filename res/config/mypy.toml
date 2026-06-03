@@ -7,7 +7,7 @@ warn_unused_configs = true
 # PEP 420 namespace package support (ami has no __init__.py)
 namespace_packages = true
 explicit_package_bases = true
-mypy_path = ".:projects/AMI-CI:projects/AMI-DATAOPS"
+mypy_path = ".:projects/CI:projects/DATAOPS"
 exclude = [
     "(?x)(^tmp/|^.venv/|^venv/|^dist/|^build/|^.eggs/|^__pycache__/|.*\\.egg-info/|^.pytest_cache/|^.git/|^projects/|^\\.boot-linux/)"
 ]
@@ -97,7 +97,7 @@ disallow_untyped_calls = false
 
 # Google auth caller - external library has incomplete type stubs
 [[tool.mypy.overrides]]
-module = ["ami.scripts.backup.common.auth", "ami.dataops.backup.common.auth"]
+module = ["ami.scripts.backup.common.auth", "dataops.backup.common.auth"]
 disallow_untyped_calls = false
 
 # AMI cli_components/ami.types — namespace packages in AMI-DATAOPS

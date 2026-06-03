@@ -4,7 +4,7 @@
 # early, instead of waiting for the next pre-commit run on a touched repo.
 #
 # Mirrors the `ami_failure_notify.sh` send pattern (himalaya account
-# `polymarket`, To = AMI_FAILURE_NOTIFY_TO or independentailabs@gmail.com).
+# `polymarket`, To = WORKSPACE_FAILURE_NOTIFY_TO or independentailabs@gmail.com).
 # Per-repo `.gitleaksignore` allowlists are honored automatically by gitleaks
 # itself, so documented false positives stay quiet.
 #
@@ -19,12 +19,12 @@
 
 set -euo pipefail
 
-readonly WORKSPACE="${AMI_WORKSPACE_ROOT:-${HOME}/AMI-AGENTS}"
-readonly GITLEAKS_BIN="${AMI_GITLEAKS_BIN:-${WORKSPACE}/.boot-linux/bin/gitleaks}"
-readonly TO_ADDR="${AMI_FAILURE_NOTIFY_TO:-independentailabs@gmail.com}"
-readonly HIMALAYA_BIN="${AMI_HIMALAYA_BIN:-${WORKSPACE}/.boot-linux/bin/himalaya}"
-readonly HIMALAYA_ACCOUNT="${AMI_FAILURE_NOTIFY_ACCOUNT:-polymarket}"
-readonly REPORT_DIR="${XDG_STATE_HOME:-${HOME}/.local/state}/ami/gitleaks-sweep"
+readonly WORKSPACE="${WORKSPACE_WORKSPACE_ROOT:-${HOME}/AMI-AGENTS}"
+readonly GITLEAKS_BIN="${WORKSPACE_GITLEAKS_BIN:-${WORKSPACE}/.boot-linux/bin/gitleaks}"
+readonly TO_ADDR="${WORKSPACE_FAILURE_NOTIFY_TO:-independentailabs@gmail.com}"
+readonly HIMALAYA_BIN="${WORKSPACE_HIMALAYA_BIN:-${WORKSPACE}/.boot-linux/bin/himalaya}"
+readonly HIMALAYA_ACCOUNT="${WORKSPACE_FAILURE_NOTIFY_ACCOUNT:-polymarket}"
+readonly REPORT_DIR="${XDG_STATE_HOME:-${HOME}/.local/state}/workspace/gitleaks-sweep"
 readonly TIMESTAMP="$(date -u +%Y-%m-%dT%H%M%SZ)"
 
 # --dry-run: scan + report locally but never invoke himalaya. Useful for
@@ -32,7 +32,7 @@ readonly TIMESTAMP="$(date -u +%Y-%m-%dT%H%M%SZ)"
 # .gitleaksignore entries to confirm zero findings before unleashing the
 # weekly cron's mail.
 DRY_RUN=0
-if [[ "${1:-}" == "--dry-run" || "${AMI_GITLEAKS_SWEEP_DRY_RUN:-}" == "1" ]]; then
+if [[ "${1:-}" == "--dry-run" || "${WORKSPACE_GITLEAKS_SWEEP_DRY_RUN:-}" == "1" ]]; then
     DRY_RUN=1
 fi
 

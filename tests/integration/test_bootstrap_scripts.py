@@ -10,31 +10,35 @@ import sys
 from io import StringIO
 from pathlib import Path
 
-from ami.config_utils import PROJECT_ROOT
-from ami.scripts.bootstrap_component_defs import (
+from workspace.config_utils import PROJECT_ROOT
+from workspace.scripts.bootstrap_component_defs import (
     ALL_COMPONENTS,
     GROUPS,
     get_component_by_name,
     get_components_by_group,
 )
-from ami.scripts.bootstrap_components import Component, ComponentStatus, ComponentType
-from ami.scripts.check_workspace_repos_aligned import (
+from workspace.scripts.bootstrap_components import (
+    Component,
+    ComponentStatus,
+    ComponentType,
+)
+from workspace.scripts.check_workspace_repos_aligned import (
     main as check_alignment_main,
 )
-from ami.scripts.find_duplicates import (
+from workspace.scripts.find_duplicates import (
     find_duplicates,
     get_all_filenames,
     is_subdirectory,
 )
-from ami.scripts.find_duplicates import (
+from workspace.scripts.find_duplicates import (
     main as find_duplicates_main,
 )
-from ami.scripts.shell.banner_log import (
+from workspace.scripts.shell.banner_log import (
     CheckRecord,
     banner_log_session,
     make_check_hook,
 )
-from ami.scripts.shell.run_check import HealthCheckResult, run_check
+from workspace.scripts.shell.run_check import HealthCheckResult, run_check
 
 
 class TestFindDuplicates:

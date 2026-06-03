@@ -3,16 +3,15 @@
 from typing import cast
 from unittest.mock import MagicMock, patch
 
-from ami.cli_components.selection_dialog import SelectableItem
-from ami.types.results import NamedComponentStatus
+from workspace.cli_components.selection_dialog import SelectableItem
 
-from ami.scripts.bootstrap_components import (
+from workspace.scripts.bootstrap_components import (
     Component,
     ComponentStatus,
     ComponentType,
     GroupComponents,
 )
-from ami.scripts.bootstrap_installer import (
+from workspace.scripts.bootstrap_installer import (
     DIM,
     GREEN,
     _extract_components,
@@ -25,6 +24,7 @@ from ami.scripts.bootstrap_installer import (
     print_status,
     scan_components,
 )
+from workspace.types.results import NamedComponentStatus
 
 EXPECTED_MENU_ITEM_COUNT = 2
 
@@ -167,8 +167,10 @@ class TestFormatComponentDescription:
 class TestScanComponents:
     """Tests for scan_components function."""
 
-    @patch("ami.scripts.bootstrap_installer._bootstrap_defs.get_components_by_group")
-    @patch("ami.scripts.bootstrap_installer._bootstrap_defs.GROUPS", ["Test"])
+    @patch(
+        "workspace.scripts.bootstrap_installer._bootstrap_defs.get_components_by_group"
+    )
+    @patch("workspace.scripts.bootstrap_installer._bootstrap_defs.GROUPS", ["Test"])
     def test_scans_all_components(self, mock_get_groups, capsys) -> None:
         """Test scans all components and returns status list."""
         comp = Component(
@@ -192,8 +194,10 @@ class TestScanComponents:
             assert test_status is not None
             assert test_status.installed is True
 
-    @patch("ami.scripts.bootstrap_installer._bootstrap_defs.get_components_by_group")
-    @patch("ami.scripts.bootstrap_installer._bootstrap_defs.GROUPS", [])
+    @patch(
+        "workspace.scripts.bootstrap_installer._bootstrap_defs.get_components_by_group"
+    )
+    @patch("workspace.scripts.bootstrap_installer._bootstrap_defs.GROUPS", [])
     def test_handles_empty_groups(self, mock_get_groups, capsys) -> None:
         """Test handles empty groups."""
         mock_get_groups.return_value = []
@@ -206,8 +210,12 @@ class TestScanComponents:
 class TestBuildMenuItems:
     """Tests for build_menu_items function."""
 
-    @patch("ami.scripts.bootstrap_installer._bootstrap_defs.get_components_by_group")
-    @patch("ami.scripts.bootstrap_installer._bootstrap_defs.GROUPS", ["TestGroup"])
+    @patch(
+        "workspace.scripts.bootstrap_installer._bootstrap_defs.get_components_by_group"
+    )
+    @patch(
+        "workspace.scripts.bootstrap_installer._bootstrap_defs.GROUPS", ["TestGroup"]
+    )
     def test_builds_menu_with_headers(self, mock_get_groups) -> None:
         """Test builds menu items with group headers."""
         comp = Component(
@@ -234,8 +242,12 @@ class TestBuildMenuItems:
         assert items[1].id == "test"
         assert preselected == set()
 
-    @patch("ami.scripts.bootstrap_installer._bootstrap_defs.get_components_by_group")
-    @patch("ami.scripts.bootstrap_installer._bootstrap_defs.GROUPS", ["TestGroup"])
+    @patch(
+        "workspace.scripts.bootstrap_installer._bootstrap_defs.get_components_by_group"
+    )
+    @patch(
+        "workspace.scripts.bootstrap_installer._bootstrap_defs.GROUPS", ["TestGroup"]
+    )
     def test_installed_components_in_skippable(self, mock_get_groups) -> None:
         """Test installed components are in skippable_ids."""
         comp = Component(
@@ -256,8 +268,10 @@ class TestBuildMenuItems:
 
         assert "test" in result.skippable_ids
 
-    @patch("ami.scripts.bootstrap_installer._bootstrap_defs.get_components_by_group")
-    @patch("ami.scripts.bootstrap_installer._bootstrap_defs.GROUPS", ["Empty"])
+    @patch(
+        "workspace.scripts.bootstrap_installer._bootstrap_defs.get_components_by_group"
+    )
+    @patch("workspace.scripts.bootstrap_installer._bootstrap_defs.GROUPS", ["Empty"])
     def test_skips_empty_groups(self, mock_get_groups) -> None:
         """Test skips empty groups."""
         mock_get_groups.return_value = [GroupComponents(group="Empty", components=[])]

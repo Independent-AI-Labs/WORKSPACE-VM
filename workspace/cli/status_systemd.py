@@ -1,0 +1,349 @@
+#!/usr/bin/env python3
+"""Systemd-related functions for the AMI status display."""
+
+import os
+import re
+import sys
+from pathlib import Path
+
+import yaml
+from dataops.cli_components.text_input_utils import Colors
+
+from workspace.cli.status_utils import (
+    C_DIM,
+    C_RESET,
+    DISPLAY_WIDTH,
+    I_BOOT,
+    I_FAIL,
+    I_NOBOOT,
+    I_OK,
+    I_STOP,
+    I_WARN,
+    _get_restart_icon,
+    get_local_ports,
+    print_box_line,
+    run_cmd,
+)
+from workspace.types.common import SystemdDetails
+from workspace.types.results import ComposeInfo
+from workspace.types.status import (
+    PodmanContainer,
+    ServiceDisplayInfo,
+    SystemdService,
+)
+
+SYSTEMD_PREFIXES = [
+    "ami-",
+    "matrix-",
+    "postgres",
+    "valkey",
+    "traefik",
+    "exim-relay",
+    "git-",
+]
+
+
+def _find_workspace_root() -> Path | None:
+    """Walk up from this file to find the directory containing ``projects/``."""
+    current = Path(__file__).resolve().parent
+    for _ in range(10):
+        if (current / "projects").is_dir():
+            return current
+        if current == current.parent:
+            break
+        current = current.parent
+    return None
+
+
+def _load_services_from(path: Path, managed: set[str]) -> None:
+    """Parse a services YAML and add compose/local service names to *managed*."""
+    if yaml is None:
+        return
+    try:
+        with open(path) as f:
+            data = yaml.safe_load(f)
+        if not isinstance(data, dict):
+            return
+        for svc_name in data.get("compose_services", {}):
+            managed.add(f"{svc_name}.service")
+        for svc_name in data.get("local_services", {}):
+            managed.add(f"{svc_name}.service")
+    except (OSError, yaml.YAMLError) as e:
+        print(f"Warning: Failed to load {path}: {e}", file=sys.stderr)
+
+
+def get_managed_service_names() -> set[str]:
+    """Load managed service names from workspace and per-project declarations.
+
+    Sources (in order):
+      1. ``<root>/ansible/inventory/host_vars/localhost.yml`` (AMI-AGENTS own)
+      2. ``<root>/projects/*/res/ansible/services.yml``       (each sub-project)
+    """
+    managed: set[str] = set()
+    root = _find_workspace_root()
+    if not root:
+        return managed
+
+    # 1. Root inventory (AMI-AGENTS)
+    root_inv = root / "ansible" / "inventory" / "host_vars" / "localhost.yml"
+    if root_inv.exists():
+        _load_services_from(root_inv, managed)
+
+    # 2. Per-project service declarations
+    for svc_file in sorted((root / "projects").glob("*/res/ansible/services.yml")):
+        _load_services_from(svc_file, managed)
+
+    return managed
+
+
+def _collect_compose_files(src: Path, base_dir: Path, paths: set[str]) -> None:
+    """Parse a services YAML and collect compose file paths into *paths*."""
+    if yaml is None:
+        return
+    try:
+        with open(src) as f:
+            data = yaml.safe_load(f)
+        if not isinstance(data, dict):
+            return
+        for info in data.get("compose_services", {}).values():
+            cf = info.get("compose_file", "") if isinstance(info, dict) else ""
+            if cf:
+                resolved = (base_dir / cf).resolve()
+                paths.add(str(resolved))
+    except (
+        OSError,
+        yaml.YAMLError,
+    ):  # silent-ok: compose file may not exist or be malformed, skip extraction
+        pass
+
+
+def get_declared_compose_files() -> set[str]:
+    """Return absolute compose file paths from all services.yml declarations."""
+    paths: set[str] = set()
+    root = _find_workspace_root()
+    if not root:
+        return paths
+
+    root_inv = root / "ansible" / "inventory" / "host_vars" / "localhost.yml"
+    if root_inv.exists():
+        _collect_compose_files(root_inv, root, paths)
+    for project in sorted((root / "projects").iterdir()):
+        svc = project / "res" / "ansible" / "services.yml"
+        if svc.exists():
+            _collect_compose_files(svc, project, paths)
+
+    return paths
+
+
+def _parse_systemd_details(details_raw: str) -> SystemdDetails:
+    """Parse systemd show output into a TypedDict."""
+    parsed = {}
+    for d_line in details_raw.splitlines():
+        if "=" in d_line:
+            k, v = d_line.split("=", 1)
+            parsed[k] = v
+    return SystemdDetails(
+        Id=parsed.get("Id", ""),
+        Description=parsed.get("Description", ""),
+        LoadState=parsed.get("LoadState", ""),
+        ActiveState=parsed.get("ActiveState", ""),
+        SubState=parsed.get("SubState", ""),
+        MainPID=parsed.get("MainPID", ""),
+        ExecMainStartTimestamp=parsed.get("ExecMainStartTimestamp", ""),
+        MemoryCurrent=parsed.get("MemoryCurrent", ""),
+        CPUUsageNSec=parsed.get("CPUUsageNSec", ""),
+        FragmentPath=parsed.get("FragmentPath", ""),
+        ExecStart=parsed.get("ExecStart", ""),
+        Restart=parsed.get("Restart", ""),
+        UnitFileState=parsed.get("UnitFileState", ""),
+    )
+
+
+def _extract_compose_info(exec_start: str) -> ComposeInfo:
+    """Extract compose file and profiles from ExecStart string."""
+    managed_container = None
+    compose_file = None
+    compose_profiles: list[str] = []
+
+    container_match = re.search(r"podman start .*? ([a-zA-Z0-9_-]+)", exec_start)
+    if container_match:
+        managed_container = container_match.group(1)
+
+    if "podman-compose" in exec_start:
+        file_match = re.search(r"-f ([^\s]+)", exec_start)
+        if file_match:
+            compose_file = file_match.group(1)
+        profile_matches = re.findall(r"--profile ([a-zA-Z0-9_-]+)", exec_start)
+        if profile_matches:
+            compose_profiles = profile_matches
+
+    return ComposeInfo(managed_container, compose_file, compose_profiles)
+
+
+def get_systemd_services() -> list[SystemdService]:
+    """Get systemd services matching known prefixes."""
+    services: list[SystemdService] = []
+    seen_names: set[str] = set()
+
+    commands = [
+        (
+            "user",
+            "systemctl --user list-units --type=service --all --no-legend --no-pager",
+        ),
+        ("system", "systemctl list-units --type=service --all --no-legend --no-pager"),
+    ]
+
+    for scope, cmd in commands:
+        raw = run_cmd(cmd)
+        for line in raw.splitlines():
+            parts = line.split()
+            if not parts:
+                continue
+            name = parts[0]
+            if not any(name.startswith(p) for p in SYSTEMD_PREFIXES):
+                continue
+
+            # Skip if already found in user scope (prefer user scope)
+            if name in seen_names:
+                continue
+            seen_names.add(name)
+
+            scope_flag = "--user" if scope == "user" else ""
+            props = (
+                "Id,ActiveState,SubState,FragmentPath,"
+                "MainPID,ExecStart,Restart,UnitFileState"
+            )
+            details_raw = run_cmd(
+                f"systemctl {scope_flag} show {name} --property={props}"
+            )
+            details = _parse_systemd_details(details_raw)
+            exec_start = details.get("ExecStart", "")
+            managed_container, compose_file, compose_profiles = _extract_compose_info(
+                exec_start
+            )
+
+            services.append(
+                SystemdService(
+                    name=name,
+                    scope=scope,
+                    active=details.get("ActiveState", ""),
+                    sub=details.get("SubState", ""),
+                    path=details.get("FragmentPath", ""),
+                    pid=details.get("MainPID", "0"),
+                    managed_container=managed_container,
+                    compose_file=compose_file,
+                    compose_profiles=compose_profiles,
+                    restart=details.get("Restart", ""),
+                    enabled=details.get("UnitFileState", ""),
+                )
+            )
+    return services
+
+
+def _find_container_by_name(
+    containers: list[PodmanContainer], name: str
+) -> PodmanContainer | None:
+    """Find a container by name in the list."""
+    for c in containers:
+        if c.name == name:
+            return c
+    return None
+
+
+def _process_service(
+    svc: SystemdService,
+    containers: list[PodmanContainer],
+    processed_containers: set[str],
+) -> ServiceDisplayInfo:
+    """Process a service and return display information."""
+    row_type = "Local Process"
+    row_details: list[str] = []
+    child_items: list[PodmanContainer] = []
+    ports_str = ""
+
+    if svc.compose_file:
+        row_type = "Unified Stack"
+        profiles = svc.compose_profiles
+        row_details.append(
+            f"Profiles: {', '.join(profiles) if profiles else 'default'}"
+        )
+        for c in containers:
+            config_key = "com.docker.compose.project.config_files"
+            c_config_files = str(c.labels.get(config_key, ""))
+            if svc.compose_file in c_config_files:
+                child_items.append(c)
+                processed_containers.add(c.name)
+    elif svc.managed_container:
+        row_type = "Container Wrapper"
+        managed_c = _find_container_by_name(containers, svc.managed_container)
+        if managed_c:
+            child_items.append(managed_c)
+            processed_containers.add(svc.managed_container)
+    elif svc.pid != "0":
+        ports = get_local_ports(svc.pid)
+        if ports:
+            ports_str = ", ".join(ports)
+
+    return ServiceDisplayInfo(
+        row_type=row_type,
+        row_details=row_details,
+        child_items=child_items,
+        ports_str=ports_str,
+    )
+
+
+def _print_orphan_services(
+    services: list[SystemdService],
+    managed_services: set[str],
+) -> None:
+    """Print systemd services not managed by Ansible (orphan services)."""
+    # Only check ami-* user services for orphan detection
+    orphan_svcs = [
+        svc
+        for svc in services
+        if svc.name.startswith("ami-")
+        and svc.scope == "user"
+        and svc.name not in managed_services
+    ]
+
+    if not orphan_svcs:
+        return
+
+    print(f"{Colors.CYAN}├{'─' * (DISPLAY_WIDTH - 2)}┤{Colors.RESET}")
+    print_box_line("", DISPLAY_WIDTH)
+    print_box_line(
+        f"{Colors.YELLOW}⚠️  ORPHAN SERVICES (Not in Ansible){Colors.RESET}",
+        DISPLAY_WIDTH,
+        bold=True,
+    )
+    print_box_line("", DISPLAY_WIDTH)
+    print_box_line(
+        f"{C_DIM}These services exist in systemd but not in Ansible.{C_RESET}",
+        DISPLAY_WIDTH,
+    )
+    print_box_line(
+        f"{C_DIM}Consider adding them to ansible inventory.{C_RESET}",
+        DISPLAY_WIDTH,
+    )
+    print_box_line("", DISPLAY_WIDTH)
+
+    for svc in sorted(orphan_svcs, key=lambda s: s.name):
+        # Status icon based on ActiveState + SubState
+        if svc.active == "active" and svc.sub == "running":
+            status_icon = I_OK
+        elif svc.active == "activating" or svc.sub == "auto-restart":
+            status_icon = I_WARN
+        elif svc.active in {"inactive", "failed"}:
+            status_icon = I_FAIL
+        else:
+            status_icon = I_STOP
+
+        boot_icon = I_BOOT if svc.enabled == "enabled" else I_NOBOOT
+        restart_icon = _get_restart_icon(svc.restart)
+        short_path = svc.path.replace(os.path.expanduser("~"), "~")
+        name_part = f"{Colors.BOLD}{svc.name}{Colors.RESET}"
+        line = f"   {status_icon} {name_part}  {boot_icon} {restart_icon}"
+        print_box_line(line, DISPLAY_WIDTH)
+        print_box_line(f"      Origin: {short_path}", DISPLAY_WIDTH)
+
+    print_box_line("", DISPLAY_WIDTH)

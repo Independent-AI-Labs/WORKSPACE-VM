@@ -2,17 +2,17 @@
 
 from __future__ import annotations
 
-import ami.scripts.bootstrap_install
-import ami.scripts.bootstrap_installer
-import ami.scripts.bootstrap_installer_ui
+import workspace.scripts.bootstrap_install as _bi
+import workspace.scripts.bootstrap_installer as _bs
+import workspace.scripts.bootstrap_installer_ui as _ui
 
 
 class TestBootstrapInstallImport:
     def test_import_bootstrap_install(self):
-        assert ami.scripts.bootstrap_install is not None
+        assert _bi is not None
 
     def test_import_bootstrap_installer(self):
-        assert ami.scripts.bootstrap_installer is not None
+        assert _bs is not None
 
     def test_import_bootstrap_installer_ui(self):
-        assert ami.scripts.bootstrap_installer_ui is not None
+        assert _ui is not None

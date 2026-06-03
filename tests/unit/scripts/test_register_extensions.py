@@ -3,7 +3,7 @@
 import stat
 from pathlib import Path
 
-from ami.scripts.register_extensions import (
+from workspace.scripts.register_extensions import (
     create_wrapper,
     fix_stale_shebang,
 )
