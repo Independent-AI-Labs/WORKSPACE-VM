@@ -60,6 +60,12 @@ install_missing() {
         return 0
     fi
 
+    # Detect if running under sudo — drop privileges for user-owned paths.
+    local run_as_user=()
+    if [[ -n "${SUDO_USER:-}" ]]; then
+        run_as_user=("sudo" "-u" "$SUDO_USER")
+    fi
+
     # Split bootstrap entries (|bootstrap| prefix) from apt entries
     local bootstrap_entries=()
     local apt_entries=()
@@ -71,74 +77,97 @@ install_missing() {
         fi
     done
 
-    # Run bootstrap scripts
-    for entry in "${bootstrap_entries[@]}"; do
-        IFS='|' read -r cmd _ _ script <<< "$entry"
-        log_info "Bootstrapping $cmd..."
-        if bash "${PROJECT_ROOT}/${script}"; then
-            log_info "✓ $cmd bootstrapped successfully"
-        else
-            log_error "✗ $cmd bootstrap failed"
-            return 1
-        fi
-    done
+    # ------------------------------------------------------------------
+    # Phase 1: Install apt packages FIRST so that tools needed by
+    # bootstrap scripts (curl, wget, etc.) are already available.
+    # ------------------------------------------------------------------
+    if [[ ${#apt_entries[@]} -gt 0 ]]; then
+        local apt_installable=()
+        local unavail=()
 
-    [[ ${#apt_entries[@]} -eq 0 ]] && MISSING_ENTRIES=() || MISSING_ENTRIES=("${apt_entries[@]}")
+        for entry in "${apt_entries[@]}"; do
+            local pkg="${entry#*|}"
+            pkg="${pkg%%|*}"
+            local status="${RESOLVED_STATUS[$pkg]:-unknown}"
 
-    local apt_installable=()
-    local unavail=()
-
-    for entry in "${MISSING_ENTRIES[@]}"; do
-        local pkg="${entry#*|}"
-        pkg="${pkg%%|*}"
-        local status="${RESOLVED_STATUS[$pkg]:-unknown}"
-
-        case "$status" in
-            available)
-                local already=false
-                for existing in "${apt_installable[@]:-}"; do
-                    [[ "$existing" == "$pkg" ]] && already=true && break
-                done
-                [[ "$already" == "false" ]] && apt_installable+=("$pkg")
-                ;;
-            *)
-                local already=false
-                for existing in "${unavail[@]:-}"; do
-                    [[ "$existing" == "$pkg" ]] && already=true && break
-                done
-                [[ "$already" == "false" ]] && unavail+=("$pkg")
-                ;;
-        esac
-    done
-
-    if [[ ${#unavail[@]} -gt 0 ]]; then
-        log_warn "The following packages are not available:"
-        for pkg in "${unavail[@]}"; do
-            log_warn "  • $pkg"
+            case "$status" in
+                available)
+                    local already=false
+                    for existing in "${apt_installable[@]:-}"; do
+                        [[ "$existing" == "$pkg" ]] && already=true && break
+                    done
+                    [[ "$already" == "false" ]] && apt_installable+=("$pkg")
+                    ;;
+                *)
+                    local already=false
+                    for existing in "${unavail[@]:-}"; do
+                        [[ "$existing" == "$pkg" ]] && already=true && break
+                    done
+                    [[ "$already" == "false" ]] && unavail+=("$pkg")
+                    ;;
+            esac
         done
-        log_warn "You may need to install these manually."
-        echo ""
+
+        if [[ ${#unavail[@]} -gt 0 ]]; then
+            log_warn "The following packages are not available:"
+            for pkg in "${unavail[@]}"; do
+                log_warn "  • $pkg"
+            done
+            log_warn "You may need to install these manually."
+            echo ""
+        fi
+
+        if [[ ${#apt_installable[@]} -gt 0 ]]; then
+            log_info "Installing ${#apt_installable[@]} package(s) via apt: ${apt_installable[*]}"
+            echo ""
+
+            if sudo apt-get update -qq && sudo apt-get install -y "${apt_installable[@]}"; then
+                echo ""
+                log_info "${GREEN}${BOLD}Successfully installed: ${apt_installable[*]}${NC}"
+            else
+                echo ""
+                log_error "Failed to install packages via apt."
+                return 1
+            fi
+        fi
     fi
 
-    if [[ ${#apt_installable[@]} -gt 0 ]]; then
-        log_info "Installing ${#apt_installable[@]} package(s) via apt: ${apt_installable[*]}"
-        echo ""
+    # ------------------------------------------------------------------
+    # Phase 2: Run bootstrap scripts.
+    # When running under sudo, drop to the calling user so that
+    # .boot-linux/bin/ files are owned by the real user, not root.
+    # ------------------------------------------------------------------
+    if [[ ${#bootstrap_entries[@]} -gt 0 ]]; then
+        for entry in "${bootstrap_entries[@]}"; do
+            # 3 pipe-delimited fields: cmd|bootstrap|script_path
+            IFS='|' read -r cmd _ script <<< "$entry"
 
-        if sudo apt-get update -qq && sudo apt-get install -y "${apt_installable[@]}"; then
-            echo ""
-            log_info "${GREEN}${BOLD}Successfully installed: ${apt_installable[*]}${NC}"
-        else
-            echo ""
-            log_error "Failed to install packages via apt."
-            return 1
-        fi
-    elif [[ ${#bootstrap_entries[@]} -gt 0 ]]; then
-        log_info "${GREEN}${BOLD}All missing dependencies resolved via bootstrap.${NC}"
+            local script_path="${PROJECT_ROOT}/${script}"
+            if [[ ! -f "$script_path" ]]; then
+                log_error "✗ Bootstrap script not found: $script_path"
+                log_error "  Run 'make ensure-repos' first to clone workspace sub-repos, then re-run init."
+                return 1
+            fi
+
+            log_info "Bootstrapping $cmd..."
+            if "${run_as_user[@]}" bash "$script_path"; then
+                log_info "✓ $cmd bootstrapped successfully"
+                # Post-install verification
+                if find_binary "$cmd" &>/dev/null; then
+                    log_ok "$cmd is now on PATH"
+                else
+                    log_warn "$cmd installed but not on PATH — reload your shell or check .boot-linux/bin/"
+                fi
+            else
+                log_error "✗ $cmd bootstrap failed"
+                return 1
+            fi
+        done
     fi
 
     local guard_script="${PROJECT_ROOT}/ami/scripts/bootstrap/bootstrap_rust_guard.sh"
     if [[ -f "$guard_script" ]]; then
-        bash "$guard_script" "reinstall"
+        "${run_as_user[@]}" bash "$guard_script" "reinstall"
     fi
 
     return 0
