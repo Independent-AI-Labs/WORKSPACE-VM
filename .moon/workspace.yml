@@ -1,0 +1,43 @@
+# yaml-language-server: $schema=https://moonrepo.dev/schemas/workspace.json
+#
+# AMI-AGENTS workspace — moon (moonrepo) configuration.
+#
+# moon is the task runner + project-graph dep validator for the federated
+# AMI workspace. Each project below is a separate sibling git repo under
+# /home/ami/AMI-AGENTS/projects/, except `workspace` which is the umbrella
+# repo at the workspace root.
+#
+# Per-project `moon.yml` files live inside each repo and declare:
+#   - language / type
+#   - dependsOn (cross-AMI edges, validated by `moon ci`)
+#   - tasks (typically thin wrappers over each repo's existing `make` targets)
+#
+# Toolchain is intentionally NOT managed by moon. We have our own
+# `.boot-linux/` toolchain bootstrap; per-project `moon.yml` may set
+# language hints for the graph but moon will not auto-install runtimes.
+
+# Map of project IDs → relative paths (from this workspace root).
+projects:
+  workspace: '.'
+  ci: 'projects/CI'
+  dataops: 'projects/DATAOPS'
+  ami-portal: 'projects/AMI-PORTAL'
+  ami-srp: 'projects/AMI-SRP'
+  ami-streams: 'projects/AMI-STREAMS'
+  ami-trading: 'projects/AMI-TRADING'
+  ami-browser: 'projects/AMI-BROWSER'
+  rust-trading: 'projects/RUST-TRADING'
+  zk-portal: 'projects/ZK-PORTAL'
+  polymarket-tracker: 'projects/polymarket-insider-tracker'
+  ami-docs: 'projects/docs'
+
+vcs:
+  client: 'git'
+  defaultBranch: 'main'
+
+pipeline:
+  cacheLifetime: '7 days'
+
+# Disable telemetry — see CLAUDE.md guidance.
+telemetry: false
+
