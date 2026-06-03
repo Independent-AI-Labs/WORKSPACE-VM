@@ -3,11 +3,11 @@
 unit:
   path: tests/unit
   min_coverage: 61
-  source_path: ami
+  source_path: workspace
   runner: uv run python -m pytest
 
 integration:
   path: tests/integration
   min_coverage: 40
-  source_path: ami
+  source_path: workspace
   runner: uv run python -m pytest
