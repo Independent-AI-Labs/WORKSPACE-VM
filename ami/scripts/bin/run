@@ -30,7 +30,7 @@ if [[ "$#" -gt 0 && ("$1" == "-h" || "$1" == "--help") ]]; then
     echo ""
     echo "Usage: run [subcommand] [args...]"
     echo ""
-    echo "Subcommands: python, uv, node, npm, npx, cargo, rustc, go"
+    echo "Subcommands: python, uv, node, npm, npx, bash, sh, cargo, rustc, go, tests, extras, doctor, banner"
     exit 0
 fi
 
@@ -40,7 +40,7 @@ if [[ "$#" -gt 0 && "$1" == "--version" ]]; then
     exit 0
 fi
 
-KNOWN_CMDS="python uv node npm npx wrap bash sh tests cargo rustc go extras doctor"
+KNOWN_CMDS="python uv node npm npx wrap bash sh tests cargo rustc go extras doctor banner"
 if [[ $# -gt 0 ]] && [[ " $KNOWN_CMDS " == *" $1 "* ]]; then
     SUBCOMMAND="$1"
     shift
@@ -111,5 +111,8 @@ case "$SUBCOMMAND" in
         ;;
     doctor)
         exec "$VENV_PYTHON" "$AMI_ROOT/ami/scripts/shell/banner_helper.py" --mode doctor "${ARGS[@]}"
+        ;;
+    banner)
+        exec "$VENV_PYTHON" "$AMI_ROOT/ami/scripts/shell/banner_helper.py" --mode banner "${ARGS[@]}"
         ;;
 esac

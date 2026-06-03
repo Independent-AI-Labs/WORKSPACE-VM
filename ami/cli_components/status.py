@@ -112,7 +112,7 @@ def _print_header() -> None:
 
     print(f"\n{Colors.CYAN}┌{'─' * (DISPLAY_WIDTH - 2)}┐{Colors.RESET}")
     print_box_line(
-        f"{Colors.YELLOW}AMI SYSTEM STATUS REPORT{Colors.RESET}",
+        f"{Colors.YELLOW}SYSTEM STATUS REPORT{Colors.RESET}",
         DISPLAY_WIDTH,
         bold=True,
     )
@@ -179,7 +179,7 @@ def _print_service_entry(
 
 def main() -> None:
     """Main entry point for status display."""
-    parser = argparse.ArgumentParser(description="AMI System Status")
+    parser = argparse.ArgumentParser(description="System Status Report")
     parser.add_argument(
         "-s",
         "--system",
