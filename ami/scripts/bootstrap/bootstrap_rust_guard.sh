@@ -133,18 +133,23 @@ install_guard() {
     # Phase 1: Build Rust binary
     log_info "Building rust-guard Rust binary..."
     local boot_rust="${PROJECT_ROOT}/.boot-linux/bin"
-    if [[ -x "$boot_rust/rustc" ]]; then
-        log_info "Using bootstrapped Rust from $boot_rust"
-    elif ! command -v rustc >/dev/null; then
-        log_warn "Rust not installed. Installing via rustup..."
+    local rust_home="${PROJECT_ROOT}/.boot-linux/rust"
+    export PATH="$boot_rust:$PATH"
+    export RUSTUP_HOME="$rust_home"
+    export CARGO_HOME="$rust_home"
+
+    if ! command -v cargo >/dev/null; then
+        log_warn "cargo not on PATH — bootstrapping Rust..."
         bash "${PROJECT_ROOT}/ami/scripts/bootstrap/bootstrap_rust.sh" || {
             log_error "Rust installation failed"
             return 1
         }
+        if ! command -v cargo >/dev/null; then
+            log_error "cargo still not found after bootstrap — check $boot_rust/"
+            return 1
+        fi
+        log_info "Rust bootstrapped successfully"
     fi
-    export PATH="$boot_rust:$PATH"
-    export RUSTUP_HOME="${PROJECT_ROOT}/.boot-linux/rust"
-    export CARGO_HOME="${PROJECT_ROOT}/.boot-linux/rust"
 
     local guard_dir="${PROJECT_ROOT}/projects/RUST-GUARD"
     if [[ ! -f "$guard_dir/Cargo.toml" ]]; then
