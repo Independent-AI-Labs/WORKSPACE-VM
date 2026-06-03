@@ -211,24 +211,32 @@ ami/cli_components/
 
 **Total: 11 files, ~1,891 lines**
 
-### 4.2 Files NOT Moved (stay-and-delete)
+### 4.2 Files NOT Moved
 
-The following `ami/cli_components/` files are NOT imported by AMI-DATAOPS and are exclusively used by agent orchestration code or tools that are also being deleted. They are deleted with the main package:
+The following `ami/cli_components/` files are NOT moved to AMI-DATAOPS. They stay in the main package because they are actively used by the `ops` extension (`ami/scripts/bin/ops` dispatches to `status.py` and `storage.py` directly).
+
+**Kept — active extension entry points and their dependencies:**
+
+| File | Status |
+|------|--------|
+| `status.py` | KEPT — entry point for `ops status` (imported by ops via `ami/scripts/bin/ops:75`) |
+| `storage.py` | KEPT — entry point for `ops storage` (imported by ops via `ami/scripts/bin/ops:78`) |
+| `legend.py` | KEPT — imported by status.py for legend display |
+| `status_containers.py` | KEPT — imported by status.py for container ops |
+| `status_systemd.py` | KEPT — imported by status.py for systemd service display |
+| `status_utils.py` | KEPT — imported by status*.py for shared utilities |
+| `text_input_utils.py` | DELETED — duplicated in AMI-DATAOPS; imported from DATAOPS via namespace packages |
+
+**Files that were agent-only and are deleted:**
 
 | File | Why Not Needed |
 |------|----------------|
-| `confirmation_dialog.py` | `ConfirmationDialog` lives in `dialogs.py` itself; external consumers (`ami/tools/`) are being deleted |
+| `confirmation_dialog.py` | `ConfirmationDialog` lives in `dialogs.py` itself; external consumers (`ami/tools/`) were deleted |
 | `cursor_manager.py` | Agent TUI only |
 | `editor_display.py` | Agent text editor |
 | `editor_saving.py` | Agent text editor |
-| `legend.py` | Agent status display |
 | `session_browser.py` | Agent session browser |
 | `session_detail.py` | Agent session detail |
-| `status.py` | Agent status display |
-| `status_containers.py` | Agent container status |
-| `status_systemd.py` | Agent systemd status |
-| `status_utils.py` | Agent status utilities |
-| `storage.py` | Agent local storage |
 | `stream_renderer.py` | Agent stream renderer |
 | `text_editor.py` | Agent text editor |
 | `text_input_cli.py` | Agent CLI text input |
@@ -319,18 +327,25 @@ class InstallationResult(TypedDict):
     error: str | None
 ```
 
-### 5.4 Types Permanently Deleted
+### 5.4 Types — Disposition
 
-These files from `ami/types/` are entirely agent-specific and have NO survivors. They are deleted:
+The `ami/types/` directory stays in the main package. The surviving cli_components files (status, storage, legend, status_containers, status_systemd, status_utils — see §4.2) depend on types that the slim consolidated DATAOPS `results.py` does not provide:
 
-| File | Types (all deleted) |
-|------|---------------------|
-| `api.py` | `ProviderMetadata`, `StreamMetadata`, `ProviderResponse`, `MCPServerConfig`, `StreamEventData`, `ProviderExtraMetadata` |
-| `common.py` | `ProcessEnvironment`, `ContainerStatsData`, `ContainerSizeData`, `VolumeData`, `PortData`, `ScopeOverride`, `TemplateInfo`, `SystemdDetails`, `InstallationResult` (moved to results.py) |
-| `config.py` | Agent configuration types |
-| `events.py` | `StreamEvent` |
-| `results.py` | `ParseResult`, `ProviderResult`, `SafetyCheckResult`, `ReadLineResult`, `ComposeInfo`, `LegendRender`, `BinaryCheckResult`, `ConfigDefaults`, `FileViolation`, `TempFileEntry`, `ComponentStatusEntry`, `SelectorEvent`, `DeleteResult`, `ScanResult`, `ContainerStatusDisplay`, `ModeHandler`, `ContainerInspectInfo` |
-| `status.py` | `ServiceDisplayInfo`, `SystemdService`, `PortMapping`, `PodmanContainer` |
+| Type Needed | In Main `types/` | In DATAOPS `results.py` |
+|-------------|-----------------|------------------------|
+| `LegendRender` | `results.py` | No |
+| `ContainerStatusDisplay` | `results.py` | No |
+| `ContainerInspectInfo` | `results.py` | No |
+| `ComposeInfo` | `results.py` | No |
+| `ContainerSizeData` | `common.py` | No |
+| `ContainerStatsData` | `common.py` | No |
+| `SystemdDetails` | `common.py` | No |
+| `ServiceDisplayInfo` | `status.py` | No |
+| `SystemdService` | `status.py` | No |
+| `PortMapping` | `status.py` | No |
+| `PodmanContainer` | `status.py` | No |
+
+**Therefore `ami/types/` stays in its entirety.** The DATAOPS consolidated `results.py` is a minimal subset useful for DATAOPS's namespace package independence; it is shadowed at runtime by the main package's full types/ (which appears first on PYTHONPATH via `$AMI_ROOT:${PROJECT_PATHS}`) but serves as a fallback reference.
 
 ---
 
@@ -631,8 +646,7 @@ python -c "from ami.config_utils import get_config_path; print(get_config_path('
 
 # ── Phase 6: Delete from main package ──
 
-rm -rf ami/cli_components/
-rm -rf ami/types/
+rm -f ami/cli_components/text_input_utils.py   # duplicated — resolve from DATAOPS
 rm -rf ami/cli/
 rm -rf ami/core/
 rm -rf ami/tools/
@@ -642,6 +656,11 @@ rm -f ami/scripts/bootstrap/bootstrap_agents.sh
 rm -f scripts/package.json
 rm -f scripts/package.json.backup
 rm -f scripts/setup/node.sh         # (already deleted)
+
+# DO NOT delete ami/cli_components/ — status.py, storage.py, legend.py, etc.
+# are active extension entry points (ops status, ops storage).
+# DO NOT delete ami/types/ — surviving extension chain needs full types
+# (LegendRender, ContainerStatusDisplay, etc.). See §4.2 and §5.4.
 
 # ── Phase 7: Rebuild and verify ──
 
@@ -666,49 +685,46 @@ python -m pytest tests/ -q
 
 ### 10.1 CLI Components (moved to AMI-DATAOPS)
 
-These 11 files are deleted from `ami/` after copying to AMI-DATAOPS:
+These 12 files are deleted from `ami/cli_components/` after copying to AMI-DATAOPS:
 
 ```
-ami/cli_components/__init__.py
-ami/cli_components/keys.py
-ami/cli_components/dialogs.py
-ami/cli_components/selection_dialog.py
-ami/cli_components/selection_dialog_render.py
-ami/cli_components/format_utils.py
-ami/cli_components/text_input_utils.py
-ami/cli_components/selector.py
-ami/cli_components/menu_selector.py
-ami/cli_components/tui.py
-ami/cli_components/terminal/ansi.py
-ami/cli_components/terminal/__init__.py    # if it exists
+ami/cli_components/__init__.py        ✓ DELETED
+ami/cli_components/keys.py            ✓ DELETED
+ami/cli_components/dialogs.py         ✓ DELETED
+ami/cli_components/selection_dialog.py         ✓ DELETED
+ami/cli_components/selection_dialog_render.py  ✓ DELETED
+ami/cli_components/format_utils.py             ✓ DELETED
+ami/cli_components/text_input_utils.py         ✓ DELETED
+ami/cli_components/selector.py                 ✓ DELETED
+ami/cli_components/menu_selector.py            ✓ DELETED
+ami/cli_components/tui.py                      ✓ DELETED
+ami/cli_components/terminal/ansi.py            ✓ DELETED
+ami/cli_components/terminal/__init__.py        ✓ DELETED
 ```
 
-### 10.2 Types (moved to AMI-DATAOPS — ALL deleted from main package)
+**NOT deleted:** status.py, storage.py, legend.py, status_containers.py, status_systemd.py, status_utils.py — these are active extension entry points (see §4.2).
 
-```
-ami/types/__init__.py
-ami/types/results.py        # 7 surviving types now in AMI-DATAOPS
-ami/types/api.py            # fully deleted — agent-specific
-ami/types/common.py         # fully deleted — InstallationResult moved to AMI-DATAOPS
-ami/types/config.py         # fully deleted — agent-specific
-ami/types/events.py         # fully deleted — agent-specific
-ami/types/status.py         # fully deleted — agent-specific
-```
+### 10.2 Types (NOT deleted — kept in main package)
+
+`ami/types/` stays in the main package. See §5.4 for the dependency chain. The surviving status/storage/legend extension chain requires types not present in the DATAOPS consolidated `results.py`.
 
 ### 10.3 Remaining Agent Code (per MIGRATION-PLAN.md)
 
 ```
-ami/cli/               (entire directory — 25 files)
-ami/core/              (entire directory — 14 files + policies/)
-ami/cli_components/    (remaining 15 files not listed in §10.1)
-ami/tools/             (entire directory — 3 files)
-ami/hooks/             (agent-specific hooks — entire directory)
+ami/cli/               (entire directory — 25 files — DELETED ✓)
+ami/core/              (entire directory — 14 files + policies/ — DELETED ✓)
+ami/tools/             (entire directory — 3 files — DELETED ✓)
+ami/hooks/             (agent-specific hooks — DELETED ✓)
 ami/utils/process.py   (orphaned — imports deleted ami.types)
 scripts/package.json
 scripts/package.json.backup
 scripts/setup/node.sh
 ami/scripts/bootstrap/bootstrap_agents.sh
 ```
+
+**NOT deleted from `ami/cli_components/`:** status.py, storage.py, legend.py, status_containers.py, status_systemd.py, status_utils.py — kept for `ops status` and `ops storage` extensions (see §4.2).
+
+**NOT deleted from `ami/types/`:** entire directory kept — surviving extension chain requires types not in DATAOPS consolidated results.py (see §5.4).
 
 ---
 
@@ -899,9 +915,9 @@ No cyclic imports: `config_utils` depends only on stdlib (`os`, `pathlib`). Boot
 | AC-CLI-6 | sys_info.py resolves types | `python -c "from ami.types.results import ColorPair; print('OK')"` |
 | AC-CLI-7 | PROJECT_ROOT moved to config_utils | `python -c "from ami.config_utils import PROJECT_ROOT; print(PROJECT_ROOT)"` |
 | AC-CLI-8 | bootstrap_components imports from config_utils | `python -c "from ami.scripts.bootstrap_components import PROJECT_ROOT; print(PROJECT_ROOT)"` |
-| AC-CLI-9 | No cli_components or types in main package | `ls ami/cli_components/` → error; `ls ami/types/` → error |
-| AC-CLI-10 | Cli_components tests pass in AMI-DATAOPS | `python -m pytest projects/AMI-DATAOPS/tests/unit/cli_components/` → 336 passed |
-| AC-CLI-11 | `make sync-package` succeeds | `uv sync --extra dev` → exit 0 |
+| AC-CLI-9 | Extension cli_components stay in main package | `ls ami/cli_components/status.py ami/cli_components/storage.py` → found; `ls ami/cli_components/text_input_utils.py` → error (resolved from DATAOPS) |
+| AC-CLI-10 | text_input_utils resolves from DATAOPS | `python -c "import ami.cli_components.text_input_utils; print(ami.cli_components.text_input_utils.__file__)"` → shows DATAOPS path |
+| AC-CLI-11 | ops status works | `python ami/cli_components/status.py` → exit 0, displays system status |
 | AC-CLI-12 | `uv tree` shows both packages | `uv tree` → `ami-agents` and `ami-dataops` as siblings |
 
 ### 12.2 Test Matrix

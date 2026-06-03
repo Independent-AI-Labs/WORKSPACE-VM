@@ -101,7 +101,10 @@ docs/archive/v2/
 | Action | Items |
 |--------|-------|
 | **Archive** (move to `docs/archive/v2/`) | All doc files in `docs/` except `REQUIREMENTS-A2A.md`, `GAP-ANALYSIS-A2A.md`, and this plan |
-| **Delete** | All Python agent orchestration code: `ami/cli/`, `ami/core/`, `ami/cli_components/`, `ami/types/`, `ami/tools/` |
+| **Delete** | All Python agent orchestration code: `ami/cli/`, `ami/core/`, `ami/tools/` |
+| **Keep** | `ami/cli_components/` — status/storage/legend files (ops extension entry points) |
+| **Keep** | `ami/types/` — needed by surviving cli_components (LegendRender, ContainerStatusDisplay, etc.) |
+| **Delete** | Duplicated `ami/cli_components/text_input_utils.py` — resolved from AMI-DATAOPS via namespace packages |
 | **Delete** | `scripts/package.json` (claude, gemini, qwen deps) |
 | **Delete** | `scripts/setup/node.sh` |
 | **Delete** | `ami/tools/update_cli_versions.py` |
@@ -159,42 +162,19 @@ ami/core/                          # Agent core
   ├── policies/                    # Policy enforcers
   └── __init__.py
 
-ami/cli_components/                # TUI components
-  ├── confirmation_dialog.py       # Confirmation UI
-  ├── cursor_manager.py            # Cursor management
-  ├── dialogs.py                   # Dialog system
-  ├── editor_display.py            # Editor display
-  ├── editor_saving.py             # Save handling
-  ├── format_utils.py              # Formatting
-  ├── keys.py                      # Key bindings
-  ├── legend.py                    # Legend display
-  ├── menu_selector.py             # Menu selection
-  ├── selection_dialog.py          # Selection dialogs
-  ├── selection_dialog_render.py   # Selection rendering
-  ├── selector.py                  # Selector component
-  ├── session_browser.py           # Session browser
-  ├── session_detail.py            # Session detail view
-  ├── status.py                    # Status display
-  ├── status_containers.py         # Container status
-  ├── status_systemd.py            # Systemd status
-  ├── status_utils.py              # Status utilities
-  ├── storage.py                   # Local storage
-  ├── stream_renderer.py           # Stream renderer
-  ├── text_editor.py               # Text editor
-  ├── text_input_cli.py            # CLI text input
-  ├── text_input_utils.py          # Text input utilities
-  ├── tui.py                       # Main TUI
-  ├── terminal/                    # Terminal utilities
-  └── __init__.py
+ami/cli_components/                # PARTIALLY DELETED — see below
+                                   # Files moved to AMI-DATAOPS: dialogs, format_utils, keys,
+                                   # menu_selector, selection_dialog, selection_dialog_render,
+                                   # selector, tui, terminal/ansi, text_input_utils
+                                   # Files KEPT (ops extension entry points): status, storage,
+                                   # legend, status_containers, status_systemd, status_utils
+                                   # Details: docs/MIGRATION-CLI-COMPONENTS-TO-DATAOPS.md §4.2
 
-ami/types/                         # Type definitions
-  ├── api.py                       # API types
-  ├── common.py                    # Common types
-  ├── config.py                    # Config types
-  ├── events.py                    # Event types
-  ├── results.py                   # Result types
-  ├── status.py                    # Status types
-  └── __init__.py
+ami/types/                         # KEPT — surviving cli_components need types
+                                   # (LegendRender, ContainerStatusDisplay, ContainerInspectInfo,
+                                   # ComposeInfo, ContainerSizeData, ContainerStatsData, etc.)
+                                   # that the slim DATAOPS consolidated results.py does not provide.
+                                   # Details: docs/MIGRATION-CLI-COMPONENTS-TO-DATAOPS.md §5.4
 
 ami/tools/                         # Agent tools (deleted: replaced by opencode tools)
   ├── update_cli_versions.py       # CLI version updater
@@ -760,12 +740,12 @@ fi
 | Action | Detail |
 |--------|--------|
 | 1.1 | Archive all V2 docs to `docs/archive/v2/` |
-| 1.2 | Delete Python agent orchestration code (§3.1) |
+| 1.2 | Delete Python agent orchestration code (§3.1): `ami/cli/`, `ami/core/`, `ami/tools/`, duplicated `ami/cli_components/text_input_utils.py`. Keep status/storage/legend (ops extensions) and `ami/types/` (surviving cli_components dependency chain). |
 | 1.3 | Delete agent CLI scripts (§3.2) |
 | 1.4 | Write new `AGENTS.md` and `README.md` |
-| 1.5 | **EXECUTED 2026-06-01** — Code deletions complete (Phase 1-5 of `MIGRATION-CLI-COMPONENTS-TO-DATAOPS.md`) |
+| 1.5 | **EXECUTED 2026-06-01** — Code deletions complete: `ami/cli/` ✓, `ami/core/` ✓, `ami/tools/` ✓, `ami-agent` ✓, `scripts/package.json` ✓, moved 11 cli_components files to AMI-DATAOPS ✓. `ami/cli_components/` (status/storage/legend) and `ami/types/` intentionally KEPT (ops extensions). |
 
-**Artifacts:** Updated docs, cleaned repo. `ami/cli_components` and `ami/types` now live in AMI-DATAOPS.
+**Artifacts:** Updated docs, cleaned repo. Agent orchestration code (`ami/cli/`, `ami/core/`, `ami/tools/`) deleted. 11 cli_components files moved to AMI-DATAOPS (imported via namespace packages). Remaining cli_components files (status, storage, legend, status_*) stay for `ops` extension entry points.
 
 ### Phase 2: Base opencode Integration (Days 3-4)
 
@@ -922,7 +902,6 @@ ami/cli/timer_utils.py
 ami/cli/transcript_search.py
 ami/cli/transcript_store.py
 ami/cli/validation_utils.py
-ami/cli_components/__init__.py
 ami/cli_components/confirmation_dialog.py
 ami/cli_components/cursor_manager.py
 ami/cli_components/dialogs.py
@@ -930,23 +909,25 @@ ami/cli_components/editor_display.py
 ami/cli_components/editor_saving.py
 ami/cli_components/format_utils.py
 ami/cli_components/keys.py
-ami/cli_components/legend.py
 ami/cli_components/menu_selector.py
 ami/cli_components/selection_dialog.py
 ami/cli_components/selection_dialog_render.py
 ami/cli_components/selector.py
 ami/cli_components/session_browser.py
 ami/cli_components/session_detail.py
-ami/cli_components/status.py
-ami/cli_components/status_containers.py
-ami/cli_components/status_systemd.py
-ami/cli_components/status_utils.py
-ami/cli_components/storage.py
 ami/cli_components/stream_renderer.py
 ami/cli_components/text_editor.py
 ami/cli_components/text_input_cli.py
-ami/cli_components/text_input_utils.py
+ami/cli_components/text_input_utils.py      # duplicated — imported from DATAOPS
 ami/cli_components/tui.py
+ami/cli_components/__init__.py
+# ── KEPT in ami/cli_components/ (ops extensions) ──
+#   status.py          — ops status entry point
+#   storage.py         — ops storage entry point
+#   legend.py          — imported by status.py
+#   status_containers.py  — imported by status.py
+#   status_systemd.py  — imported by status.py
+#   status_utils.py    — imported by status*.py
 ami/core/__init__.py
 ami/core/bootloader_agent.py
 ami/core/config.py
@@ -962,13 +943,9 @@ ami/core/utils.py
 ami/tools/clean_temp_files.py
 ami/tools/test_qwen_silence.py
 ami/tools/update_cli_versions.py
-ami/types/__init__.py
-ami/types/api.py
-ami/types/common.py
-ami/types/config.py
-ami/types/events.py
-ami/types/results.py
-ami/types/status.py
+# ── KEPT: ami/types/ entire directory — needed by surviving cli_components
+#   (LegendRender, ContainerStatusDisplay, ContainerInspectInfo, ComposeInfo, etc.)
+#   See MIGRATION-CLI-COMPONENTS-TO-DATAOPS.md §5.4
 scripts/package.json
 scripts/package.json.backup
 scripts/setup/node.sh
@@ -990,7 +967,7 @@ tests/unit/test_transcript_search.py
 tests/integration/test_bootloader_agent_integration.py
 ```
 
-**Total: 82 files to delete** (Phase 1 complete — agent code dirs + cli_components/types moved to DATAOPS)
+**Total: ~47 files deleted** (Phase 1 — agent code dirs deleted; 18 cli_components files deleted, 6 kept for ops extensions; types/ entirely kept)
 
 ### 12.2 Files to Create (13 new files)
 

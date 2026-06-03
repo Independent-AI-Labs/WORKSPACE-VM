@@ -4,7 +4,7 @@
 **Status:** DRAFT
 **Type:** Specification
 **Domain:** Authentication & Identity
-**Prerequisite:** [AUTH-FRAGMENTATION-AUDIT.md](archive/AUTH-FRAGMENTATION-AUDIT.md)
+**Prerequisite:** [AUTH-FRAGMENTATION-AUDIT.md](AUTH-FRAGMENTATION-AUDIT.md)
 
 ---
 

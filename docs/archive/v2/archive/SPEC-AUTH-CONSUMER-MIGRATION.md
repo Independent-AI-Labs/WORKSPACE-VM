@@ -14,7 +14,7 @@
 2. [Migration Order](#2-migration-order)
 3. [AMI-PORTAL Migration](#3-ami-portal-migration)
 4. [AMI-TRADING Migration](#4-ami-trading-migration)
-5. [Matrix/MAS Migration](#5-matrixmas-migration)
+5. [Matrix/MAS Migration](#5-matrix-mas-migration)
 6. [Rollback Strategy](#6-rollback-strategy)
 7. [Testing Strategy](#7-testing-strategy)
 

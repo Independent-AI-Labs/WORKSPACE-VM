@@ -26,8 +26,9 @@ fi
 WELCOME=$("$AMI_ROOT/ami/scripts/bin/welcome" --plain 2>/dev/null || echo "AMI-AGENTS workspace")
 printf '%b\n' "$WELCOME" && echo ""
 export OPENCODE_ENABLE_EXA=1
+AGENT_NOTE=$'\n\nYou can rename this session with /rename.'
 if [[ $# -gt 0 ]]; then
-    exec "$NPX" opencode run --dir "$ORIG_PWD" "$WELCOME"$'\n\n'"Task: $*"
+    exec "$NPX" opencode run --dir "$ORIG_PWD" "$WELCOME"$'\n\n'"Task: $*""$AGENT_NOTE"
 else
-    exec "$NPX" opencode "$ORIG_PWD" --prompt "$WELCOME"
+    exec "$NPX" opencode "$ORIG_PWD" --prompt "$WELCOME""$AGENT_NOTE"
 fi
