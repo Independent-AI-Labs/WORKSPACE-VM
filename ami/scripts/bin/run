@@ -40,7 +40,7 @@ if [[ "$#" -gt 0 && "$1" == "--version" ]]; then
     exit 0
 fi
 
-KNOWN_CMDS="python uv podman docker node npm npx java wrap bash sh tests ansible ansible-playbook ansible-galaxy status systemd cargo rustc go kubectl helm extras doctor storage"
+KNOWN_CMDS="python uv node npm npx wrap bash sh tests cargo rustc go extras doctor"
 if [[ $# -gt 0 ]] && [[ " $KNOWN_CMDS " == *" $1 "* ]]; then
     SUBCOMMAND="$1"
     shift
@@ -66,26 +66,6 @@ case "$SUBCOMMAND" in
     uv)
         exec "$BOOT_DIR/bin/uv" "${ARGS[@]}"
         ;;
-    ansible|ansible-playbook|ansible-galaxy)
-        exec "$VENV_DIR/bin/$SUBCOMMAND" "${ARGS[@]}"
-        ;;
-    status)
-        exec "$VENV_PYTHON" "$AMI_ROOT/ami/cli_components/status.py"
-        ;;
-    systemd)
-        exec systemctl --user "${ARGS[@]}"
-        ;;
-    podman)
-        exec "$BOOT_DIR/bin/podman" "${ARGS[@]}"
-        ;;
-    docker)
-        if command -v docker >/dev/null 2>&1; then
-            exec docker "${ARGS[@]}"
-        else
-            echo "Error: Docker not found" >&2
-            exit 1
-        fi
-        ;;
     node)
         exec "$BOOT_DIR/bin/node" "${ARGS[@]}"
         ;;
@@ -94,9 +74,6 @@ case "$SUBCOMMAND" in
         ;;
     npx)
         exec "$BOOT_DIR/bin/npx" "${ARGS[@]}"
-        ;;
-    java)
-        exec java "${ARGS[@]}"
         ;;
     bash)
         exec bash "${ARGS[@]}"
@@ -129,20 +106,10 @@ case "$SUBCOMMAND" in
     go)
         exec "$BOOT_DIR/go/bin/go" "${ARGS[@]}"
         ;;
-    kubectl)
-        export KUBECONFIG="${KUBECONFIG:-${HOME}/.kube/config:./.kube/config}"
-        exec "$BOOT_DIR/bin/kubectl" "${ARGS[@]}"
-        ;;
-    helm)
-        exec "$BOOT_DIR/bin/helm" "${ARGS[@]}"
-        ;;
     extras)
         exec "$VENV_PYTHON" "$AMI_ROOT/ami/scripts/shell/banner_helper.py" --mode extras "${ARGS[@]}"
         ;;
     doctor)
         exec "$VENV_PYTHON" "$AMI_ROOT/ami/scripts/shell/banner_helper.py" --mode doctor "${ARGS[@]}"
-        ;;
-    storage)
-        exec "$VENV_PYTHON" "$AMI_ROOT/ami/cli_components/storage.py" "${ARGS[@]}"
         ;;
 esac

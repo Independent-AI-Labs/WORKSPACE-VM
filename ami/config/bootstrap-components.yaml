@@ -84,6 +84,11 @@ requires:
     description: Gitleaks (secret scanning)
     bootstrap_script: projects/AMI-CI/scripts/bootstrap-gitleaks
 
+  - check_cmd: crontab
+    apt_package: cron
+    description: System cron daemon
+    optional: true
+
 components:
   # =========================================================================
   # Core Dependencies
@@ -220,6 +225,21 @@ components:
     version_cmd: ['.boot-linux/python-env/bin/ansible', '--version']
     version_pattern: 'ansible.*?(\d+\.\d+\.\d+)'
 
+  - name: cron
+    label: 'Cron'
+    description: 'AMI crontab manager via system cron package'
+    type: script
+    group: 'Infrastructure & Orchestration'
+
+    script: 'bootstrap_cron.sh'
+    detect_path: '.boot-linux/bin/cron'
+    version_cmd: ['dpkg-query', '-W', '-f=${Version}', 'cron']
+    version_pattern: '(\d+\.\d+\S+)'
+    requires:
+      - check_cmd: crontab
+        apt_package: cron
+        description: System crontab binary
+
   - name: llama_cpu
     label: 'llama.cpp (CPU)'
     description: 'LLM inference server — CPU backend'
@@ -282,6 +302,16 @@ components:
     detect_path: '.boot-linux/python-env/bin/hf'
     version_cmd: ['.boot-linux/python-env/bin/hf', 'version']
     version_pattern: '(\d+\.\d+\.\d+)'
+
+  - name: gitlab
+    label: 'GitLab CLI'
+    description: 'GitLab API client'
+    type: script
+    group: 'Cloud & Service CLIs'
+    script: 'bootstrap_gitlab.sh'
+    detect_path: '.boot-linux/bin/glab'
+    version_cmd: ['.boot-linux/bin/glab', '--version']
+    version_pattern: 'glab version (\d+\.\d+\.\d+)'
 
   # =========================================================================
   # Networking

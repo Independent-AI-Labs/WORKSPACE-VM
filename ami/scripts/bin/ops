@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+# ops: System orchestration and container management for AMI Orchestrator
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+AMI_ROOT="$("$SCRIPT_DIR/pwd")"
+export AMI_ROOT
+
+VENV_DIR="$AMI_ROOT/.venv"
+VENV_PYTHON="/home/ami/AMI-AGENTS/.venv/bin/python"
+BOOT_DIR="$AMI_ROOT/.boot-linux"
+
+[[ -f "$AMI_ROOT/.env" ]] && export $(grep -v '^#' "$AMI_ROOT/.env" | xargs) || true
+
+export PATH="$BOOT_DIR/bin:$VENV_DIR/bin:$PATH"
+
+PROJECT_PATHS=""
+if [[ -d "$AMI_ROOT/projects" ]]; then
+    for project_dir in "$AMI_ROOT/projects"/*/; do
+        [[ -d "${project_dir%/}/ami" ]] && PROJECT_PATHS="${project_dir%/}:${PROJECT_PATHS}"
+    done
+fi
+export PYTHONPATH="$AMI_ROOT:${PROJECT_PATHS}${PYTHONPATH:-}"
+
+if [[ "$#" -gt 0 && ("$1" == "-h" || "$1" == "--help") ]]; then
+    echo "ops: System orchestration and container management for AMI Orchestrator"
+    echo ""
+    echo "Usage: ops [subcommand] [args...]"
+    echo ""
+    echo "Subcommands: podman, systemd, ansible, ansible-playbook, ansible-galaxy, kubectl, helm, status, storage, cron"
+    exit 0
+fi
+
+if [[ "$#" -gt 0 && "$1" == "--version" ]]; then
+    VERSION="$(git -C "$AMI_ROOT" describe --always --dirty 2>/dev/null || echo "unknown")"
+    echo "ops (AMI Orchestrator) ${VERSION}"
+    exit 0
+fi
+
+KNOWN_CMDS="podman systemd ansible ansible-playbook ansible-galaxy kubectl helm status storage cron"
+if [[ $# -gt 0 ]] && [[ " $KNOWN_CMDS " == *" $1 "* ]]; then
+    SUBCOMMAND="$1"
+    shift
+    ARGS=("$@")
+elif [[ $# -eq 0 ]]; then
+    echo "ops: System orchestration and container management for AMI Orchestrator"
+    echo ""
+    echo "Usage: ops [subcommand] [args...]"
+    echo ""
+    echo "Subcommands: podman, systemd, ansible, ansible-playbook, ansible-galaxy, kubectl, helm, status, storage, cron"
+    exit 0
+else
+    echo "Error: Unknown subcommand '$1'" >&2
+    exit 1
+fi
+
+case "$SUBCOMMAND" in
+    podman)
+        exec "$BOOT_DIR/bin/podman" "${ARGS[@]}"
+        ;;
+    systemd)
+        exec systemctl --user "${ARGS[@]}"
+        ;;
+    ansible|ansible-playbook|ansible-galaxy)
+        exec "$VENV_DIR/bin/$SUBCOMMAND" "${ARGS[@]}"
+        ;;
+    kubectl)
+        export KUBECONFIG="${KUBECONFIG:-${HOME}/.kube/config:./.kube/config}"
+        exec "$BOOT_DIR/bin/kubectl" "${ARGS[@]}"
+        ;;
+    helm)
+        exec "$BOOT_DIR/bin/helm" "${ARGS[@]}"
+        ;;
+    status)
+        exec "$VENV_PYTHON" "$AMI_ROOT/ami/cli_components/status.py"
+        ;;
+    storage)
+        exec "$VENV_PYTHON" "$AMI_ROOT/ami/cli_components/storage.py" "${ARGS[@]}"
+        ;;
+    cron)
+        exec "$BOOT_DIR/bin/cron" "${ARGS[@]}"
+        ;;
+esac

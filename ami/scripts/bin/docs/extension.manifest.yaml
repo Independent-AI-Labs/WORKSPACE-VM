@@ -2,14 +2,14 @@ extensions:
   - name: docs
     binary: ami/scripts/bin/docs.py
     description: Document conversion and PDF generation
-    category: docs
+    category: research
     features:
       - pandoc
       - wkhtmltopdf
       - pdflatex
       - xelatex
       - pdfjam
-    bannerPriority: 400
+    bannerPriority: 410
     check:
       command: ["{python}", "{binary}", "--help"]
       healthExpect: "docs"

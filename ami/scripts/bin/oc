@@ -5,6 +5,7 @@ AMI_ROOT="$SCRIPT_DIR"
 while [[ "$AMI_ROOT" != "/" && ! -f "$AMI_ROOT/pyproject.toml" ]]; do
     AMI_ROOT="$(dirname "$AMI_ROOT")"
 done
+ORIG_PWD="$PWD"
 export AMI_ROOT && cd "$AMI_ROOT"
 BOOT_DIR="${BOOT_LINUX_DIR:-${AMI_ROOT}/.boot-linux}"
 NPX="${BOOT_DIR}/bin/npx"
@@ -24,8 +25,9 @@ fi
 
 WELCOME=$("$AMI_ROOT/ami/scripts/bin/welcome" --plain 2>/dev/null || echo "AMI-AGENTS workspace")
 printf '%b\n' "$WELCOME" && echo ""
+export OPENCODE_ENABLE_EXA=1
 if [[ $# -gt 0 ]]; then
-    exec "$NPX" opencode run "$WELCOME"$'\n\n'"Task: $*"
+    exec "$NPX" opencode run --dir "$ORIG_PWD" "$WELCOME"$'\n\n'"Task: $*"
 else
-    exec "$NPX" opencode --prompt "$WELCOME"
+    exec "$NPX" opencode "$ORIG_PWD" --prompt "$WELCOME"
 fi

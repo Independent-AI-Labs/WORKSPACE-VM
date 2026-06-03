@@ -1,14 +1,101 @@
 #!/usr/bin/env bash
-# repo: Git repository server management CLI
-# Wrapper for repo.py
+# repo: Git repository and server management for AMI Orchestrator
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 AMI_ROOT="$("$SCRIPT_DIR/pwd")"
 export AMI_ROOT
 
-# Add .boot-linux/bin to PATH so git/ssh tools are available (bootstrapped tools)
-export PATH="$AMI_ROOT/.boot-linux/bin:$PATH"
+BOOT_DIR="$AMI_ROOT/.boot-linux"
 
-# Use venv from AMI_ROOT
-exec "/home/ami/AMI-AGENTS/.venv/bin/python" "$SCRIPT_DIR/repo.py" "$@"
+export PATH="$BOOT_DIR/bin:$PATH"
+
+if [[ "$#" -gt 0 && ("$1" == "-h" || "$1" == "--help") ]]; then
+    echo "repo: Git repository and server management for AMI Orchestrator"
+    echo ""
+    echo "Usage: repo [subcommand] [args...]"
+    echo ""
+    echo "Subcommands: git, gh, hf, glab, status-all, gitd, serve"
+    exit 0
+fi
+
+if [[ "$#" -gt 0 && "$1" == "--version" ]]; then
+    VERSION="$(git -C "$AMI_ROOT" describe --always --dirty 2>/dev/null || echo "unknown")"
+    echo "repo (AMI Orchestrator) ${VERSION}"
+    exit 0
+fi
+
+KNOWN_CMDS="git gh hf glab status-all gitd serve"
+if [[ $# -gt 0 ]] && [[ " $KNOWN_CMDS " == *" $1 "* ]]; then
+    SUBCOMMAND="$1"
+    shift
+    ARGS=("$@")
+elif [[ $# -eq 0 ]]; then
+    echo "repo: Git repository and server management for AMI Orchestrator"
+    echo ""
+    echo "Usage: repo [subcommand] [args...]"
+    echo ""
+    echo "Subcommands: git, gh, hf, glab, status-all, gitd, serve"
+    exit 0
+else
+    echo "Error: Unknown subcommand '$1'" >&2
+    exit 1
+fi
+
+case "$SUBCOMMAND" in
+    git)
+        exec git "${ARGS[@]}"
+        ;;
+    gh)
+        exec "$BOOT_DIR/bin/gh" "${ARGS[@]}"
+        ;;
+    hf)
+        exec "$BOOT_DIR/bin/hf" "${ARGS[@]}"
+        ;;
+    glab)
+        exec "$BOOT_DIR/bin/glab" "${ARGS[@]}"
+        ;;
+    status-all)
+        exec "$AMI_ROOT/ami/scripts/utils/git-status-all" "${ARGS[@]}"
+        ;;
+    gitd)
+        GITD_CMD="${ARGS[0]:-status}"
+        case "$GITD_CMD" in
+            start)
+                exec systemctl --user start ami-git-daemon ami-git-sshd
+                ;;
+            stop)
+                exec systemctl --user stop ami-git-daemon ami-git-sshd
+                ;;
+            status)
+                exec systemctl --user status ami-git-daemon ami-git-sshd
+                ;;
+            *)
+                echo "Usage: repo gitd {start|stop|status}" >&2
+                exit 1
+                ;;
+        esac
+        ;;
+    serve)
+        SVC_CMD="${ARGS[0]:-status}"
+        case "$SVC_CMD" in
+            start)
+                exec systemctl --user start ami-git-daemon ami-git-sshd
+                ;;
+            stop)
+                exec systemctl --user stop ami-git-daemon ami-git-sshd
+                ;;
+            status)
+                exec systemctl --user status ami-git-daemon ami-git-sshd
+                ;;
+            restart)
+                systemctl --user stop ami-git-daemon ami-git-sshd
+                exec systemctl --user start ami-git-daemon ami-git-sshd
+                ;;
+            *)
+                echo "Usage: repo serve {start|stop|status|restart}" >&2
+                exit 1
+                ;;
+        esac
+        ;;
+esac

@@ -39,7 +39,7 @@ def generate_banner_text(
     terminal.
     """
     version = get_project_version(project_root)
-    text = f"MyComputer v{version}"
+    text = f"[w]orkspace v{version}"
     raw = text2art(text, font=font)
     lines = [line.rstrip() for line in raw.splitlines()]
     while lines and not lines[-1]:

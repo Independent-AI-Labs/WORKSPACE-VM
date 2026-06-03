@@ -20,18 +20,15 @@ extensions:
     features:
       - python
       - uv
+      - node
       - npm
       - npx
+      - bash
+      - sh
       - rustc
       - cargo
       - go
-      - ansible
-      - systemd
-      - podman
-      - kubectl
-      - helm
-      - status
-      - storage
+      - tests
       - extras
       - doctor
     bannerPriority: 30
@@ -40,16 +37,39 @@ extensions:
       healthExpect: "run"
       timeout: 5
 
+  - name: ops
+    binary: ami/scripts/bin/ops
+    description: System orchestration and container management
+    category: infra
+    features:
+      - podman
+      - systemd
+      - ansible
+      - ansible-playbook
+      - ansible-galaxy
+      - kubectl
+      - helm
+      - status
+      - storage
+      - cron
+    bannerPriority: 35
+    check:
+      command: ["{binary}", "--help"]
+      healthExpect: "ops"
+      timeout: 5
+
   - name: repo
     binary: ami/scripts/bin/repo
     description: Git repository and server management
     category: core
     features:
       - git
-      - gitlab-api
-      - github-api
-      - hf-api
+      - gh
+      - hf
+      - glab
       - status-all
+      - gitd
+      - serve
     bannerPriority: 40
     check:
       command: ["{binary}", "--help"]

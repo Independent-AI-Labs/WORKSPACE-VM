@@ -120,6 +120,7 @@ DEFAULT_CATEGORY_ORDER = [
     "enterprise",
     "dev",
     "infra",
+    "research",
     "docs",
     "agents",
 ]
@@ -144,6 +145,11 @@ DEFAULT_CATEGORY_PROPS = {
         "title": "Infrastructure & Networking",
         "icon": "\U0001f527",
         "color": "purple",
+    },
+    "research": {
+        "title": "Research & Documentation",
+        "icon": "\U0001f4da",
+        "color": "green",
     },
     "docs": {
         "title": "Document Production",
