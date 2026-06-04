@@ -26,7 +26,7 @@ fi
 
 _create_symlinks() {
     local toolchain_name bin_dir toolchain_dir toolchain_bin toolchain_llvm_bin
-    toolchain_name=$("$RUST_HOME/bin/rustup" toolchain list | grep '(default)' | awk '{print $1}')
+    toolchain_name=$("$RUST_HOME/bin/rustup" show active-toolchain 2>&1 | awk 'NR==1{print $1}')
     if [[ -z "$toolchain_name" ]]; then
         toolchain_name="stable-x86_64-unknown-linux-gnu"
     fi
