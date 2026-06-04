@@ -7,7 +7,8 @@ PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 BOOT_LINUX_DIR="${BOOT_LINUX_DIR:-${PROJECT_ROOT}/.boot-linux}"
 BIN_DIR="${BOOT_LINUX_DIR}/bin"
 NODE_ENV="${BOOT_LINUX_DIR}/node-env"
-NODEENV_BIN="${PROJECT_ROOT}/.venv/bin/nodeenv"
+PYTHON_ENV_BIN="${BOOT_LINUX_DIR}/python-env/bin"
+NODEENV_BIN="${PYTHON_ENV_BIN}/nodeenv"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -34,8 +35,8 @@ else
 fi
 
 if [ ! -x "${NODEENV_BIN}" ]; then
-    log_info "nodeenv not found at ${NODEENV_BIN}, installing via uv..."
-    "${UV_CMD}" pip install nodeenv --quiet || {
+    log_info "nodeenv not found, installing into boot python env..."
+    "${UV_CMD}" pip install --python "${PYTHON_ENV_BIN}/python" nodeenv --quiet || {
         log_error "Failed to install nodeenv"
         exit 1
     }
