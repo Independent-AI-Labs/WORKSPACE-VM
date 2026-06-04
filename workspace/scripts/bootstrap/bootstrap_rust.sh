@@ -30,6 +30,7 @@ if [ -x "$RUST_HOME/bin/rustc" ] && [ -x "$RUST_HOME/bin/cargo" ]; then
     export CARGO_HOME="$RUST_HOME"
     if EXISTING_VER=$("$RUST_HOME/bin/rustc" --version 2>/dev/null); then
         log_info "Rust is already installed: $EXISTING_VER"
+        _create_symlinks
         exit 0
     else
         log_info "Rust binaries exist but toolchain is broken, reinstalling..."
@@ -93,78 +94,61 @@ log_success "Rust installed to $RUST_HOME"
 "$RUST_HOME/bin/rustc" --version
 "$RUST_HOME/bin/cargo" --version
 
-# Bootstrap glibc GCC if not present — required as Rust's linker driver
-# (.boot-linux/bin/gcc is musl, which is incompatible with Rust's glibc toolchain)
 if [ ! -x "$BOOT_DIR/bin/gcc-glibc" ]; then
     log_info "Bootstrapping glibc GCC for Rust linker..."
     bash "$SCRIPT_DIR/bootstrap_gcc_glibc.sh"
 fi
-
-# Configure cargo to use glibc GCC as the linker for x86_64-unknown-linux-gnu
-# Use just the binary name — gcc-glibc is in .boot-linux/bin/ which is in $PATH
-cat > "$RUST_HOME/config.toml" << 'TOML'
-[target.x86_64-unknown-linux-gnu]
-linker = "gcc-glibc"
-TOML
-log_success "Global cargo config created (glibc gcc linker for x86_64-unknown-linux-gnu)"
-
-# Install additional components required for development tooling
-log_info "Installing additional Rust components..."
-"$RUST_HOME/bin/rustup" component add llvm-tools-preview rust-src
-log_success "Components installed: llvm-tools-preview, rust-src"
 
 # Detect the active toolchain directory name.
 TOOLCHAIN_NAME=$("$RUST_HOME/bin/rustup" toolchain list | grep '(default)' | awk '{print $1}')
 if [[ -z "$TOOLCHAIN_NAME" ]]; then
     TOOLCHAIN_NAME="stable-x86_64-unknown-linux-gnu"
 fi
-if [ -z "$TOOLCHAIN_NAME" ]; then
-    TOOLCHAIN_NAME="stable-x86_64-unknown-linux-gnu"
-fi
 TOOLCHAIN_DIR="rust/toolchains/${TOOLCHAIN_NAME}"
 TOOLCHAIN_BIN="${TOOLCHAIN_DIR}/bin"
 TOOLCHAIN_LLVM_BIN="${TOOLCHAIN_DIR}/lib/rustlib/x86_64-unknown-linux-gnu/bin"
 
-# Create symlinks in .boot-linux/bin/
-BIN_DIR="${BOOT_DIR}/bin"
-mkdir -p "${BIN_DIR}"
+_create_symlinks() {
+    BIN_DIR="${BOOT_DIR}/bin"
+    mkdir -p "${BIN_DIR}"
 
-# Rustup proxy (for `cargo +toolchain` dispatch)
-ln -sf "../rust/bin/rustup" "${BIN_DIR}/rustup"
+    ln -sf "../rust/bin/rustup" "${BIN_DIR}/rustup"
 
-# Core Rust binaries
-for bin in cargo rustc rustfmt cargo-clippy cargo-fmt clippy-driver rustdoc; do
-    if [ -x "${BOOT_DIR}/${TOOLCHAIN_BIN}/${bin}" ]; then
-        ln -sf "../${TOOLCHAIN_BIN}/${bin}" "${BIN_DIR}/${bin}"
+    for bin in cargo rustc rustfmt cargo-clippy cargo-fmt clippy-driver rustdoc; do
+        if [ -x "${BOOT_DIR}/${TOOLCHAIN_BIN}/${bin}" ]; then
+            ln -sf "../${TOOLCHAIN_BIN}/${bin}" "${BIN_DIR}/${bin}"
+        fi
+    done
+
+    if [ -d "${BOOT_DIR}/${TOOLCHAIN_LLVM_BIN}" ]; then
+        for bin in "${BOOT_DIR}/${TOOLCHAIN_LLVM_BIN}"/*; do
+            [ -x "$bin" ] || continue
+            [ -d "$bin" ] && continue
+            bin_name="$(basename "$bin")"
+            ln -sf "../${TOOLCHAIN_LLVM_BIN}/${bin_name}" "${BIN_DIR}/${bin_name}"
+        done
+        log_success "LLVM tool symlinks created (llvm-profdata, llvm-cov, etc.)"
+    else
+        log_info "Warning: LLVM tools directory not found at ${TOOLCHAIN_LLVM_BIN}"
     fi
-done
 
-# LLVM tools (llvm-profdata, llvm-cov, llvm-ar, etc.)
-if [ -d "${BOOT_DIR}/${TOOLCHAIN_LLVM_BIN}" ]; then
-    for bin in "${BOOT_DIR}/${TOOLCHAIN_LLVM_BIN}"/*; do
-        [ -x "$bin" ] || continue
-        [ -d "$bin" ] && continue
-        bin_name="$(basename "$bin")"
-        ln -sf "../${TOOLCHAIN_LLVM_BIN}/${bin_name}" "${BIN_DIR}/${bin_name}"
-    done
-    log_success "LLVM tool symlinks created (llvm-profdata, llvm-cov, etc.)"
-else
-    log_info "Warning: LLVM tools directory not found at ${TOOLCHAIN_LLVM_BIN}"
-fi
-done
+    log_success "Rust symlinks created in ${BIN_DIR}"
+}
 
-# LLVM tools (llvm-profdata, llvm-cov, llvm-ar, etc.)
-# Required by cargo-llvm-cov and other instrumentation tools
-if [ -d "${BOOT_DIR}/${TOOLCHAIN_LLVM_BIN}" ]; then
-    for bin in "${BOOT_DIR}/${TOOLCHAIN_LLVM_BIN}"/*; do
-        [ -x "$bin" ] || continue
-        [ -d "$bin" ] && continue  # skip gcc-ld directory
-        bin_name="$(basename "$bin")"
-        ln -sf "../${TOOLCHAIN_LLVM_BIN}/${bin_name}" "${BIN_DIR}/${bin_name}"
-    done
-    log_success "LLVM tool symlinks created (llvm-profdata, llvm-cov, etc.)"
-else
-    log_info "Warning: LLVM tools directory not found at ${TOOLCHAIN_LLVM_BIN}"
-fi
+_setup_cargo_config() {
+    cat > "$RUST_HOME/config.toml" << 'TOML'
+[target.x86_64-unknown-linux-gnu]
+linker = "gcc-glibc"
+TOML
+    log_success "Global cargo config created (glibc gcc linker for x86_64-unknown-linux-gnu)"
+}
 
-log_success "Rust symlinks created in ${BIN_DIR}"
+_install_components() {
+    log_info "Installing additional Rust components..."
+    "$RUST_HOME/bin/rustup" component add llvm-tools-preview rust-src
+    log_success "Components installed: llvm-tools-preview, rust-src"
+}
+
+_create_symlinks
+_setup_cargo_config
+_install_components
