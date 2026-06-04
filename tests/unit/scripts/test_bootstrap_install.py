@@ -57,7 +57,7 @@ class TestGetPaths:
     def test_get_bootstrap_dir(self) -> None:
         """Test get_bootstrap_dir returns correct path."""
         result = get_bootstrap_dir()
-        assert result == Path("/test/root/ami/scripts/bootstrap")
+        assert result == Path("/test/root/workspace/scripts/bootstrap")
 
 
 class TestRunBootstrapScript:
