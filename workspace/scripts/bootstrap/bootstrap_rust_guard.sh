@@ -12,7 +12,7 @@ log_info()  { echo -e "${GREEN}[INFO]${NC} $*"; }
 log_warn()  { echo -e "${YELLOW}[WARN]${NC} $*"; }
 log_error() { echo -e "${RED}[ERROR]${NC} $*"; }
 
-MODE="${1:-install}"  # install | uninstall | reinstall | check
+MODE="${1:-install}"  # install | uninstall | reinstall | check | build-only | install-only
 
 divert_is_active() {
     dpkg-divert --list /usr/bin/git | grep -q 'git.distrib'
@@ -95,42 +95,7 @@ preflight_check() {
     return 1
 }
 
-install_guard() {
-    if [[ "$MODE" != "reinstall" ]]; then
-        if preflight_check; then
-            log_info "To reinstall: sudo make init"
-            return 0
-        fi
-    fi
-
-    echo ""
-    echo -e "${CYAN}${BOLD}═══════════════════════════════════════════════${NC}"
-    echo -e "${CYAN}${BOLD} Git Guard Installation (SUID-root, git PoC)${NC}"
-    echo -e "${CYAN}${BOLD}═══════════════════════════════════════════════${NC}"
-    echo ""
-    echo "This will:"
-    echo "  - Build the rust-guard Rust binary from source"
-    echo "  - Relocate /usr/bin/git -> /usr/bin/git.original (0700 root-only)"
-    echo "  - Install the guard as /usr/bin/git (4555 SUID root)"
-    echo "  - Configure dpkg-divert to protect from apt overwrites"
-    echo "  - Remove previous .boot-linux/bin/git wrapper"
-    echo "  - Set immutable attributes on the guard binary"
-    echo "  - Register apt post-invoke hook for change detection"
-    echo ""
-    echo "After installation, ONLY the SUID guard can invoke real git."
-    echo "To uninstall: bash workspace/scripts/bootstrap/bootstrap_rust_guard.sh uninstall"
-    echo ""
-
-    if [[ -t 0 ]] && [[ "$MODE" == "install" ]]; then
-        echo -ne "${CYAN}${BOLD}Proceed with rust guard installation? [y/N] ${NC}"
-        read -r response
-        case "$response" in
-            [yY][eE][sS]|[yY]) ;;
-            *) log_info "Git guard installation cancelled."; return 0 ;;
-        esac
-    fi
-
-    # Phase 1: Build Rust binary
+build_guard_binary() {
     log_info "Building rust-guard Rust binary..."
     local boot_rust="${PROJECT_ROOT}/.boot-linux/bin"
     local rust_home="${PROJECT_ROOT}/.boot-linux/rust"
@@ -155,7 +120,6 @@ install_guard() {
     if [[ ! -f "$guard_dir/Cargo.toml" ]]; then
         log_info "RUST-GUARD project not found at $guard_dir — cloning from remote..."
 
-        # Forward SSH_AUTH_SOCK from the original user into sudo if missing
         if [[ -z "${SSH_AUTH_SOCK:-}" ]] && [[ -n "${SUDO_USER:-}" ]]; then
             local user_ssh_sock
             user_ssh_sock=$(sudo -u "$SUDO_USER" printenv SSH_AUTH_SOCK)
@@ -218,26 +182,75 @@ install_guard() {
     fi
     log_info "Build successful: $(file "$guard_bin" | cut -d: -f2)"
 
-    # Phase 2: Detect bypass vectors
-    for path in /snap/bin/git /usr/local/bin/git; do
-        if [[ -x "$path" ]]; then
-            log_warn "Alternative git found at $path — this bypasses the guard"
-        fi
-    done
+    GUARD_BIN="$guard_bin"
+    return 0
+}
 
-    # Phase 3: Divert + relocate git
-    # Source for git.original — use git.distrib when diverted (not in use by checks)
+install_guard_binary() {
+    local guard_bin="${1:-$GUARD_BIN}"
+    if [[ ! -f "$guard_bin" ]]; then
+        log_error "Guard binary not found at $guard_bin"
+        log_error "Run 'make install' first to build the binary, then: sudo make install-guard"
+        return 1
+    fi
+    if ! file "$guard_bin" | grep -q ELF; then
+        log_error "Guard binary is not a valid ELF: $guard_bin"
+        return 1
+    fi
+
+    echo ""
+    echo -e "${CYAN}${BOLD}═══════════════════════════════════════════════════════${NC}"
+    echo -e "${CYAN}${BOLD} Git Guard — SUID Root Installation${NC}"
+    echo -e "${CYAN}${BOLD}═══════════════════════════════════════════════════════${NC}"
+    echo ""
+    echo "The Git Guard is a SUID-root binary that wraps /usr/bin/git."
+    echo ""
+    echo "WHAT IT DOES:"
+    echo "  • Relocates real git → /usr/bin/git.original (0700, root-only)"
+    echo "  • Installs guard binary → /usr/bin/git (4555, SUID root)"
+    echo "  • Gives users rights to run git ONLY through the guard"
+    echo "  • Blocks: git reset --hard, git checkout --hard, git rebase,"
+    echo "            git commit --amend, git push --force, git reset,"
+    echo "            git checkout (destructive file restoration)"
+    echo "  • Allows: git status, git log, git diff, git add, git commit,"
+    echo "            git pull --ff-only, git fetch, git stash"
+    echo "  • dpkg-divert protects from apt overwrites"
+    echo "  • Immutable attributes (chattr +i) prevent tampering"
+    echo "  • Logs every git invocation to /var/log/rust-guard/"
+    echo ""
+    echo "WHY IT'S RECOMMENDED:"
+    echo "  • CI agents, AI coding assistants, and automated tooling can"
+    echo "    inadvertently (or adversarially) destroy your repo history."
+    echo "  • The guard provides a PROOF OF CONCEPT that git operations"
+    echo "    can be policed at the OS level — no configuration changes"
+    echo "    in your CI pipeline, IDE, or git config are needed."
+    echo "  • Every blocked command is logged with user, timestamp, and"
+    echo "    the exact git invocation that was attempted."
+    echo ""
+    echo "To uninstall:"
+    echo "  sudo bash workspace/scripts/bootstrap/bootstrap_rust_guard.sh uninstall"
+    echo ""
+
+    if [[ -t 0 ]]; then
+        echo -ne "${CYAN}${BOLD}Proceed with git guard installation? [y/N] ${NC}"
+        read -r response
+        case "$response" in
+            [yY][eE][sS]|[yY]) ;;
+            *) log_info "Git guard installation cancelled."; return 0 ;;
+        esac
+    fi
+
+    # Phase 1: Divert + relocate git
     local git_src=""
     if divert_is_active && [[ -x /usr/bin/git.distrib ]]; then
         git_src="/usr/bin/git.distrib"
     elif [[ -x /usr/bin/git ]]; then
         git_src="/usr/bin/git"
     else
-        log_error "System git not found"
+        log_error "System git not found at /usr/bin/git"
         return 1
     fi
 
-    # Copy to git.original first (remove immutability if present from previous install)
     if [[ -f /usr/bin/git.original ]] && command -v chattr >/dev/null; then
         chattr -i /usr/bin/git.original
     fi
@@ -254,14 +267,13 @@ install_guard() {
         return 1
     fi
 
-    # Configure dpkg-divert
     if divert_is_active; then
         log_warn "dpkg-divert already in place — continuing"
     else
         dpkg-divert --local --divert /usr/bin/git.distrib --rename --add /usr/bin/git
     fi
 
-    # Install guard binary (temporarily remove immutability if present)
+    # Phase 2: Install guard binary
     if command -v chattr >/dev/null && [[ -f /usr/bin/git ]]; then
         chattr -i /usr/bin/git
     fi
@@ -269,7 +281,6 @@ install_guard() {
     chown root:root /usr/bin/git
     chmod 4555 /usr/bin/git
 
-    # Set immutable attribute
     if command -v chattr >/dev/null; then
         chattr +i /usr/bin/git || log_warn "Could not set immutable on /usr/bin/git"
         chattr +i /usr/bin/git.original || log_warn "Could not set immutable on /usr/bin/git.original"
@@ -277,14 +288,13 @@ install_guard() {
         log_warn "chattr not available — skipping immutable attributes"
     fi
 
-    # Remove previous bash wrapper
+    # Phase 3: Restrict bypass vectors
     if [[ -f "$PROJECT_ROOT/.boot-linux/bin/git" ]]; then
         rm -f "$PROJECT_ROOT/.boot-linux/bin/git"
         log_info "Removed previous bash wrapper at .boot-linux/bin/git"
     fi
     hash -r
 
-    # Restrict alternate git binaries
     for path in /snap/bin/git /usr/local/bin/git; do
         if [[ -x "$path" ]]; then
             chmod 000 "$path"
@@ -292,9 +302,7 @@ install_guard() {
         fi
     done
 
-    # Register apt post-invoke hook
-    # Apt config syntax: no shell redirections allowed inside DPkg::Post-Invoke
-    # We write a helper script and invoke it from the apt config
+    # Phase 4: Register apt post-invoke hook
     cat > /etc/apt/apt.conf.d/99rust-guard << 'EOF'
 DPkg::Post-Invoke { "/usr/lib/rust-guard/apt-check.sh"; };
 EOF
@@ -303,20 +311,19 @@ EOF
 #!/usr/bin/env bash
 set -euo pipefail
 if dpkg -l git | grep -q '^ii' && [[ ! -f /usr/bin/git.original ]]; then
-    echo '[WARN] Git package changed but rust guard not detected. Re-run: sudo make init' >&2
+    echo '[WARN] Git package changed but rust guard not detected. Re-run: sudo make install-guard' >&2
 fi
 EOF
     chmod 755 /usr/lib/rust-guard/apt-check.sh
 
-    # Create audit log directory
     mkdir -p /var/log/rust-guard
     chmod 1777 /var/log/rust-guard
 
-    # Verification
+    # Phase 5: Verification
     echo ""
     log_info "Running post-installation verification..."
-
     local errors=0
+
     local guard_mode guard_owner
     guard_mode=$(stat -c '%a' /usr/bin/git)
     guard_owner=$(stat -c '%U:%G' /usr/bin/git)
@@ -343,8 +350,6 @@ EOF
     local tmpdir
     tmpdir=$(mktemp -d)
     chmod 755 "$tmpdir"
-    # Run destructive test in a temp directory (not a git repo) so even if the
-    # guard fails, git reset --hard is harmless ("not a git repository").
     if sudo -u "${SUDO_USER:-$USER}" bash -c "cd '$tmpdir' && git reset --hard"; then
         log_error "Guard did not block git reset --hard"
         errors=1
@@ -355,8 +360,8 @@ EOF
 
     if [[ $errors -eq 0 ]]; then
         echo ""
-        log_info "Rust guard (git PoC) installation complete."
-        log_info "  /usr/bin/git          (4555 SUID root)"
+        log_info "Git guard installation complete."
+        log_info "  /usr/bin/git          (4555 SUID root, immutable)"
         log_info "  /usr/bin/git.original (0700 root:root, immutable)"
         log_info "  dpkg-divert configured"
         log_info "  apt hook registered"
@@ -370,6 +375,19 @@ EOF
     fi
 
     return 0
+}
+
+install_guard() {
+    if [[ "$MODE" != "reinstall" ]]; then
+        if preflight_check; then
+            log_info "Git guard is already installed."
+            log_info "To reinstall: make install && sudo make install-guard"
+            return 0
+        fi
+    fi
+
+    build_guard_binary || return 1
+    install_guard_binary "$GUARD_BIN" || return 1
 }
 
 check_guard() {
@@ -413,6 +431,11 @@ check_guard() {
 case "$MODE" in
     uninstall) uninstall_guard ;;
     check) check_guard ;;
+    build-only) build_guard_binary ;;
+    install-only)
+        GUARD_BIN="${PROJECT_ROOT}/projects/RUST-GUARD/target/release/rust-guard"
+        install_guard_binary "$GUARD_BIN"
+        ;;
     reinstall|install) install_guard ;;
     *) log_error "Unknown mode: $MODE"; exit 1 ;;
 esac
