@@ -99,7 +99,7 @@ class TestRegisterExtensions:
     ) -> None:
         """Test that manifests are discovered and extensions registered."""
         # Create a manifest
-        manifest_dir = tmp_path / "ami" / "scripts" / "bin"
+        manifest_dir = tmp_path / "workspace" / "scripts" / "bin"
         manifest_dir.mkdir(parents=True)
         manifest = {
             "extensions": [
@@ -114,7 +114,7 @@ class TestRegisterExtensions:
         (manifest_dir / "extension.manifest.yaml").write_text(yaml.dump(manifest))
 
         # Create the binary
-        binary = tmp_path / "ami" / "scripts" / "bin" / "test-ext"
+        binary = tmp_path / "workspace" / "scripts" / "bin" / "test-ext"
         binary.write_text("#!/bin/bash\necho hi")
         binary.chmod(binary.stat().st_mode | stat.S_IXUSR)
 
