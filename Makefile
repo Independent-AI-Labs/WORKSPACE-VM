@@ -33,8 +33,14 @@ core: ## Bootstrap uv + python + git-xet (prereq for sync-package)
 
 # --- Install — component selection ---
 
+.PHONY: install-guard
+install-guard: ensure-repos ## Install git-guard (requires repos cloned)
+	@if [ -f workspace/scripts/bootstrap/bootstrap_rust_guard.sh ]; then \
+		bash workspace/scripts/bootstrap/bootstrap_rust_guard.sh reinstall; \
+	fi
+
 .PHONY: install
-install: init-check sync-package ## Interactive TUI to select and install components
+install: init-check sync-package install-guard ## Interactive TUI to select and install components
 	@.venv/bin/python workspace/scripts/bootstrap_installer.py && \
 	$(MAKE) register-extensions && \
 	bash workspace/scripts/shell/shell-setup --welcome

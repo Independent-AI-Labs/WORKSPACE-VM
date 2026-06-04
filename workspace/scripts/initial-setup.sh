@@ -321,13 +321,6 @@ log_section "Results"
 if [[ ${#MISSING_ENTRIES[@]} -eq 0 ]]; then
     log_info "${GREEN}${BOLD}All dependencies satisfied!${NC}"
 
-    # Run rust guard install
-    guard_script="${PROJECT_ROOT}/workspace/scripts/bootstrap/bootstrap_rust_guard.sh"
-    if [[ -f "$guard_script" ]]; then
-        echo ""
-        bash "$guard_script" "reinstall"
-    fi
-
     echo ""
     log_info "Proceed with: ${BOLD}make install${NC}"
     exit 0

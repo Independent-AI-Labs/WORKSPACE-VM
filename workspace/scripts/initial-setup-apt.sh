@@ -124,10 +124,5 @@ install_missing() {
         fi
     fi
 
-    local guard_script="${PROJECT_ROOT}/workspace/scripts/bootstrap/bootstrap_rust_guard.sh"
-    if [[ -f "$guard_script" ]]; then
-        bash "$guard_script" "reinstall"
-    fi
-
     return 0
 }
