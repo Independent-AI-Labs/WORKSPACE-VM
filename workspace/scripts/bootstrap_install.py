@@ -56,10 +56,11 @@ def run_bootstrap_script(script_name: str) -> bool:
         return False
 
     try:
-        # Set environment variables to fix path issues in scripts
         env = dict(os.environ)
         env["BOOT_LINUX_DIR"] = str(_PROJECT_ROOT / ".boot-linux")
         env["VENV_DIR"] = str(_PROJECT_ROOT / ".venv")
+        _boot_bin = str(_PROJECT_ROOT / ".boot-linux" / "bin")
+        env["PATH"] = f"{_boot_bin}:{env.get('PATH', '')}"
 
         # stdin=DEVNULL so bootstrap scripts that probe `[ -t 0 ]` see a
         # non-TTY and take the non-interactive code path. The TUI itself owns
@@ -118,6 +119,8 @@ def _run_script_path(script_rel: str) -> bool:
         env = dict(os.environ)
         env["BOOT_LINUX_DIR"] = str(_PROJECT_ROOT / ".boot-linux")
         env["VENV_DIR"] = str(_PROJECT_ROOT / ".venv")
+        _boot_bin = str(_PROJECT_ROOT / ".boot-linux" / "bin")
+        env["PATH"] = f"{_boot_bin}:{env.get('PATH', '')}"
         result = subprocess.run(
             ["bash", str(script_path)],
             cwd=str(_PROJECT_ROOT),

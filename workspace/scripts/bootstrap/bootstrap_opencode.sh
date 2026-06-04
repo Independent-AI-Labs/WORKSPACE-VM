@@ -12,8 +12,10 @@ if [[ ! -x "$NPM" ]]; then
     exit 1
 fi
 
+export PATH="${BOOT_DIR}/bin:${PATH}"
+
 echo "[${OP}] Installing opencode-ai into .venv..."
-"$NPM" install --prefix "${AMI_ROOT}/.venv" opencode-ai@latest
+npm install --prefix "${AMI_ROOT}/.venv" opencode-ai@latest
 
 OPN_BIN="${AMI_ROOT}/.venv/node_modules/.bin/opencode"
 if [[ -x "$OPN_BIN" ]]; then

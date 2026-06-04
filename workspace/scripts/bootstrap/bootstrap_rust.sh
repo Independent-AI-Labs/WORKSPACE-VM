@@ -125,7 +125,10 @@ log_info "Installing Rust (this may take a moment)..."
 # -y: don't prompt
 # --no-modify-path: don't touch shell profiles
 # --default-toolchain stable: install stable Rust
-sh rustup-init.sh -y --no-modify-path --default-toolchain stable
+# Output suppressed — rustup prints verbose component-by-component progress and
+# a patronising "Rust is installed now. Great!" message. Our own log_success
+# on the next line is the single source of truth.
+sh rustup-init.sh -y --no-modify-path --default-toolchain stable >/dev/null 2>&1
 
 cd - >/dev/null
 
