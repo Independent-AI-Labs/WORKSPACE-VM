@@ -82,7 +82,7 @@ requires:
 
   - check_cmd: gitleaks
     description: Gitleaks (secret scanning)
-    bootstrap_script: projects/AMI-CI/scripts/bootstrap-gitleaks
+    bootstrap_script: projects/CI/scripts/bootstrap-gitleaks
 
   - check_cmd: crontab
     apt_package: cron
