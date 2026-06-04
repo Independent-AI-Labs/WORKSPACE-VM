@@ -24,6 +24,56 @@ if [ ! -d "$BOOT_DIR" ]; then
     exit 1
 fi
 
+_create_symlinks() {
+    local toolchain_name bin_dir toolchain_dir toolchain_bin toolchain_llvm_bin
+    toolchain_name=$("$RUST_HOME/bin/rustup" toolchain list | grep '(default)' | awk '{print $1}')
+    if [[ -z "$toolchain_name" ]]; then
+        toolchain_name="stable-x86_64-unknown-linux-gnu"
+    fi
+    toolchain_dir="rust/toolchains/${toolchain_name}"
+    toolchain_bin="${toolchain_dir}/bin"
+    toolchain_llvm_bin="${toolchain_dir}/lib/rustlib/x86_64-unknown-linux-gnu/bin"
+
+    bin_dir="${BOOT_DIR}/bin"
+    mkdir -p "${bin_dir}"
+
+    ln -sf "../rust/bin/rustup" "${bin_dir}/rustup"
+
+    for bin in cargo rustc rustfmt cargo-clippy cargo-fmt clippy-driver rustdoc; do
+        if [ -x "${BOOT_DIR}/${toolchain_bin}/${bin}" ]; then
+            ln -sf "../${toolchain_bin}/${bin}" "${bin_dir}/${bin}"
+        fi
+    done
+
+    if [ -d "${BOOT_DIR}/${toolchain_llvm_bin}" ]; then
+        for bin in "${BOOT_DIR}/${toolchain_llvm_bin}"/*; do
+            [ -x "$bin" ] || continue
+            [ -d "$bin" ] && continue
+            bin_name="$(basename "$bin")"
+            ln -sf "../${toolchain_llvm_bin}/${bin_name}" "${bin_dir}/${bin_name}"
+        done
+        log_success "LLVM tool symlinks created (llvm-profdata, llvm-cov, etc.)"
+    else
+        log_info "Warning: LLVM tools directory not found at ${toolchain_llvm_bin}"
+    fi
+
+    log_success "Rust symlinks created in ${bin_dir}"
+}
+
+_setup_cargo_config() {
+    cat > "$RUST_HOME/config.toml" << 'TOML'
+[target.x86_64-unknown-linux-gnu]
+linker = "gcc-glibc"
+TOML
+    log_success "Global cargo config created (glibc gcc linker for x86_64-unknown-linux-gnu)"
+}
+
+_install_components() {
+    log_info "Installing additional Rust components..."
+    "$RUST_HOME/bin/rustup" component add llvm-tools-preview rust-src
+    log_success "Components installed: llvm-tools-preview, rust-src"
+}
+
 # Check if already installed AND working (toolchain must be configured)
 if [ -x "$RUST_HOME/bin/rustc" ] && [ -x "$RUST_HOME/bin/cargo" ]; then
     export RUSTUP_HOME="$RUST_HOME"
@@ -98,56 +148,6 @@ if [ ! -x "$BOOT_DIR/bin/gcc-glibc" ]; then
     log_info "Bootstrapping glibc GCC for Rust linker..."
     bash "$SCRIPT_DIR/bootstrap_gcc_glibc.sh"
 fi
-
-# Detect the active toolchain directory name.
-TOOLCHAIN_NAME=$("$RUST_HOME/bin/rustup" toolchain list | grep '(default)' | awk '{print $1}')
-if [[ -z "$TOOLCHAIN_NAME" ]]; then
-    TOOLCHAIN_NAME="stable-x86_64-unknown-linux-gnu"
-fi
-TOOLCHAIN_DIR="rust/toolchains/${TOOLCHAIN_NAME}"
-TOOLCHAIN_BIN="${TOOLCHAIN_DIR}/bin"
-TOOLCHAIN_LLVM_BIN="${TOOLCHAIN_DIR}/lib/rustlib/x86_64-unknown-linux-gnu/bin"
-
-_create_symlinks() {
-    BIN_DIR="${BOOT_DIR}/bin"
-    mkdir -p "${BIN_DIR}"
-
-    ln -sf "../rust/bin/rustup" "${BIN_DIR}/rustup"
-
-    for bin in cargo rustc rustfmt cargo-clippy cargo-fmt clippy-driver rustdoc; do
-        if [ -x "${BOOT_DIR}/${TOOLCHAIN_BIN}/${bin}" ]; then
-            ln -sf "../${TOOLCHAIN_BIN}/${bin}" "${BIN_DIR}/${bin}"
-        fi
-    done
-
-    if [ -d "${BOOT_DIR}/${TOOLCHAIN_LLVM_BIN}" ]; then
-        for bin in "${BOOT_DIR}/${TOOLCHAIN_LLVM_BIN}"/*; do
-            [ -x "$bin" ] || continue
-            [ -d "$bin" ] && continue
-            bin_name="$(basename "$bin")"
-            ln -sf "../${TOOLCHAIN_LLVM_BIN}/${bin_name}" "${BIN_DIR}/${bin_name}"
-        done
-        log_success "LLVM tool symlinks created (llvm-profdata, llvm-cov, etc.)"
-    else
-        log_info "Warning: LLVM tools directory not found at ${TOOLCHAIN_LLVM_BIN}"
-    fi
-
-    log_success "Rust symlinks created in ${BIN_DIR}"
-}
-
-_setup_cargo_config() {
-    cat > "$RUST_HOME/config.toml" << 'TOML'
-[target.x86_64-unknown-linux-gnu]
-linker = "gcc-glibc"
-TOML
-    log_success "Global cargo config created (glibc gcc linker for x86_64-unknown-linux-gnu)"
-}
-
-_install_components() {
-    log_info "Installing additional Rust components..."
-    "$RUST_HOME/bin/rustup" component add llvm-tools-preview rust-src
-    log_success "Components installed: llvm-tools-preview, rust-src"
-}
 
 _create_symlinks
 _setup_cargo_config
