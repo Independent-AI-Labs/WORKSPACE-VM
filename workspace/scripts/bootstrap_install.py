@@ -87,18 +87,11 @@ def run_bootstrap_script(script_name: str) -> bool:
 def install_component(component: Component) -> bool:
     """Install a single component based on its type."""
     if component.type == ComponentType.SCRIPT:
-        script_ok = False
         if component.script_path:
-            script_ok = _run_script_path(component.script_path)
-        elif component.script:
-            script_ok = run_bootstrap_script(component.script)
-        else:
-            return False
-        if not script_ok and component.detect_path:
-            path = _PROJECT_ROOT / component.detect_path
-            if path.exists() and _binary_is_runnable(component):
-                return True
-        return script_ok
+            return _run_script_path(component.script_path)
+        if component.script:
+            return run_bootstrap_script(component.script)
+        return False
     elif component.type == ComponentType.UV:
         return True
     elif component.type == ComponentType.WORKSPACE_REPO:
@@ -146,26 +139,6 @@ def _pull_workspace_repo(component: Component) -> None:
             stdin=subprocess.DEVNULL,
             check=False,
         )
-
-
-def _binary_is_runnable(component: Component) -> bool:
-    """Verify the component's runnable binary exists and is executable.
-
-    detect_path on its own is sticky — an npm package directory survives
-    a partial install where bin-linking never ran (INCIDENT-2026-05-04).
-    When version_cmd is declared and points at an in-tree binary, the
-    detect_path success path must also require that binary to be
-    executable. Returns True when no in-tree binary is declared
-    (preserves prior behaviour for components that don't ship a
-    version_cmd).
-    """
-    if not component.version_cmd:
-        return True
-    binary = component.version_cmd[0]
-    if binary.startswith(("/", "~")):
-        return True
-    bin_path = _PROJECT_ROOT / binary
-    return bin_path.exists() and os.access(bin_path, os.X_OK)
 
 
 def _categorize_components(components: list[Component]) -> CategorizedComponents:

@@ -40,11 +40,13 @@ fi
 log_info "Bootstrapping cron -> $SYS_CRONTAB"
 ln -sf "$SYS_CRONTAB" "${BIN_DIR}/cron"
 
-CRON_OUT="$(timeout 5 "${BIN_DIR}/cron" -h 2>&1)"
-local _cron_rc=$?
-if echo "$CRON_OUT" | grep -q "usage"; then
-    log_info "cron bootstrapped successfully"
-else
-    log_error "cron check failed"
+if [[ ! -x "$SYS_CRONTAB" ]]; then
+    log_error "System crontab not executable at $SYS_CRONTAB"
     exit 1
 fi
+
+"$SYS_CRONTAB" --version >/dev/null 2>&1 || {
+    log_error "crontab verification failed"
+    exit 1
+}
+log_info "cron bootstrapped successfully"
