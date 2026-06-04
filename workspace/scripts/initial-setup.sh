@@ -252,16 +252,49 @@ check_c_compiler() {
 }
 
 check_playwright_libs() {
-    local _pw_libs=(libnss3 libgbm1 libatk-bridge2.0-0t64 libpango-1.0-0 libcairo2 libcups2t64 libdrm2 libdbus-1-3 libxkbcommon0 libxrandr2)
+    local _pw_lib_variants=(
+        "libnss3"
+        "libgbm1"
+        "libatk-bridge2.0-0t64|libatk-bridge2.0-0"
+        "libpango-1.0-0"
+        "libcairo2"
+        "libcups2t64|libcups2"
+        "libdrm2"
+        "libdbus-1-3"
+        "libxkbcommon0"
+        "libxrandr2"
+    )
     local _pw_missing=0
-    for lib in "${_pw_libs[@]}"; do
-        if dpkg -s "$lib" &>/dev/null 2>&1; then
-            :
-        else
-            log_miss "Playwright library: $lib"
-            MISSING_ENTRIES+=("$lib|$lib|Playwright browser dependency ($lib)")
-            _pw_missing=1
+    for entry in "${_pw_lib_variants[@]}"; do
+        IFS='|' read -ra variants <<< "$entry"
+        local installed=false
+
+        for variant in "${variants[@]}"; do
+            if dpkg -s "$variant" &>/dev/null 2>&1; then
+                installed=true
+                break
+            fi
+        done
+
+        if [[ "$installed" == "true" ]]; then
+            continue
         fi
+
+        local available_pkg=""
+        for variant in "${variants[@]}"; do
+            if apt-cache show "$variant" &>/dev/null 2>&1; then
+                available_pkg="$variant"
+                break
+            fi
+        done
+
+        if [[ -n "$available_pkg" ]]; then
+            log_miss "Playwright library: ${variants[0]}"
+            MISSING_ENTRIES+=("$available_pkg|$available_pkg|Playwright browser dependency ($available_pkg)")
+        else
+            log_miss "Playwright library: ${variants[0]} (not available in apt)"
+        fi
+        _pw_missing=1
     done
     [[ $_pw_missing -eq 0 ]] && log_ok "Playwright system libraries"
 }
@@ -340,3 +373,8 @@ fi
 
 # Install mode
 install_missing
+
+echo ""
+log_info "${GREEN}${BOLD}Initialization complete.${NC}"
+log_info "Proceed with: ${BOLD}make install${NC}"
+exit 0
