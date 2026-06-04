@@ -1,7 +1,7 @@
-"""Unit tests for ami/scripts/check_workspace_repos_aligned.py.
+"""Unit tests for workspace/scripts/check_workspace_repos_aligned.py.
 
 Covers the alignment invariant between .moon/workspace.yml::projects and
-ami/config/workspace-clones.yaml::workspaceClones.
+workspace/config/workspace-clones.yaml::workspaceClones.
 """
 
 from __future__ import annotations
@@ -34,8 +34,10 @@ workspaceClones:
 def _make_workspace(tmp_path: Path, moon_yaml: str, clones_yaml: str) -> Path:
     (tmp_path / ".moon").mkdir()
     (tmp_path / ".moon" / "workspace.yml").write_text(moon_yaml)
-    (tmp_path / "ami" / "config").mkdir(parents=True)
-    (tmp_path / "ami" / "config" / "workspace-clones.yaml").write_text(clones_yaml)
+    (tmp_path / "workspace" / "config").mkdir(parents=True)
+    (tmp_path / "workspace" / "config" / "workspace-clones.yaml").write_text(
+        clones_yaml
+    )
     return tmp_path
 
 
