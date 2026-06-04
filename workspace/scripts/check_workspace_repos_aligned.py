@@ -4,7 +4,7 @@
 Both files list the workspace's repos but for different consumers:
   - .moon/workspace.yml::projects — moon's project graph (drives `moon run
     :update`, `moon ci --affected`, every cross-project task walk).
-  - ami/config/workspace-clones.yaml::workspaceClones — the boot installer's
+  - workspace/config/workspace-clones.yaml::workspaceClones — the boot installer's
     repo-selection step + the chicken-egg-safe clone walker
     (bootstrap-repos).
 
@@ -43,7 +43,7 @@ def _find_workspace_root(start: Path) -> Path | None:
     cur = start.resolve()
     while cur != cur.parent:
         if (cur / ".moon" / "workspace.yml").exists() and (
-            cur / "ami" / "config" / "workspace-clones.yaml"
+            cur / "workspace" / "config" / "workspace-clones.yaml"
         ).exists():
             return cur
         cur = cur.parent
@@ -60,13 +60,13 @@ def main(argv: list[str] | None = None) -> int:
     if root is None:
         print(
             "ERROR: cannot find workspace root with both .moon/workspace.yml "
-            "and ami/config/workspace-clones.yaml",
+            "and workspace/config/workspace-clones.yaml",
             file=sys.stderr,
         )
         return EXIT_INFRA
 
     moon_yaml = root / ".moon" / "workspace.yml"
-    clones_yaml = root / "ami" / "config" / "workspace-clones.yaml"
+    clones_yaml = root / "workspace" / "config" / "workspace-clones.yaml"
 
     try:
         moon = MoonWorkspace.model_validate(_load_yaml(moon_yaml))
@@ -97,7 +97,7 @@ def main(argv: list[str] | None = None) -> int:
 
     print(
         "✗ workspace registries drifted between "
-        ".moon/workspace.yml and ami/config/workspace-clones.yaml",
+        ".moon/workspace.yml and workspace/config/workspace-clones.yaml",
         file=sys.stderr,
     )
     if only_in_moon:
