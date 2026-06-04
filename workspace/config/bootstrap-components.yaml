@@ -146,6 +146,16 @@ components:
     version_cmd: ['.boot-linux/bin/moon', '--version']
     version_pattern: 'moon (\d+\.\d+\.\d+)'
 
+  - name: node
+    label: 'Node.js'
+    description: 'Node.js + npm (hermetic, via nodeenv)'
+    type: script
+    group: 'Core Dependencies'
+    script: 'bootstrap_node.sh'
+    detect_path: '.boot-linux/bin/node'
+    version_cmd: ['.boot-linux/bin/node', '--version']
+    version_pattern: 'v(\d+\.\d+\.\d+)'
+
   - name: gitleaks
     label: 'Gitleaks'
     description: 'Secret scanning (pre-commit hook)'

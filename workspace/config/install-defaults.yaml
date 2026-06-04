@@ -9,12 +9,10 @@ components:
   # Core Dependencies (installed FIRST)
   - uv
   - python
+  - node
 
   # AI Coding Assistants
   - opencode
-  - claude
-  - gemini
-  - qwen
 
   # Containers & Orchestration
   - podman
