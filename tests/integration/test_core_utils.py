@@ -105,7 +105,7 @@ class TestUuidUtils:
 
 class TestVersionEnforcer:
     def test_no_constraints_passthrough(self):
-        entry = {"name": "no-constraints", "binary": "ami/scripts/bin/welcome"}
+        entry = {"name": "no-constraints", "binary": "workspace/scripts/bin/welcome"}
         ext = ResolvedExtension(
             entry=entry,
             manifest_path=Path("/fake/manifest.yaml"),
@@ -120,7 +120,7 @@ class TestVersionEnforcer:
     def test_hidden_unavailable_skipped(self):
         entry = {
             "name": "hidden-ext",
-            "binary": "ami/scripts/bin/nonexistent",
+            "binary": "workspace/scripts/bin/nonexistent",
             "minVersion": "0.1.0",
         }
         ext = ResolvedExtension(
@@ -137,7 +137,7 @@ class TestVersionEnforcer:
     def test_version_mismatch_detected(self):
         entry = {
             "name": "welcome",
-            "binary": "ami/scripts/bin/welcome",
+            "binary": "workspace/scripts/bin/welcome",
             "maxVersion": "0.0.1",
             "check": {
                 "command": ["{binary}", "--help"],
@@ -158,7 +158,7 @@ class TestVersionEnforcer:
     def test_version_match_passes(self):
         entry = {
             "name": "welcome",
-            "binary": "ami/scripts/bin/welcome",
+            "binary": "workspace/scripts/bin/welcome",
             "minVersion": "0.0.0",
             "check": {
                 "command": ["{binary}", "--help"],
@@ -184,7 +184,7 @@ class TestVersionEnforcer:
 class TestRegisterExtensions:
     def test_create_wrapper_creates_executable(self, tmp_path: Path):
         script_path = tmp_path / "test-wrapper"
-        create_wrapper(script_path, PROJECT_ROOT, "ami/scripts/bin/welcome")
+        create_wrapper(script_path, PROJECT_ROOT, "workspace/scripts/bin/welcome")
         assert script_path.exists()
         content = script_path.read_text()
         assert "welcome" in content

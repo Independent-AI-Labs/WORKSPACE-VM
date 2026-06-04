@@ -24,7 +24,7 @@ def _find_project_root() -> Path:
 
 
 PROJECT_ROOT = _find_project_root()
-GIT_GUARD = PROJECT_ROOT / "ami/scripts/utils/git-guard"
+GIT_GUARD = PROJECT_ROOT / "workspace/scripts/utils/git-guard"
 
 
 class MockEnv(NamedTuple):

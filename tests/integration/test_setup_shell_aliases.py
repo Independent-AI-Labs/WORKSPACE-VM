@@ -23,7 +23,7 @@ AMI_ROOT = _find_project_root()
 
 def test_aliases_exist_and_respond_to_help() -> None:
     """Test that all aliases and functions from shell-setup exist and respond to -h."""
-    script_path = AMI_ROOT / "ami" / "scripts" / "shell" / "shell-setup"
+    script_path = AMI_ROOT / "workspace" / "scripts" / "shell" / "shell-setup"
 
     assert script_path.exists(), f"Setup script does not exist: {script_path}"
 

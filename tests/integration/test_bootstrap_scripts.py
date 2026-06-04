@@ -156,7 +156,7 @@ class TestRunCheck:
     def test_ami_welcome_healthy(self):
         entry = {
             "name": "welcome",
-            "binary": "ami/scripts/bin/welcome",
+            "binary": "workspace/scripts/bin/welcome",
             "check": {
                 "command": ["{binary}", "--help"],
                 "healthExpect": "welcome",
@@ -180,7 +180,7 @@ class TestRunCheck:
         assert result.healthy is False
 
     def test_empty_command_rejected(self):
-        entry = {"name": "bad-ext", "binary": "ami/scripts/bin/welcome"}
+        entry = {"name": "bad-ext", "binary": "workspace/scripts/bin/welcome"}
         result = run_check(entry, PROJECT_ROOT)
         assert isinstance(result, HealthCheckResult)
 
