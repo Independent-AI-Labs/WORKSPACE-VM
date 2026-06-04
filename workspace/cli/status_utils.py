@@ -3,6 +3,7 @@
 
 import re
 import subprocess
+import sys
 import unicodedata
 
 import psutil
@@ -50,7 +51,8 @@ def run_cmd(cmd: str) -> str:
             cmd, shell=True, capture_output=True, text=True, check=False
         )
         return result.stdout.strip()
-    except subprocess.SubprocessError:
+    except subprocess.SubprocessError as e:
+        print(f"Warning: command failed: {cmd}: {e}", file=sys.stderr)
         return ""
 
 

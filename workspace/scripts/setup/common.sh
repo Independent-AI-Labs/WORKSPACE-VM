@@ -65,7 +65,8 @@ check_submodule_changes() {
 
     # Get list of all submodules
     local submodules
-    submodules=$("$git_cmd" submodule foreach --quiet 'echo $path' 2>/dev/null) || true
+    submodules=$("$git_cmd" submodule foreach --quiet 'echo $path')
+    local _sub_rc=$?
 
     local has_changes=0
     for submodule in $submodules; do
@@ -158,7 +159,7 @@ ensure_git_submodules() {
                     fi
                 done < ".gitmodules"
 
-                "$git_cmd" submodule sync --recursive 2>/dev/null || true
+                "$git_cmd" submodule sync --recursive
             fi
 
             # Retry update with HTTPS URLs

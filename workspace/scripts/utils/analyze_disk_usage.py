@@ -27,11 +27,9 @@ def _run_du(path_str: str, same_fs: bool) -> str | None:
     if same_fs:
         cmd.insert(1, "-x")
     try:
-        result = subprocess.run(
-            cmd, capture_output=True, text=True, check=False
-        )  # silent-ok: errors caught by enclosing try/except
-    except Exception as e:
-        print(f"Critical error running du: {e}")
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+    except subprocess.CalledProcessError as e:
+        print(f"Critical error running du: {e}", file=sys.stderr)
         return None
     else:
         return result.stdout

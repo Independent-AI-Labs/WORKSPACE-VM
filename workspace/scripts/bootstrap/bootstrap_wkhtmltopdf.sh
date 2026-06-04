@@ -89,13 +89,17 @@ extract_deb wkhtmltox.deb "${WKHTMLTOPDF_DIR}"
 # Find and move the binary
 if [[ -f "${WKHTMLTOPDF_DIR}/usr/local/bin/wkhtmltopdf" ]]; then
     mv "${WKHTMLTOPDF_DIR}/usr/local/bin/wkhtmltopdf" "${WKHTMLTOPDF_DIR}/bin/"
-    mv "${WKHTMLTOPDF_DIR}/usr/local/bin/wkhtmltoimage" "${WKHTMLTOPDF_DIR}/bin/" 2>/dev/null || true
+    if [[ -f "${WKHTMLTOPDF_DIR}/usr/local/bin/wkhtmltoimage" ]]; then
+        mv "${WKHTMLTOPDF_DIR}/usr/local/bin/wkhtmltoimage" "${WKHTMLTOPDF_DIR}/bin/"
+    fi
     rm -rf "${WKHTMLTOPDF_DIR}/usr"
 fi
 
 if [[ ! -f "${WKHTMLTOPDF_DIR}/bin/wkhtmltopdf" ]]; then
     log_error "wkhtmltopdf binary not found in expected location"
-    ls -la "${WKHTMLTOPDF_DIR}" 2>&1 || true
+    if ! ls -la "${WKHTMLTOPDF_DIR}" 2>&1; then
+        log_error "Failed to list $WKHTMLTOPDF_DIR"
+    fi
     exit 1
 fi
 
@@ -112,7 +116,7 @@ curl -fL -o "${WKHTMLTOPDF_DIR}/libjpeg.deb" "${LIBJPEG_URL}" || {
 cd "${WKHTMLTOPDF_DIR}"
 extract_deb libjpeg.deb "${WKHTMLTOPDF_DIR}"
 mkdir -p "${WKHTMLTOPDF_DIR}/lib"
-mv "${WKHTMLTOPDF_DIR}"/usr/lib/*/libjpeg* "${WKHTMLTOPDF_DIR}/lib/" 2>/dev/null || true
+mv "${WKHTMLTOPDF_DIR}"/usr/lib/*/libjpeg* "${WKHTMLTOPDF_DIR}/lib/" || { local _mv_rc=$?; [[ $_mv_rc -eq 1 ]] || exit $_mv_rc; }
 rm -f libjpeg.deb
 rm -rf "${WKHTMLTOPDF_DIR}/usr"
 log_info "libjpeg8 bundled in ${WKHTMLTOPDF_DIR}/lib"
@@ -155,9 +159,9 @@ fi
 if ! "${VENV_DIR}/bin/wkhtmltopdf" --version 2>&1; then
     log_error "wkhtmltopdf binary failed to execute"
     log_error "Checking for missing libraries..."
-    ldd "${WKHTMLTOPDF_DIR}/bin/wkhtmltopdf" 2>&1 | grep -i "not found" || true
+    ldd "${WKHTMLTOPDF_DIR}/bin/wkhtmltopdf" 2>&1 | grep -i "not found" || log_error "ldd diagnostic unavailable"
     log_error "Bundled libs:"
-    ls -la "${WKHTMLTOPDF_DIR}/lib/" 2>&1 || true
+    ls -la "${WKHTMLTOPDF_DIR}/lib/" 2>&1 || log_error "lib directory listing unavailable"
     exit 1
 fi
 

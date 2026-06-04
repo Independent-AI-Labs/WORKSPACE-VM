@@ -56,7 +56,7 @@ display_banner() {
         local _plain_flag=""
         [[ "$AMI_QUIET_MODE" == "1" ]] && _quiet_flag="--quiet"
         [[ -z "$GREEN" ]] && _plain_flag="--plain"
-        python3 "$_banner_helper" --mode banner $_quiet_flag $_plain_flag 2>/dev/null || true  # silent-ok: helper is best-effort banner display
+        python3 "$_banner_helper" --mode banner $_quiet_flag $_plain_flag
     fi
 }
 

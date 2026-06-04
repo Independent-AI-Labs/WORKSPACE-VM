@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -uo pipefail
 
 # =============================================================================
 # Bootstrap — install system dependencies and bootstrap tools.
@@ -331,15 +331,15 @@ while IFS='|' read -r entry_type rest; do
         cmd)
             IFS='|' read -r check_cmd_val apt_pkg desc bootstrap optional comp_name <<< "$rest"
             if [[ -n "$check_cmd_val" ]]; then
-                check_cmd "$check_cmd_val" "$apt_pkg" "$desc" "$optional" "$bootstrap" || true  # silent-ok: returns 1 as status signal, not error
+                check_cmd "$check_cmd_val" "$apt_pkg" "$desc" "$optional" "$bootstrap"
             fi
             ;;
         type)
             IFS='|' read -r check_type_val desc comp_name <<< "$rest"
             case "$check_type_val" in
-                c-compiler)  check_c_compiler || true ;;  # silent-ok: returns 1 as status signal, MISSING_ENTRIES tracks actual errors
-                network-tools) check_network_tools || true ;;  # silent-ok: same
-                playwright-libs) check_playwright_libs || true ;;  # silent-ok: same
+                c-compiler)  check_c_compiler ;;
+                network-tools) check_network_tools ;;
+                playwright-libs) check_playwright_libs ;;
             esac
             ;;
     esac

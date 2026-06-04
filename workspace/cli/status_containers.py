@@ -4,6 +4,7 @@
 import json
 import os
 import re
+import sys
 from typing import cast
 
 from dataops.cli_components.text_input_utils import Colors
@@ -110,8 +111,9 @@ def get_container_stats() -> list[ContainerStatsData]:
     except (
         json.JSONDecodeError,
         KeyError,
-    ):  # silent-ok: malformed JSON, return defaults
-        pass
+    ):
+        print("Warning: podman stats returned malformed JSON", file=sys.stderr)
+        return []
     return stats
 
 
@@ -142,6 +144,14 @@ def get_container_sizes() -> list[ContainerSizeData]:
     return sizes
 
 
+def _get_volume_size_bytes(src: str) -> int:
+    size_raw = run_cmd(f"du -sb '{src}' 2>/dev/null | cut -f1") if src else "0"
+    try:
+        return int(size_raw) if size_raw else 0
+    except ValueError:
+        return 0
+
+
 def get_container_volumes(name: str) -> list[VolumeData]:
     """Get volume mounts for a container."""
     volumes: list[VolumeData] = []
@@ -161,26 +171,19 @@ def get_container_volumes(name: str) -> list[VolumeData]:
             if not dst:
                 continue
 
-            # Get size of source directory/file
-            size_raw = run_cmd(f"du -sb '{src}' 2>/dev/null | cut -f1") if src else "0"
-            try:
-                size_bytes = int(size_raw) if size_raw else 0
-            except ValueError:
-                size_bytes = 0
+            size_bytes = _get_volume_size_bytes(src)
 
-            # Skip trivial volumes (< 8KB is just filesystem overhead)
             if size_bytes < MIN_VOLUME_BYTES:
                 continue
 
-            # Format size
             size_str = format_bytes(size_bytes)
-
             volumes.append(VolumeData(dst=dst, src=src, type=vol_type, size=size_str))
     except (
         json.JSONDecodeError,
         KeyError,
-    ):  # silent-ok: malformed JSON, return defaults
-        pass
+    ):
+        print("Warning: podman inspect volume data malformed", file=sys.stderr)
+        return []
     return volumes
 
 
@@ -223,6 +226,7 @@ def get_podman_containers() -> list[PodmanContainer]:
                 )
             )
     except Exception:
+        print("Warning: podman container listing failed", file=sys.stderr)
         return []
     else:
         return containers

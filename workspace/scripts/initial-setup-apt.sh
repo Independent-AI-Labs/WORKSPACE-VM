@@ -15,8 +15,9 @@ probe_apt_package() {
         return
     fi
 
-    local pkg_info=""
-    pkg_info=$(apt-cache show "$pkg" 2>/dev/null) || true  # silent-ok: pkg may not exist in apt repos, handled below
+    local pkg_info="" _apt_rc=0
+    pkg_info=$(apt-cache show "$pkg") || _apt_rc=$?  # non-zero = pkg not in apt repos, checked below
+
 
     if [[ -z "$pkg_info" ]]; then
         RESOLVED_STATUS[$pkg]="unavailable"

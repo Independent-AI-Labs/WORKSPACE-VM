@@ -113,8 +113,11 @@ log_info "Installing additional Rust components..."
 "$RUST_HOME/bin/rustup" component add llvm-tools-preview rust-src
 log_success "Components installed: llvm-tools-preview, rust-src"
 
-# Detect the active toolchain directory name
+# Detect the active toolchain directory name.
 TOOLCHAIN_NAME=$("$RUST_HOME/bin/rustup" toolchain list | grep '(default)' | awk '{print $1}')
+if [[ -z "$TOOLCHAIN_NAME" ]]; then
+    TOOLCHAIN_NAME="stable-x86_64-unknown-linux-gnu"
+fi
 if [ -z "$TOOLCHAIN_NAME" ]; then
     TOOLCHAIN_NAME="stable-x86_64-unknown-linux-gnu"
 fi
@@ -134,6 +137,20 @@ for bin in cargo rustc rustfmt cargo-clippy cargo-fmt clippy-driver rustdoc; do
     if [ -x "${BOOT_DIR}/${TOOLCHAIN_BIN}/${bin}" ]; then
         ln -sf "../${TOOLCHAIN_BIN}/${bin}" "${BIN_DIR}/${bin}"
     fi
+done
+
+# LLVM tools (llvm-profdata, llvm-cov, llvm-ar, etc.)
+if [ -d "${BOOT_DIR}/${TOOLCHAIN_LLVM_BIN}" ]; then
+    for bin in "${BOOT_DIR}/${TOOLCHAIN_LLVM_BIN}"/*; do
+        [ -x "$bin" ] || continue
+        [ -d "$bin" ] && continue
+        bin_name="$(basename "$bin")"
+        ln -sf "../${TOOLCHAIN_LLVM_BIN}/${bin_name}" "${BIN_DIR}/${bin_name}"
+    done
+    log_success "LLVM tool symlinks created (llvm-profdata, llvm-cov, etc.)"
+else
+    log_info "Warning: LLVM tools directory not found at ${TOOLCHAIN_LLVM_BIN}"
+fi
 done
 
 # LLVM tools (llvm-profdata, llvm-cov, llvm-ar, etc.)

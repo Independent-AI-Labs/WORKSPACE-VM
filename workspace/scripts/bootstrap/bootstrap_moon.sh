@@ -108,7 +108,7 @@ fi
 EXTRACTED_DIR="moon_cli-${TARGET}"
 if [ ! -f "${EXTRACTED_DIR}/moon" ]; then
     log_error "Could not find moon binary in extracted archive at ${EXTRACTED_DIR}/moon"
-    ls -la "${EXTRACTED_DIR}" || true  # silent-ok: diagnostic ls; primary error already logged, exit follows
+    ls -la "${EXTRACTED_DIR}"
     exit 1
 fi
 

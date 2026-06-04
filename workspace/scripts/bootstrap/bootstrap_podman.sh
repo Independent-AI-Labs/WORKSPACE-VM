@@ -46,9 +46,9 @@ reset_podman_state() {
     log_warn "Resetting corrupted Podman state (volumes will be preserved)..."
 
     # Kill any stuck container processes
-    pkill -9 conmon 2>/dev/null || true
-    pkill -9 catatonit 2>/dev/null || true
-    pkill -9 -f podman 2>/dev/null || true
+    pkill -9 conmon || test $? -eq 1
+    pkill -9 catatonit || test $? -eq 1
+    pkill -9 -f podman || test $? -eq 1
 
     # Remove corrupted state files (but NOT volumes!)
     rm -rf ~/.local/share/containers/storage/libpod

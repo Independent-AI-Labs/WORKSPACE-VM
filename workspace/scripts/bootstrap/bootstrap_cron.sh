@@ -40,7 +40,8 @@ fi
 log_info "Bootstrapping cron -> $SYS_CRONTAB"
 ln -sf "$SYS_CRONTAB" "${BIN_DIR}/cron"
 
-CRON_OUT="$(timeout 5 "${BIN_DIR}/cron" -h 2>&1)" || true  # silent-ok: crontab -h exits 1 even on success, captured output checked below
+CRON_OUT="$(timeout 5 "${BIN_DIR}/cron" -h 2>&1)"
+local _cron_rc=$?
 if echo "$CRON_OUT" | grep -q "usage"; then
     log_info "cron bootstrapped successfully"
 else

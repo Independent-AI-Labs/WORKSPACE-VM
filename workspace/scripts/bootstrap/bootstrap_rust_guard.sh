@@ -21,8 +21,8 @@ divert_is_active() {
 uninstall_guard() {
     log_info "Uninstalling rust guard..."
     if command -v chattr >/dev/null; then
-        chattr -i /usr/bin/git 2>/dev/null || true  # silent-ok: chattr may be absent or file already mutable
-        chattr -i /usr/bin/git.original 2>/dev/null || true  # silent-ok: same
+        test -f /usr/bin/git       && chattr -i /usr/bin/git
+        test -f /usr/bin/git.original && chattr -i /usr/bin/git.original
     fi
     rm -f /usr/bin/git
     if divert_is_active; then
@@ -58,8 +58,8 @@ uninstall_guard() {
 rollback_guard() {
     log_warn "Installation failed — rolling back..."
     if command -v chattr >/dev/null; then
-        chattr -i /usr/bin/git 2>/dev/null || true  # silent-ok: chattr may fail if attribute already absent or binary missing during rollback
-        chattr -i /usr/bin/git.original 2>/dev/null || true  # silent-ok: chattr may fail if attribute already absent or original missing during rollback
+        test -f /usr/bin/git       && chattr -i /usr/bin/git
+        test -f /usr/bin/git.original && chattr -i /usr/bin/git.original
     fi
     rm -f /usr/bin/git
     if divert_is_active; then
@@ -158,8 +158,9 @@ install_guard() {
         # Forward SSH_AUTH_SOCK from the original user into sudo if missing
         if [[ -z "${SSH_AUTH_SOCK:-}" ]] && [[ -n "${SUDO_USER:-}" ]]; then
             local user_ssh_sock
-            user_ssh_sock=$(sudo -u "$SUDO_USER" printenv SSH_AUTH_SOCK 2>/dev/null || true)  # silent-ok: user may not have SSH agent running
-            if [[ -n "$user_ssh_sock" && -S "$user_ssh_sock" ]]; then
+            user_ssh_sock=$(sudo -u "$SUDO_USER" printenv SSH_AUTH_SOCK)
+            local _ssh_rc=$?
+            if [[ $_ssh_rc -eq 0 && -n "$user_ssh_sock" && -S "$user_ssh_sock" ]]; then
                 export SSH_AUTH_SOCK="$user_ssh_sock"
                 log_info "Forwarded SSH agent socket from $SUDO_USER"
             fi
@@ -175,7 +176,7 @@ install_guard() {
             log_error "Failed to clone RUST-GUARD from $guard_remote"
             return 1
         fi
-        chown -R root:root "$guard_dir" 2>/dev/null || true  # silent-ok: non-fatal if sudo user owns dir
+        chown -R root:root "$guard_dir"
         log_info "RUST-GUARD cloned from $guard_remote"
     fi
 

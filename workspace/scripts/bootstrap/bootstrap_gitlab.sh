@@ -65,7 +65,7 @@ tar -xzf "${TEMP_DIR}/${ARCHIVE_NAME}" -C "${TEMP_DIR}"
 EXTRACTED_BIN="${TEMP_DIR}/bin/glab"
 if [[ ! -f "$EXTRACTED_BIN" ]]; then
     log_error "glab binary not found in archive"
-    ls -laR "${TEMP_DIR}/" >&2 || true  # silent-ok: diagnostic dump, binary-not-found already errors above
+    ls -laR "${TEMP_DIR}/" >&2
     exit 1
 fi
 
@@ -76,8 +76,8 @@ chmod +x "${GLAB_DIR}/bin/glab"
 ln -sf "../glab/bin/glab" "${BIN_DIR}/glab"
 
 if "${BIN_DIR}/glab" --version > /dev/null 2>&1; then
-    GLAB_VER="$("${BIN_DIR}/glab" --version 2>&1 || true)"  # silent-ok: binary verified above, version extraction best-effort
-    GLAB_VER="$(echo "$GLAB_VER" | head -n 1)"  # silent-ok: log formatting only, binary already verified
+    GLAB_VER="$("${BIN_DIR}/glab" --version 2>&1)"
+    GLAB_VER="${GLAB_VER%%$'\n'*}"
     log_info "glab installed successfully: $GLAB_VER"
     log_info "Location: ${BIN_DIR}/glab -> ${GLAB_DIR}/bin/glab"
 else

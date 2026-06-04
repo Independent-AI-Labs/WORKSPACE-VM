@@ -60,7 +60,7 @@ elif [[ -d "${GCC_MUSL_DIR}/bin" ]]; then
     GCC_BIN_DIR="${GCC_MUSL_DIR}/bin"
 else
     log_error "Could not find GCC binaries after extraction"
-    find "${GCC_MUSL_DIR}" -name "gcc" -type f 2>/dev/null || true
+    find "${GCC_MUSL_DIR}" -name "gcc" -type f
     exit 1
 fi
 
