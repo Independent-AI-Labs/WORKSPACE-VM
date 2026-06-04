@@ -106,6 +106,20 @@ def validate_shebang_paths(shebang: str) -> list[str]:
 ALL_EXTENSIONS = get_all_extensions()
 EXTENSION_NAMES = [ext.name for ext in ALL_EXTENSIONS]
 
+# Pre-filtered lists for parametrized tests that require binaries to exist on disk.
+# Tests that can run against metadata alone parametrize over EXTENSION_NAMES directly.
+INSTALLED_EXTENSION_NAMES = sorted(
+    ext.name for ext in ALL_EXTENSIONS if (BIN_DIR / ext.name).exists()
+)
+EXTENSIONS_WITH_BINARY = sorted(
+    ext.name for ext in ALL_EXTENSIONS if ext.binary and check_binary_exists(ext.binary)
+)
+EXTENSIONS_HELP_READY = sorted(
+    ext.name
+    for ext in ALL_EXTENSIONS
+    if ext.binary and check_binary_exists(ext.binary) and (BIN_DIR / ext.name).exists()
+)
+
 
 def make_test_env():
     """Create environment for running extension tests."""
@@ -142,36 +156,30 @@ class TestExtensionInstallation:
             f"Run: make register-extensions"
         )
 
-    @pytest.mark.parametrize("ext_name", EXTENSION_NAMES)
+    @pytest.mark.parametrize("ext_name", INSTALLED_EXTENSION_NAMES)
     def test_command_is_executable(self, ext_name: str):
         """Test that extension command is executable."""
         cmd_path = BIN_DIR / ext_name
-        if not cmd_path.exists():
-            pytest.xfail(f"Command not installed: {ext_name}")
-
+        assert cmd_path.exists()
         assert os.access(cmd_path, os.X_OK), (
             f"Extension {ext_name} is not executable: {cmd_path}"
         )
 
-    @pytest.mark.parametrize("ext_name", EXTENSION_NAMES)
+    @pytest.mark.parametrize("ext_name", INSTALLED_EXTENSION_NAMES)
     def test_symlink_or_wrapper_type(self, ext_name: str):
         """Test that non-.py binaries are symlinks, .py binaries are wrappers."""
         ext = get_extension_by_name(ext_name)
         assert ext is not None
         cmd_path = BIN_DIR / ext_name
-        if not cmd_path.exists():
-            pytest.xfail(f"Command not installed: {ext_name}")
+        assert cmd_path.exists()
 
         if ext.binary.endswith(".py"):
-            # Python scripts get wrapper scripts (not symlinks)
             assert not cmd_path.is_symlink(), (
                 f"{ext_name} (.py binary) should be a wrapper, not a symlink"
             )
             content = cmd_path.read_text()
             assert "run" in content, f"{ext_name} wrapper should call run"
         else:
-            # Non-Python binaries are symlinks OR already in .boot-linux/bin/
-            # (bootstrap-created wrappers that register_extensions skips)
             is_symlink = cmd_path.is_symlink()
             is_in_place = str(ext.binary).startswith(".boot-linux/bin/")
             assert is_symlink or is_in_place, (
@@ -188,23 +196,17 @@ class TestExtensionHelp:
         """Setup environment for extension tests."""
         self.env = make_test_env()
 
-    @pytest.mark.parametrize("ext_name", EXTENSION_NAMES)
+    @pytest.mark.parametrize("ext_name", EXTENSIONS_HELP_READY)
     def test_extension_help(self, ext_name: str):
         """Test that extension responds to --help or -h without error."""
         ext = get_extension_by_name(ext_name)
         assert ext is not None
-
-        if not ext.binary:
-            pytest.xfail(f"No binary defined for {ext_name}")
-
-        if not check_binary_exists(ext.binary):
-            pytest.xfail(f"Binary not installed: {ext.binary}")
+        assert ext.binary, f"Extension {ext_name} has no binary defined"
+        assert check_binary_exists(ext.binary), f"Binary not installed: {ext.binary}"
 
         cmd_path = BIN_DIR / ext_name
-        if not cmd_path.exists():
-            pytest.xfail(f"Command not installed in bin: {ext_name}")
+        assert cmd_path.exists(), f"Command not installed in bin: {ext_name}"
 
-        # Check for broken shebangs in the binary
         shebang = get_binary_shebang(ext.binary)
         if shebang:
             issues = validate_shebang_paths(shebang)
@@ -216,7 +218,6 @@ class TestExtensionHelp:
                     f"Issues: {'; '.join(issues)}"
                 )
 
-        # Try --help first, fall back to -h
         for flag in ("--help", "-h"):
             result = subprocess.run(
                 [str(cmd_path), flag],
@@ -282,7 +283,7 @@ class TestExtensionBinaries:
         assert ext is not None
 
         if not ext.binary:
-            pytest.xfail(f"No binary defined for {ext_name}")
+            pytest.skip(f"No binary defined for {ext_name}")
 
         assert not ext.binary.startswith("/"), (
             f"Extension {ext_name} binary should be"
@@ -293,22 +294,18 @@ class TestExtensionBinaries:
             f"Extension {ext_name} binary path should not contain '..': {ext.binary}"
         )
 
-    @pytest.mark.parametrize("ext_name", EXTENSION_NAMES)
+    @pytest.mark.parametrize("ext_name", EXTENSIONS_WITH_BINARY)
     def test_binary_shebang_valid(self, ext_name: str):
         """Test that binary has valid shebang if it's a script."""
         ext = get_extension_by_name(ext_name)
         assert ext is not None
-
-        if not ext.binary:
-            pytest.xfail(f"No binary defined for {ext_name}")
-
-        if not check_binary_exists(ext.binary):
-            pytest.xfail(f"Binary not installed: {ext.binary}")
+        assert ext.binary, f"Extension {ext_name} has no binary defined"
+        assert check_binary_exists(ext.binary), f"Binary not installed: {ext.binary}"
 
         shebang = get_binary_shebang(ext.binary)
 
         if ext.binary.endswith(".py"):
-            pass  # Python scripts run via run, no shebang needed
+            pass
         elif shebang:
             issues = validate_shebang_paths(shebang)
             assert not issues, (

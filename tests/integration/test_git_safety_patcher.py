@@ -46,9 +46,17 @@ def mock_env(tmp_path: Path) -> MockEnv:
     guard_dest.write_text(GIT_GUARD.read_text())
     guard_dest.chmod(0o755)
 
-    # Create a mock real-git that just prints args
+    # Create a mock real-git that handles rev-parse queries the guard
+    # needs for contract enforcement, then echoes other args.
     git_real = bin_dir / "real-git"
-    git_real.write_text('#!/usr/bin/env bash\necho "PASSTHROUGH: $*"\n')
+    git_real.write_text(
+        "#!/usr/bin/env bash\n"
+        'case "$*" in\n'
+        '  "rev-parse --show-toplevel") echo "/";;\n'
+        '  "rev-parse --abbrev-ref HEAD") echo "HEAD";;\n'
+        '  *) echo "PASSTHROUGH: $*";;\n'
+        "esac\n"
+    )
     git_real.chmod(0o755)
 
     env = os.environ.copy()
@@ -134,15 +142,17 @@ def test_guard_blocks_destructive_subcommands(mock_env: MockEnv) -> None:
         assert "BLOCKED" in combined, f"'{cmd}' output: {combined}"
 
 
-@pytest.mark.xfail(
-    reason="execnet gateway hang when guard spawns subprocesses via xdist worker"
-)
 def test_guard_allows_safe_commands(mock_env: MockEnv) -> None:
     """Verify safe commands pass through to real-git.
 
     Runs in `mock_env.bin_dir` — no `.git` dir present — so the P0/P1/P2
     history-safety checks skip (their `_is_on_remote` / `_current_branch`
     helpers return non-zero when there is no repo to query).
+
+    Does NOT use the PTY `script` wrapper because safe commands don't need
+    foreground-process-group detection and `script` is known to hang the
+    execnet gateway under xdist. Destructive commands (which DO need PTY
+    detection) are tested separately via `run_git_cmd`.
     """
     safe_cmds = [
         "git status",
@@ -161,7 +171,13 @@ def test_guard_allows_safe_commands(mock_env: MockEnv) -> None:
     ]
 
     for cmd in safe_cmds:
-        res = run_git_cmd(cmd, mock_env.env)
+        res = subprocess.run(
+            cmd.split(),
+            env=mock_env.env,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
         combined = res.stdout + res.stderr
         assert "BLOCKED" not in combined, f"'{cmd}' should be allowed"
         assert "PASSTHROUGH" in res.stdout, f"'{cmd}' didn't reach real-git"
