@@ -118,7 +118,7 @@ install_guard() {
     echo "  - Register apt post-invoke hook for change detection"
     echo ""
     echo "After installation, ONLY the SUID guard can invoke real git."
-    echo "To uninstall: bash ami/scripts/bootstrap/bootstrap_rust_guard.sh uninstall"
+    echo "To uninstall: bash workspace/scripts/bootstrap/bootstrap_rust_guard.sh uninstall"
     echo ""
 
     if [[ -t 0 ]] && [[ "$MODE" == "install" ]]; then
@@ -140,7 +140,7 @@ install_guard() {
 
     if ! command -v cargo >/dev/null; then
         log_warn "cargo not on PATH — bootstrapping Rust..."
-        bash "${PROJECT_ROOT}/ami/scripts/bootstrap/bootstrap_rust.sh" || {
+        bash "${PROJECT_ROOT}/workspace/scripts/bootstrap/bootstrap_rust.sh" || {
             log_error "Rust installation failed"
             return 1
         }
@@ -166,7 +166,7 @@ install_guard() {
         fi
 
         local guard_remote
-        guard_remote=$(grep -A3 'rust-guard:' "${PROJECT_ROOT}/ami/config/workspace-clones.yaml" | grep 'remote:' | awk '{print $2}' | tr -d "'\"")
+        guard_remote=$(grep -A3 'rust-guard:' "${PROJECT_ROOT}/workspace/config/workspace-clones.yaml" | grep 'remote:' | awk '{print $2}' | tr -d "'\"")
         if [[ -z "$guard_remote" ]]; then
             guard_remote="git@github.com:Independent-AI-Labs/RUST-GUARD.git"
         fi
@@ -361,7 +361,7 @@ EOF
         log_info "  apt hook registered"
         log_info "  audit log: /var/log/rust-guard/"
         echo ""
-        log_info "To verify: bash ami/scripts/bootstrap/bootstrap_rust_guard.sh check"
+        log_info "To verify: bash workspace/scripts/bootstrap/bootstrap_rust_guard.sh check"
     else
         log_error "Installation verification failed — rolling back"
         rollback_guard
