@@ -23,7 +23,7 @@ if [[ "$1" == "--version" ]] || [[ "$1" == "-V" ]]; then
     exit 0
 fi
 
-WELCOME=$("$AMI_ROOT/ami/scripts/bin/welcome" --plain 2>/dev/null || echo "AMI-AGENTS workspace")
+WELCOME=$("$AMI_ROOT/workspace/scripts/bin/welcome" --plain 2>/dev/null || echo "AMI-AGENTS workspace")
 printf '%b\n' "$WELCOME" && echo ""
 export OPENCODE_ENABLE_EXA=1
 AGENT_NOTE=$'\n\nYou can rename this session with /rename.'

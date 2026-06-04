@@ -4,4 +4,4 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 AMI_ROOT="$("$SCRIPT_DIR/pwd")"
 export AMI_ROOT
-exec bash "$AMI_ROOT/ami/scripts/shell/ami-banner.sh" "$@"
+exec bash "$AMI_ROOT/workspace/scripts/shell/ami-banner.sh" "$@"

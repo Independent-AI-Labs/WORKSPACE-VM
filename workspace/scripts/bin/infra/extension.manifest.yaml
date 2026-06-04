@@ -1,6 +1,6 @@
 extensions:
   - name: vpn
-    binary: ami/scripts/bin/run_openvpn_client.py
+    binary: workspace/scripts/bin/run_openvpn_client.py
     description: OpenVPN client with AMI config
     category: infra
     features:
@@ -15,7 +15,7 @@ extensions:
       timeout: 5
 
   - name: tunnel
-    binary: ami/scripts/bin/tunnel.py
+    binary: workspace/scripts/bin/tunnel.py
     description: Cloudflare tunnel management
     category: infra
     features:
@@ -31,7 +31,7 @@ extensions:
       timeout: 5
 
   - name: ssl
-    binary: ami/scripts/bin/openssl.py
+    binary: workspace/scripts/bin/openssl.py
     description: OpenSSL with AMI cert paths
     category: infra
     features:

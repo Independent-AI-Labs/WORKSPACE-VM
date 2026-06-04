@@ -1,6 +1,6 @@
 extensions:
   - name: oc
-    binary: ami/scripts/bin/oc
+    binary: workspace/scripts/bin/oc
     description: opencode AI agent wrapper with AMI welcome context
     category: core
     features:
@@ -14,7 +14,7 @@ extensions:
       timeout: 5
 
   - name: run
-    binary: ami/scripts/bin/run
+    binary: workspace/scripts/bin/run
     description: Universal project execution wrapper
     category: core
     features:
@@ -38,7 +38,7 @@ extensions:
       timeout: 5
 
   - name: ops
-    binary: ami/scripts/bin/ops
+    binary: workspace/scripts/bin/ops
     description: System orchestration and container management
     category: infra
     features:
@@ -59,7 +59,7 @@ extensions:
       timeout: 5
 
   - name: repo
-    binary: ami/scripts/bin/repo
+    binary: workspace/scripts/bin/repo
     description: Git repository and server management
     category: core
     features:
@@ -83,7 +83,7 @@ extensions:
   # `kind-weaving-kahan` plan / MOON-MIGRATION-PLAN.md v0.2.0 Phase 6.
 
   - name: welcome
-    binary: ami/scripts/bin/welcome
+    binary: workspace/scripts/bin/welcome
     description: Print the AMI Orchestrator banner
     category: core
     hidden: true
@@ -94,7 +94,7 @@ extensions:
       timeout: 5
 
   - name: pwd
-    binary: ami/scripts/bin/pwd
+    binary: workspace/scripts/bin/pwd
     description: AMI root directory finder
     category: core
     features:

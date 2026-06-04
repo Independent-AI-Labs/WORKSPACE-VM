@@ -107,12 +107,12 @@ case "$SUBCOMMAND" in
         exec "$BOOT_DIR/go/bin/go" "${ARGS[@]}"
         ;;
     extras)
-        exec "$VENV_PYTHON" "$AMI_ROOT/ami/scripts/shell/banner_helper.py" --mode extras "${ARGS[@]}"
+        exec "$VENV_PYTHON" "$AMI_ROOT/workspace/scripts/shell/banner_helper.py" --mode extras "${ARGS[@]}"
         ;;
     doctor)
-        exec "$VENV_PYTHON" "$AMI_ROOT/ami/scripts/shell/banner_helper.py" --mode doctor "${ARGS[@]}"
+        exec "$VENV_PYTHON" "$AMI_ROOT/workspace/scripts/shell/banner_helper.py" --mode doctor "${ARGS[@]}"
         ;;
     banner)
-        exec "$VENV_PYTHON" "$AMI_ROOT/ami/scripts/shell/banner_helper.py" --mode banner "${ARGS[@]}"
+        exec "$VENV_PYTHON" "$AMI_ROOT/workspace/scripts/shell/banner_helper.py" --mode banner "${ARGS[@]}"
         ;;
 esac

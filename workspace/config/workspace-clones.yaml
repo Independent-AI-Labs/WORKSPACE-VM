@@ -1,4 +1,4 @@
-# Workspace clone manifest — read by ami/scripts/bin/bootstrap-repos.
+# Workspace clone manifest — read by workspace/scripts/bin/bootstrap-repos.
 #
 # Single source of truth for "what repos belong to the AMI workspace."
 # Mandatory entries always clone; optional entries opt-in via

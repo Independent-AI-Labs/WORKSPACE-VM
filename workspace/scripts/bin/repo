@@ -56,7 +56,7 @@ case "$SUBCOMMAND" in
         exec "$BOOT_DIR/bin/glab" "${ARGS[@]}"
         ;;
     status-all)
-        exec "$AMI_ROOT/ami/scripts/utils/git-status-all" "${ARGS[@]}"
+        exec "$AMI_ROOT/workspace/scripts/utils/git-status-all" "${ARGS[@]}"
         ;;
     gitd)
         GITD_CMD="${ARGS[0]:-status}"

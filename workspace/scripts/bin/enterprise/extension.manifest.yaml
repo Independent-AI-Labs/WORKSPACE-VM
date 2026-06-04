@@ -1,6 +1,6 @@
 extensions:
   - name: kcadm
-    binary: ami/scripts/bin/kcadm
+    binary: workspace/scripts/bin/kcadm
     description: Keycloak Identity Management CLI
     category: enterprise
     features:

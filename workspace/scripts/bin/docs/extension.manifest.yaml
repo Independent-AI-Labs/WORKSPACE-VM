@@ -1,6 +1,6 @@
 extensions:
   - name: docs
-    binary: ami/scripts/bin/docs.py
+    binary: workspace/scripts/bin/docs.py
     description: Document conversion and PDF generation
     category: research
     features:

@@ -72,10 +72,10 @@ case "$SUBCOMMAND" in
         exec "$BOOT_DIR/bin/helm" "${ARGS[@]}"
         ;;
     status)
-        exec "$VENV_PYTHON" "$AMI_ROOT/ami/cli_components/status.py"
+        exec "$VENV_PYTHON" "$AMI_ROOT/workspace/cli/status.py"
         ;;
     storage)
-        exec "$VENV_PYTHON" "$AMI_ROOT/ami/cli_components/storage.py" "${ARGS[@]}"
+        exec "$VENV_PYTHON" "$AMI_ROOT/workspace/cli/storage.py" "${ARGS[@]}"
         ;;
     cron)
         exec "$BOOT_DIR/bin/cron" "${ARGS[@]}"

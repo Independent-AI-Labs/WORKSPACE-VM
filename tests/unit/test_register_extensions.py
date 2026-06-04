@@ -105,7 +105,7 @@ class TestRegisterExtensions:
             "extensions": [
                 {
                     "name": "test-ext",
-                    "binary": "ami/scripts/bin/test-ext",
+                    "binary": "workspace/scripts/bin/test-ext",
                     "description": "A test extension",
                     "category": "core",
                 },
