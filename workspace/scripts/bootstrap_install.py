@@ -12,11 +12,15 @@ from pathlib import Path
 from typing import NamedTuple
 
 from workspace.scripts.bootstrap_components import (
-    PROJECT_ROOT,
+    PROJECT_ROOT as _config_root,
+)
+from workspace.scripts.bootstrap_components import (
     Component,
     ComponentType,
 )
 from workspace.types.results import InstallationResult
+
+_PROJECT_ROOT = Path(os.environ.get("AMI_ROOT", str(_config_root)))
 
 
 class CategorizedComponents(NamedTuple):
@@ -29,8 +33,8 @@ class CategorizedComponents(NamedTuple):
 def ensure_directories() -> None:
     """Ensure required directories exist."""
     dirs = [
-        PROJECT_ROOT / ".boot-linux" / "bin",
-        PROJECT_ROOT / ".venv" / "bin",
+        _PROJECT_ROOT / ".boot-linux" / "bin",
+        _PROJECT_ROOT / ".venv" / "bin",
     ]
     for d in dirs:
         d.mkdir(parents=True, exist_ok=True)
@@ -38,7 +42,7 @@ def ensure_directories() -> None:
 
 def get_bootstrap_dir() -> Path:
     """Get the bootstrap scripts directory."""
-    return PROJECT_ROOT / "workspace" / "scripts" / "bootstrap"
+    return _PROJECT_ROOT / "workspace" / "scripts" / "bootstrap"
 
 
 def run_bootstrap_script(script_name: str) -> bool:
@@ -54,8 +58,8 @@ def run_bootstrap_script(script_name: str) -> bool:
     try:
         # Set environment variables to fix path issues in scripts
         env = dict(os.environ)
-        env["BOOT_LINUX_DIR"] = str(PROJECT_ROOT / ".boot-linux")
-        env["VENV_DIR"] = str(PROJECT_ROOT / ".venv")
+        env["BOOT_LINUX_DIR"] = str(_PROJECT_ROOT / ".boot-linux")
+        env["VENV_DIR"] = str(_PROJECT_ROOT / ".venv")
 
         # stdin=DEVNULL so bootstrap scripts that probe `[ -t 0 ]` see a
         # non-TTY and take the non-interactive code path. The TUI itself owns
@@ -64,7 +68,7 @@ def run_bootstrap_script(script_name: str) -> bool:
         # gcloud "Reinstall? (y/N)" hang).
         result = subprocess.run(
             ["bash", str(script_path)],
-            cwd=str(PROJECT_ROOT),
+            cwd=str(_PROJECT_ROOT),
             env=env,
             stdin=subprocess.DEVNULL,
             check=False,
@@ -82,52 +86,63 @@ def run_bootstrap_script(script_name: str) -> bool:
 def install_component(component: Component) -> bool:
     """Install a single component based on its type."""
     if component.type == ComponentType.SCRIPT:
-        if not component.script:
+        script_ok = False
+        if component.script_path:
+            script_ok = _run_script_path(component.script_path)
+        elif component.script:
+            script_ok = run_bootstrap_script(component.script)
+        else:
             return False
-        script_ok = run_bootstrap_script(component.script)
-        # If script exited non-zero but the component is actually installed
-        # (detect_path exists), treat as success. Some bootstrap scripts
-        # have non-critical failures in post-install steps.
         if not script_ok and component.detect_path:
-            path = PROJECT_ROOT / component.detect_path
+            path = _PROJECT_ROOT / component.detect_path
             if path.exists() and _binary_is_runnable(component):
                 return True
         return script_ok
     elif component.type == ComponentType.UV:
-        # UV packages are handled by uv sync
         return True
     elif component.type == ComponentType.WORKSPACE_REPO:
-        return run_workspace_repo_clone(component.name)
+        _pull_workspace_repo(component)
+        return True
     return False
 
 
-def run_workspace_repo_clone(entry_id: str) -> bool:
-    """Invoke bootstrap-repos --include <entry_id> for a single repo.
-
-    Mandatory entries clone unconditionally regardless of --include; the
-    explicit --include is harmless and keeps the call site uniform.
-    """
-    script_path = PROJECT_ROOT / "workspace" / "scripts" / "bin" / "bootstrap-repos"
+def _run_script_path(script_rel: str) -> bool:
+    script_path = _PROJECT_ROOT / script_rel
     if not script_path.exists():
         print(
-            f"ERROR: bootstrap-repos not found at {script_path}",
+            f"ERROR: bootstrap script not found: {script_path}",
             file=sys.stderr,
         )
         return False
     try:
+        env = dict(os.environ)
+        env["BOOT_LINUX_DIR"] = str(_PROJECT_ROOT / ".boot-linux")
+        env["VENV_DIR"] = str(_PROJECT_ROOT / ".venv")
         result = subprocess.run(
-            ["bash", str(script_path), "--include", entry_id],
-            cwd=str(PROJECT_ROOT),
+            ["bash", str(script_path)],
+            cwd=str(_PROJECT_ROOT),
+            env=env,
             stdin=subprocess.DEVNULL,
             check=False,
         )
     except (OSError, subprocess.SubprocessError) as exc:
         print(
-            f"ERROR: failed to invoke bootstrap-repos for {entry_id}: {exc}",
+            f"ERROR: failed to invoke {script_rel}: {exc}",
             file=sys.stderr,
         )
         return False
     return result.returncode == 0
+
+
+def _pull_workspace_repo(component: Component) -> None:
+    repo_path = _PROJECT_ROOT / component.detect_path if component.detect_path else None
+    if repo_path and (repo_path / ".git").exists():
+        subprocess.run(
+            ["git", "pull", "--ff-only"],
+            cwd=repo_path,
+            stdin=subprocess.DEVNULL,
+            check=False,
+        )
 
 
 def _binary_is_runnable(component: Component) -> bool:
@@ -146,7 +161,7 @@ def _binary_is_runnable(component: Component) -> bool:
     binary = component.version_cmd[0]
     if binary.startswith(("/", "~")):
         return True
-    bin_path = PROJECT_ROOT / binary
+    bin_path = _PROJECT_ROOT / binary
     return bin_path.exists() and os.access(bin_path, os.X_OK)
 
 

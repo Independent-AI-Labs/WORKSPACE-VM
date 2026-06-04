@@ -8,12 +8,12 @@ from unittest.mock import MagicMock, patch
 from workspace.scripts.bootstrap_components import Component, ComponentType
 from workspace.scripts.bootstrap_install import (
     _binary_is_runnable,
+    _pull_workspace_repo,
     ensure_directories,
     get_bootstrap_dir,
     install_component,
     install_components,
     run_bootstrap_script,
-    run_workspace_repo_clone,
 )
 
 
@@ -40,7 +40,7 @@ EXPECTED_COMPONENT_RESULT_COUNT = 2
 class TestEnsureDirectories:
     """Tests for ensure_directories function."""
 
-    @patch("workspace.scripts.bootstrap_install.PROJECT_ROOT", Path("/test/root"))
+    @patch("workspace.scripts.bootstrap_install._PROJECT_ROOT", Path("/test/root"))
     def test_creates_directories(self) -> None:
         """Test creates required directories."""
         with patch.object(Path, "mkdir") as mock_mkdir:
@@ -53,7 +53,7 @@ class TestEnsureDirectories:
 class TestGetPaths:
     """Tests for path getter functions."""
 
-    @patch("workspace.scripts.bootstrap_install.PROJECT_ROOT", Path("/test/root"))
+    @patch("workspace.scripts.bootstrap_install._PROJECT_ROOT", Path("/test/root"))
     def test_get_bootstrap_dir(self) -> None:
         """Test get_bootstrap_dir returns correct path."""
         result = get_bootstrap_dir()
@@ -75,7 +75,6 @@ class TestRunBootstrapScript:
 
     @patch("workspace.scripts.bootstrap_install.subprocess.run")
     @patch("workspace.scripts.bootstrap_install.get_bootstrap_dir")
-    @patch("workspace.scripts.bootstrap_install.PROJECT_ROOT", Path("/root"))
     def test_runs_script(self, mock_dir, mock_run) -> None:
         """Test runs bootstrap script."""
         mock_dir.return_value = Path("/scripts")
@@ -89,7 +88,6 @@ class TestRunBootstrapScript:
 
     @patch("workspace.scripts.bootstrap_install.subprocess.run")
     @patch("workspace.scripts.bootstrap_install.get_bootstrap_dir")
-    @patch("workspace.scripts.bootstrap_install.PROJECT_ROOT", Path("/root"))
     def test_returns_false_on_script_failure(self, mock_dir, mock_run) -> None:
         """Test returns False if script fails."""
         mock_dir.return_value = Path("/scripts")
@@ -152,11 +150,10 @@ class TestInstallComponent:
         assert result is True
 
     @patch(
-        "workspace.scripts.bootstrap_install.run_workspace_repo_clone",
-        return_value=True,
+        "workspace.scripts.bootstrap_install._pull_workspace_repo",
     )
-    def test_installs_workspace_repo_via_walker(self, mock_walker) -> None:
-        """Test WORKSPACE_REPO routes to bootstrap-repos walker."""
+    def test_installs_workspace_repo_via_pull(self, mock_pull) -> None:
+        """Test WORKSPACE_REPO pulls existing repo."""
         comp = Component(
             name="ami-portal",
             label="ami-portal",
@@ -169,7 +166,7 @@ class TestInstallComponent:
         result = install_component(comp)
 
         assert result is True
-        mock_walker.assert_called_once_with("ami-portal")
+        mock_pull.assert_called_once()
 
 
 class TestInstallComponents:
@@ -387,35 +384,45 @@ class TestRunBootstrapScriptOSError:
             assert run_bootstrap_script("t.sh") is False
 
 
-class TestRunWorkspaceRepoClone:
-    """Tests for run_workspace_repo_clone helper."""
+class TestPullWorkspaceRepo:
+    """Tests for _pull_workspace_repo helper."""
 
     @patch("workspace.scripts.bootstrap_install.subprocess.run")
-    def test_invokes_ami_bootstrap_repos_with_include(self, mock_run) -> None:
-        """Test routes to bootstrap-repos --include <id>."""
-        mock_run.return_value = MagicMock(returncode=0)
+    def test_pulls_existing_repo(self, mock_run) -> None:
+        comp = Component(
+            name="test",
+            label="T",
+            description="T",
+            type=ComponentType.WORKSPACE_REPO,
+            group="Workspace Repositories",
+            detect_path="projects/TEST",
+        )
         with patch.object(Path, "exists", return_value=True):
-            assert run_workspace_repo_clone("ami-portal") is True
-        args = mock_run.call_args[0][0]
-        assert args[0] == "bash"
-        assert args[-2] == "--include"
-        assert args[-1] == "ami-portal"
+            _pull_workspace_repo(comp)
+        mock_run.assert_called_once()
 
     @patch("workspace.scripts.bootstrap_install.subprocess.run")
-    def test_returns_false_on_walker_failure(self, mock_run) -> None:
-        """Test returns False if walker exits non-zero."""
-        mock_run.return_value = MagicMock(returncode=1)
-        with patch.object(Path, "exists", return_value=True):
-            assert run_workspace_repo_clone("ami-portal") is False
-
-    def test_returns_false_if_walker_missing(self) -> None:
-        """Test returns False if bootstrap-repos does not exist."""
-        with patch.object(Path, "exists", return_value=False):
-            assert run_workspace_repo_clone("ami-portal") is False
+    def test_skips_when_no_detect_path(self, mock_run) -> None:
+        comp = Component(
+            name="test",
+            label="T",
+            description="T",
+            type=ComponentType.WORKSPACE_REPO,
+            group="Workspace Repositories",
+        )
+        _pull_workspace_repo(comp)
+        mock_run.assert_not_called()
 
     @patch("workspace.scripts.bootstrap_install.subprocess.run")
-    def test_handles_oserror(self, mock_run) -> None:
-        """Test catches OSError from subprocess.run."""
-        mock_run.side_effect = OSError("exec failed")
-        with patch.object(Path, "exists", return_value=True):
-            assert run_workspace_repo_clone("ami-portal") is False
+    def test_skips_when_git_dir_missing(self, mock_run) -> None:
+        comp = Component(
+            name="test",
+            label="T",
+            description="T",
+            type=ComponentType.WORKSPACE_REPO,
+            group="Workspace Repositories",
+            detect_path="projects/TEST",
+        )
+        with patch("pathlib.Path.exists", return_value=False):
+            _pull_workspace_repo(comp)
+        mock_run.assert_not_called()

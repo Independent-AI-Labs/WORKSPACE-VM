@@ -15,26 +15,26 @@ help: ## Show this help message
 
 .PHONY: init-check
 init-check: ## Check system dependencies
-	@bash workspace/scripts/initial-setup.sh
+	@AMI_ROOT="$$(pwd)" bash workspace/scripts/initial-setup.sh
 
 .PHONY: init
 init: ## Install system dependencies (requires sudo)
-	@bash workspace/scripts/initial-setup.sh --install
+	@AMI_ROOT="$$(pwd)" bash workspace/scripts/initial-setup.sh --install
 
 # --- Core prereqs ---
 
 .PHONY: core
 core: ## Bootstrap uv + python + git-xet (prereq for sync-package)
 	@echo "🔧 Bootstrapping core tools..."
-	@bash workspace/scripts/bootstrap/bootstrap_uv.sh
-	@bash workspace/scripts/bootstrap/bootstrap_python.sh
-	@bash workspace/scripts/bootstrap/bootstrap_git_xet.sh
+	@AMI_ROOT="$$(pwd)" bash workspace/scripts/bootstrap/bootstrap_uv.sh
+	@AMI_ROOT="$$(pwd)" bash workspace/scripts/bootstrap/bootstrap_python.sh
+	@AMI_ROOT="$$(pwd)" bash workspace/scripts/bootstrap/bootstrap_git_xet.sh
 	@echo "✅ Core bootstrap complete"
 
 # --- Install — component selection ---
 
 .PHONY: install
-install: sync-package ## Interactive TUI to select and install components
+install: init-check sync-package ## Interactive TUI to select and install components
 	@.venv/bin/python workspace/scripts/bootstrap_installer.py && \
 	$(MAKE) register-extensions && \
 	bash workspace/scripts/shell/shell-setup --welcome

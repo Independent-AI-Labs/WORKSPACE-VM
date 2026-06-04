@@ -46,6 +46,7 @@ class Component(BaseModel):
 
     package: str | None = None
     script: str | None = None
+    script_path: str | None = None
 
     detect_cmd: list[str] | None = None
     detect_path: str | None = None

@@ -66,26 +66,12 @@ install_missing() {
         return 0
     fi
 
-    # Detect if running under sudo — drop privileges for user-owned paths.
-    local run_as_user=()
-    if [[ -n "${SUDO_USER:-}" ]]; then
-        run_as_user=("sudo" "-u" "$SUDO_USER")
-    fi
-
-    # Split bootstrap entries (|bootstrap| prefix) from apt entries
-    local bootstrap_entries=()
-    local apt_entries=()
-    for entry in "${MISSING_ENTRIES[@]}"; do
-        if [[ "$entry" == *"|bootstrap|"* ]]; then
-            bootstrap_entries+=("$entry")
-        else
-            apt_entries+=("$entry")
-        fi
-    done
+    # ALL missing entries are apt-installable packages (bootstrap scripts
+    # are now handled by the component installer in bootstrap_install.py).
+    local apt_entries=("${MISSING_ENTRIES[@]}")
 
     # ------------------------------------------------------------------
-    # Phase 1: Install apt packages FIRST so that tools needed by
-    # bootstrap scripts (curl, wget, etc.) are already available.
+    # Install apt packages
     # ------------------------------------------------------------------
     if [[ ${#apt_entries[@]} -gt 0 ]]; then
         local apt_installable=()
@@ -136,39 +122,6 @@ install_missing() {
                 return 1
             fi
         fi
-    fi
-
-    # ------------------------------------------------------------------
-    # Phase 2: Run bootstrap scripts.
-    # When running under sudo, drop to the calling user so that
-    # .boot-linux/bin/ files are owned by the real user, not root.
-    # ------------------------------------------------------------------
-    if [[ ${#bootstrap_entries[@]} -gt 0 ]]; then
-        for entry in "${bootstrap_entries[@]}"; do
-            # 3 pipe-delimited fields: cmd|bootstrap|script_path
-            IFS='|' read -r cmd _ script <<< "$entry"
-
-            local script_path="${PROJECT_ROOT}/${script}"
-            if [[ ! -f "$script_path" ]]; then
-                log_error "✗ Bootstrap script not found: $script_path"
-                log_error "  Run 'make ensure-repos' to clone workspace sub-repos, then re-run init."
-                continue
-            fi
-
-            log_info "Bootstrapping $cmd..."
-            if "${run_as_user[@]}" bash "$script_path"; then
-                log_info "✓ $cmd bootstrapped successfully"
-                # Post-install verification
-                if find_binary "$cmd" &>/dev/null; then
-                    log_ok "$cmd is now on PATH"
-                else
-                    log_warn "$cmd installed but not on PATH — reload your shell or check .boot-linux/bin/"
-                fi
-            else
-                log_error "✗ $cmd bootstrap failed"
-                return 1
-            fi
-        done
     fi
 
     local guard_script="${PROJECT_ROOT}/workspace/scripts/bootstrap/bootstrap_rust_guard.sh"

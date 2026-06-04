@@ -82,7 +82,6 @@ requires:
 
   - check_cmd: gitleaks
     description: Gitleaks (secret scanning)
-    bootstrap_script: projects/CI/scripts/bootstrap-gitleaks
 
   - check_cmd: crontab
     apt_package: cron
@@ -142,6 +141,15 @@ components:
     detect_path: '.boot-linux/bin/moon'
     version_cmd: ['.boot-linux/bin/moon', '--version']
     version_pattern: 'moon (\d+\.\d+\.\d+)'
+
+  - name: gitleaks
+    label: 'Gitleaks'
+    description: 'Secret scanning (pre-commit hook)'
+    type: script
+    group: 'Core Dependencies'
+    script_path: 'projects/CI/scripts/bootstrap-gitleaks'
+    detect_path: '.boot-linux/bin/gitleaks'
+    version_cmd: ['gitleaks', 'version']
 
   # =========================================================================
   # Languages & Compilers

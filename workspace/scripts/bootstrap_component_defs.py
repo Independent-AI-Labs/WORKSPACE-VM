@@ -65,6 +65,7 @@ class ComponentManifestEntry(BaseModel):
     type: ComponentType = ComponentType.SCRIPT
     group: str
     script: str | None = None
+    script_path: str | None = None
     detect_cmd: list[str] | None = None
     detect_path: str | None = None
     version_pattern: str | None = None
@@ -86,6 +87,7 @@ class ComponentManifestEntry(BaseModel):
             group=self.group,
             package=package,
             script=self.script,
+            script_path=self.script_path,
             detect_cmd=self.detect_cmd,
             detect_path=self.detect_path,
             version_pattern=self.version_pattern,
