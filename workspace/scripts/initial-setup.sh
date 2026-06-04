@@ -304,9 +304,9 @@ while IFS='|' read -r entry_type rest; do
         type)
             IFS='|' read -r check_type_val desc comp_name <<< "$rest"
             case "$check_type_val" in
-                c-compiler)  check_c_compiler ;;
-                network-tools) check_network_tools ;;
-                playwright-libs) check_playwright_libs ;;
+                c-compiler)  check_c_compiler || true ;;  # silent-ok: returns 1 as status signal, MISSING_ENTRIES tracks actual errors
+                network-tools) check_network_tools || true ;;  # silent-ok: same
+                playwright-libs) check_playwright_libs || true ;;  # silent-ok: same
             esac
             ;;
     esac
