@@ -72,6 +72,10 @@ requires:
     apt_package: dpkg
     description: dpkg-deb extractor
 
+  - check_cmd: unzip
+    apt_package: unzip
+    description: unzip archive extractor
+
   - check_type: network-tools
     description: curl or wget (at least one required)
 
