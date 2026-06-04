@@ -151,8 +151,8 @@ install_missing() {
             local script_path="${PROJECT_ROOT}/${script}"
             if [[ ! -f "$script_path" ]]; then
                 log_error "✗ Bootstrap script not found: $script_path"
-                log_error "  Run 'make ensure-repos' first to clone workspace sub-repos, then re-run init."
-                return 1
+                log_error "  Run 'make ensure-repos' to clone workspace sub-repos, then re-run init."
+                continue
             fi
 
             log_info "Bootstrapping $cmd..."
