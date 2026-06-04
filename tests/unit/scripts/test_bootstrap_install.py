@@ -7,7 +7,6 @@ from unittest.mock import MagicMock, patch
 
 from workspace.scripts.bootstrap_components import Component, ComponentType
 from workspace.scripts.bootstrap_install import (
-    _binary_is_runnable,
     _pull_workspace_repo,
     ensure_directories,
     get_bootstrap_dir,
@@ -292,37 +291,13 @@ class TestInstallEdgeCases:
         assert result is False
 
 
-class TestScriptDetectPathOverride:
-    """install_component returns True if script fails but detect_path exists."""
+class TestScriptFailureNotRescuedByDetectPath:
+    """install_component returns False when script fails, regardless of detect_path."""
 
-    @patch("workspace.scripts.bootstrap_install._binary_is_runnable", return_value=True)
     @patch(
         "workspace.scripts.bootstrap_install.run_bootstrap_script", return_value=False
     )
-    def test_detect_path_exists_after_script_failure(
-        self, mock_run, mock_runnable
-    ) -> None:
-        comp = Component(
-            name="t",
-            label="T",
-            description="t",
-            type=ComponentType.SCRIPT,
-            group="Test",
-            script="t.sh",
-            detect_path="some/path",
-        )
-        with patch.object(Path, "exists", return_value=True):
-            assert install_component(comp) is True
-
-    @patch(
-        "workspace.scripts.bootstrap_install._binary_is_runnable", return_value=False
-    )
-    @patch(
-        "workspace.scripts.bootstrap_install.run_bootstrap_script", return_value=False
-    )
-    def test_detect_path_no_runnable_returns_false(
-        self, mock_run, mock_runnable
-    ) -> None:
+    def test_script_failure_returns_false(self, mock_run) -> None:
         comp = Component(
             name="t",
             label="T",
@@ -334,42 +309,6 @@ class TestScriptDetectPathOverride:
         )
         with patch.object(Path, "exists", return_value=True):
             assert install_component(comp) is False
-
-
-class TestBinaryIsRunnable:
-    """Tests for _binary_is_runnable helper."""
-
-    def test_no_version_cmd_returns_true(self) -> None:
-        comp = Component(
-            name="x",
-            label="x",
-            description="x",
-            type=ComponentType.SCRIPT,
-            group="Test",
-        )
-        assert _binary_is_runnable(comp) is True
-
-    def test_absolute_path_returns_true(self) -> None:
-        comp = Component(
-            name="x",
-            label="x",
-            description="x",
-            type=ComponentType.SCRIPT,
-            group="Test",
-            version_cmd=["/usr/bin/true", "--version"],
-        )
-        assert _binary_is_runnable(comp) is True
-
-    def test_in_tree_missing_returns_false(self) -> None:
-        comp = Component(
-            name="x",
-            label="x",
-            description="x",
-            type=ComponentType.SCRIPT,
-            group="Test",
-            version_cmd=["does/not/exist/binary", "--version"],
-        )
-        assert _binary_is_runnable(comp) is False
 
 
 class TestRunBootstrapScriptOSError:
