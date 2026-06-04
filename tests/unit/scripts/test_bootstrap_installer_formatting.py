@@ -3,7 +3,7 @@
 from typing import cast
 from unittest.mock import MagicMock, patch
 
-from workspace.cli_components.selection_dialog import SelectableItem
+from dataops.cli_components.selection_dialog import SelectableItem
 
 from workspace.scripts.bootstrap_components import (
     Component,
