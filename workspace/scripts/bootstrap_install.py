@@ -38,7 +38,7 @@ def ensure_directories() -> None:
 
 def get_bootstrap_dir() -> Path:
     """Get the bootstrap scripts directory."""
-    return PROJECT_ROOT / "ami" / "scripts" / "bootstrap"
+    return PROJECT_ROOT / "workspace" / "scripts" / "bootstrap"
 
 
 def run_bootstrap_script(script_name: str) -> bool:
@@ -107,7 +107,7 @@ def run_workspace_repo_clone(entry_id: str) -> bool:
     Mandatory entries clone unconditionally regardless of --include; the
     explicit --include is harmless and keeps the call site uniform.
     """
-    script_path = PROJECT_ROOT / "ami" / "scripts" / "bin" / "bootstrap-repos"
+    script_path = PROJECT_ROOT / "workspace" / "scripts" / "bin" / "bootstrap-repos"
     if not script_path.exists():
         print(
             f"ERROR: bootstrap-repos not found at {script_path}",

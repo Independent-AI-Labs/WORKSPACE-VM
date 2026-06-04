@@ -31,7 +31,7 @@ from workspace.scripts.bootstrap_components import (
 WORKSPACE_REPOS_GROUP = "Workspace Repositories"
 WORKSPACE_CLONES_YAML = PROJECT_ROOT / "workspace" / "config" / "workspace-clones.yaml"
 COMPONENTS_YAML = PROJECT_ROOT / "workspace" / "config" / "bootstrap-components.yaml"
-PACKAGE_JSON = PROJECT_ROOT / "scripts" / "package.json"
+PACKAGE_JSON = PROJECT_ROOT / "workspace" / "scripts" / "package.json"
 
 
 # ---------------------------------------------------------------------------
