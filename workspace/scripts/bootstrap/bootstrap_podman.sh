@@ -175,7 +175,12 @@ fi
 # Create venv if it doesn't exist
 if [[ ! -d "${VENV_DIR}" ]]; then
     log_info "Creating virtual environment at ${VENV_DIR}"
-    python3 -m venv "${VENV_DIR}"
+    if [[ -x "${BOOT_LINUX_DIR:-${PROJECT_ROOT}/.boot-linux}/bin/uv" ]]; then
+        "${BOOT_LINUX_DIR:-${PROJECT_ROOT}/.boot-linux}/bin/uv" venv "${VENV_DIR}"
+    else
+        log_error "uv not found — run make core first"
+        exit 1
+    fi
 fi
 
 # Create Podman directory

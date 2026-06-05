@@ -39,7 +39,7 @@ install_mode=false
 # Read dependency entries from YAML via inline Python
 # =============================================================================
 read_requires() {
-    python3 - "$COMPONENTS_YAML" <<'PYEOF'
+    uv run python - "$COMPONENTS_YAML" <<'PYEOF'
 import sys
 
 yaml_path = sys.argv[1]

@@ -39,7 +39,7 @@ display_banner() {
     _ami_echo "${GREEN}✓${NC} AMI Orchestrator shell environment configured successfully!"
     _ami_echo ""
     local banner_output
-    banner_output=$(python3 "$AMI_ROOT/workspace/utils/banner.py" --project-root "$AMI_ROOT" 2>/dev/null)
+    banner_output=$(uv run python "$AMI_ROOT/workspace/utils/banner.py" --project-root "$AMI_ROOT")
     if [[ -n "$banner_output" ]]; then
         while IFS= read -r line; do
             _ami_echo " $line"
@@ -56,7 +56,7 @@ display_banner() {
         local _plain_flag=""
         [[ "$AMI_QUIET_MODE" == "1" ]] && _quiet_flag="--quiet"
         [[ -z "$GREEN" ]] && _plain_flag="--plain"
-        python3 "$_banner_helper" --mode banner $_quiet_flag $_plain_flag
+        uv run python "$_banner_helper" --mode banner $_quiet_flag $_plain_flag
     fi
 }
 

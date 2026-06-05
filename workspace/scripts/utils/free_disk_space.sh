@@ -15,6 +15,6 @@ fi
 
 echo "[2/2] Cleaning Podman artifacts (~19GB)..."
 # The python script is in prototypes/ relative to this script
-python3 "$SCRIPT_DIR/prototypes/clean_disk_space.py" --force
+uv run python "$SCRIPT_DIR/prototypes/clean_disk_space.py" --force
 
 echo "--- CLEANUP COMPLETE ---"

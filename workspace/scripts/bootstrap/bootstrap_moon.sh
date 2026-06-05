@@ -87,7 +87,7 @@ cd "$TEMP_DIR"
 if ! curl -fLsS "$URL_LATEST" -o "$ASSET"; then
     log_warn "Latest-download URL failed, resolving explicit tag from GitHub API..."
     if ! TAG=$(curl -fsSL https://api.github.com/repos/moonrepo/moon/releases/latest \
-        | python3 -c "import json,sys;print(json.load(sys.stdin)['tag_name'])"); then
+        | uv run python -c "import json,sys;print(json.load(sys.stdin)['tag_name'])"); then
         log_error "Failed to resolve latest moon release tag from GitHub API"
         exit 1
     fi

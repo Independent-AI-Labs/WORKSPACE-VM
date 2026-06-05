@@ -81,7 +81,7 @@ for repo in "${repos[@]}"; do
         report_summary+="  ${repo_name}: clean"$'\n'
     elif [[ $rc -eq 1 ]]; then
         # gitleaks exits 1 on findings (after .gitleaksignore filter)
-        finding_count="$(python3 -c "import json,sys; print(len(json.load(open('$out_json'))))" 2>/dev/null || echo "?")"
+        finding_count="$(uv run python -c "import json,sys; print(len(json.load(open('$out_json'))))" || echo "?")"
         report_summary+="  ${repo_name}: ${finding_count} finding(s) — see ${out_json}"$'\n'
         total_findings=$((total_findings + 1))
     else
