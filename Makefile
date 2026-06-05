@@ -27,7 +27,7 @@ init: ## Install system dependencies
 .PHONY: core
 core: ## Bootstrap uv + python + git-xet + node (prereq for sync-package)
 	@echo "🔧 Bootstrapping core tools..."
-	@mkdir -p .boot-linux/bin || { echo >&2 "ERROR: .boot-linux/ is not writable."; echo >&2 "  Fix: rm -rf .boot-linux/ && make install"; exit 1; }
+	@mkdir -p .boot-linux/bin
 	@AMI_ROOT="$$(pwd)" bash workspace/scripts/bootstrap/bootstrap_uv.sh
 	@AMI_ROOT="$$(pwd)" bash workspace/scripts/bootstrap/bootstrap_python.sh
 	@AMI_ROOT="$$(pwd)" bash workspace/scripts/bootstrap/bootstrap_git_xet.sh
