@@ -200,14 +200,14 @@ install_guard_binary() {
 
     echo ""
     echo -e "${CYAN}${BOLD}═══════════════════════════════════════════════════════${NC}"
-    echo -e "${CYAN}${BOLD} Git Guard — SUID Root Installation${NC}"
+    echo -e "${CYAN}${BOLD} Git Guard — File Capability Installation${NC}"
     echo -e "${CYAN}${BOLD}═══════════════════════════════════════════════════════${NC}"
     echo ""
-    echo "The Git Guard is a SUID-root binary that wraps /usr/bin/git."
+    echo "The Git Guard is a capability-enabled binary that wraps /usr/bin/git."
     echo ""
     echo "WHAT IT DOES:"
     echo "  • Relocates real git → /usr/bin/git.original (0700, root-only)"
-    echo "  • Installs guard binary → /usr/bin/git (4555, SUID root)"
+    echo "  • Installs guard binary → /usr/bin/git (0755, cap_dac_override+ep)"
     echo "  • Gives users rights to run git ONLY through the guard"
     echo "  • Blocks: git reset --hard, git checkout --hard, git rebase,"
     echo "            git commit --amend, git push --force, git reset,"
@@ -272,14 +272,25 @@ install_guard_binary() {
     else
         dpkg-divert --local --divert /usr/bin/git.distrib --rename --add /usr/bin/git
     fi
+    chmod 0700 /usr/bin/git.distrib
+    chown root:root /usr/bin/git.distrib
 
-    # Phase 2: Install guard binary
+    if ! command -v setcap >/dev/null; then
+        log_error "setcap not found — install libcap2-bin (apt install libcap2-bin)"
+        return 1
+    fi
+
+    # Phase 2: Install guard binary with file capabilities
     if command -v chattr >/dev/null && [[ -f /usr/bin/git ]]; then
         chattr -i /usr/bin/git
     fi
     cp "$guard_bin" /usr/bin/git
     chown root:root /usr/bin/git
-    chmod 4555 /usr/bin/git
+    chmod 0755 /usr/bin/git
+    setcap cap_dac_override+ep /usr/bin/git || {
+        log_error "Failed to set file capabilities on /usr/bin/git"
+        return 1
+    }
 
     if command -v chattr >/dev/null; then
         chattr +i /usr/bin/git || log_warn "Could not set immutable on /usr/bin/git"
@@ -313,6 +324,10 @@ set -euo pipefail
 if dpkg -l git | grep -q '^ii' && [[ ! -f /usr/bin/git.original ]]; then
     echo '[WARN] Git package changed but rust guard not detected. Re-run: sudo make install-guard' >&2
 fi
+if [[ -f /usr/bin/git.distrib ]]; then
+    chmod 0700 /usr/bin/git.distrib
+    chown root:root /usr/bin/git.distrib
+fi
 EOF
     chmod 755 /usr/lib/rust-guard/apt-check.sh
 
@@ -327,8 +342,12 @@ EOF
     local guard_mode guard_owner
     guard_mode=$(stat -c '%a' /usr/bin/git)
     guard_owner=$(stat -c '%U:%G' /usr/bin/git)
-    if [[ "$guard_mode" != "4555" || "$guard_owner" != "root:root" ]]; then
+    if [[ "$guard_mode" != "755" || "$guard_owner" != "root:root" ]]; then
         log_error "Guard binary has wrong permissions: $guard_mode $guard_owner"
+        errors=1
+    fi
+    if ! getcap /usr/bin/git | grep -q cap_dac_override; then
+        log_error "Guard binary missing cap_dac_override capability"
         errors=1
     fi
 
@@ -340,7 +359,7 @@ EOF
         errors=1
     fi
 
-    if sudo -u "${SUDO_USER:-$USER}" git --version; then
+    if git --version; then
         log_info "git --version: $(git --version)"
     else
         log_error "git --version failed"
@@ -350,7 +369,7 @@ EOF
     local tmpdir
     tmpdir=$(mktemp -d)
     chmod 755 "$tmpdir"
-    if sudo -u "${SUDO_USER:-$USER}" bash -c "cd '$tmpdir' && git reset --hard"; then
+    if bash -c "cd '$tmpdir' && git reset --hard"; then
         log_error "Guard did not block git reset --hard"
         errors=1
     else
@@ -361,7 +380,7 @@ EOF
     if [[ $errors -eq 0 ]]; then
         echo ""
         log_info "Git guard installation complete."
-        log_info "  /usr/bin/git          (4555 SUID root, immutable)"
+        log_info "  /usr/bin/git          (0755 root:root, cap_dac_override+ep, immutable)"
         log_info "  /usr/bin/git.original (0700 root:root, immutable)"
         log_info "  dpkg-divert configured"
         log_info "  apt hook registered"
