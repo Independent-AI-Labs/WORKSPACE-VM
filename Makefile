@@ -18,16 +18,16 @@ init-check: ## Check system dependencies
 	@AMI_ROOT="$$(pwd)" bash workspace/scripts/initial-setup.sh
 
 .PHONY: init
-init: ## Install system dependencies (checks as user, installs as root)
+init: ## Install system dependencies
 	@AMI_ROOT="$$(pwd)" bash workspace/scripts/initial-setup.sh --export-missing
-	@sudo AMI_ROOT="$$(pwd)" bash workspace/scripts/initial-setup.sh --install-only
+	@AMI_ROOT="$$(pwd)" bash workspace/scripts/initial-setup.sh --install-only
 
 # --- Core prereqs ---
 
 .PHONY: core
 core: ## Bootstrap uv + python + git-xet + node (prereq for sync-package)
 	@echo "🔧 Bootstrapping core tools..."
-	@mkdir -p .boot-linux/bin 2>/dev/null || { echo >&2 "ERROR: Cannot write to .boot-linux/ — directory is root-owned."; echo >&2 "  Fix: sudo chown -R \$$(whoami):\$$(whoami) .boot-linux/"; exit 1; }
+	@mkdir -p .boot-linux/bin
 	@AMI_ROOT="$$(pwd)" bash workspace/scripts/bootstrap/bootstrap_uv.sh
 	@AMI_ROOT="$$(pwd)" bash workspace/scripts/bootstrap/bootstrap_python.sh
 	@AMI_ROOT="$$(pwd)" bash workspace/scripts/bootstrap/bootstrap_git_xet.sh
