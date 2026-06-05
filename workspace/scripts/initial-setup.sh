@@ -33,7 +33,11 @@ log_section() { echo -e "\n${CYAN}${BOLD}═══ $* ═══${NC}\n"; }
 
 MODE="${1:-check}"
 install_mode=false
+export_missing=false
+install_only=false
 [[ "$MODE" == "--install" ]] && install_mode=true
+[[ "$MODE" == "--export-missing" ]] && export_missing=true
+[[ "$MODE" == "--install-only" ]] && { install_only=true; install_mode=true; }
 
 # =============================================================================
 # Read dependency entries from YAML via inline Python
@@ -310,6 +314,40 @@ probe_all_missing
 
 echo ""
 log_section "Results"
+
+if [[ "$export_missing" == "true" ]]; then
+    MISSING_FILE="${TMPDIR:-/tmp}/ami-init-missing.$$.txt"
+    if [[ ${#MISSING_ENTRIES[@]} -eq 0 ]]; then
+        rm -f "$MISSING_FILE"
+        log_info "${GREEN}${BOLD}All dependencies satisfied!${NC}"
+        exit 0
+    fi
+    printf '%s\n' "${MISSING_ENTRIES[@]}" > "$MISSING_FILE"
+    echo "$MISSING_FILE" > "${TMPDIR:-/tmp}/ami-init-missing.path"
+    log_warn "${BOLD}Missing ${#MISSING_ENTRIES[@]} dependencies — wrote list for sudo install${NC}"
+    exit 0
+fi
+
+if [[ "$install_only" == "true" ]]; then
+    _pf="${TMPDIR:-/tmp}/ami-init-missing.path"
+    MISSING_FILE=""
+    if [[ -f "$_pf" ]]; then
+        MISSING_FILE="$(< "$_pf")"
+    fi
+    if [[ -z "$MISSING_FILE" || ! -f "$MISSING_FILE" ]]; then
+        log_info "No missing dependencies to install."
+        exit 0
+    fi
+    MISSING_ENTRIES=()
+    while IFS= read -r entry; do
+        MISSING_ENTRIES+=("$entry")
+    done < "$MISSING_FILE"
+    rm -f "$MISSING_FILE" "${TMPDIR:-/tmp}/ami-init-missing.path"
+    install_missing
+    echo ""
+    log_info "${GREEN}${BOLD}System dependencies installed.${NC}"
+    exit 0
+fi
 
 if [[ ${#MISSING_ENTRIES[@]} -eq 0 ]]; then
     log_info "${GREEN}${BOLD}All dependencies satisfied!${NC}"
