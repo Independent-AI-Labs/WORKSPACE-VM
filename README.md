@@ -1,6 +1,6 @@
-# AMI-AGENTS: Sovereign AI Workspace
+# WORKSPACE-VM: Sovereign AI Workspace
 
-The AMI-AGENTS workspace is a federated, hard-walled infrastructure for developing and running AI agents. It prioritizes **data sovereignty, system immutability, and workspace-wide compliance**.
+The WORKSPACE-VM workspace is a federated, hard-walled infrastructure for developing and running AI agents. It prioritizes **data sovereignty, system immutability, and workspace-wide compliance**.
 
 ---
 
@@ -12,10 +12,10 @@ The AMI-AGENTS workspace is a federated, hard-walled infrastructure for developi
 
 ### Installation
 ```bash
-git clone git@github.com:Independent-AI-Labs/AMI-AGENTS.git && cd AMI-AGENTS
+git clone git@github.com:Independent-AI-Labs/WORKSPACE-VM.git && cd WORKSPACE-VM
 
 # 1. Automate system dependency installation
-sudo make pre-req
+make init
 
 # 2. Workspace bootstrap (TUI)
 make install
@@ -25,7 +25,7 @@ make install
 ---
 
 ## 2. Workspace Philosophy
-This workspace is not a standard monorepo; it is a **federated system**. 
+This workspace is not a standard monorepo; it is a **federated system**.
 - **Fail-Closed Security:** All interactions are gated by `git-guard` (immutability) and `podman-guard` (network/FS isolation).
 - **Compliance as Code:** The `AMI-CI` contract enforces strict quality gates (hooks, coverage, linting) on every sub-project.
 - **Topological Orchestration:** We use `moon` to manage the dependency graph. **Never run tasks manually in sub-projects** if a `moon` task exists.
@@ -35,9 +35,9 @@ This workspace is not a standard monorepo; it is a **federated system**.
 ## 3. Navigation Map
 | Purpose | Path | Description |
 | :--- | :--- | :--- |
-| **Core Agents** | `ami/` | Agent logic, CLI entrypoints, provider handlers. |
-| **Workspace CI** | `projects/AMI-CI/` | The enforcement engine. Read this **before** your first PR. |
-| **Data/Infra** | `projects/AMI-DATAOPS/` | Sovereign services (Postgres, Keycloak, Vaultwarden). |
+| **Core Agents** | `workspace/` | Agent logic, CLI entrypoints, provider handlers. |
+| **Workspace CI** | `projects/CI/` | The enforcement engine. Read this **before** your first PR. |
+| **Data/Infra** | `projects/DATAOPS/` | Sovereign services (Postgres, Keycloak, Vaultwarden). |
 | **Orchestration** | `projects/` | Federated projects (TRADING, SRP, PORTAL, etc.). |
 | **Specs** | `projects/*/docs/` | Detailed requirements for specific subsystems. |
 
@@ -50,7 +50,7 @@ This workspace is not a standard monorepo; it is a **federated system**.
     *   **Fix:** Use `sudo projects/RUST-GUARD/scripts/bootstrap_git_guard.sh --uninstall` if you absolutely must bypass the guard for a maintenance task.
 2.  **Podman/Container Failures:**
     *   **Reason:** Service state drift or network policy enforcement.
-    *   **Fix:** Use `make -C projects/AMI-DATAOPS runtime-down` then `runtime-up` to reset the container stack.
+    *   **Fix:** Use `make -C projects/DATAOPS runtime-down` then `runtime-up` to reset the container stack.
 3.  **Bootstrap Drift:**
     *   **Reason:** Your local `.moon/` cache or `workspace-clones.yaml` is out of sync with the upstream.
     *   **Fix:** Run `moon run :update` to force a topological synchronization of the workspace graph.
@@ -62,7 +62,3 @@ Before opening a PR, you **must**:
 1.  **Pass the Contract:** Ensure your project passes `make contract-check`.
 2.  **Align History:** We enforce "No Going Back." Use commits and stashes; rebasing or amending pushed history is physically blocked by the git-guard.
 3.  **Documentation:** All new specs must reside in the project's `docs/` subdirectory.
-
----
-
-
