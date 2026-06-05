@@ -19,7 +19,7 @@ init-check: ## Check system dependencies
 
 .PHONY: init
 init: ## Install system dependencies (requires sudo)
-	@AMI_ROOT="$$(pwd)" bash workspace/scripts/initial-setup.sh --install
+	@sudo AMI_ROOT="$$(pwd)" bash workspace/scripts/initial-setup.sh --install
 
 # --- Core prereqs ---
 

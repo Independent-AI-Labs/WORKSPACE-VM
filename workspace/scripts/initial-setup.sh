@@ -39,138 +39,98 @@ install_mode=false
 # Read dependency entries from YAML via inline Python
 # =============================================================================
 read_requires() {
-    uv run python - "$COMPONENTS_YAML" <<'PYEOF'
-import sys
+    awk -F ': ' '
+function emit(comp,    line) {
+    if (etype == "type") {
+        line = "type|" ekey "|" desc
+        if (comp != "") line = line "|" comp
+        print line
+        if (ekey == "playwright-libs") pw_seen = 1
+    } else if (etype == "cmd") {
+        line = "cmd|" ekey "|" pkg "|" desc "|" boot "|" (opt == "" ? "False" : opt)
+        if (comp != "") line = line "|" comp
+        print line
+    }
+    etype = ekey = pkg = desc = boot = ""
+    opt = "False"
+    has_entry = 0
+}
 
-yaml_path = sys.argv[1]
+function kv(line) {
+    sub(/^[ ]+/, "", line)
+    if (!match(line, /: /)) { k = line; v = "" }
+    else { k = substr(line, 1, RSTART-1); v = substr(line, RSTART+2) }
+    gsub(/^['"'"'"]|['"'"'"]$/, "", v)
+}
 
-with open(yaml_path) as f:
-    text = f.read()
+/^[[:space:]]*($|#)/ { next }
 
-entries = []
+{
+    match($0, /[^ ]/)
+    indent = RSTART - 1
+    raw = substr($0, RSTART)
+    sub(/:$/, "", raw)
+}
 
-def emit_entry(entry_dict, comp_name=None):
-    """Output one dependency entry as a pipe-delimited line."""
-    check_cmd = entry_dict.get("check_cmd", "")
-    check_type = entry_dict.get("check_type", "")
-    apt_pkg = entry_dict.get("apt_package", "")
-    bootstrap = entry_dict.get("bootstrap_script", "")
-    desc = entry_dict.get("description", "")
-    optional = str(entry_dict.get("optional", False)).lower() == "true"
+indent == 0 {
+    if (has_entry && (mode == "top_req" || in_comp_req))
+        emit(in_comp_req ? comp_name : "")
+    has_entry = 0; in_comp = 0; in_comp_req = 0
+    if (raw == "requires") mode = "top_req"
+    else if (raw == "components") mode = "comp"
+    else mode = ""
+}
 
-    if check_type:
-        line = f"type|{check_type}|{desc}"
-        if comp_name:
-            line = f"{line}|{comp_name}"
-        entries.append(line)
-    elif check_cmd:
-        line = f"cmd|{check_cmd}|{apt_pkg}|{desc}|{bootstrap}|{optional}"
-        if comp_name:
-            line = f"{line}|{comp_name}"
-        entries.append(line)
+indent == 2 {
+    sub(/^- /, "", raw)
+    kv(raw)
+    if (mode == "top_req") {
+        if (has_entry) emit("")
+        if (k == "check_cmd" || k == "check_type") {
+            etype = (k == "check_cmd" ? "cmd" : "type"); ekey = v; has_entry = 1
+        }
+    } else if (mode == "comp") {
+        if (has_entry && in_comp_req) emit(comp_name)
+        has_entry = 0; in_comp = 1; in_comp_req = 0
+        if (k == "name") comp_name = v
+    }
+}
 
+indent == 4 {
+    kv(raw)
+    if (mode == "top_req") {
+        if (k == "apt_package") pkg = v; else if (k == "description") desc = v
+        else if (k == "bootstrap_script") boot = v; else if (k == "optional") opt = (v == "true" ? "True" : "False")
+    } else if (mode == "comp" && in_comp) {
+        if (k == "name") comp_name = v
+        else if (k == "requires") { in_comp_req = 1; etype = ekey = pkg = desc = boot = ""; opt = "False" }
+    }
+}
 
-# State machine
-in_top_requires = False
-in_components = False
-in_component = False
-in_component_requires = False
-current_component = ""
-current_entry = {}
-entry_indent = -1
+indent == 6 {
+    sub(/^- /, "", raw)
+    kv(raw)
+    if (mode == "comp" && in_comp && in_comp_req) {
+        if (has_entry) emit(comp_name)
+        if (k == "check_cmd" || k == "check_type") {
+            etype = (k == "check_cmd" ? "cmd" : "type"); ekey = v; has_entry = 1
+        }
+    }
+}
 
-for raw in text.splitlines():
-    line = raw.rstrip()
-    if not line or line.lstrip().startswith("#"):
-        continue
-    indent = len(line) - len(line.lstrip())
-    stripped = line.strip().rstrip(":")
+indent == 8 {
+    kv(raw)
+    if (mode == "comp" && in_comp && in_comp_req) {
+        if (k == "apt_package") pkg = v; else if (k == "description") desc = v
+        else if (k == "bootstrap_script") boot = v; else if (k == "optional") opt = (v == "true" ? "True" : "False")
+    }
+}
 
-    # Top-level keys
-    if indent == 0:
-        if current_entry and (in_top_requires or in_component_requires):
-            emit_entry(current_entry, current_component if in_component_requires else None)
-            current_entry = {}
-        in_top_requires = (stripped == "requires")
-        in_components = (stripped == "components")
-        in_component = False
-        in_component_requires = False
-        continue
-
-    # Top-level requires entries at indent 2
-    if in_top_requires and indent == 2 and stripped.startswith("- "):
-        if current_entry:
-            emit_entry(current_entry)
-            current_entry = {}
-        entry_indent = indent
-        key = stripped[2:].strip()
-        if ":" in key:
-            k, v = key.split(":", 1)
-            current_entry[k.strip()] = v.strip().strip("'\"")
-        continue
-
-    # Top-level requires field at indent 4
-    if in_top_requires and indent == 4 and not stripped.startswith("- "):
-        if ":" in stripped:
-            k, v = stripped.split(":", 1)
-            current_entry[k.strip()] = v.strip().strip("'\"")
-        continue
-
-    # Component entries at indent 2
-    if in_components and indent == 2 and stripped.startswith("- "):
-        # Emit component-level requires before moving to next component
-        if current_entry and in_component_requires:
-            emit_entry(current_entry, current_component)
-            current_entry = {}
-        in_component = True
-        in_component_requires = False
-        current_component = ""
-        continue
-
-    # Component field at indent 4
-    if in_component and indent == 4 and not stripped.startswith("- "):
-        if ":" in stripped:
-            k, v = stripped.split(":", 1)
-            k = k.strip()
-            v = v.strip()
-            if k == "name":
-                current_component = v.strip("'\"")
-            elif k == "requires":
-                in_component_requires = True
-                current_entry = {}
-        continue
-
-    # Component requires entries at indent 6
-    if in_component and in_component_requires and indent == 6 and stripped.startswith("- "):
-        if current_entry:
-            emit_entry(current_entry, current_component)
-            current_entry = {}
-        key = stripped[2:].strip()
-        if ":" in key:
-            k, v = key.split(":", 1)
-            current_entry[k.strip()] = v.strip().strip("'\"")
-        continue
-
-    # Component requires field at indent 8
-    if in_component and in_component_requires and indent == 8:
-        if ":" in stripped:
-            k, v = stripped.split(":", 1)
-            current_entry[k.strip()] = v.strip().strip("'\"")
-        continue
-
-# Emit last entry
-if current_entry:
-    comp = current_component if in_component_requires else None
-    emit_entry(current_entry, comp)
-
-# Emit hardcoded playwright-libs if not already present
-has_playwright = any("playwright-libs" in e for e in entries)
-if not has_playwright:
-    entries.append("type|playwright-libs|Playwright browser dependencies")
-
-for e in entries:
-    print(e)
-PYEOF
+END {
+    if (has_entry) emit(in_comp_req ? comp_name : "")
+    if (!pw_seen) print "type|playwright-libs|Playwright browser dependencies"
+}
+' "$COMPONENTS_YAML"
 }
 
 # =============================================================================
