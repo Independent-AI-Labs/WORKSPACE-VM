@@ -15,6 +15,15 @@ from jinja2 import Environment, FileSystemLoader
 from workspace.types.vm import VMConfig
 from workspace.utils.uuid_utils import uuid7
 
+
+class _VMExecError(RuntimeError):
+    """Host PID or IP inspection failed for a VM."""
+
+
+class _InvalidUIDError(RuntimeError):
+    """id -u returned a non-numeric UID."""
+
+
 _VMS_DIR = Path(".vms")
 _TEMPLATES_DIR = Path("workspace/scripts/templates")
 _CERTS_SCRIPT = Path("workspace/scripts/bootstrap/bootstrap_certs.sh")
@@ -157,11 +166,16 @@ def create(config_path: str) -> None:
     )
 
     if cfg.network.mode == "bridge":
-        subprocess.run(
+        result = subprocess.run(
             ["podman", "network", "exists", cfg.network.network_name],
             capture_output=True,
             check=False,
         )
+        if result.returncode != 0:
+            subprocess.run(
+                ["podman", "network", "create", cfg.network.network_name],
+                check=True,
+            )
 
     run_args: list[str] = [
         "podman",
@@ -233,8 +247,8 @@ def create(config_path: str) -> None:
                 hosts_entry = f"{container_ip} {uuid_str}.vm.local\n"
                 with open("/etc/hosts", "a") as f:
                     f.write(hosts_entry)
-    except subprocess.CalledProcessError:
-        print(f"Warning: could not determine host PID or IP for {uuid_str}")
+    except subprocess.CalledProcessError as exc:
+        raise _VMExecError from exc
 
     print(f"VM {uuid_str} created")
     print(f"  UUID:     {uuid_str}")
@@ -242,15 +256,16 @@ def create(config_path: str) -> None:
 
 
 def _get_uid() -> str:
-    return (
-        subprocess.run(
-            ["id", "-u"],
-            capture_output=True,
-            text=True,
-            check=False,
-        ).stdout.strip()
-        or "1000"
+    result = subprocess.run(
+        ["id", "-u"],
+        capture_output=True,
+        text=True,
+        check=True,
     )
+    uid = result.stdout.strip()
+    if not uid or not uid.isdigit():
+        raise _InvalidUIDError
+    return uid
 
 
 if __name__ == "__main__":

@@ -52,6 +52,7 @@ install-guard: ## Install git-guard to /usr/bin/git (requires sudo, binary must 
 install: init-check sync-package build-guard ## Interactive TUI to select and install components
 	@.venv/bin/python workspace/scripts/bootstrap_installer.py && \
 	$(MAKE) register-extensions && \
+	$(MAKE) install-shell && \
 	bash workspace/scripts/shell/shell-setup --welcome
 
 .PHONY: install-ci
