@@ -2,14 +2,14 @@
 """
 Create symlinks and wrappers in .boot-linux/bin/ for all extensions.
 
-Uses manifest discovery from extension_registry (extension.manifest.yaml files).
+Uses manifest discovery from extension_registry (extension.manifest.yaml
+files). Bashrc writing is handled by shell-setup, not here.
 """
 
 from __future__ import annotations
 
 import re
 import stat
-import sys
 from pathlib import Path
 
 from workspace.scripts.shell.extension_registry import (
@@ -140,81 +140,6 @@ def register_extensions() -> None:
         print(f"   Skipped {skipped_unavailable} unavailable extensions")
     if skipped_mismatch:
         print(f"   Skipped {skipped_mismatch} version-mismatched extensions")
-
-    update_bashrc_path(bin_dir)
-    remove_bashrc_functions()
-
-
-def update_bashrc_path(bin_dir: Path) -> None:
-    """Add .boot-linux/bin to PATH at TOP of ~/.bashrc and ~/.zshrc.
-
-    Both bash and zsh accept the same `export PATH="..."` syntax, so we
-    update every shell rc that exists. If neither exists (pure-fish,
-    container minimal image, fresh user account) we emit a stderr warning
-    so the operator knows to add the PATH manually — skipping without a
-    warning leaves `oc` and friends unreachable from interactive
-    shells without any signal that the install was incomplete.
-    """
-    home = Path.home()
-    candidates = [home / ".bashrc", home / ".zshrc"]
-    updated_any = False
-    for rc in candidates:
-        if rc.exists():
-            _update_rc_file(rc, bin_dir)
-            updated_any = True
-    if not updated_any:
-        print(
-            f"WARNING: no shell rc file found at {candidates[0]} or "
-            f'{candidates[1]}; add `export PATH="{bin_dir}:$PATH"` '
-            "to your shell rc manually so AMI extensions resolve.",
-            file=sys.stderr,
-        )
-
-
-def _update_rc_file(rc: Path, bin_dir: Path) -> None:
-    """Insert the AMI PATH line at the top of *rc*, replacing any prior marker."""
-    marker = "# AMI PATH"
-    line = f'export PATH="{bin_dir}:$PATH"  {marker}'
-
-    content = rc.read_text()
-
-    if marker in content:
-        content = re.sub(rf".*{re.escape(marker)}.*\n?", "", content)
-
-    lines = content.split("\n")
-    insert_idx = 0
-
-    if lines and lines[0].startswith("#!"):
-        insert_idx = 1
-    while insert_idx < len(lines) and lines[insert_idx].startswith("#"):
-        insert_idx += 1
-
-    lines.insert(insert_idx, line)
-    content = "\n".join(lines)
-
-    rc.write_text(content)
-    print(f"\u2705 Added PATH to TOP of ~/{rc.name}")
-
-
-def remove_bashrc_functions() -> None:
-    """Remove AMI AGENT EXTENSIONS block from ~/.bashrc."""
-    bashrc = Path.home() / ".bashrc"
-    if not bashrc.exists():
-        return
-
-    content = bashrc.read_text()
-
-    start_marker = "# --- AMI AGENT EXTENSIONS START ---"
-    end_marker = "# --- AMI AGENT EXTENSIONS END ---"
-
-    if start_marker in content and end_marker in content:
-        start_idx = content.find(start_marker)
-        end_idx = content.find(end_marker) + len(end_marker)
-        while end_idx < len(content) and content[end_idx] == "\n":
-            end_idx += 1
-        content = content[:start_idx].rstrip() + "\n" + content[end_idx:].lstrip()
-        bashrc.write_text(content)
-        print("\u2705 Removed shell functions from ~/.bashrc")
 
 
 if __name__ == "__main__":

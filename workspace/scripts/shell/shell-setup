@@ -27,64 +27,137 @@ _get_agents_scripts() {
 }
 
 # ============================================================================
+# .bashrc / .zshrc marker management
+# ============================================================================
+BEGIN_MARKER="# >>> AMI Orchestrator >>>"
+END_MARKER="# <<< AMI Orchestrator <<<"
+
+# ============================================================================
 # Install/Uninstall functions
 # ============================================================================
+_strip_legacy_markers() {
+    local rc="$1"
+    local content
+    content=$(cat "$rc" 2>/dev/null) || return 0
+
+    local changed=false
+
+    if grep -qF "$BEGIN_MARKER" "$rc" 2>/dev/null; then
+        local tmp
+        tmp=$(awk -v begin="$BEGIN_MARKER" -v end="$END_MARKER" '
+            BEGIN { skip=0 }
+            $0 == begin { skip=1; next }
+            $0 == end   { skip=0; next }
+            !skip { print }
+        ' "$rc")
+        if [[ "$tmp" != "$content" ]]; then
+            echo "$tmp" > "$rc"
+            content="$tmp"
+            changed=true
+        fi
+    fi
+
+    if grep -qF "# AMI Orchestrator Shell Setup" "$rc" 2>/dev/null; then
+        grep -vF "# AMI Orchestrator Shell Setup" "$rc" > "${rc}.tmp" && \
+            mv "${rc}.tmp" "$rc"
+        changed=true
+    fi
+
+    if grep -qF "# AMI PATH" "$rc" 2>/dev/null; then
+        grep -vF "# AMI PATH" "$rc" > "${rc}.tmp" && \
+            mv "${rc}.tmp" "$rc"
+        changed=true
+    fi
+
+    if grep -qF "# AMI Orchestrator - auto-registered" "$rc" 2>/dev/null; then
+        grep -vF "# AMI Orchestrator - auto-registered" "$rc" > "${rc}.tmp" && \
+            mv "${rc}.tmp" "$rc"
+        changed=true
+    fi
+
+    if grep -qF "# AMI Orchestrator - auto-installed" "$rc" 2>/dev/null; then
+        grep -vF "# AMI Orchestrator - auto-installed" "$rc" > "${rc}.tmp" && \
+            mv "${rc}.tmp" "$rc"
+        changed=true
+    fi
+
+    if grep -qF "alias ami-run=" "$rc" 2>/dev/null; then
+        grep -vF "alias ami-run=" "$rc" > "${rc}.tmp" && \
+            mv "${rc}.tmp" "$rc"
+        changed=true
+    fi
+
+    if grep -qF "AMI AGENT EXTENSIONS START" "$rc" 2>/dev/null; then
+        local tmp
+        tmp=$(awk '
+            BEGIN { skip=0 }
+            /AMI AGENT EXTENSIONS START/ { skip=1; next }
+            /AMI AGENT EXTENSIONS END/   { skip=0; next }
+            !skip { print }
+        ' "$rc")
+        echo "$tmp" > "$rc"
+        changed=true
+    fi
+
+    [[ "$changed" == "true" ]] && echo -e "${BLUE}→${NC} Stripped legacy AMI markers from ~/$(basename "$rc")"
+}
+
 _install_to_bashrc() {
     local backup="${1:-true}"
     local force="${2:-false}"
-    local bashrc="$HOME/.bashrc"
+    local bin_dir="${BOOT_LINUX_DIR:-${AMI_ROOT}/.boot-linux}/bin"
     local setup_script="$AMI_ROOT/workspace/scripts/shell/shell-setup"
-    local marker="# AMI Orchestrator Shell Setup"
-    local source_line="[ -f \"$setup_script\" ] && . \"$setup_script\" --welcome"
+    local candidates=("$HOME/.bashrc" "$HOME/.zshrc")
 
-    if grep -qF "$marker" "$bashrc" 2>/dev/null; then
-        # Check if the path is still correct (handles repo moves)
-        if grep -qF "$setup_script" "$bashrc" 2>/dev/null && [[ "$force" != "true" ]]; then
-             echo -e "${YELLOW}⚠${NC} AMI shell setup already installed in $bashrc"
-             return 0
+    for bashrc in "${candidates[@]}"; do
+        [[ -f "$bashrc" ]] || continue
+
+        if [[ "$backup" == "true" ]]; then
+            cp "$bashrc" "${bashrc}.backup-$(date +%Y%m%d-%H%M%S)"
         fi
-        # Path changed or force — remove old entry and re-add
-        echo -e "${BLUE}→${NC} Updating AMI shell setup path in $bashrc..."
-        sed -i '/# AMI Orchestrator Shell Setup/,+1d' "$bashrc"
-    fi
 
-    if [[ "$backup" == "true" ]]; then
-        cp "$bashrc" "$bashrc.backup-$(date +%Y%m%d-%H%M%S)"
-        echo -e "${GREEN}✓${NC} Backed up $bashrc"
-    fi
+        _strip_legacy_markers "$bashrc"
 
-    # Remove old AMI aliases
-    if grep -q "# AMI Orchestrator - auto-registered" "$bashrc" 2>/dev/null; then
-        echo -e "${BLUE}→${NC} Removing old AMI aliases from $bashrc"
-        sed -i '/# AMI Orchestrator - auto-registered/d' "$bashrc"
-        sed -i '/# AMI Orchestrator - auto-installed/d' "$bashrc"
-        sed -i '/alias ami-run=/d' "$bashrc"
-        echo -e "${GREEN}✓${NC} Cleaned up old aliases"
-    fi
+        if grep -qF "$BEGIN_MARKER" "$bashrc" 2>/dev/null; then
+            if grep -qF "$setup_script" "$bashrc" 2>/dev/null && [[ "$force" != "true" ]]; then
+                echo -e "${YELLOW}⚠${NC} AMI shell setup already installed in ~/$(basename "$bashrc")"
+                continue
+            fi
+            echo -e "${BLUE}→${NC} Updating AMI shell setup in ~/$(basename "$bashrc")..."
+            _strip_legacy_markers "$bashrc"
+        fi
 
-    echo "" >> "$bashrc"
-    echo "$marker" >> "$bashrc"
-    echo "$source_line" >> "$bashrc"
+        cat >> "$bashrc" <<'AMISHELL'
+# >>> AMI Orchestrator >>>
+AMISHELL
+        echo "export PATH=\"${bin_dir}:\$PATH\"" >> "$bashrc"
+        echo "[ -f \"$setup_script\" ] && . \"$setup_script\" --welcome" >> "$bashrc"
+        cat >> "$bashrc" <<'AMISHELL'
+# <<< AMI Orchestrator <<<
+AMISHELL
 
-    echo -e "${GREEN}✓${NC} Installed AMI shell setup to $bashrc"
+        echo -e "${GREEN}✓${NC} Installed AMI shell setup to ~/$(basename "$bashrc")"
+    done
     echo -e "${YELLOW}→${NC} Run 'source ~/.bashrc' or restart your shell to activate"
 }
 
 _uninstall_from_bashrc() {
-    local bashrc="$HOME/.bashrc"
-    local marker="# AMI Orchestrator Shell Setup"
+    local candidates=("$HOME/.bashrc" "$HOME/.zshrc")
 
-    if ! grep -qF "$marker" "$bashrc" 2>/dev/null; then
-        echo -e "${YELLOW}⚠${NC} AMI shell setup not found in $bashrc"
-        return 0
-    fi
+    for bashrc in "${candidates[@]}"; do
+        [[ -f "$bashrc" ]] || continue
 
-    cp "$bashrc" "$bashrc.backup-$(date +%Y%m%d-%H%M%S)"
-    echo -e "${GREEN}✓${NC} Backed up $bashrc"
+        if ! grep -qF "$BEGIN_MARKER" "$bashrc" 2>/dev/null && \
+           ! grep -qF "# AMI Orchestrator Shell Setup" "$bashrc" 2>/dev/null && \
+           ! grep -qF "# AMI PATH" "$bashrc" 2>/dev/null; then
+            echo -e "${YELLOW}⚠${NC} AMI shell setup not found in ~/$(basename "$bashrc")"
+            continue
+        fi
 
-    sed -i '/# AMI Orchestrator Shell Setup/,+1d' "$bashrc"
-
-    echo -e "${GREEN}✓${NC} Removed AMI shell setup from $bashrc"
+        cp "$bashrc" "${bashrc}.backup-$(date +%Y%m%d-%H%M%S)"
+        _strip_legacy_markers "$bashrc"
+        echo -e "${GREEN}✓${NC} Removed AMI shell setup from ~/$(basename "$bashrc")"
+    done
     echo -e "${YELLOW}→${NC} Run 'source ~/.bashrc' or restart your shell to apply"
 }
 
