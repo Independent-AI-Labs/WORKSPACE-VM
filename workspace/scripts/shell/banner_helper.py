@@ -13,7 +13,12 @@ import threading
 import time
 from typing import TYPE_CHECKING, NamedTuple
 
-from workspace.scripts.shell.banner_log import banner_log_session, make_check_hook
+from workspace.scripts.shell.banner_log import (
+    FailureCallback,
+    LogFn,
+    banner_log_session,
+    make_check_hook,
+)
 from workspace.scripts.shell.extension_registry import (
     DEFAULT_CATEGORY_PROPS,
     HealthCheckResult,
@@ -180,12 +185,15 @@ def _run_check_with_countdown(
     root: Path,
     color: str,
     log: LogFn | None = None,
+    on_failure: FailureCallback | None = None,
 ) -> HealthCheckResult:
     """Run check in a background thread with animated countdown."""
     result_holder: list[HealthCheckResult | None] = [None]
     check_cfg = ext.entry.get("check", {})
     timeout = min(check_cfg.get("timeout", 5), 5)
-    hook = make_check_hook(log, ext.entry["name"]) if log is not None else None
+    hook = (
+        make_check_hook(log, ext.entry["name"], on_failure) if log is not None else None
+    )
 
     def _do_check() -> None:
         result_holder[0] = run_check(ext.entry, root, log_hook=hook)
@@ -222,6 +230,7 @@ class _BannerCtx(NamedTuple):
     quiet: bool
     is_tty: bool
     log: LogFn | None
+    on_failure: FailureCallback | None
 
 
 def _print_extension(
@@ -242,10 +251,14 @@ def _print_extension(
 
     if has_check and not skip_check:
         hook = (
-            make_check_hook(ctx.log, ext.entry["name"]) if ctx.log is not None else None
+            make_check_hook(ctx.log, ext.entry["name"], ctx.on_failure)
+            if ctx.log is not None
+            else None
         )
         if ctx.is_tty:
-            result = _run_check_with_countdown(ext, root, color, ctx.log)
+            result = _run_check_with_countdown(
+                ext, root, color, ctx.log, ctx.on_failure
+            )
             # Clear the countdown line before printing final result
             sys.stdout.write("\r\033[2K")
             sys.stdout.flush()
@@ -324,9 +337,9 @@ def output_banner(
     is_tty = sys.stdout.isatty()
     by_category = group_by_category(resolved)
 
-    with banner_log_session(root, "banner") as log:
+    with banner_log_session(root, "banner") as (log, on_failure):
         _log_resolution_snapshot(resolved, log)
-        ctx = _BannerCtx(quiet=quiet, is_tty=is_tty, log=log)
+        ctx = _BannerCtx(quiet=quiet, is_tty=is_tty, log=log, on_failure=on_failure)
         for cat_name, extensions in by_category:
             # Check if any visible extensions exist in this category
             visible = [
@@ -423,7 +436,7 @@ def output_doctor(
 ) -> None:
     """Diagnose degraded, version-mismatched, and unavailable extensions."""
     if root is not None:
-        with banner_log_session(root, "doctor") as log:
+        with banner_log_session(root, "doctor") as (log, _on_failure):
             _log_resolution_snapshot(resolved, log)
     degraded = [e for e in resolved if e.status == Status.DEGRADED]
     mismatched = [e for e in resolved if e.status == Status.VERSION_MISMATCH]

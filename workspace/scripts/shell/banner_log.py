@@ -27,6 +27,8 @@ if TYPE_CHECKING:
 # A log record is a dict whose values are JSON-friendly scalars or lists.
 LogRecord: TypeAlias = dict[str, str | int | float | bool | None | list[str]]
 LogFn: TypeAlias = Callable[[LogRecord], None]
+FailureCallback: TypeAlias = Callable[[], None]
+BannerSessionYield: TypeAlias = tuple[LogFn, FailureCallback]
 
 
 class CheckRecord(NamedTuple):
@@ -67,23 +69,26 @@ def _close_fh(fh: TextIOWrapper) -> None:
 def _write_footer(path: Path) -> None:
     if not sys.stdout.isatty():
         return
-    try:
-        sys.stderr.write(f"\033[2m[banner log: {path}]\033[0m\n")
-    except OSError:
-        # stderr not writable; nothing to salvage.
-        return
+    sys.stderr.write(f"\033[2m[banner log: {path}]\033[0m\n")
 
 
 @contextmanager
-def banner_log_session(root: Path, mode: str) -> Iterator[LogFn]:
-    """Open a JSON-lines log file under {root}/logs/; yield a log function.
+def banner_log_session(root: Path, mode: str) -> Iterator[BannerSessionYield]:
+    """Open a JSON-lines log file under {root}/logs/; yield (log_fn, on_failure).
 
-    The file is named banner-<mode>-<timestamp>.log. The context manager
-    always closes the file on exit and never raises to the caller.
+    The file is named banner-<mode>-<timestamp>.log. If no checks report
+    unhealthy during the session, the log is discarded (deleted) and no
+    footer is printed. Only sessions with failures persist on disk.
     """
     logs_dir = root / "logs"
     fh: TextIOWrapper | None = None
     path: Path | None = None
+    had_failure = False
+
+    def _track_failure() -> None:
+        nonlocal had_failure
+        had_failure = True
+
     try:
         logs_dir.mkdir(parents=True, exist_ok=True)
         path = logs_dir / f"banner-{mode}-{_timestamp()}.log"
@@ -101,8 +106,6 @@ def banner_log_session(root: Path, mode: str) -> Iterator[LogFn]:
             },
         )
     except OSError as exc:
-        # Could not create the log file. Announce it once and continue with a
-        # noop logger; the banner itself must still render.
         print(f"[banner-log] setup failed: {exc}", file=sys.stderr)
         fh = None
         path = None
@@ -114,7 +117,7 @@ def banner_log_session(root: Path, mode: str) -> Iterator[LogFn]:
             _write_record(fh, record)
 
     try:
-        yield log
+        yield (log, _track_failure)
     finally:
         if fh is not None:
             _write_record(
@@ -122,21 +125,36 @@ def banner_log_session(root: Path, mode: str) -> Iterator[LogFn]:
                 {
                     "event": "session_end",
                     "elapsed_s": round(time.monotonic() - start, 3),
+                    "had_failure": had_failure,
                 },
             )
             _close_fh(fh)
         if path is not None:
-            _write_footer(path)
+            if had_failure:
+                _write_footer(path)
+            else:
+                try:
+                    path.unlink(missing_ok=True)
+                except OSError as exc:
+                    print(
+                        f"[banner-log] failed to remove clean log {path}: {exc}",
+                        file=sys.stderr,
+                    )
 
 
-def make_check_hook(log: LogFn, ext_name: str) -> Callable[[CheckRecord], None]:
+def make_check_hook(
+    log: LogFn, ext_name: str, on_failure: FailureCallback | None = None
+) -> Callable[[CheckRecord], None]:
     """Return a log_hook suitable to pass into run_check(..., log_hook=...).
 
     The returned callable takes a typed CheckRecord so run_check does not
-    have to pass nine keyword arguments.
+    have to pass nine keyword arguments. If on_failure is provided, it is
+    called when a check reports unhealthy, degraded, or raises an exception.
     """
 
     def hook(record: CheckRecord) -> None:
+        if not record.healthy and on_failure is not None:
+            on_failure()
         log(
             {
                 "event": "check",
