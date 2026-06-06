@@ -1,4 +1,23 @@
 extensions:
+  - name: vm
+    binary: workspace/scripts/bin/vm
+    description: VM container lifecycle management
+    category: infra
+    features:
+      - create
+      - start
+      - stop
+      - delete
+      - shell
+      - logs
+      - list
+      - status
+    bannerPriority: 25
+    check:
+      command: ["{binary}", "--help"]
+      healthExpect: "usage"
+      timeout: 5
+
   - name: oc
     binary: workspace/scripts/bin/oc
     description: opencode AI agent wrapper with AMI welcome context

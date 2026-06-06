@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -e
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+AMI_ROOT="$SCRIPT_DIR"
+while [[ "$AMI_ROOT" != "/" && ! -f "$AMI_ROOT/pyproject.toml" ]]; do
+    AMI_ROOT="$(dirname "$AMI_ROOT")"
+done
+export AMI_ROOT && cd "$AMI_ROOT"
+BOOT_DIR="${BOOT_LINUX_DIR:-${AMI_ROOT}/.boot-linux}"
+export PATH="${BOOT_DIR}/bin:${PATH}"
+exec python -m workspace.cli.vm_manager "$@"
