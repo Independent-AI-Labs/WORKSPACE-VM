@@ -1227,6 +1227,54 @@ Specific changes:
 | Hand-rolled gosu entrypoint | systemd as PID 1 + conditional services |
 | Key provisioning via bind mount | Three modes: clone (host copy), none, api (future OpenBAO) |
 
+#### 3.12 Implementation Architecture — Codebase Mapping
+
+This section maps the VM system design to the actual codebase layout
+and documents which existing facilities are reused.
+
+**Existing facilities reused (no new code needed):**
+
+| Facility | Path | Purpose |
+|----------|------|---------|
+| UUIDv7 generator | `workspace/utils/uuid_utils.py::uuid7()` | VM ID generation (RFC 9562, pure Python) |
+| Podman runtime | `.boot-linux/bin/podman` (v5.6.2, rootless, netavark) | Container lifecycle |
+| Container types | `workspace/types/status.py` (PodmanContainer, PortMapping) | VM inspection results |
+| Bootstrap pattern | `workspace/scripts/bootstrap/bootstrap_*.sh` | Traefik installation script |
+| Component registry | `workspace/config/bootstrap-components.yaml` | Register traefik component |
+| Extension system | `workspace/scripts/bin/extension.manifest.yaml` | Register `vm` CLI command |
+| Shell wrapper pattern | `workspace/scripts/bin/oc`, `ops`, `repo` | Bash wrapper → `make vm` target |
+
+**New files — where they go:**
+
+| File | Location | Pattern followed |
+|------|----------|-----------------|
+| VM config model | `workspace/types/vm.py` | Pydantic BaseModel (see `workspace/types/config.py`) |
+| VM config template | `workspace/config/vm-template.yaml` | YAML reference (see `install-defaults.yaml`) |
+| Bootstrap: traefik | `workspace/scripts/bootstrap/bootstrap_traefik.sh` | Shell script (see `bootstrap_opencode.sh`) |
+| Bootstrap: certs | `workspace/scripts/bootstrap/bootstrap_certs.sh` | Shell script (see `bootstrap_podman.sh`) |
+| Dockerfile template | `workspace/scripts/templates/Dockerfile.vm.j2` | Jinja2 template |
+| Systemd templates | `workspace/scripts/templates/systemd-*.j2` | Jinja2 template |
+| Iptables setup | `res/systemd/ami-network-setup` | Shell script (existing `res/` dir) |
+| VM CLI | `workspace/cli/vm_manager.py` | CLI module (see `workspace/cli/status.py`) |
+| VM bash wrapper | `workspace/scripts/bin/vm` | Bash wrapper (see `workspace/scripts/bin/oc`) |
+| VM tests | `tests/unit/cli/test_vm_manager.py` | pytest + strict mypy (see existing tests) |
+| VM integration | `tests/integration/test_vm_lifecycle.py` | Integration test (see `test_core_utils.py`) |
+
+**New dependency added to pyproject.toml:**
+
+`jinja2==3.1.6` — Jinja2 templating for Dockerfile, systemd units,
+and Traefik config generation. Required for Commit 3 (templates).
+
+**Test conventions to follow:**
+
+- `from __future__ import annotations` at top of every module
+- Strict typing — all functions have return type annotations
+- No mocks on the module under test (unit tests call real code)
+- pytest fixtures: `tmp_path`, `monkeypatch`, `capsys`
+- Pydantic model tests: `model_validate()` with dicts, `pytest.raises(ValidationError)`
+- Integration tests: run against real `.boot-linux/bin/podman`
+- All test classes use `class TestXxx:` grouping
+
 ### Phase 4: Makefile & Bootstrap Integration (Days 9-10) — NOT STARTED
 
 | Action | Detail |

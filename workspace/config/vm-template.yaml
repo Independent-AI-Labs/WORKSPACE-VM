@@ -1,0 +1,63 @@
+# VM configuration — passed to `make vm <config.yaml>`
+# Only `components` is required. Everything else has defaults.
+#
+# This file is the canonical reference. See MIGRATION-PLAN.md §3.1 for field
+# descriptions and §3.12 for implementation architecture.
+
+# --- Install layer ---
+# Same format as install-defaults.yaml. Passed to make install-ci.
+components:
+  - uv
+  - python
+  - node
+  - opencode
+  # ... any component from bootstrap-components.yaml
+
+extra_apt:
+  - "htop"
+  - "vim"
+
+# --- Resources ---
+resources:
+  memory: "4g"
+  cpus: 2
+  pids_limit: 256
+
+# --- Provider ---
+# Baked into the container's generated opencode.json. Models are NOT baked in.
+provider:
+  name: llama.cpp
+  options:
+    base_url: "http://llamaserver:8080/v1"
+
+# --- Credentials ---
+credentials:
+  mode: none  # none | clone | api
+
+# --- SSH & Host Configs ---
+ssh:
+  mode: none  # none | inherit | custom
+
+# --- Filesystem ---
+files: []
+sync: []
+mounts: []
+
+# --- Network ---
+# DEFAULT: none — container has zero network interfaces (fully air-gapped).
+network:
+  mode: none  # none | bridge | host | openvpn
+
+# --- Runtime ---
+web_ui: true
+env:
+  OPENCODE_ENABLE_EXA: "1"
+
+# --- Security ---
+security:
+  purge_sudo: true
+  no_new_privileges: true
+  read_only_rootfs: true
+  cap_drop:
+    - "ALL"
+  cap_add: []
