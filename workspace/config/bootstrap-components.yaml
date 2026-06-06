@@ -227,6 +227,16 @@ components:
     version_cmd: ['.boot-linux/bin/podman', '--version']
     version_pattern: 'podman version (\d+\.\d+\.\d+)'
 
+  - name: traefik
+    label: 'Traefik'
+    description: 'Reverse proxy (per-VM mTLS)'
+    type: script
+    group: 'Infrastructure & Orchestration'
+    script: 'bootstrap_traefik.sh'
+    detect_path: '.boot-linux/bin/traefik'
+    version_cmd: ['.boot-linux/bin/traefik', 'version']
+    version_pattern: 'Version:\s*(\d+\.\d+\.\d+)'
+
   - name: kubernetes
     label: 'Kubernetes'
     description: 'k8s tools (kubectl, helm)'
