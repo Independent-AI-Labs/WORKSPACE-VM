@@ -1,0 +1,15 @@
+[Unit]
+Description=Traefik reverse proxy
+After=network.target{% if network_enabled %} ami-network.service{% endif %} opencode.service
+
+[Service]
+Type=simple
+User=ami
+ExecStart=/opt/ami-agents/.boot-linux/bin/traefik --configfile=/etc/traefik/traefik.yml
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

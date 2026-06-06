@@ -1,0 +1,22 @@
+[Unit]
+Description=opencode web UI
+After=network.target{% if network_enabled %} ami-network.service{% endif %}
+{%- if traefik_enabled %}
+Before=traefik.service
+{%- endif %}
+
+[Service]
+Type=simple
+User=ami
+Group=ami
+WorkingDirectory=/workspace
+Environment=OPENCODE_ENABLE_EXA=1
+Environment=OPENCODE_SERVER_PASSWORD={{ password }}
+ExecStart=/opt/ami-agents/.boot-linux/bin/opencode web --port 4096
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

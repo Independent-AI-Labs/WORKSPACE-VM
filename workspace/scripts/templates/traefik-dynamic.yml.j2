@@ -1,0 +1,23 @@
+tls:
+  options:
+    default:
+      minVersion: VersionTLS13
+      clientAuth:
+        clientAuthType: RequireAndVerifyClientCert
+        caFiles:
+          - /etc/ssl/ami/ca.crt
+  certificates:
+    - certFile: /etc/ssl/ami/server.crt
+      keyFile: /etc/ssl/ami/server.key
+http:
+  routers:
+    opencode:
+      rule: "PathPrefix(`/`)"
+      entryPoints: ["websecure"]
+      service: opencode
+      tls: {}
+  services:
+    opencode:
+      loadBalancer:
+        servers:
+          - url: "http://127.0.0.1:4096"

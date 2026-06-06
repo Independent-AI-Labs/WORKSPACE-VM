@@ -1,0 +1,92 @@
+#jinja2:lstrip_blocks:True
+FROM ubuntu:22.04 AS base
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        systemd iptables git curl rsync gnupg sudo ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+RUN useradd -m -s /bin/bash ami && usermod -aG sudo ami
+COPY workspace/ /opt/ami-agents/workspace/
+COPY workspace/config/ /opt/ami-agents/workspace/config/
+COPY Makefile pyproject.toml moon.yml /opt/ami-agents/
+ARG AGENT_UID=1000
+WORKDIR /opt/ami-agents
+
+FROM base AS init
+RUN make init && make core
+RUN deluser ami sudo
+
+FROM init AS installer
+RUN make ensure-repos && make sync-package
+COPY vm-install-defaults.yaml /tmp/install-defaults.yaml
+RUN make install-ci INSTALL_DEFAULTS=/tmp/install-defaults.yaml
+
+FROM installer AS runtime
+ARG OPENCODE_SERVER_PASSWORD
+ARG AGENT_UID=1000
+
+{% if security.purge_sudo %}
+RUN apt-get purge -y sudo && rm -rf /etc/sudoers.d/*
+{% endif %}
+
+{% if certs %}
+COPY {{ certs }} /etc/ssl/ami/
+{% endif %}
+
+RUN mkdir -p /workspace /transcripts /cache /home/ami/.config/opencode \
+    && chown -R ami:ami /workspace /transcripts /cache /home/ami
+
+COPY --chown=ami:ami vm-opencode.json /home/ami/.config/opencode/config.json
+
+{% if credentials.mode == "clone" %}
+COPY --chown=ami:ami {{ home }}/.config/opencode/ /home/ami/.config/opencode/
+{% endif %}
+
+{% if ssh.mode == "inherit" %}
+COPY --chown=ami:ami \
+{%- for f in ssh.inherit_files -%}
+  {{ f.src }} {{ f.dst }}
+{%- if not loop.last %} \{% endif %}
+{% endfor %}
+RUN chmod 0700 /home/ami/.ssh && chmod 0600 /home/ami/.ssh/id_*
+{% elif ssh.mode == "custom" %}
+COPY --chown=ami:ami \
+{%- for f in ssh.files -%}
+  {{ f.src }} {{ f.dst }}
+{%- if not loop.last %} \{% endif %}
+{% endfor %}
+RUN chmod 0700 /home/ami/.ssh && chmod 0600 /home/ami/.ssh/id_*
+{% endif %}
+
+COPY vm-opencode.service /etc/systemd/system/opencode.service
+{% if traefik_enabled %}
+COPY vm-traefik.service /etc/systemd/system/traefik.service
+COPY vm-traefik-static.yml /etc/traefik/traefik.yml
+COPY vm-traefik-dynamic.yml /etc/traefik/dynamic.yml
+RUN mkdir -p /etc/traefik
+{% endif %}
+{% if network_enabled %}
+COPY vm-ami-network.service /etc/systemd/system/ami-network.service
+COPY ami-network-setup /usr/local/sbin/ami-network-setup
+RUN chmod +x /usr/local/sbin/ami-network-setup
+{% endif %}
+{% if openvpn_enabled %}
+COPY vm-openvpn.service /etc/systemd/system/openvpn.service
+{% endif %}
+{% if vpn_config %}
+COPY {{ vpn_config }} /etc/openvpn/client.ovpn
+{% endif %}
+
+RUN systemctl enable opencode.service \
+{%- if traefik_enabled %}
+    && systemctl enable traefik.service \
+{%- endif %}
+{%- if network_enabled %}
+    && systemctl enable ami-network.service \
+{%- endif %}
+{%- if openvpn_enabled %}
+    && systemctl enable openvpn.service \
+{%- endif %}
+
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
+    CMD curl -sf http://127.0.0.1:4096/ || exit 1
+
+ENTRYPOINT ["/sbin/init"]
