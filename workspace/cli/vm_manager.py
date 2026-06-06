@@ -251,3 +251,23 @@ def _get_uid() -> str:
         ).stdout.strip()
         or "1000"
     )
+
+
+if __name__ == "__main__":
+    import sys
+
+    if len(sys.argv) > 1 and sys.argv[1] in ("-h", "--help"):
+        print("usage: vm <subcommand> [<args>]")
+        print("  create    Build and start a VM")
+        print("  start     Start a stopped VM")
+        print("  stop      Stop a running VM")
+        print("  delete    Remove a VM")
+        print("  list      List all VMs")
+        print("  status    Show VM status")
+        print("  logs      Show VM logs")
+        print("  shell     Open shell in VM")
+        print("  exec      Run command in VM")
+        print("  cert      Generate client cert")
+        sys.exit(0)
+    print("vm: no subcommand provided (try --help)", file=sys.stderr)
+    sys.exit(1)

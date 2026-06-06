@@ -7,6 +7,7 @@ from workspace.cli.vm_manager import (
     _derive_cap_flags,
     _derive_network_flags,
     _generate_password,
+    _get_uid,
     _render_template,
 )
 from workspace.types.vm import VMConfig
@@ -145,3 +146,10 @@ class TestDeriveCapFlags:
         flags = _derive_cap_flags(cfg)
         assert "NET_ADMIN" not in flags
         assert "--cap-add" not in flags
+
+
+class TestGetUid:
+    def test_returns_digit_string(self) -> None:
+        uid = _get_uid()
+        assert uid.isdigit()
+        assert len(uid) > 0
