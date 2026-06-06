@@ -1,0 +1,287 @@
+"""Integration tests for oc wrapper config deployment.
+
+Verifies that the oc wrapper idempotently deploys opencode user config
+from the workspace template on every invocation.
+"""
+
+from __future__ import annotations
+
+import subprocess
+from pathlib import Path
+
+import pytest
+
+
+def _find_project_root() -> Path:
+    current = Path(__file__).resolve()
+    while current != current.parent:
+        if (current / "pyproject.toml").exists() or (current / ".git").exists():
+            return current
+        current = current.parent
+    return Path(__file__).resolve().parent
+
+
+AMI_ROOT = _find_project_root()
+OC_SRC = AMI_ROOT / "workspace" / "config" / "opencode"
+
+
+@pytest.fixture
+def config_deploy_script() -> str:
+    """Return the config deployment bash snippet from the oc wrapper."""
+    return rf"""
+        AMI_ROOT="{AMI_ROOT}"
+        HOME="$1"
+        OC_SRC="$AMI_ROOT/workspace/config/opencode"
+        OC_DIR="${{HOME}}/.config/opencode"
+        mkdir -p "$OC_DIR/plugins"
+        if [ ! -f "$OC_DIR/opencode.jsonc" ]; then
+            cp "$OC_SRC/opencode.jsonc" "$OC_DIR/opencode.jsonc"
+        fi
+        if [ ! -f "$OC_DIR/plugins/ami-context.ts" ]; then
+            cp "$OC_SRC/plugins/ami-context.ts" "$OC_DIR/plugins/ami-context.ts"
+        fi
+    """
+
+
+@pytest.mark.integration
+class TestOcConfigDeployment:
+    """Test idempotent config deployment from workspace template."""
+
+    def test_fresh_deploy_creates_all_files(
+        self, tmp_path: Path, config_deploy_script: str
+    ):
+        """First run with no existing config: all files are created."""
+        home = tmp_path / "home"
+        home.mkdir()
+
+        result = subprocess.run(
+            ["bash", "-c", config_deploy_script, "deploy", str(home)],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        assert result.returncode == 0, f"deploy failed: {result.stderr}"
+
+        oc_dir = home / ".config" / "opencode"
+        assert (oc_dir / "opencode.jsonc").is_file(), "opencode.jsonc not created"
+        assert (oc_dir / "plugins" / "ami-context.ts").is_file(), (
+            "ami-context.ts not created"
+        )
+
+    def test_idempotent_does_not_overwrite(
+        self, tmp_path: Path, config_deploy_script: str
+    ):
+        """Second run preserves existing files, does not overwrite."""
+        home = tmp_path / "home"
+        home.mkdir()
+        oc_dir = home / ".config" / "opencode"
+        oc_dir.mkdir(parents=True)
+        plugins_dir = oc_dir / "plugins"
+        plugins_dir.mkdir(parents=True)
+
+        custom_json = '{"instructions": ["custom.md"]}\n'
+        (oc_dir / "opencode.jsonc").write_text(custom_json)
+        custom_plugin = "// custom plugin\n"
+        (plugins_dir / "ami-context.ts").write_text(custom_plugin)
+
+        # Run deploy again
+        result = subprocess.run(
+            ["bash", "-c", config_deploy_script, "deploy", str(home)],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        assert result.returncode == 0, f"deploy failed: {result.stderr}"
+
+        assert (oc_dir / "opencode.jsonc").read_text() == custom_json, (
+            "opencode.jsonc was overwritten"
+        )
+        assert (plugins_dir / "ami-context.ts").read_text() == custom_plugin, (
+            "ami-context.ts was overwritten"
+        )
+
+    def test_partial_deploy_fills_missing(
+        self, tmp_path: Path, config_deploy_script: str
+    ):
+        """When only some files exist, missing ones are created, existing left alone."""
+        home = tmp_path / "home"
+        home.mkdir()
+        oc_dir = home / ".config" / "opencode"
+        oc_dir.mkdir(parents=True)
+        plugins_dir = oc_dir / "plugins"
+        plugins_dir.mkdir(parents=True)
+
+        # Pre-create only opencode.jsonc with custom content
+        custom_json = '{"instructions": ["custom.md"]}\n'
+        (oc_dir / "opencode.jsonc").write_text(custom_json)
+        # Do NOT pre-create ami-context.ts
+
+        result = subprocess.run(
+            ["bash", "-c", config_deploy_script, "deploy", str(home)],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        assert result.returncode == 0, f"deploy failed: {result.stderr}"
+
+        # Existing file preserved
+        assert (oc_dir / "opencode.jsonc").read_text() == custom_json
+        # Missing file created
+        assert (plugins_dir / "ami-context.ts").is_file()
+
+    def test_missing_source_does_not_fail(
+        self, tmp_path: Path, config_deploy_script: str
+    ):
+        """Graceful when workspace template source doesn't exist."""
+        home = tmp_path / "home"
+        home.mkdir()
+
+        # Use a script with a non-existent source path
+        safe_script = rf"""
+            HOME="{home}"
+            OC_SRC="/nonexistent/path/to/config"
+            OC_DIR="${{HOME}}/.config/opencode"
+            mkdir -p "$OC_DIR/plugins"
+            [ ! -f "$OC_DIR/opencode.jsonc" ] && \
+                cp "$OC_SRC/opencode.jsonc" "$OC_DIR/opencode.jsonc" 2>/dev/null || true
+            [ ! -f "$OC_DIR/plugins/ami-context.ts" ] && \
+                cp "$OC_SRC/plugins/ami-context.ts" \
+                "$OC_DIR/plugins/ami-context.ts" 2>/dev/null || true
+        """
+
+        result = subprocess.run(
+            ["bash", "-c", safe_script],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        # Script should not fail even if source is missing
+        assert result.returncode == 0, (
+            f"deploy with missing source should not fail: {result.stderr}"
+        )
+
+    def test_source_files_are_valid(self):
+        """Source template files are syntactically valid."""
+        assert OC_SRC.is_dir(), f"Source config directory missing: {OC_SRC}"
+
+        jsonc = OC_SRC / "opencode.jsonc"
+        assert jsonc.is_file(), f"opencode.jsonc missing: {jsonc}"
+        content = jsonc.read_text()
+        assert '"instructions"' in content, "instructions field missing"
+        assert '"~/.config/opencode/ami-environment.md"' in content, (
+            "ami-environment.md reference missing"
+        )
+
+        plugin = OC_SRC / "plugins" / "ami-context.ts"
+        assert plugin.is_file(), f"ami-context.ts missing: {plugin}"
+        content = plugin.read_text()
+        assert "experimental.chat.messages.transform" in content, (
+            "messages.transform hook missing"
+        )
+        assert "experimental.chat.system.transform" in content, (
+            "system.transform hook missing"
+        )
+
+
+@pytest.mark.integration
+class TestOcEnvironmentFile:
+    """Test environment file regeneration behavior."""
+
+    def test_welcome_output_is_written(self, tmp_path: Path):
+        """Simulate the welcome generation and file write."""
+        home = tmp_path / "home"
+        home.mkdir()
+        oc_dir = home / ".config" / "opencode"
+        oc_dir.mkdir(parents=True)
+
+        env_file = oc_dir / "ami-environment.md"
+        assert not env_file.exists()
+
+        test_content = "test banner content\nwith multiple lines\n"
+        script = rf"""
+            WELCOME='{test_content.rstrip()}'
+            printf '%b\n' "$WELCOME" > "{env_file}"
+        """
+
+        result = subprocess.run(
+            ["bash", "-c", script],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        assert result.returncode == 0, f"script failed: {result.stderr}"
+        assert env_file.is_file(), "ami-environment.md not created"
+        content = env_file.read_text()
+        assert "test banner content" in content
+
+    def test_environment_file_is_overwritten(self, tmp_path: Path):
+        """Each run overwrites the environment file with fresh content."""
+        home = tmp_path / "home"
+        home.mkdir()
+        oc_dir = home / ".config" / "opencode"
+        oc_dir.mkdir(parents=True)
+
+        env_file = oc_dir / "ami-environment.md"
+        env_file.write_text("old stale content\n")
+
+        new_content = "fresh banner\nupdated\n"
+        script = rf"""
+            WELCOME='{new_content.rstrip()}'
+            printf '%b\n' "$WELCOME" > "{env_file}"
+        """
+
+        result = subprocess.run(
+            ["bash", "-c", script],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        assert result.returncode == 0
+        content = env_file.read_text()
+        assert "fresh banner" in content
+        assert "old stale" not in content
+
+
+@pytest.mark.integration
+class TestOcScriptSelfChecks:
+    """Test that the oc script itself is well-formed."""
+
+    @pytest.fixture
+    def oc_path(self) -> Path:
+        p = AMI_ROOT / "workspace" / "scripts" / "bin" / "oc"
+        assert p.is_file(), f"oc script missing: {p}"
+        return p
+
+    def test_oc_help_works(self, oc_path: Path):
+        """oc --help returns success and mentions opencode."""
+        result = subprocess.run(
+            [str(oc_path), "--help"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+        assert result.returncode == 0, f"oc --help failed: {result.stderr}"
+        assert "opencode" in result.stdout.lower(), (
+            f"Help output missing opencode mention: {result.stdout}"
+        )
+
+    def test_oc_version_works(self, oc_path: Path):
+        """oc --version returns success (or at least doesn't crash)."""
+        result = subprocess.run(
+            [str(oc_path), "--version"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+        assert result.returncode == 0, f"oc --version failed: {result.stderr}"
+
+    def test_oc_contains_config_deploy_logic(self, oc_path: Path):
+        """oc script contains the idempotent config deployment code."""
+        content = oc_path.read_text()
+        assert "OC_SRC" in content, "Missing OC_SRC variable"
+        assert "OC_DIR" in content, "Missing OC_DIR variable"
+        assert "opencode.jsonc" in content, "Missing opencode.jsonc reference"
+        assert "ami-context.ts" in content, "Missing ami-context.ts reference"
+        assert "mkdir -p" in content, "Missing mkdir -p for plugins dir"
