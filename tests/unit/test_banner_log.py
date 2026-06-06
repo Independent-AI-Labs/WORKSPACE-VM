@@ -17,21 +17,25 @@ _EXPECTED_ELAPSED = 0.123
 
 
 class TestBannerLogSession:
-    def test_creates_log_file(self, tmp_path: Path) -> None:
-        with banner_log_session(tmp_path, "banner") as log:
+    def test_deletes_log_on_clean_session(self, tmp_path: Path) -> None:
+        with banner_log_session(tmp_path, "banner") as (log, _on_failure):
             log({"event": "resolved", "name": "x"})
         files = list((tmp_path / "logs").glob("banner-banner-*.log"))
+        assert len(files) == 0
+
+    def test_keeps_log_on_failure(self, tmp_path: Path) -> None:
+        with banner_log_session(tmp_path, "doctor") as (_log, on_failure):
+            on_failure()
+        files = list((tmp_path / "logs").glob("banner-doctor-*.log"))
         assert len(files) == 1
-        contents = files[0].read_text().splitlines()
-        events = [json.loads(line)["event"] for line in contents]
-        assert "session_start" in events
-        assert "resolved" in events
-        assert "session_end" in events
+        first = json.loads(files[0].read_text().splitlines()[0])
+        assert first["event"] == "session_start"
 
     def test_logs_session_metadata(self, tmp_path: Path) -> None:
-        with banner_log_session(tmp_path, "doctor") as _:
-            pass
+        with banner_log_session(tmp_path, "doctor") as (_log, on_failure):
+            on_failure()
         files = list((tmp_path / "logs").glob("banner-doctor-*.log"))
+        assert len(files) == 1
         first = json.loads(files[0].read_text().splitlines()[0])
         assert first["event"] == "session_start"
         assert first["mode"] == "doctor"
@@ -40,37 +44,30 @@ class TestBannerLogSession:
         assert "pid" in first
 
     def test_survives_oserror_on_open(self, tmp_path: Path) -> None:
-        # Make logs/ creation fail
         with (
             patch(
                 "workspace.scripts.shell.banner_log.Path.mkdir",
                 side_effect=OSError("denied"),
             ),
-            banner_log_session(tmp_path, "banner") as log,
+            banner_log_session(tmp_path, "banner") as (log, _on_failure),
         ):
             log({"event": "resolved"})  # must not raise
-        # No log file created
         assert not (tmp_path / "logs").exists() or not list(
             (tmp_path / "logs").glob("*")
         )
 
     def test_write_record_swallows_ioerror_on_closed_file(self, tmp_path: Path) -> None:
-        # _write_record is the internal helper; hit its OSError branch by
-        # handing it a closed file handle.
         path = tmp_path / "sink.log"
         fh = path.open("w", encoding="utf-8")
         fh.close()
         _write_record(fh, {"event": "dead"})  # must not raise
 
     def test_unserializable_record_is_swallowed(self, tmp_path: Path) -> None:
-        # default=str in _write_record handles objects that aren't JSON
-        # serializable; circular references still raise ValueError which
-        # the helper swallows.
-        with banner_log_session(tmp_path, "banner") as log:
+        with banner_log_session(tmp_path, "banner") as (log, on_failure):
+            on_failure()
             circular: dict = {"event": "x"}
             circular["self"] = circular
             log(circular)  # must not raise
-        # Session file still exists and session_start/end were recorded
         files = list((tmp_path / "logs").glob("banner-banner-*.log"))
         assert files
 
@@ -105,12 +102,16 @@ class TestMakeCheckHook:
         assert record["healthy"] is True
         assert record["version"] == "1.2.3"
         assert record["exception"] is None
-        # Elapsed rounded to 3 decimals
         assert record["elapsed_s"] == _EXPECTED_ELAPSED
 
     def test_hook_handles_failure_record(self) -> None:
         captured: list[dict] = []
-        hook = make_check_hook(captured.append, "ami-broken")
+        failures: list[None] = []
+
+        def on_failure() -> None:
+            failures.append(None)
+
+        hook = make_check_hook(captured.append, "ami-broken", on_failure)
         hook(
             CheckRecord(
                 command=["/bin/false"],
@@ -127,3 +128,26 @@ class TestMakeCheckHook:
         assert record["healthy"] is False
         assert record["exception"] == "TimeoutExpired"
         assert record["name"] == "ami-broken"
+        assert len(failures) == 1
+
+    def test_hook_healthy_does_not_call_on_failure(self) -> None:
+        captured: list[dict] = []
+        failures: list[None] = []
+
+        def on_failure() -> None:
+            failures.append(None)
+
+        hook = make_check_hook(captured.append, "ami-ok", on_failure)
+        hook(
+            CheckRecord(
+                command=["/bin/true"],
+                returncode=0,
+                stdout="",
+                stderr="",
+                elapsed_s=1.0,
+                healthy=True,
+                version="9.9",
+                exception=None,
+            ),
+        )
+        assert len(failures) == 0

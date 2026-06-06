@@ -209,7 +209,7 @@ class TestPrintExtension:
             ext,
             Path("/tmp"),
             "\033[0m",
-            _BannerCtx(quiet=True, is_tty=False, log=None),
+            _BannerCtx(quiet=True, is_tty=False, log=None, on_failure=None),
         )
         out = capsys.readouterr().out
         assert "cmd" in out
@@ -253,7 +253,7 @@ class TestOutputBanner:
             ext,
             Path("/tmp"),
             "\033[0m",
-            _BannerCtx(quiet=False, is_tty=False, log=None),
+            _BannerCtx(quiet=False, is_tty=False, log=None, on_failure=None),
         )
         out = capsys.readouterr().out
         assert "cmd" in out
@@ -268,7 +268,7 @@ class TestOutputBanner:
             ext,
             Path("/tmp"),
             "\033[0m",
-            _BannerCtx(quiet=False, is_tty=False, log=None),
+            _BannerCtx(quiet=False, is_tty=False, log=None, on_failure=None),
         )
         out = capsys.readouterr().out
         assert "bad" in out
