@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import subprocess
+
 from workspace.cli.vm_manager import (
     _config_sha256,
     _derive_cap_flags,
@@ -146,6 +148,41 @@ class TestDeriveCapFlags:
         flags = _derive_cap_flags(cfg)
         assert "NET_ADMIN" not in flags
         assert "--cap-add" not in flags
+
+
+class TestMainBlock:
+    def test_help_flag(self) -> None:
+        result = subprocess.run(
+            [".venv/bin/python", "-m", "workspace.cli.vm_manager", "--help"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+        assert result.returncode == 0
+        assert "usage:" in result.stdout
+
+    def test_dash_h_flag(self) -> None:
+        result = subprocess.run(
+            [".venv/bin/python", "-m", "workspace.cli.vm_manager", "-h"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+        assert result.returncode == 0
+        assert "usage:" in result.stdout
+
+    def test_no_args_exits_nonzero(self) -> None:
+        result = subprocess.run(
+            [".venv/bin/python", "-m", "workspace.cli.vm_manager"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+        assert result.returncode == 1
+        assert "no subcommand" in result.stderr
 
 
 class TestGetUid:
