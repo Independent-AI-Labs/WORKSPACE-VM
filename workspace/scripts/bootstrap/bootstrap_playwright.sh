@@ -39,8 +39,15 @@ fi
 
 # Check for key system dependencies BEFORE downloading
 MISSING_LIBS=()
-for lib in libnss3 libgbm1 libatk-bridge2.0-0; do
+for lib in libnss3 libgbm1 libatk-bridge2.0-0t64 libatk-bridge2.0-0; do
     if ! dpkg -s "${lib}" &>/dev/null 2>&1; then
+        # Only mark as missing if no variant of the family is installed
+        case "$lib" in
+            libatk-bridge2.0-0)
+                dpkg -s libatk-bridge2.0-0t64 &>/dev/null 2>&1 && continue ;;
+            libatk-bridge2.0-0t64)
+                dpkg -s libatk-bridge2.0-0   &>/dev/null 2>&1 && continue ;;
+        esac
         MISSING_LIBS+=("$lib")
     fi
 done
@@ -48,7 +55,7 @@ done
 if [[ ${#MISSING_LIBS[@]} -gt 0 ]]; then
     log_warn "Missing system libraries for Playwright: ${MISSING_LIBS[*]}"
     log_warn "Browsers will be downloaded but may not work until you run:"
-    log_warn "  sudo make init"
+    log_warn "  make init"
     echo "" >&2
 fi
 
@@ -73,11 +80,11 @@ if [[ ${#MISSING_LIBS[@]} -eq 0 ]]; then
     else
         rm -f "$VERIFY_IMG"
         log_warn "Chromium verification failed — browser may need system deps"
-        log_warn "Run: sudo make init"
+        log_warn "Run: make init"
     fi
 else
     log_warn "Skipping browser verification — system deps missing"
-    log_warn "Run: sudo make init"
+    log_warn "Run: make init"
 fi
 
 log_success "Playwright bootstrap complete"

@@ -443,7 +443,7 @@ check_guard() {
         fi
     else
         log_info "Rust guard status: NOT INSTALLED"
-        log_info "To install: sudo make init"
+        log_info "To install: make init"
     fi
 }
 

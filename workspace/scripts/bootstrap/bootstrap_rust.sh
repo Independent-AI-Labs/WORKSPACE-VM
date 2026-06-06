@@ -116,7 +116,7 @@ fi
 # Check if a C linker is available (required by Rust toolchain)
 if ! command -v cc &>/dev/null && ! command -v gcc &>/dev/null && ! command -v clang &>/dev/null; then
     log_error "No C compiler (cc/gcc/clang) found — required by Rust toolchain."
-    log_error "Run: sudo make init"
+    log_error "Run: make init"
     exit 1
 fi
 

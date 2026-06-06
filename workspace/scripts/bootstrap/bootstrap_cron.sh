@@ -27,7 +27,7 @@ fi
 
 if [[ ! -f "$SYS_CRONTAB" ]]; then
     log_error "System crontab not found at $SYS_CRONTAB"
-    log_error "Install the cron package: sudo make init  (or: sudo apt-get install cron)"
+    log_error "Install the cron package: make init  (or: apt-get install cron)"
     exit 1
 fi
 
