@@ -30,13 +30,22 @@ esac
 TMPDIR="$(mktemp -d)"
 trap 'rm -rf "$TMPDIR"' EXIT
 
-TARBALL="traefik_${TRAEFIK_VERSION}_linux_${TRAEFIK_ARCH}.tar.gz"
+TARBALL="traefik_v${TRAEFIK_VERSION}_linux_${TRAEFIK_ARCH}.tar.gz"
 URL="https://github.com/traefik/traefik/releases/download/v${TRAEFIK_VERSION}/${TARBALL}"
 
 echo "[${OP}] Downloading traefik v${TRAEFIK_VERSION} (${TRAEFIK_ARCH})..."
-curl -fsSL "$URL" -o "${TMPDIR}/${TARBALL}"
-if [[ $? -ne 0 ]]; then
-    echo "[${OP}] download failed — is the network accessible?"
+if ! HTTP_CODE=$(curl -sLo "${TMPDIR}/${TARBALL}" -w "%{http_code}" "$URL"); then
+    echo "[${OP}] curl failed — check network connectivity"
+    exit 1
+fi
+
+if [[ "$HTTP_CODE" != "200" ]]; then
+    echo "[${OP}] download failed (HTTP ${HTTP_CODE}) — check network or try later"
+    exit 1
+fi
+
+if [[ ! -s "${TMPDIR}/${TARBALL}" ]]; then
+    echo "[${OP}] downloaded file is empty"
     exit 1
 fi
 
