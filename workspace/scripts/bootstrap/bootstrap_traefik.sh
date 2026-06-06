@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 OP="bootstrap_traefik"
-TRAEFIK_VERSION="3.3.6"
+TRAEFIK_VERSION="3.7.4"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 AMI_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
