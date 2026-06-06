@@ -132,6 +132,45 @@ install-shell: ## Install AMI shell environment to ~/.bashrc
 uninstall-shell: ## Remove AMI shell environment from ~/.bashrc
 	@bash workspace/scripts/shell/shell-setup --uninstall
 
+# --- VM Management ---
+
+.PHONY: vm vm-start vm-stop vm-resume vm-delete vm-kill vm-shell vm-exec \
+	vm-logs vm-list vm-status vm-rebuild vm-sync vm-config vm-cert
+
+vm: ## Build and start a VM from config file
+	@.venv/bin/python -m workspace.cli.vm_manager create --config "$(filter-out $@,$(MAKECMDGOALS))"
+%::
+	@true
+
+vm-start: ## podman start <id> + write PID
+	@.venv/bin/python -m workspace.cli.vm_manager start $(filter-out $@,$(MAKECMDGOALS))
+vm-stop: ## podman stop <id> + remove PID
+	@.venv/bin/python -m workspace.cli.vm_manager stop $(filter-out $@,$(MAKECMDGOALS))
+vm-resume: ## podman start <id> (alias)
+	@.venv/bin/python -m workspace.cli.vm_manager start $(filter-out $@,$(MAKECMDGOALS))
+vm-delete: ## podman rm <id> + optional volume purge
+	@.venv/bin/python -m workspace.cli.vm_manager delete $(filter-out $@,$(MAKECMDGOALS))
+vm-kill: ## read .vms/<id>/pid and send SIGKILL directly
+	@.venv/bin/python -m workspace.cli.vm_manager kill $(filter-out $@,$(MAKECMDGOALS))
+vm-shell: ## podman exec -it <id> bash
+	@.venv/bin/python -m workspace.cli.vm_manager shell $(filter-out $@,$(MAKECMDGOALS))
+vm-exec: ## podman exec <id> -- <cmd>
+	@.venv/bin/python -m workspace.cli.vm_manager exec $(filter-out $@,$(MAKECMDGOALS))
+vm-logs: ## podman logs <id>
+	@.venv/bin/python -m workspace.cli.vm_manager logs $(filter-out $@,$(MAKECMDGOALS))
+vm-list: ## podman ps -a --filter label=ami.type=vm
+	@.venv/bin/python -m workspace.cli.vm_manager list
+vm-status: ## podman inspect + stats for <id>
+	@.venv/bin/python -m workspace.cli.vm_manager status $(filter-out $@,$(MAKECMDGOALS))
+vm-rebuild: ## re-build + restart <id> from stored vm.yaml
+	@.venv/bin/python -m workspace.cli.vm_manager rebuild $(filter-out $@,$(MAKECMDGOALS))
+vm-sync: ## file sync per config.sync rules
+	@.venv/bin/python -m workspace.cli.vm_manager sync $(filter-out $@,$(MAKECMDGOALS))
+vm-config: ## print the vm.yaml used to create <id>
+	@.venv/bin/python -m workspace.cli.vm_manager config $(filter-out $@,$(MAKECMDGOALS))
+vm-cert: ## generate or print client cert for <id>
+	@.venv/bin/python -m workspace.cli.vm_manager cert $(filter-out $@,$(MAKECMDGOALS))
+
 # --- Hooks ---
 
 .PHONY: install-hooks
