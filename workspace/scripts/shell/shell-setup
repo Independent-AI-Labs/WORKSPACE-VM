@@ -99,6 +99,12 @@ _strip_legacy_markers() {
         changed=true
     fi
 
+    if grep -qF "shell-setup\" --welcome" "$rc" 2>/dev/null; then
+        grep -vF "shell-setup\" --welcome" "$rc" > "${rc}.tmp" && \
+            mv "${rc}.tmp" "$rc"
+        changed=true
+    fi
+
     [[ "$changed" == "true" ]] && echo -e "${BLUE}→${NC} Stripped legacy AMI markers from ~/$(basename "$rc")"
 }
 
