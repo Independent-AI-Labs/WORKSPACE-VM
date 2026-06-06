@@ -10,6 +10,7 @@ from workspace.cli.vm_manager import (
     _derive_network_flags,
     _generate_password,
     _get_uid,
+    _podman,
     _render_template,
 )
 from workspace.types.vm import VMConfig
@@ -183,6 +184,13 @@ class TestMainBlock:
         )
         assert result.returncode == 1
         assert "no subcommand" in result.stderr
+
+
+class TestPodman:
+    def test_podman_wrapper(self) -> None:
+        result = _podman("version")
+        assert result.returncode == 0
+        assert "Version:" in result.stdout
 
 
 class TestGetUid:
