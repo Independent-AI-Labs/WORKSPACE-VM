@@ -54,12 +54,25 @@ class Component(BaseModel):
     version_cmd: list[str] | None = None
 
     def get_status(self) -> ComponentStatus:
-        """Check if component is installed and get version."""
+        """Check if component is installed and get version.
+
+        When a version_cmd is declared, the version command is the ground
+        truth for whether the binary is functional.  A stale symlink or
+        broken install (wrong arch, missing shared libs) will fail the
+        version command and be reported as not-installed instead of
+        giving a false positive.
+        """
         if self.detect_path:
             path = PROJECT_ROOT / self.detect_path
             if path.exists() and self._runnable_binary_present():
-                version = self._get_version_from_cmd() if self.version_cmd else None
-                return ComponentStatus(installed=True, version=version, path=str(path))
+                if self.version_cmd:
+                    version = self._get_version_from_cmd()
+                    if version is not None:
+                        return ComponentStatus(
+                            installed=True, version=version, path=str(path)
+                        )
+                    return ComponentStatus(installed=False)
+                return ComponentStatus(installed=True, version=None, path=str(path))
 
         if self.detect_cmd:
             try:
@@ -69,27 +82,23 @@ class Component(BaseModel):
                     text=True,
                     timeout=5,
                     cwd=str(PROJECT_ROOT),
-                    check=False,
+                    check=True,
                 )
                 if result.returncode == 0:
                     version = self._extract_version(result.stdout + result.stderr)
                     return ComponentStatus(installed=True, version=version)
-            except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
+            except (
+                subprocess.CalledProcessError,
+                subprocess.TimeoutExpired,
+                FileNotFoundError,
+                OSError,
+            ):
                 pass
 
         return ComponentStatus(installed=False)
 
     def _runnable_binary_present(self) -> bool:
-        """Verify version_cmd's binary is executable when it points in-tree.
-
-        detect_path alone is sticky for npm packages: the package directory
-        is created during extraction before bin-linking. A partial install
-        leaves the directory but no `.venv/node_modules/.bin/<name>`,
-        making the component look installed forever (INCIDENT-2026-05-04).
-        Returns True when no version_cmd is declared, or when the first arg
-        is absolute (system tool) — preserving prior behaviour outside the
-        npm-package case.
-        """
+        """Verify version_cmd's binary exists and is executable in-tree."""
         if not self.version_cmd:
             return True
         binary = self.version_cmd[0]
