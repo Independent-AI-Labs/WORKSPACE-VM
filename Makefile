@@ -240,6 +240,23 @@ update-oc: ## Update opencode to latest version via npm
 			exit 1; \
 		fi
 
+# --- Rules ---
+
+.PHONY: rules
+rules: ## List context rules and redeploy plugin
+	@bash workspace/scripts/bin/rules list
+
+.PHONY: rules-add
+rules-add: ## Add rule — make rules-add REGEX="pattern" RULE="instruction"
+	@test -n "$$REGEX" || { echo "ERROR: REGEX required" >&2; exit 1; }
+	@test -n "$$RULE" || { echo "ERROR: RULE required" >&2; exit 1; }
+	@bash workspace/scripts/bin/rules add -r "$$REGEX" -t "$$RULE"
+
+.PHONY: rules-delete
+rules-delete: ## Delete rule — make rules-delete NUM=3
+	@test -n "$$NUM" || { echo "ERROR: NUM required" >&2; exit 1; }
+	@bash workspace/scripts/bin/rules delete "$$NUM"
+
 .PHONY: update-deps
 update-deps: ## Update Python dependencies only
 	@echo "🔄 Updating Python dependencies..."

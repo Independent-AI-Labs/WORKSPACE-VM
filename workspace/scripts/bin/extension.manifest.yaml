@@ -56,6 +56,20 @@ extensions:
       healthExpect: "run"
       timeout: 5
 
+  - name: rules
+    binary: workspace/scripts/bin/rules
+    description: Manage opencode context injection rules
+    category: core
+    features:
+      - list
+      - add
+      - delete
+    bannerPriority: 20
+    check:
+      command: ["{binary}", "--help"]
+      healthExpect: "Usage"
+      timeout: 5
+
   - name: ops
     binary: workspace/scripts/bin/ops
     description: System orchestration and container management

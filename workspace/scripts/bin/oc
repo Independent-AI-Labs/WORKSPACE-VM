@@ -31,12 +31,11 @@ WELCOME=$("$AMI_ROOT/workspace/scripts/bin/welcome" --plain 2>/dev/null || echo 
 printf '%b\n' "$WELCOME" && echo ""
 # Regenerate the instruction file so opencode picks it up fresh each session
 printf '%b\n' "$WELCOME" > "${HOME}/.config/opencode/ami-environment.md"
-# Idempotent deploy of opencode user config from workspace template
+# Deploy opencode user config from workspace template
 OC_SRC="$AMI_ROOT/workspace/config/opencode"
 OC_DIR="${HOME}/.config/opencode"
 mkdir -p "$OC_DIR/plugins"
 [ ! -f "$OC_DIR/opencode.jsonc" ] && cp "$OC_SRC/opencode.jsonc" "$OC_DIR/opencode.jsonc"
-[ ! -f "$OC_DIR/plugins/ami-context.ts" ] && cp "$OC_SRC/plugins/ami-context.ts" "$OC_DIR/plugins/ami-context.ts"
 export OPENCODE_ENABLE_EXA=1
 if [[ $# -gt 0 ]]; then
     exec "$OPN" run --dir "$ORIG_PWD" "$*"

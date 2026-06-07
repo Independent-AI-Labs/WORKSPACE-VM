@@ -1,0 +1,212 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# rules — manage add-user-message-context.js rules for opencode.
+#
+#   rules                        → display rule table, redeploy plugin
+#   rules list                   → same
+#   rules add -r REGEX -t TEXT   → add a new rule
+#   rules delete NUM             → delete rule N (1-based)
+#
+# Deploys add-user-message-context.js to ~/.config/opencode/plugins/
+# after every mutation so opencode picks up changes immediately.
+
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+AMI_ROOT="$SCRIPT_DIR"
+while [[ "$AMI_ROOT" != "/" && ! -f "$AMI_ROOT/pyproject.toml" ]]; do
+    AMI_ROOT="$(dirname "$AMI_ROOT")"
+done
+
+TEMPLATE="$AMI_ROOT/workspace/config/opencode/plugins/add-user-message-context.template.js"
+USERFILE="$AMI_ROOT/workspace/config/opencode/plugins/add-user-message-context.js"
+DEPLOY_DIR="${HOME}/.config/opencode/plugins"
+DEPLOY_FILE="${DEPLOY_DIR}/add-user-message-context.js"
+
+# --- helpers ---
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+CYAN='\033[0;36m'
+BOLD='\033[1m'
+DIM='\033[2m'
+NC='\033[0m'
+
+_box_line() {
+    local text="$1" width=70 inner=68
+    printf "${CYAN}│${NC} %-${inner}s ${CYAN}│${NC}\n" "$text"
+}
+
+_err()  { echo -e "${RED}[ERROR]${NC} $*" >&2; exit 1; }
+_ok()   { echo -e "${GREEN}[OK]${NC} $*"; }
+
+# --- init ---
+_init_userfile() {
+    if [[ ! -f "$USERFILE" ]]; then
+        if [[ ! -f "$TEMPLATE" ]]; then
+            _err "Template not found: $TEMPLATE"
+        fi
+        cp "$TEMPLATE" "$USERFILE"
+        _ok "Created $USERFILE from template"
+    fi
+}
+
+# --- deploy ---
+_deploy() {
+    mkdir -p "$DEPLOY_DIR"
+    cp "$USERFILE" "$DEPLOY_FILE"
+}
+
+_deploy_and_remind() {
+    _deploy
+    echo ""
+    echo -e "${BOLD}Plugin deployed:${NC} ${DEPLOY_FILE}"
+    echo -e "${BOLD}Restart all opencode sessions to pick up changes.${NC}"
+}
+
+# --- parse / format ---
+# Extract rules from userfile as: N|regex|instruction
+_parse_rules() {
+    local file="$1" n=0 in_rule=0 waiting_inst=0
+    while IFS= read -r line; do
+        if [[ "$line" =~ ^[[:space:]]*\{$ ]]; then
+            in_rule=1; n=$((n + 1)); waiting_inst=0
+            continue
+        fi
+        if [[ $in_rule -eq 1 ]]; then
+            if [[ "$line" =~ ^[[:space:]]*regex:[[:space:]]*(/.+/),?$ ]]; then
+                echo "${n}|regex|${BASH_REMATCH[1]}"
+            elif [[ "$line" =~ ^[[:space:]]*regex:[[:space:]]*(/[^/]+/),?$ ]]; then
+                echo "${n}|regex|${BASH_REMATCH[1]}"
+            elif [[ "$line" =~ ^[[:space:]]*instruction:[[:space:]]*\"(.+)\" ]]; then
+                echo "${n}|instruction|${BASH_REMATCH[1]}"
+            elif [[ "$line" =~ ^[[:space:]]*instruction: ]]; then
+                waiting_inst=1  # instruction value on next line
+            elif [[ $waiting_inst -eq 1 && "$line" =~ \"(.+)\" ]]; then
+                echo "${n}|instruction|${BASH_REMATCH[1]}"
+                waiting_inst=0
+            elif [[ "$line" =~ ^[[:space:]]*\},?$ ]]; then
+                in_rule=0; waiting_inst=0
+            fi
+        fi
+    done < "$file"
+}
+
+# --- commands ---
+cmd_list() {
+    _init_userfile
+    _deploy
+
+    echo ""
+    echo -e "${BOLD}Context Rules${NC} — injected into system prompt on every user message"
+    echo -e "${DIM}────────────────────────────────────────────────────${NC}"
+    echo ""
+
+    local current_num="" current_regex="" current_inst=""
+    while IFS='|' read -r num field value; do
+        case "$field" in
+            regex)
+                current_num="$num"; current_regex="$value"; current_inst=""
+                ;;
+            instruction)
+                current_inst="$value"
+                if [[ -n "$current_regex" ]]; then
+                    printf "  ${GREEN}%2s${NC}  ${CYAN}%-14s${NC}  %s\n" \
+                        "$current_num" "$current_regex" "$current_inst"
+                fi
+                ;;
+        esac
+    done < <(_parse_rules "$USERFILE")
+
+    echo ""
+    echo -e "${BOLD}Restart all opencode sessions to pick up changes.${NC}"
+    echo ""
+}
+
+cmd_add() {
+    local regex="" text=""
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -r) regex="$2"; shift 2 ;;
+            -t) text="$2"; shift 2 ;;
+            *) _err "Unknown flag: $1" ;;
+        esac
+    done
+    [[ -z "$regex" ]] && _err "-r REGEX required (e.g. -r '.+')"
+    [[ -z "$text" ]]  && _err "-t TEXT required"
+
+    _init_userfile
+
+    local tmp
+    tmp="$(mktemp)"
+    while IFS= read -r line; do
+        echo "$line" >> "$tmp"
+        if [[ "$line" == "]" ]]; then
+            # Insert before closing bracket — rewind one line
+            sed -i '$d' "$tmp"
+            echo "  {" >> "$tmp"
+            echo "    regex: ${regex}," >> "$tmp"
+            echo '    instruction:' >> "$tmp"
+            echo "      \"## ${text}\"," >> "$tmp"
+            echo "  }," >> "$tmp"
+            echo "]" >> "$tmp"
+        fi
+    done < "$USERFILE"
+
+    mv "$tmp" "$USERFILE"
+    _ok "Rule added"
+    cmd_list
+}
+
+cmd_delete() {
+    local num="${1:-}"
+    [[ -z "$num" ]] && _err "Usage: rules delete NUM"
+    [[ ! "$num" =~ ^[0-9]+$ ]] && _err "NUM must be a positive integer"
+
+    _init_userfile
+
+    local count
+    count=$(grep -cE '^[[:space:]]*\{$' "$USERFILE" || true)
+    if [[ "$num" -lt 1 || "$num" -gt "$count" ]]; then
+        _err "Rule $num out of range (1–$count)"
+    fi
+
+    local tmp n=0 in_rule=0 skip=0
+    tmp="$(mktemp)"
+    while IFS= read -r line; do
+        if [[ "$line" =~ ^[[:space:]]*\{$ ]]; then
+            n=$((n + 1))
+            in_rule=1
+            skip=0
+            [[ $n -eq $num ]] && skip=1
+        fi
+        if [[ $in_rule -eq 1 && "$line" =~ ^[[:space:]]*\},?$ ]]; then
+            in_rule=0
+            if [[ $skip -eq 1 ]]; then
+                skip=0
+                continue
+            fi
+        fi
+        [[ $skip -eq 1 ]] && continue
+        echo "$line" >> "$tmp"
+    done < "$USERFILE"
+
+    mv "$tmp" "$USERFILE"
+    _ok "Rule $num deleted"
+    cmd_list
+}
+
+# --- main ---
+case "${1:-list}" in
+    list|"")           cmd_list ;;
+    add)    shift; cmd_add "$@" ;;
+    delete) shift; cmd_delete "${1:-}" ;;
+    --help|-h)
+        echo "Usage: rules [list|add -r REGEX -t TEXT|delete NUM]"
+        echo "  rules               Show rule table, redeploy plugin"
+        echo "  rules add -r REGEX -t TEXT   Add a rule"
+        echo "  rules delete NUM      Delete rule by number"
+        echo ""
+        echo "Template: $TEMPLATE"
+        echo "Userfile: $USERFILE"
+        ;;
+    *) _err "Unknown command: $1. Use list, add, or delete." ;;
+esac
