@@ -227,6 +227,19 @@ update: ## Update workspace via moon — walks every project topologically (^:up
 	MOON_WORKSPACE="$$TMP_WS" moon run :update; \
 	RET=$$?; rm -f "$$TMP_WS"; exit $$RET
 
+.PHONY: update-oc
+update-oc: ## Update opencode to latest version via npm
+	@echo "🔄 Updating opencode..."
+	@.boot-linux/bin/npm install --prefix .venv opencode-ai@latest
+	@OPN_BIN=".venv/node_modules/.bin/opencode"; \
+		if [ -x "$$OPN_BIN" ]; then \
+			ln -sf "../../.venv/node_modules/.bin/opencode" .boot-linux/bin/opencode; \
+			echo "✅ opencode $$("$$OPN_BIN" --version)"; \
+		else \
+			echo "❌ opencode binary not found after install" >&2; \
+			exit 1; \
+		fi
+
 .PHONY: update-deps
 update-deps: ## Update Python dependencies only
 	@echo "🔄 Updating Python dependencies..."
