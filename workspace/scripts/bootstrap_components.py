@@ -2,6 +2,7 @@
 
 import os
 import re
+import shutil
 import subprocess
 from enum import Enum
 
@@ -98,14 +99,21 @@ class Component(BaseModel):
         return ComponentStatus(installed=False)
 
     def _runnable_binary_present(self) -> bool:
-        """Verify version_cmd's binary exists and is executable in-tree."""
+        """Verify version_cmd's binary exists and is executable.
+
+        For in-tree paths (relative, not starting with / or ~), checks
+        against PROJECT_ROOT.  For bare command names not found in-tree,
+        falls back to PATH lookup via shutil.which.
+        """
         if not self.version_cmd:
             return True
         binary = self.version_cmd[0]
         if binary.startswith(("/", "~")):
             return True
         bin_path = PROJECT_ROOT / binary
-        return bin_path.exists() and os.access(bin_path, os.X_OK)
+        if bin_path.exists() and os.access(bin_path, os.X_OK):
+            return True
+        return shutil.which(binary) is not None
 
     def _get_version_from_cmd(self) -> str | None:
         """Get version using version command."""

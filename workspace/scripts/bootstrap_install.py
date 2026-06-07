@@ -132,12 +132,34 @@ def _run_script_path(script_rel: str) -> bool:
 
 def _pull_workspace_repo(component: Component) -> None:
     repo_path = _PROJECT_ROOT / component.detect_path if component.detect_path else None
-    if repo_path and (repo_path / ".git").exists():
+    if repo_path is None:
+        return
+    if (repo_path / ".git").exists():
         subprocess.run(
             ["git", "pull", "--ff-only"],
             cwd=repo_path,
             stdin=subprocess.DEVNULL,
             check=False,
+        )
+        return
+    try:
+        subprocess.run(
+            [
+                "bash",
+                str(
+                    _PROJECT_ROOT / "workspace" / "scripts" / "bin" / "bootstrap-repos"
+                ),
+                "--include",
+                component.name,
+            ],
+            cwd=str(_PROJECT_ROOT),
+            stdin=subprocess.DEVNULL,
+            check=True,
+        )
+    except subprocess.CalledProcessError as exc:
+        print(
+            f"ERROR: bootstrap-repos failed for {component.name}: {exc}",
+            file=sys.stderr,
         )
 
 

@@ -389,18 +389,23 @@ class TestPullWorkspaceRepo:
         mock_run.assert_not_called()
 
     @patch("workspace.scripts.bootstrap_install.subprocess.run")
-    def test_skips_when_git_dir_missing(self, mock_run) -> None:
+    def test_clones_missing_repo_via_bootstrap(self, mock_run) -> None:
+        """Missing repo (no .git) calls bootstrap-repos --include."""
         comp = Component(
-            name="test",
+            name="ami-portal",
             label="T",
             description="T",
             type=ComponentType.WORKSPACE_REPO,
             group="Workspace Repositories",
-            detect_path="projects/TEST",
+            detect_path="projects/PORTAL",
         )
-        with patch("pathlib.Path.exists", return_value=False):
+        with patch.object(Path, "exists", return_value=False):
             _pull_workspace_repo(comp)
-        mock_run.assert_not_called()
+        mock_run.assert_called_once()
+        call_args = mock_run.call_args[0][0]
+        assert call_args[0] == "bash"
+        assert "--include" in call_args
+        assert call_args[-1] == "ami-portal"
 
 
 class TestRunScriptPath:

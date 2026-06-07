@@ -247,6 +247,19 @@ class TestComponent:
         )
         assert comp._runnable_binary_present() is True
 
+    def test_runnable_binary_present_path_command(self) -> None:
+        """Bare command not in-tree but found on PATH returns True."""
+        comp = Component(
+            name="test",
+            label="Test",
+            description="Test",
+            type=ComponentType.SCRIPT,
+            group="Test",
+            version_cmd=["ls", "--version"],
+        )
+        with patch.object(Path, "exists", return_value=False):
+            assert comp._runnable_binary_present() is True
+
 
 class TestExtractVersion:
     """Tests for Component._extract_version method."""
