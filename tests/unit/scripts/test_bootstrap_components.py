@@ -164,9 +164,9 @@ class TestComponent:
 
     @patch("workspace.scripts.bootstrap_components.PROJECT_ROOT", Path("/test/root"))
     @patch("workspace.scripts.bootstrap_components.subprocess.run")
-    def test_get_status_file_not_found(self, mock_run) -> None:
-        """Test get_status when command not found."""
-        mock_run.side_effect = FileNotFoundError()
+    def test_get_status_detect_path_with_version_cmd_success(self, mock_run) -> None:
+        """detect_path + runnable + version_cmd success => installed with version."""
+        mock_run.return_value = MagicMock(returncode=0, stdout="tool v2.0.0", stderr="")
 
         comp = Component(
             name="test",
@@ -174,12 +174,78 @@ class TestComponent:
             description="Test",
             type=ComponentType.SCRIPT,
             group="Test",
-            detect_cmd=["nonexistent_binary"],
+            detect_path="bin/test",
+            version_cmd=["bin/test", "--version"],
+            version_pattern=r"v(\d+\.\d+\.\d+)",
         )
 
-        status = comp.get_status()
+        with (
+            patch.object(Path, "exists", return_value=True),
+            patch("os.access", return_value=True),
+        ):
+            status = comp.get_status()
+
+        assert status.installed is True
+        assert status.version == "2.0.0"
+        assert status.path is not None
+
+    @patch("workspace.scripts.bootstrap_components.PROJECT_ROOT", Path("/test/root"))
+    @patch("workspace.scripts.bootstrap_components.subprocess.run")
+    def test_get_status_detect_path_version_cmd_fails(self, mock_run) -> None:
+        """detect_path exists but version_cmd fails => not installed."""
+        mock_run.return_value = MagicMock(
+            returncode=1, stdout="", stderr="exec format error"
+        )
+
+        comp = Component(
+            name="test",
+            label="Test",
+            description="Test",
+            type=ComponentType.SCRIPT,
+            group="Test",
+            detect_path="bin/broken",
+            version_cmd=["bin/broken", "--version"],
+        )
+
+        with (
+            patch.object(Path, "exists", return_value=True),
+            patch("os.access", return_value=True),
+        ):
+            status = comp.get_status()
 
         assert status.installed is False
+
+    def test_get_status_no_version_cmd_uses_runnable_only(self) -> None:
+        """detect_path with no version_cmd: installed if path exists + runnable."""
+        comp = Component(
+            name="test",
+            label="Test",
+            description="Test",
+            type=ComponentType.SCRIPT,
+            group="Test",
+            detect_path="bin/test",
+        )
+
+        with (
+            patch.object(Path, "exists", return_value=True),
+            patch.object(comp, "_runnable_binary_present", return_value=True),
+        ):
+            status = comp.get_status()
+
+        assert status.installed is True
+        assert status.version is None
+
+    def test_runnable_binary_present_absolute_path(self) -> None:
+        """version_cmd starting with '/' skips in-tree check, returns True."""
+        comp = Component(
+            name="test",
+            label="Test",
+            description="Test",
+            type=ComponentType.SCRIPT,
+            group="Test",
+            version_cmd=["/usr/bin/tool", "--version"],
+        )
+        assert comp._runnable_binary_present() is True
 
 
 class TestExtractVersion:

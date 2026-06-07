@@ -255,6 +255,42 @@ class TestInstallComponents:
         assert len(result_calls) == 1
         assert result_calls[0].success is True
 
+    @patch("workspace.scripts.bootstrap_install.ensure_directories")
+    @patch("workspace.scripts.bootstrap_install.install_component", return_value=True)
+    def test_installs_core_deps_with_result_callback(
+        self, mock_install, mock_dirs
+    ) -> None:
+        """Core Dependencies group uses _install_core_deps path with callbacks."""
+        result_calls: list[ResultCall] = []
+        progress_calls: list[ProgressCall] = []
+
+        def on_result(comp: Component, success: bool) -> None:
+            result_calls.append(ResultCall(comp, success))
+
+        def on_progress(current: int, total: int, label: str) -> None:
+            progress_calls.append(ProgressCall(current, total, label))
+
+        comps = [
+            Component(
+                name="uv",
+                label="uv",
+                description="Python package manager",
+                type=ComponentType.SCRIPT,
+                group="Core Dependencies",
+                script="bootstrap_uv.sh",
+            ),
+        ]
+
+        results = install_components(
+            comps, on_progress=on_progress, on_result=on_result
+        )
+
+        names = [r["component_name"] for r in results]
+        assert "uv" in names
+        assert len(result_calls) == 1
+        assert result_calls[0].success is True
+        assert len(progress_calls) == 1
+
 
 class TestInstallEdgeCases:
     """Tests for install edge cases."""
@@ -365,3 +401,70 @@ class TestPullWorkspaceRepo:
         with patch("pathlib.Path.exists", return_value=False):
             _pull_workspace_repo(comp)
         mock_run.assert_not_called()
+
+
+class TestRunScriptPath:
+    """Tests for _run_script_path (script_path install path)."""
+
+    @patch("workspace.scripts.bootstrap_install.subprocess.run")
+    @patch("workspace.scripts.bootstrap_install._PROJECT_ROOT", Path("/test/root"))
+    def test_runs_script_path_success(self, mock_run) -> None:
+        mock_run.return_value = MagicMock(returncode=0)
+        comp = Component(
+            name="test",
+            label="T",
+            description="t",
+            type=ComponentType.SCRIPT,
+            group="Test",
+            script_path="projects/CI/scripts/bootstrap-gitleaks",
+        )
+        with patch.object(Path, "exists", return_value=True):
+            result = install_component(comp)
+        assert result is True
+        mock_run.assert_called_once()
+
+    @patch("workspace.scripts.bootstrap_install.subprocess.run")
+    @patch("workspace.scripts.bootstrap_install._PROJECT_ROOT", Path("/test/root"))
+    def test_runs_script_path_failure(self, mock_run) -> None:
+        mock_run.return_value = MagicMock(returncode=1)
+        comp = Component(
+            name="test",
+            label="T",
+            description="t",
+            type=ComponentType.SCRIPT,
+            group="Test",
+            script_path="projects/CI/scripts/bootstrap-gitleaks",
+        )
+        with patch.object(Path, "exists", return_value=True):
+            result = install_component(comp)
+        assert result is False
+
+    @patch("workspace.scripts.bootstrap_install._PROJECT_ROOT", Path("/test/root"))
+    def test_script_path_not_found(self) -> None:
+        comp = Component(
+            name="test",
+            label="T",
+            description="t",
+            type=ComponentType.SCRIPT,
+            group="Test",
+            script_path="nonexistent/script.sh",
+        )
+        with patch.object(Path, "exists", return_value=False):
+            result = install_component(comp)
+        assert result is False
+
+    @patch("workspace.scripts.bootstrap_install.subprocess.run")
+    @patch("workspace.scripts.bootstrap_install._PROJECT_ROOT", Path("/test/root"))
+    def test_script_path_oserror(self, mock_run) -> None:
+        mock_run.side_effect = OSError("exec failed")
+        comp = Component(
+            name="test",
+            label="T",
+            description="t",
+            type=ComponentType.SCRIPT,
+            group="Test",
+            script_path="projects/CI/scripts/bootstrap-gitleaks",
+        )
+        with patch.object(Path, "exists", return_value=True):
+            result = install_component(comp)
+        assert result is False

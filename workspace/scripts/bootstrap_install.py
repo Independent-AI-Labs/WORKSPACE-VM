@@ -86,18 +86,18 @@ def run_bootstrap_script(script_name: str) -> bool:
 
 def install_component(component: Component) -> bool:
     """Install a single component based on its type."""
-    if component.type == ComponentType.SCRIPT:
-        if component.script_path:
-            return _run_script_path(component.script_path)
-        if component.script:
-            return run_bootstrap_script(component.script)
-        return False
-    elif component.type == ComponentType.UV:
-        return True
-    elif component.type == ComponentType.WORKSPACE_REPO:
-        _pull_workspace_repo(component)
-        return True
-    return False
+    match component.type:
+        case ComponentType.SCRIPT:
+            if component.script_path:
+                return _run_script_path(component.script_path)
+            if component.script:
+                return run_bootstrap_script(component.script)
+            return False
+        case ComponentType.UV:
+            return True
+        case ComponentType.WORKSPACE_REPO:
+            _pull_workspace_repo(component)
+            return True
 
 
 def _run_script_path(script_rel: str) -> bool:
