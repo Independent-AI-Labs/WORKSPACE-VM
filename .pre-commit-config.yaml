@@ -47,6 +47,12 @@ repos:
         language: system
         pass_filenames: false
         stages: [pre-commit]
+      - id: check-coverage-no-devolution
+        name: Block Coverage Threshold De-Evolution
+        entry: "bash -c 'source projects/CI/lib/checks.sh && ci_check_coverage_thresholds_no_devolution'"
+        language: system
+        pass_filenames: false
+        always_run: true
       - id: check-file-length
         name: Check File Length (max 512 lines)
         entry: "bash -c 'source projects/CI/lib/checks.sh && ci_check_file_length'"
