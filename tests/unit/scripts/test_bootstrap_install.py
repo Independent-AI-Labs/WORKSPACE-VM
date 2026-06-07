@@ -407,6 +407,24 @@ class TestPullWorkspaceRepo:
         assert "--include" in call_args
         assert call_args[-1] == "ami-portal"
 
+    @patch("workspace.scripts.bootstrap_install.subprocess.run")
+    def test_clone_failure_does_not_crash(self, mock_run) -> None:
+        """bootstrap-repos failure prints error but does not raise."""
+        mock_run.side_effect = subprocess.CalledProcessError(
+            returncode=1, cmd="bootstrap-repos"
+        )
+        comp = Component(
+            name="ami-portal",
+            label="T",
+            description="T",
+            type=ComponentType.WORKSPACE_REPO,
+            group="Workspace Repositories",
+            detect_path="projects/PORTAL",
+        )
+        with patch.object(Path, "exists", return_value=False):
+            _pull_workspace_repo(comp)
+        mock_run.assert_called_once()
+
 
 class TestRunScriptPath:
     """Tests for _run_script_path (script_path install path)."""
