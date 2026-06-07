@@ -23,6 +23,7 @@ def _find_project_root() -> Path:
 
 AMI_ROOT = _find_project_root()
 OC_SRC = AMI_ROOT / "workspace" / "config" / "opencode"
+PLUGIN_NAME = "add-user-message-context.js"
 
 
 @pytest.fixture
@@ -37,9 +38,6 @@ def config_deploy_script() -> str:
         if [ ! -f "$OC_DIR/opencode.jsonc" ]; then
             cp "$OC_SRC/opencode.jsonc" "$OC_DIR/opencode.jsonc"
         fi
-        if [ ! -f "$OC_DIR/plugins/ami-context.ts" ]; then
-            cp "$OC_SRC/plugins/ami-context.ts" "$OC_DIR/plugins/ami-context.ts"
-        fi
     """
 
 
@@ -47,10 +45,10 @@ def config_deploy_script() -> str:
 class TestOcConfigDeployment:
     """Test idempotent config deployment from workspace template."""
 
-    def test_fresh_deploy_creates_all_files(
+    def test_fresh_deploy_creates_opencode_jsonc(
         self, tmp_path: Path, config_deploy_script: str
     ):
-        """First run with no existing config: all files are created."""
+        """First run with no existing config: opencode.jsonc is created."""
         home = tmp_path / "home"
         home.mkdir()
 
@@ -64,9 +62,6 @@ class TestOcConfigDeployment:
 
         oc_dir = home / ".config" / "opencode"
         assert (oc_dir / "opencode.jsonc").is_file(), "opencode.jsonc not created"
-        assert (oc_dir / "plugins" / "ami-context.ts").is_file(), (
-            "ami-context.ts not created"
-        )
 
     def test_idempotent_does_not_overwrite(
         self, tmp_path: Path, config_deploy_script: str
@@ -76,15 +71,10 @@ class TestOcConfigDeployment:
         home.mkdir()
         oc_dir = home / ".config" / "opencode"
         oc_dir.mkdir(parents=True)
-        plugins_dir = oc_dir / "plugins"
-        plugins_dir.mkdir(parents=True)
 
         custom_json = '{"instructions": ["custom.md"]}\n'
         (oc_dir / "opencode.jsonc").write_text(custom_json)
-        custom_plugin = "// custom plugin\n"
-        (plugins_dir / "ami-context.ts").write_text(custom_plugin)
 
-        # Run deploy again
         result = subprocess.run(
             ["bash", "-c", config_deploy_script, "deploy", str(home)],
             capture_output=True,
@@ -96,38 +86,6 @@ class TestOcConfigDeployment:
         assert (oc_dir / "opencode.jsonc").read_text() == custom_json, (
             "opencode.jsonc was overwritten"
         )
-        assert (plugins_dir / "ami-context.ts").read_text() == custom_plugin, (
-            "ami-context.ts was overwritten"
-        )
-
-    def test_partial_deploy_fills_missing(
-        self, tmp_path: Path, config_deploy_script: str
-    ):
-        """When only some files exist, missing ones are created, existing left alone."""
-        home = tmp_path / "home"
-        home.mkdir()
-        oc_dir = home / ".config" / "opencode"
-        oc_dir.mkdir(parents=True)
-        plugins_dir = oc_dir / "plugins"
-        plugins_dir.mkdir(parents=True)
-
-        # Pre-create only opencode.jsonc with custom content
-        custom_json = '{"instructions": ["custom.md"]}\n'
-        (oc_dir / "opencode.jsonc").write_text(custom_json)
-        # Do NOT pre-create ami-context.ts
-
-        result = subprocess.run(
-            ["bash", "-c", config_deploy_script, "deploy", str(home)],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        assert result.returncode == 0, f"deploy failed: {result.stderr}"
-
-        # Existing file preserved
-        assert (oc_dir / "opencode.jsonc").read_text() == custom_json
-        # Missing file created
-        assert (plugins_dir / "ami-context.ts").is_file()
 
     def test_missing_source_does_not_fail(
         self, tmp_path: Path, config_deploy_script: str
@@ -136,7 +94,6 @@ class TestOcConfigDeployment:
         home = tmp_path / "home"
         home.mkdir()
 
-        # Use a script with a non-existent source path
         safe_script = rf"""
             HOME="{home}"
             OC_SRC="/nonexistent/path/to/config"
@@ -144,9 +101,6 @@ class TestOcConfigDeployment:
             mkdir -p "$OC_DIR/plugins"
             [ ! -f "$OC_DIR/opencode.jsonc" ] && \
                 cp "$OC_SRC/opencode.jsonc" "$OC_DIR/opencode.jsonc" 2>/dev/null || true
-            [ ! -f "$OC_DIR/plugins/ami-context.ts" ] && \
-                cp "$OC_SRC/plugins/ami-context.ts" \
-                "$OC_DIR/plugins/ami-context.ts" 2>/dev/null || true
         """
 
         result = subprocess.run(
@@ -155,7 +109,6 @@ class TestOcConfigDeployment:
             text=True,
             check=False,
         )
-        # Script should not fail even if source is missing
         assert result.returncode == 0, (
             f"deploy with missing source should not fail: {result.stderr}"
         )
@@ -172,8 +125,10 @@ class TestOcConfigDeployment:
             "ami-environment.md reference missing"
         )
 
-        plugin = OC_SRC / "plugins" / "ami-context.ts"
-        assert plugin.is_file(), f"ami-context.ts missing: {plugin}"
+        plugin = OC_SRC / "plugins" / "add-user-message-context.template.js"
+        assert plugin.is_file(), (
+            f"add-user-message-context.template.js missing: {plugin}"
+        )
         content = plugin.read_text()
         assert "experimental.chat.messages.transform" in content, (
             "messages.transform hook missing"
@@ -181,6 +136,30 @@ class TestOcConfigDeployment:
         assert "experimental.chat.system.transform" in content, (
             "system.transform hook missing"
         )
+
+
+@pytest.mark.integration
+class TestRulesPlugin:
+    """Test the rules plugin management."""
+
+    def test_template_file_exists(self):
+        """Template file is present in workspace."""
+        tmpl = OC_SRC / "plugins" / "add-user-message-context.template.js"
+        assert tmpl.is_file(), f"template missing: {tmpl}"
+
+    def test_user_file_created_on_first_run(self, tmp_path: Path):
+        """rules list creates user file from template if missing."""
+        userfile = tmp_path / "add-user-message-context.js"
+        tmpl = OC_SRC / "plugins" / "add-user-message-context.template.js"
+        assert not userfile.exists()
+
+        subprocess.run(
+            ["cp", str(tmpl), str(userfile)],
+            check=True,
+        )
+        assert userfile.is_file()
+        content = userfile.read_text()
+        assert "const RULES" in content
 
 
 @pytest.mark.integration
@@ -283,5 +262,4 @@ class TestOcScriptSelfChecks:
         assert "OC_SRC" in content, "Missing OC_SRC variable"
         assert "OC_DIR" in content, "Missing OC_DIR variable"
         assert "opencode.jsonc" in content, "Missing opencode.jsonc reference"
-        assert "ami-context.ts" in content, "Missing ami-context.ts reference"
         assert "mkdir -p" in content, "Missing mkdir -p for plugins dir"
