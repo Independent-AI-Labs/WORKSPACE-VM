@@ -40,6 +40,7 @@ from dataops.cli_components.selection_dialog import DialogItem
 
 import workspace.scripts.bootstrap_component_defs as _bootstrap_defs
 import workspace.scripts.bootstrap_install as _bootstrap_install
+from workspace.scripts.bootstrap_install import get_bootstrap_env
 from workspace.scripts.bootstrap_installer_ui import (
     BANNER,
     CYAN,
@@ -111,6 +112,7 @@ def scan_components() -> list[NamedComponentStatus]:
 
     groups = _bootstrap_defs.get_components_by_group()
     statuses: list[NamedComponentStatus] = []
+    env = get_bootstrap_env()
 
     total = sum(len(g.components) for g in groups)
 
@@ -120,7 +122,7 @@ def scan_components() -> list[NamedComponentStatus]:
             sys.stdout.write(f"\r  Checking {comp.label}...{' ' * 20}")
             sys.stdout.flush()
 
-            raw_status = comp.get_status()
+            raw_status = comp.get_status(env=env)
             statuses.append(
                 NamedComponentStatus(
                     name=comp.name,

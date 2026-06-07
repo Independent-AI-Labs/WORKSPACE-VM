@@ -54,7 +54,7 @@ class Component(BaseModel):
     version_pattern: str | None = None
     version_cmd: list[str] | None = None
 
-    def get_status(self) -> ComponentStatus:
+    def get_status(self, env: dict[str, str] | None = None) -> ComponentStatus:
         """Check if component is installed and get version.
 
         When a version_cmd is declared, the version command is the ground
@@ -62,12 +62,15 @@ class Component(BaseModel):
         broken install (wrong arch, missing shared libs) will fail the
         version command and be reported as not-installed instead of
         giving a false positive.
+
+        Pass *env* to supply bootstrap environment variables (BOOT_LINUX_DIR,
+        RUSTUP_HOME, etc.) that the version command may depend on.
         """
         if self.detect_path:
             path = PROJECT_ROOT / self.detect_path
             if path.exists() and self._runnable_binary_present():
                 if self.version_cmd:
-                    version = self._get_version_from_cmd()
+                    version = self._get_version_from_cmd(env=env)
                     if version is not None:
                         return ComponentStatus(
                             installed=True, version=version, path=str(path)
@@ -83,6 +86,7 @@ class Component(BaseModel):
                     text=True,
                     timeout=5,
                     cwd=str(PROJECT_ROOT),
+                    env=env,
                     check=True,
                 )
                 if result.returncode == 0:
@@ -115,7 +119,7 @@ class Component(BaseModel):
             return True
         return shutil.which(binary) is not None
 
-    def _get_version_from_cmd(self) -> str | None:
+    def _get_version_from_cmd(self, env: dict[str, str] | None = None) -> str | None:
         """Get version using version command."""
         if not self.version_cmd:
             return None
@@ -126,6 +130,7 @@ class Component(BaseModel):
                 text=True,
                 timeout=5,
                 cwd=str(PROJECT_ROOT),
+                env=env,
                 check=False,
             )
             if result.returncode == 0:

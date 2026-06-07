@@ -45,6 +45,26 @@ def get_bootstrap_dir() -> Path:
     return _PROJECT_ROOT / "workspace" / "scripts" / "bootstrap"
 
 
+def get_bootstrap_env() -> dict[str, str]:
+    """Return environment dict for bootstrap operations.
+
+    Mirrors what bootstrap shell scripts receive: BOOT_LINUX_DIR,
+    VENV_DIR, .boot-linux/bin on PATH, and RUSTUP_HOME/CARGO_HOME
+    when the hermetic rust toolchain is present.
+    """
+    env = dict(os.environ)
+    boot_dir = str(_PROJECT_ROOT / ".boot-linux")
+    env["BOOT_LINUX_DIR"] = boot_dir
+    env["VENV_DIR"] = str(_PROJECT_ROOT / ".venv")
+    boot_bin = str(_PROJECT_ROOT / ".boot-linux" / "bin")
+    env["PATH"] = f"{boot_bin}:{env.get('PATH', '')}"
+    rust_home = str(_PROJECT_ROOT / ".boot-linux" / "rust")
+    if Path(rust_home).is_dir():
+        env.setdefault("RUSTUP_HOME", rust_home)
+        env.setdefault("CARGO_HOME", rust_home)
+    return env
+
+
 def run_bootstrap_script(script_name: str) -> bool:
     """Run a single bootstrap script."""
     script_path = get_bootstrap_dir() / script_name
@@ -56,11 +76,7 @@ def run_bootstrap_script(script_name: str) -> bool:
         return False
 
     try:
-        env = dict(os.environ)
-        env["BOOT_LINUX_DIR"] = str(_PROJECT_ROOT / ".boot-linux")
-        env["VENV_DIR"] = str(_PROJECT_ROOT / ".venv")
-        _boot_bin = str(_PROJECT_ROOT / ".boot-linux" / "bin")
-        env["PATH"] = f"{_boot_bin}:{env.get('PATH', '')}"
+        env = get_bootstrap_env()
 
         # stdin=DEVNULL so bootstrap scripts that probe `[ -t 0 ]` see a
         # non-TTY and take the non-interactive code path. The TUI itself owns
@@ -109,11 +125,7 @@ def _run_script_path(script_rel: str) -> bool:
         )
         return False
     try:
-        env = dict(os.environ)
-        env["BOOT_LINUX_DIR"] = str(_PROJECT_ROOT / ".boot-linux")
-        env["VENV_DIR"] = str(_PROJECT_ROOT / ".venv")
-        _boot_bin = str(_PROJECT_ROOT / ".boot-linux" / "bin")
-        env["PATH"] = f"{_boot_bin}:{env.get('PATH', '')}"
+        env = get_bootstrap_env()
         result = subprocess.run(
             ["bash", str(script_path)],
             cwd=str(_PROJECT_ROOT),
