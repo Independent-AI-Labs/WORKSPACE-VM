@@ -91,6 +91,10 @@ def _register_one(ext: ResolvedExtension, bin_dir: Path, ami_root: Path) -> None
     target_path = bin_dir / name
     source_path = ami_root / binary
 
+    if target_path.resolve() == source_path.resolve():
+        print(f"  \u2713 {name} \u2192 {binary} (self, skip)")
+        return
+
     if binary.endswith(".py"):
         create_wrapper(target_path, ami_root, binary)
         print(f"  \u2713 {name} \u2192 wrapper({binary})")
