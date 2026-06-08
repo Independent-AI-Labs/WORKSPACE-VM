@@ -48,7 +48,7 @@ class ExtensionMetadata(NamedTuple):
 
 
 def get_all_extensions() -> list[ExtensionMetadata]:
-    """Get all extensions from manifest discovery."""
+    """Get all extensions from manifest discovery (skips unavailable)."""
     manifests = discover_manifests(PROJECT_ROOT)
     resolved = resolve_extensions(manifests, PROJECT_ROOT)
     return [
@@ -61,6 +61,7 @@ def get_all_extensions() -> list[ExtensionMetadata]:
             hidden=r.entry.get("hidden", False),
         )
         for r in resolved
+        if r.status.name != "UNAVAILABLE"
     ]
 
 
