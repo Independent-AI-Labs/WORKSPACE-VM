@@ -6,4 +6,4 @@ while [[ "$AMI_ROOT" != "/" && ! -f "$AMI_ROOT/pyproject.toml" ]]; do
     AMI_ROOT="$(dirname "$AMI_ROOT")"
 done
 export AMI_ROOT && cd "$AMI_ROOT"
-exec "$AMI_ROOT/.venv/bin/python" -m workspace.cli.vm_manager "$@"
+exec "/home/ami/AMI-AGENTS/.venv/bin/python" -m workspace.cli.vm_manager "$@"
