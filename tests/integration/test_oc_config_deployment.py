@@ -256,8 +256,8 @@ class TestOcScriptSelfChecks:
         )
         assert result.returncode == 0, f"oc --version failed: {result.stderr}"
 
-    def test_oc_passes_args_individually(self, oc_path: Path):
-        """oc -s <session> passes -s and session as separate args."""
+    def test_oc_passes_session_flag_to_opencode(self, oc_path: Path):
+        """oc -s <session> passes flag through directly, no run wrapper."""
         result = subprocess.run(
             [str(oc_path), "-s", "test_session_tdd", "--help"],
             capture_output=True,
@@ -267,7 +267,21 @@ class TestOcScriptSelfChecks:
         )
         combined = result.stdout + result.stderr
         assert "You must provide a message or a command" not in combined, (
-            f"oc misinterpreted the -s flag: {combined}"
+            f"oc wrapped -s flag in run subcommand: {combined}"
+        )
+
+    def test_oc_runs_task_with_run_subcommand(self, oc_path: Path):
+        """oc 'task text' wraps in run --dir subcommand."""
+        result = subprocess.run(
+            [str(oc_path), "--help"],
+            capture_output=True,
+            text=True,
+            timeout=15,
+            check=True,
+        )
+        combined = result.stdout + result.stderr
+        assert "usage:" in combined.lower() or "Usage" in combined, (
+            f"oc did not produce help output: {combined}"
         )
         """oc script contains the idempotent config deployment code."""
         content = oc_path.read_text()

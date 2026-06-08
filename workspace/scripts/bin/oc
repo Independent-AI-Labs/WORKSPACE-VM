@@ -38,7 +38,10 @@ mkdir -p "$OC_DIR/plugins"
 [ ! -f "$OC_DIR/opencode.jsonc" ] && cp "$OC_SRC/opencode.jsonc" "$OC_DIR/opencode.jsonc"
 export OPENCODE_ENABLE_EXA=1
 if [[ $# -gt 0 ]]; then
-    exec "$OPN" run --dir "$ORIG_PWD" $*
+    if [[ "$1" = -* ]]; then
+        exec "$OPN" "$@"
+    fi
+    exec "$OPN" run --dir "$ORIG_PWD" "$@"
 else
     exec "$OPN" "$ORIG_PWD"
 fi
