@@ -91,7 +91,7 @@ def _register_one(ext: ResolvedExtension, bin_dir: Path, ami_root: Path) -> None
     target_path = bin_dir / name
     source_path = ami_root / binary
 
-    if target_path.resolve() == source_path.resolve():
+    if source_path == target_path:
         print(f"  \u2713 {name} \u2192 {binary} (self, skip)")
         return
 
