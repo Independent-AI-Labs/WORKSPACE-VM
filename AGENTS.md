@@ -68,7 +68,6 @@ If the project has a Makefile with a `check` or `preflight` target, run that too
 - Generate native git hooks from config — never depend on the `pre-commit` Python framework runtime.
 - Auto-stage unstaged changes instead of stashing them (files should never vanish from disk).
 - Scan only the staged diff for silent-error-swallow patterns — pre-existing violations don't block new commits.
-- Use `# silent-ok: <reason>` as the audited escape hatch, never bare `except: pass` or `|| true`.
 
 ## Rule 6: File Manipulation
 
@@ -99,7 +98,7 @@ These are banned in ALL production code:
 - `fallback` — no silent failure fallbacks
 - `mock`, `stub` — no mocks in production
 - `Any` type — use concrete types
-- `silent` — no silent error swallowing (audited escape: `silent-ok:`)
+- `silent` — no silent error swallowing
 - `self.get(` — no dict-like access patterns
 
 The ONLY exception file is the shared `banned_words.yaml`. Per-project exception files stay empty.
