@@ -2,16 +2,29 @@
 
 from __future__ import annotations
 
+import contextlib
 import subprocess
+from pathlib import Path
+from unittest.mock import MagicMock
 
+import yaml as _yaml
+
+from workspace.cli.vm_main import main
 from workspace.cli.vm_manager import (
+    _build_run_args,
     _config_sha256,
     _derive_cap_flags,
     _derive_network_flags,
+    _generate_dockerignore,
     _generate_password,
     _get_uid,
     _podman,
+    _pre_copy_files,
+    _remove_hosts_entry,
     _render_template,
+    create,
+    rebuild,
+    sync,
 )
 from workspace.types.vm import VMConfig
 
@@ -209,3 +222,213 @@ class TestGetUid:
         uid = _get_uid()
         assert uid.isdigit()
         assert len(uid) > 0
+
+
+class TestGenerateDockerignore:
+    def test_writes_dockerignore(self, tmp_path: Path) -> None:
+        vm_dir = tmp_path / "test-vm"
+        vm_dir.mkdir()
+        _generate_dockerignore(vm_dir)
+        di = vm_dir / ".dockerignore"
+        assert di.exists()
+        content = di.read_text()
+        assert "password" in content
+        assert "pid" in content
+        assert "vm.yaml" in content
+
+
+class TestBuildRunArgs:
+    def test_minimal_config_args(self) -> None:
+        cfg = VMConfig.model_validate({"components": ["opencode"]})
+        args = _build_run_args(cfg, "test-uuid")
+        assert "podman" in args[0]
+        assert "run" in args
+        assert "-d" in args
+        assert "test-uuid" in args
+        assert "ami.type=vm" in args
+        assert "ami.uuid=test-uuid" in args
+        assert "ami.config=" in " ".join(args)
+        assert "--network" in args
+        assert "none" in args
+        assert "--userns=keep-id" in args
+        assert "--memory" in args
+        assert "4g" in args
+        assert "--cpus" in args
+        assert "--pids-limit" in args
+        assert "--health-on-failure=stop" in args
+
+    def test_read_only_args(self) -> None:
+        cfg = VMConfig.model_validate({"components": ["opencode"]})
+        args = _build_run_args(cfg, "test-uuid")
+        assert "--read-only" in args
+        assert "--tmpfs" in args
+        assert "/tmp:rw,noexec,nosuid" in args
+        assert "/run:rw,noexec,nosuid" in args
+
+    def test_no_new_privileges(self) -> None:
+        cfg = VMConfig.model_validate({"components": ["opencode"]})
+        args = _build_run_args(cfg, "test-uuid")
+        assert "--security-opt" in args
+        assert "no-new-privileges" in args
+
+    def test_env_vars_injected(self) -> None:
+        cfg = VMConfig.model_validate(
+            {"components": ["opencode"], "env": {"KEY": "val"}}
+        )
+        args = _build_run_args(cfg, "test-uuid")
+        assert "-e" in args
+        assert "KEY=val" in args
+
+    def test_bridge_network_mode(self) -> None:
+        cfg = VMConfig.model_validate(
+            {"components": ["opencode"], "network": {"mode": "bridge"}}
+        )
+        args = _build_run_args(cfg, "test-uuid")
+        assert "--network" in args
+        assert "ami-vm-net" in args
+
+    def test_permissive_security_skips_flags(self) -> None:
+        cfg = VMConfig.model_validate(
+            {
+                "components": ["opencode"],
+                "security": {"no_new_privileges": False, "read_only_rootfs": False},
+            }
+        )
+        args = _build_run_args(cfg, "test-uuid")
+        assert "no-new-privileges" not in args
+        assert "--read-only" not in args
+
+
+class TestRemoveHostsEntry:
+    def test_no_file_no_error(self, tmp_path: Path) -> None:
+        _remove_hosts_entry("nonexistent-uuid-12345")
+
+
+class TestVMMainDispatch:
+    """In-process tests for vm_main.main()."""
+
+    def test_no_args(self) -> None:
+        assert main([]) == 1
+
+    def test_create_missing_args(self) -> None:
+        assert main(["create"]) == 1
+
+    def test_rebuild_missing_args(self) -> None:
+        assert main(["rebuild"]) == 1
+
+    def test_sync_missing_args(self) -> None:
+        assert main(["sync"]) == 1
+
+    def test_unknown_subcommand(self) -> None:
+        assert main(["nonexistent"]) == 1
+
+    def test_create_with_config(self, tmp_path: Path, monkeypatch) -> None:
+        monkeypatch.setattr(subprocess, "run", _fake_subprocess_run)
+        monkeypatch.setattr("workspace.cli.vm_manager._podman", _fake_podman_run)
+        monkeypatch.setattr("workspace.cli.vm_manager._get_uid", lambda: "1000")
+        _patch_vms_dir(monkeypatch, tmp_path)
+        cfg = tmp_path / "test.yaml"
+        cfg.write_text("components: [opencode]")
+
+        rc = main(["create", str(cfg)])
+        assert rc == 0
+
+    def test_rebuild_with_uuid(self, tmp_path: Path, monkeypatch) -> None:
+        monkeypatch.setattr(subprocess, "run", _fake_subprocess_run)
+        monkeypatch.setattr("workspace.cli.vm_manager._podman", _fake_podman_run)
+        monkeypatch.setattr("workspace.cli.vm_manager._get_uid", lambda: "1000")
+        vms_dir = _patch_vms_dir(monkeypatch, tmp_path)
+        vm_dir = vms_dir / "test-uuid"
+        vm_dir.mkdir(parents=True, exist_ok=True)
+        (vm_dir / "vm.yaml").write_text("components: [opencode]")
+        (vm_dir / "password").write_text("a" * 32)
+        (vm_dir / "certs").mkdir(exist_ok=True)
+
+        rc = main(["rebuild", "test-uuid"])
+        assert rc == 0
+
+    def test_sync_with_uuid(self, tmp_path: Path, monkeypatch) -> None:
+        monkeypatch.setattr(subprocess, "run", _fake_subprocess_run)
+        monkeypatch.setattr("workspace.cli.vm_manager._podman", _fake_podman_run)
+        vms_dir = _patch_vms_dir(monkeypatch, tmp_path)
+        vm_dir = vms_dir / "test-sync"
+        vm_dir.mkdir(parents=True, exist_ok=True)
+        (vm_dir / "vm.yaml").write_text(
+            _yaml.dump({"components": ["opencode"], "sync": [{"dir": str(tmp_path)}]})
+        )
+
+        rc = main(["sync", "test-sync"])
+        assert rc == 0
+
+
+class TestVMManagerCreate:
+    def test_create_monkeypatched(self, tmp_path: Path, monkeypatch) -> None:
+        monkeypatch.setattr(subprocess, "run", _fake_subprocess_run)
+        monkeypatch.setattr("workspace.cli.vm_manager._podman", _fake_podman_run)
+        monkeypatch.setattr("workspace.cli.vm_manager._get_uid", lambda: "1000")
+        _patch_vms_dir(monkeypatch, tmp_path)
+        cfg = tmp_path / "test.yaml"
+        cfg.write_text("components: [opencode]")
+
+        create(str(cfg))
+
+
+class TestVMManagerRebuild:
+    def test_rebuild_monkeypatched(self, tmp_path: Path, monkeypatch) -> None:
+        monkeypatch.setattr(subprocess, "run", _fake_subprocess_run)
+        monkeypatch.setattr("workspace.cli.vm_manager._podman", _fake_podman_run)
+        monkeypatch.setattr("workspace.cli.vm_manager._get_uid", lambda: "1000")
+        vms_dir = _patch_vms_dir(monkeypatch, tmp_path)
+        vm_dir = vms_dir / "test-uuid"
+        vm_dir.mkdir(parents=True, exist_ok=True)
+        (vm_dir / "vm.yaml").write_text("components: [opencode]")
+        (vm_dir / "password").write_text("a" * 32)
+        (vm_dir / "certs").mkdir(exist_ok=True)
+
+        rebuild("test-uuid")
+
+
+class TestVMManagerSync:
+    def test_missing_vm_yaml(self) -> None:
+        with contextlib.suppress(SystemExit):
+            sync("nonexistent-uuid-12345")
+
+    def test_sync_monkeypatched(self, tmp_path: Path, monkeypatch) -> None:
+        monkeypatch.setattr(subprocess, "run", _fake_subprocess_run)
+        monkeypatch.setattr("workspace.cli.vm_manager._podman", _fake_podman_run)
+        vms_dir = _patch_vms_dir(monkeypatch, tmp_path)
+        vm_dir = vms_dir / "test-sync"
+        vm_dir.mkdir(parents=True, exist_ok=True)
+        (vm_dir / "vm.yaml").write_text(
+            _yaml.dump({"components": ["opencode"], "sync": [{"dir": str(tmp_path)}]})
+        )
+        sync("test-sync")
+
+
+class TestPreCopyFiles:
+    def test_empty_files(self) -> None:
+        cfg = VMConfig.model_validate({"components": ["opencode"]})
+        _pre_copy_files(cfg, "test-uuid")
+
+
+def _fake_subprocess_run(*args, **kwargs):
+    class _Result:
+        returncode = 0
+        stdout = "12345\n"
+
+    return _Result()
+
+
+def _fake_podman_run(*args, **kwargs):
+    class _Result:
+        returncode = 0
+        stdout = "healthy\n"
+
+    return _Result()
+
+
+def _patch_vms_dir(monkeypatch, tmp_path: Path) -> MagicMock:
+    vms_dir = tmp_path / ".vms"
+    vms_dir.mkdir(exist_ok=True)
+    monkeypatch.setattr("workspace.cli.vm_manager._VMS_DIR", vms_dir)
+    return vms_dir

@@ -6,33 +6,47 @@ import sys
 
 from workspace.cli.vm_manager import create, rebuild, sync
 
-if __name__ == "__main__":
-    _MIN_ARGS = 2
-    _SUB_CMD_ARGS = 3
+_MIN_ARGS = 1
+_SUB_CMD_ARGS = 2
 
-    if len(sys.argv) < _MIN_ARGS:
+
+def main(cli_args: list[str] | None = None) -> int:
+    """Dispatch vm_main subcommands. Returns exit code.
+
+    Accepts explicit cli_args for in-process testing.
+    When None, uses sys.argv[1:].
+    """
+    args = sys.argv[1:] if cli_args is None else cli_args
+
+    if len(args) < 1:
         print(
             "usage: python -m workspace.cli.vm_main <create|rebuild|sync> <args>",
             file=sys.stderr,
         )
-        sys.exit(1)
+        return 1
 
-    subcommand = sys.argv[1]
+    subcommand = args[0]
     if subcommand == "create":
-        if len(sys.argv) < _SUB_CMD_ARGS:
+        if len(args) < _SUB_CMD_ARGS:
             print("create: missing config file argument", file=sys.stderr)
-            sys.exit(1)
-        create(sys.argv[2])
+            return 1
+        create(args[1])
     elif subcommand == "rebuild":
-        if len(sys.argv) < _SUB_CMD_ARGS:
+        if len(args) < _SUB_CMD_ARGS:
             print("rebuild: missing uuid argument", file=sys.stderr)
-            sys.exit(1)
-        rebuild(sys.argv[2])
+            return 1
+        rebuild(args[1])
     elif subcommand == "sync":
-        if len(sys.argv) < _SUB_CMD_ARGS:
+        if len(args) < _SUB_CMD_ARGS:
             print("sync: missing uuid argument", file=sys.stderr)
-            sys.exit(1)
-        sync(sys.argv[2])
+            return 1
+        sync(args[1])
     else:
         print(f"unknown subcommand: {subcommand}", file=sys.stderr)
-        sys.exit(1)
+        return 1
+
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

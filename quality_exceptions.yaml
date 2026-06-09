@@ -21,9 +21,4 @@
 
 version: 1
 project: AMI-AGENTS
-exceptions:
-  - hook: verify-coverage
-    reason: "vm_manager is a podman CLI entry point that requires a running container runtime for full coverage. Unit tests cover all pure functions."
-    paths:
-      - "workspace/cli/vm_manager.py"
-    added_by: "ami@example.com"
+exceptions: []
