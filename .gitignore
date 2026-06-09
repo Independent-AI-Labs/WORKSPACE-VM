@@ -170,6 +170,7 @@ opencode.json
 # VM artifacts (per-VM state, never committed)
 .vms/**/Dockerfile
 .vms/**/.dockerignore
+.vms/**/vm-install-defaults.yaml
 .vms/**/password
 .vms/**/pid
 .vms/**/*.key

@@ -16,7 +16,7 @@ RUN deluser ami sudo
 
 FROM init AS installer
 RUN make ensure-repos && make sync-package
-COPY vm-install-defaults.yaml /tmp/install-defaults.yaml
+COPY {{ vm_install_defaults }} /tmp/install-defaults.yaml
 RUN make install-ci INSTALL_DEFAULTS=/tmp/install-defaults.yaml
 
 FROM installer AS runtime

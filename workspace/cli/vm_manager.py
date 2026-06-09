@@ -116,15 +116,12 @@ def _get_uid() -> str:
 
 
 def _generate_dockerignore(vm_dir: Path) -> None:
-    """Generate .dockerignore to exclude VM state from the build context."""
-    dockerignore = vm_dir / ".dockerignore"
-    dockerignore.write_text(
+    (vm_dir / ".dockerignore").write_text(
         "password\npid\nvm.yaml\ncerts/\n.dockerignore\nDockerfile\n"
     )
 
 
 def _pre_copy_files(config: VMConfig, uuid_str: str) -> None:
-    """Pre-copy config.files entries into the workspace volume mountpoint."""
     if not config.files:
         return
     try:
@@ -148,7 +145,6 @@ def _pre_copy_files(config: VMConfig, uuid_str: str) -> None:
 
 
 def _wait_healthy(uuid_str: str) -> None:
-    """Poll until the container reports healthy, or timeout."""
     deadline = time.monotonic() + _HEALTHCHECK_TIMEOUT
     while time.monotonic() < deadline:
         try:
@@ -160,18 +156,14 @@ def _wait_healthy(uuid_str: str) -> None:
             continue
         if status == "healthy":
             return
-        if status in ("unhealthy", ""):
-            time.sleep(_HEALTHCHECK_POLL)
-            continue
         time.sleep(_HEALTHCHECK_POLL)
     sys.stderr.write(
-        f"vm: WARNING: healthcheck did not report healthy "
-        f"within {_HEALTHCHECK_TIMEOUT}s for {uuid_str}\n"
+        f"vm: WARNING: healthcheck not healthy within "
+        f"{_HEALTHCHECK_TIMEOUT}s for {uuid_str}\n"
     )
 
 
 def _build_run_args(config: VMConfig, uuid_str: str) -> list[str]:
-    """Assemble the podman run argument list."""
     run_args: list[str] = [
         "podman",
         "run",
@@ -221,46 +213,59 @@ def _build_run_args(config: VMConfig, uuid_str: str) -> list[str]:
     return run_args
 
 
-def create(config_path: str) -> None:
-    """Build and start a VM from a YAML config file."""
-    cfg = VMConfig.model_validate(yaml.safe_load(Path(config_path).read_text()))
+def _ensure_bridge_network(cfg: VMConfig) -> None:
+    if cfg.network.mode != "bridge":
+        return
+    try:
+        subprocess.run(
+            ["podman", "network", "exists", cfg.network.network_name],
+            capture_output=True,
+            check=True,
+        )
+    except subprocess.CalledProcessError:
+        subprocess.run(
+            ["podman", "network", "create", cfg.network.network_name],
+            check=True,
+        )
 
-    uuid_str = uuid7()
-    vm_dir = _VMS_DIR / uuid_str
-    vm_dir.mkdir(parents=True, exist_ok=True)
-    (vm_dir / "certs").mkdir(exist_ok=True)
 
-    password = _generate_password()
-    (vm_dir / "password").write_text(password)
+def _ensure_volume(vol_name: str) -> None:
+    try:
+        _podman("volume", "inspect", vol_name)
+    except subprocess.CalledProcessError:
+        _podman("volume", "create", vol_name)
 
-    shutil.copy2(config_path, vm_dir / "vm.yaml")
 
-    network_enabled = cfg.network.mode != "none"
-    traefik_enabled = network_enabled and cfg.web_ui
-    openvpn_enabled = (
-        cfg.network.mode == "openvpn" and cfg.network.vpn_type == "container"
-    )
-
-    context = {
+def _build_context(
+    cfg: VMConfig, password: str, vm_dir: Path, install_defaults: Path
+) -> Mapping[str, object]:
+    net_enabled = cfg.network.mode != "none"
+    return {
         "security": cfg.security,
         "credentials": cfg.credentials,
         "ssh": cfg.ssh,
         "network": cfg.network,
-        "traefik_enabled": traefik_enabled,
-        "network_enabled": network_enabled
+        "traefik_enabled": net_enabled and cfg.web_ui,
+        "network_enabled": net_enabled
         and cfg.network.policy
         in (
             "internet",
             "proxy",
         ),
-        "openvpn_enabled": openvpn_enabled,
+        "openvpn_enabled": (
+            cfg.network.mode == "openvpn" and cfg.network.vpn_type == "container"
+        ),
         "password": password,
         "certs": str(vm_dir / "certs"),
+        "vm_install_defaults": str(install_defaults),
     }
 
+
+def _render_and_build(
+    uuid_str: str, password: str, vm_dir: Path, context: Mapping[str, object]
+) -> None:
     (vm_dir / "Dockerfile").write_text(_render_template("Dockerfile.vm.j2", context))
     _generate_dockerignore(vm_dir)
-
     _podman(
         "build",
         "-t",
@@ -274,46 +279,18 @@ def create(config_path: str) -> None:
         ".",
     )
 
-    _podman("volume", "create", f"{uuid_str}-workspace")
-    _podman("volume", "create", f"{uuid_str}-transcripts")
-    _podman("volume", "create", f"{uuid_str}-cache")
 
-    _pre_copy_files(cfg, uuid_str)
-
-    subprocess.run(
-        ["bash", str(_CERTS_SCRIPT), uuid_str, str(vm_dir / "certs")],
-        check=True,
-    )
-
-    if cfg.network.mode == "bridge":
-        exists_rc = 0
-        try:
-            subprocess.run(
-                ["podman", "network", "exists", cfg.network.network_name],
-                capture_output=True,
-                check=True,
-            )
-        except subprocess.CalledProcessError:
-            exists_rc = 1
-        if exists_rc != 0:
-            subprocess.run(
-                ["podman", "network", "create", cfg.network.network_name],
-                check=True,
-            )
-
-    subprocess.run(_build_run_args(cfg, uuid_str), check=True)
-
+def _post_run_inspect(uuid_str: str, vm_dir: Path, cfg: VMConfig) -> None:
     try:
-        inspect_result = subprocess.run(
+        pid = subprocess.run(
             ["podman", "inspect", "-f", "{{.State.Pid}}", uuid_str],
             capture_output=True,
             text=True,
             check=True,
         )
-        (vm_dir / "pid").write_text(inspect_result.stdout.strip())
-
+        (vm_dir / "pid").write_text(pid.stdout.strip())
         if cfg.network.mode == "bridge":
-            ip_result = subprocess.run(
+            ip = subprocess.run(
                 [
                     "podman",
                     "inspect",
@@ -325,14 +302,42 @@ def create(config_path: str) -> None:
                 text=True,
                 check=True,
             )
-            container_ip = ip_result.stdout.strip()
+            container_ip = ip.stdout.strip()
             if container_ip:
-                hosts_entry = f"{container_ip} {uuid_str}.vm.local\n"
                 with open("/etc/hosts", "a") as f:
-                    f.write(hosts_entry)
+                    f.write(f"{container_ip} {uuid_str}.vm.local\n")
     except subprocess.CalledProcessError as exc:
         raise _VMExecError from exc
 
+
+def create(config_path: str) -> None:
+    cfg = VMConfig.model_validate(yaml.safe_load(Path(config_path).read_text()))
+    uuid_str = uuid7()
+    vm_dir = _VMS_DIR / uuid_str
+    vm_dir.mkdir(parents=True, exist_ok=True)
+    (vm_dir / "certs").mkdir(exist_ok=True)
+
+    password = _generate_password()
+    (vm_dir / "password").write_text(password)
+    shutil.copy2(config_path, vm_dir / "vm.yaml")
+
+    install_defaults = vm_dir / "vm-install-defaults.yaml"
+    install_defaults.write_text(yaml.dump({"components": cfg.components}))
+
+    context = _build_context(cfg, password, vm_dir, install_defaults)
+    _render_and_build(uuid_str, password, vm_dir, context)
+
+    _podman("volume", "create", f"{uuid_str}-workspace")
+    _podman("volume", "create", f"{uuid_str}-transcripts")
+    _podman("volume", "create", f"{uuid_str}-cache")
+    _pre_copy_files(cfg, uuid_str)
+    subprocess.run(
+        ["bash", str(_CERTS_SCRIPT), uuid_str, str(vm_dir / "certs")],
+        check=True,
+    )
+    _ensure_bridge_network(cfg)
+    subprocess.run(_build_run_args(cfg, uuid_str), check=True)
+    _post_run_inspect(uuid_str, vm_dir, cfg)
     _wait_healthy(uuid_str)
 
     print(f"VM {uuid_str} created")
@@ -344,12 +349,10 @@ def create(config_path: str) -> None:
 
 
 def rebuild(uuid_str: str) -> None:
-    """Rebuild a VM from its stored vm.yaml."""
     vm_yaml = _VMS_DIR / uuid_str / "vm.yaml"
     if not vm_yaml.exists():
         print(f"vm: no vm.yaml found for VM '{uuid_str}'", file=sys.stderr)
         sys.exit(1)
-
     cfg = VMConfig.model_validate(yaml.safe_load(vm_yaml.read_text()))
     vm_dir = _VMS_DIR / uuid_str
     password = (vm_dir / "password").read_text().strip()
@@ -361,101 +364,31 @@ def rebuild(uuid_str: str) -> None:
         timeout=30,
         check=True,
     )
-
     _remove_hosts_entry(uuid_str)
 
-    # Re-render Dockerfile
-    network_enabled = cfg.network.mode != "none"
-    traefik_enabled = network_enabled and cfg.web_ui
-    openvpn_enabled = (
-        cfg.network.mode == "openvpn" and cfg.network.vpn_type == "container"
-    )
-    context = {
-        "security": cfg.security,
-        "credentials": cfg.credentials,
-        "ssh": cfg.ssh,
-        "network": cfg.network,
-        "traefik_enabled": traefik_enabled,
-        "network_enabled": network_enabled
-        and cfg.network.policy in ("internet", "proxy"),
-        "openvpn_enabled": openvpn_enabled,
-        "password": password,
-        "certs": str(vm_dir / "certs"),
-    }
-    (vm_dir / "Dockerfile").write_text(_render_template("Dockerfile.vm.j2", context))
-    _generate_dockerignore(vm_dir)
+    install_defaults = vm_dir / "vm-install-defaults.yaml"
+    install_defaults.write_text(yaml.dump({"components": cfg.components}))
+    context = _build_context(cfg, password, vm_dir, install_defaults)
+    _render_and_build(uuid_str, password, vm_dir, context)
 
-    # Rebuild image
-    _podman(
-        "build",
-        "-t",
-        f"ami-vm:{uuid_str}",
-        "--build-arg",
-        f"AGENT_UID={_get_uid()}",
-        "--build-arg",
-        f"OPENCODE_SERVER_PASSWORD={password}",
-        "-f",
-        str(vm_dir / "Dockerfile"),
-        ".",
-    )
+    for suffix in ("workspace", "transcripts", "cache"):
+        _ensure_volume(f"{uuid_str}-{suffix}")
 
-    # Ensure volumes exist
-    for vol_suffix in ("workspace", "transcripts", "cache"):
-        vol_name = f"{uuid_str}-{vol_suffix}"
-        try:
-            _podman("volume", "inspect", vol_name)
-        except subprocess.CalledProcessError:
-            _podman("volume", "create", vol_name)
-
-    # Re-run
     subprocess.run(_build_run_args(cfg, uuid_str), check=True)
-
-    try:
-        inspect_result = subprocess.run(
-            ["podman", "inspect", "-f", "{{.State.Pid}}", uuid_str],
-            capture_output=True,
-            text=True,
-            check=True,
-        )
-        (vm_dir / "pid").write_text(inspect_result.stdout.strip())
-
-        if cfg.network.mode == "bridge":
-            ip_result = subprocess.run(
-                [
-                    "podman",
-                    "inspect",
-                    "-f",
-                    f"{{{{.NetworkSettings.Networks.{cfg.network.network_name}.IPAddress}}}}",
-                    uuid_str,
-                ],
-                capture_output=True,
-                text=True,
-                check=True,
-            )
-            container_ip = ip_result.stdout.strip()
-            if container_ip:
-                hosts_entry = f"{container_ip} {uuid_str}.vm.local\n"
-                with open("/etc/hosts", "a") as f:
-                    f.write(hosts_entry)
-    except subprocess.CalledProcessError as exc:
-        raise _VMExecError from exc
-
+    _post_run_inspect(uuid_str, vm_dir, cfg)
     _wait_healthy(uuid_str)
     print(f"VM {uuid_str} rebuilt")
 
 
 def sync(uuid_str: str) -> None:
-    """File sync from host to VM workspace volume per config.sync rules."""
     vm_yaml = _VMS_DIR / uuid_str / "vm.yaml"
     if not vm_yaml.exists():
         print(f"vm: no vm.yaml found for VM '{uuid_str}'", file=sys.stderr)
         sys.exit(1)
-
     cfg = VMConfig.model_validate(yaml.safe_load(vm_yaml.read_text()))
     if not cfg.sync:
         print(f"vm: no sync rules configured for VM '{uuid_str}'")
         return
-
     try:
         mountpoint = _podman(
             "volume", "inspect", "-f", "{{.Mountpoint}}", f"{uuid_str}-workspace"
@@ -463,35 +396,25 @@ def sync(uuid_str: str) -> None:
     except subprocess.CalledProcessError:
         print(f"vm: cannot find workspace volume for VM '{uuid_str}'", file=sys.stderr)
         sys.exit(1)
-
     synced = 0
     for entry in cfg.sync:
         src_dir = Path(os.path.expanduser(entry.dir))
         if not src_dir.is_dir():
             print(f"vm: sync: source directory '{src_dir}' not found, skipping")
             continue
-        dst_path = Path(mountpoint)
-
         exclude_args: list[str] = []
         for pattern in entry.exclude:
             exclude_args.extend(["--exclude", pattern])
-
         rsync_cmd: list[str] = ["rsync", "-a", *exclude_args]
         if entry.strategy == "overwrite":
             rsync_cmd.append("--delete")
-
-        subprocess.run(
-            [*rsync_cmd, f"{src_dir}/", str(dst_path)],
-            check=True,
-        )
+        subprocess.run([*rsync_cmd, f"{src_dir}/", str(mountpoint)], check=True)
         synced += 1
-
     label = "directory" if synced == 1 else "directories"
     print(f"vm: synced {synced} {label} to VM '{uuid_str}'")
 
 
 def _remove_hosts_entry(uuid_str: str) -> None:
-    """Remove /etc/hosts entry for a VM."""
     hosts_file = Path("/etc/hosts")
     if not hosts_file.exists():
         return
