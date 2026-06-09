@@ -167,3 +167,12 @@ models/
 # OpenAI-compatible provider config (machine-specific)
 opencode.json
 
+# VM artifacts (per-VM state, never committed)
+.vms/**/Dockerfile
+.vms/**/.dockerignore
+.vms/**/password
+.vms/**/pid
+.vms/**/*.key
+.vms/**/*.crt
+.vms/**/*.srl
+

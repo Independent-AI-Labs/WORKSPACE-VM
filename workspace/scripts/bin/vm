@@ -1,9 +1,256 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
+
+# --- Resolve AMI_ROOT ---
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 AMI_ROOT="$SCRIPT_DIR"
 while [[ "$AMI_ROOT" != "/" && ! -f "$AMI_ROOT/pyproject.toml" ]]; do
     AMI_ROOT="$(dirname "$AMI_ROOT")"
 done
 export AMI_ROOT && cd "$AMI_ROOT"
-exec "/home/ami/AMI-AGENTS/.venv/bin/python" -m workspace.cli.vm_manager "$@"
+
+_VMS_DIR=".vms"
+_PYTHON=".venv/bin/python"
+_CERTS_SCRIPT="workspace/scripts/bootstrap/bootstrap_certs.sh"
+_VM_MANAGER="workspace.cli.vm_main"
+
+# --- Helpers ---
+die() { echo "vm: ERROR: $*" >&2; exit 1; }
+
+_require_vm() {
+    local uuid="$1"
+    [[ -d "$_VMS_DIR/$uuid" ]] || die "VM '$uuid' not found (no .vms/$uuid/)"
+}
+
+_running() {
+    local uuid="$1"
+    local status
+    status="$(podman inspect -f '{{.State.Running}}' "$uuid")" || die "cannot inspect VM '$uuid'"
+    [[ "$status" == "true" ]]
+}
+
+_write_pid() {
+    local uuid="$1"
+    podman inspect -f '{{.State.Pid}}' "$uuid" > "$_VMS_DIR/$uuid/pid" \
+        || die "cannot write PID for VM '$uuid'"
+}
+
+_remove_hosts_entry() {
+    local uuid="$1"
+    local hosts_file="/etc/hosts"
+    if grep -q "$uuid.vm.local" "$hosts_file"; then
+        local tmp_hosts
+        tmp_hosts="$(mktemp)" || die "cannot create temp file for /etc/hosts edit"
+        grep -v "$uuid.vm.local" "$hosts_file" > "$tmp_hosts" || {
+            rm -f "$tmp_hosts"
+            die "cannot filter /etc/hosts for VM '$uuid'"
+        }
+        if cp "$tmp_hosts" "$hosts_file"; then
+            rm -f "$tmp_hosts"
+        else
+            rm -f "$tmp_hosts"
+            echo "vm: WARNING: could not write /etc/hosts (try sudo)" >&2
+        fi
+    fi
+}
+
+# --- Usage ---
+usage() {
+    cat <<'EOF'
+usage: vm <subcommand> [<args>]
+
+subcommands:
+  create  <config.yaml>      Build and start a VM from config
+  start   <uuid>             Start a stopped VM
+  stop    <uuid>             Stop a running VM
+  resume  <uuid>             Resume a stopped VM (alias for start)
+  delete  <uuid> [--purge]   Remove a VM (--purge also removes volumes)
+  kill    <uuid>             SIGKILL via PID file (bypasses podman)
+  shell   <uuid>             Open interactive bash shell in VM
+  exec    <uuid> -- <cmd>    Run one-off command in VM
+  logs    <uuid> [--follow] [--tail N]  Show container logs
+  list                       List all VMs
+  status  <uuid>             Show VM inspect info and resource stats
+  rebuild <uuid>             Rebuild VM from stored vm.yaml
+  sync    <uuid>             File sync per config.sync rules
+  config  <uuid>             Print the vm.yaml used to create this VM
+  cert    <uuid>             Generate or print client cert
+
+Flags:
+  --help, -h                 Show this help
+EOF
+    exit 0
+}
+
+# --- Subcommands ---
+
+cmd_create() {
+    local config_file="${1:-}"
+    [[ -n "$config_file" ]] || die "create: missing config file argument"
+    [[ -f "$config_file" ]] || die "create: config file '$config_file' not found"
+    exec "$_PYTHON" -m "$_VM_MANAGER" create "$config_file"
+}
+
+cmd_start() {
+    local uuid="${1:-}"
+    [[ -n "$uuid" ]] || die "start: missing uuid argument"
+    _require_vm "$uuid"
+    podman start "$uuid" || die "start: podman start failed for VM '$uuid'"
+    _write_pid "$uuid"
+    echo "VM $uuid started"
+}
+
+cmd_stop() {
+    local uuid="${1:-}"
+    [[ -n "$uuid" ]] || die "stop: missing uuid argument"
+    _require_vm "$uuid"
+    if _running "$uuid"; then
+        podman stop "$uuid" || die "stop: podman stop failed for VM '$uuid'"
+    fi
+    rm -f "$_VMS_DIR/$uuid/pid"
+    echo "VM $uuid stopped"
+}
+
+cmd_resume() {
+    cmd_start "$@"
+}
+
+cmd_delete() {
+    local uuid="${1:-}"
+    local purge=false
+    [[ -n "$uuid" ]] || die "delete: missing uuid argument"
+    shift
+    for arg in "$@"; do
+        [[ "$arg" == "--purge" ]] && purge=true
+    done
+    _require_vm "$uuid"
+    if _running "$uuid"; then
+        podman rm -f "$uuid" || die "delete: cannot force-remove running VM '$uuid'"
+    else
+        podman rm "$uuid" || die "delete: cannot remove VM '$uuid'"
+    fi
+    _remove_hosts_entry "$uuid"
+    rm -f "$_VMS_DIR/$uuid/pid"
+    if $purge; then
+        local failed=false
+        for suffix in workspace transcripts cache; do
+            podman volume rm -f "${uuid}-${suffix}" 2>&1 || failed=true
+        done
+        if $failed; then
+            echo "vm: WARNING: some volumes for VM '$uuid' could not be removed" >&2
+        fi
+        echo "VM $uuid deleted (volumes purged)"
+    else
+        echo "VM $uuid deleted"
+    fi
+}
+
+cmd_kill() {
+    local uuid="${1:-}"
+    [[ -n "$uuid" ]] || die "kill: missing uuid argument"
+    _require_vm "$uuid"
+    local pid_file="$_VMS_DIR/$uuid/pid"
+    [[ -f "$pid_file" ]] || die "kill: no PID file for VM '$uuid'"
+    local pid
+    pid="$(cat "$pid_file")"
+    kill -SIGKILL "$pid" || die "kill: cannot send SIGKILL to PID '$pid' for VM '$uuid'"
+    echo "VM $uuid killed (SIGKILL sent to PID $pid)"
+}
+
+cmd_shell() {
+    local uuid="${1:-}"
+    [[ -n "$uuid" ]] || die "shell: missing uuid argument"
+    _running "$uuid" || die "shell: VM '$uuid' is not running"
+    exec podman exec -it -u ami "$uuid" /bin/bash
+}
+
+cmd_exec() {
+    local uuid="${1:-}"
+    [[ -n "$uuid" ]] || die "exec: missing uuid argument"
+    _running "$uuid" || die "exec: VM '$uuid' is not running"
+    shift
+    if [[ "${1:-}" == "--" ]]; then
+        shift
+    fi
+    exec podman exec "$uuid" "$@"
+}
+
+cmd_logs() {
+    local uuid="${1:-}"
+    [[ -n "$uuid" ]] || die "logs: missing uuid argument"
+    _require_vm "$uuid"
+    shift
+    exec podman logs "$@" "$uuid"
+}
+
+cmd_list() {
+    podman ps -a --filter "label=ami.type=vm" \
+        --format "table {{.Names}}\t{{.State}}\t{{.Status}}\t{{.Image}}"
+}
+
+cmd_status() {
+    local uuid="${1:-}"
+    [[ -n "$uuid" ]] || die "status: missing uuid argument"
+    _require_vm "$uuid"
+    echo "=== Inspect ==="
+    podman inspect "$uuid"
+    echo ""
+    echo "=== Stats ==="
+    podman stats --no-stream "$uuid"
+}
+
+cmd_rebuild() {
+    local uuid="${1:-}"
+    [[ -n "$uuid" ]] || die "rebuild: missing uuid argument"
+    _require_vm "$uuid"
+    exec "$_PYTHON" -m "$_VM_MANAGER" rebuild "$uuid"
+}
+
+cmd_sync() {
+    local uuid="${1:-}"
+    [[ -n "$uuid" ]] || die "sync: missing uuid argument"
+    _require_vm "$uuid"
+    exec "$_PYTHON" -m "$_VM_MANAGER" sync "$uuid"
+}
+
+cmd_config() {
+    local uuid="${1:-}"
+    [[ -n "$uuid" ]] || die "config: missing uuid argument"
+    _require_vm "$uuid"
+    cat "$_VMS_DIR/$uuid/vm.yaml"
+}
+
+cmd_cert() {
+    local uuid="${1:-}"
+    [[ -n "$uuid" ]] || die "cert: missing uuid argument"
+    _require_vm "$uuid"
+    bash "$_CERTS_SCRIPT" "$uuid" "$_VMS_DIR/$uuid/certs" \
+        || die "cert: certificate generation failed for VM '$uuid'"
+    echo "Client cert: $_VMS_DIR/$uuid/certs/client.crt"
+    echo "Client key:  $_VMS_DIR/$uuid/certs/client.key"
+}
+
+# --- Dispatch ---
+if [[ $# -eq 0 ]]; then
+    usage
+fi
+
+case "${1:-}" in
+    -h|--help)  usage ;;
+    create)     shift; cmd_create "$@" ;;
+    start)      shift; cmd_start "$@" ;;
+    stop)       shift; cmd_stop "$@" ;;
+    resume)     shift; cmd_resume "$@" ;;
+    delete)     shift; cmd_delete "$@" ;;
+    kill)       shift; cmd_kill "$@" ;;
+    shell)      shift; cmd_shell "$@" ;;
+    exec)       shift; cmd_exec "$@" ;;
+    logs)       shift; cmd_logs "$@" ;;
+    list)       shift; cmd_list "$@" ;;
+    status)     shift; cmd_status "$@" ;;
+    rebuild)    shift; cmd_rebuild "$@" ;;
+    sync)       shift; cmd_sync "$@" ;;
+    config)     shift; cmd_config "$@" ;;
+    cert)       shift; cmd_cert "$@" ;;
+    *)          die "unknown subcommand '${1:-}'. Try --help." ;;
+esac

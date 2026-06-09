@@ -151,10 +151,10 @@ class TestDeriveCapFlags:
         assert "--cap-add" not in flags
 
 
-class TestMainBlock:
+class TestCLIDispatch:
     def test_help_flag(self) -> None:
         result = subprocess.run(
-            [".venv/bin/python", "-m", "workspace.cli.vm_manager", "--help"],
+            ["bash", "workspace/scripts/bin/vm", "--help"],
             capture_output=True,
             text=True,
             timeout=10,
@@ -165,7 +165,7 @@ class TestMainBlock:
 
     def test_dash_h_flag(self) -> None:
         result = subprocess.run(
-            [".venv/bin/python", "-m", "workspace.cli.vm_manager", "-h"],
+            ["bash", "workspace/scripts/bin/vm", "-h"],
             capture_output=True,
             text=True,
             timeout=10,
@@ -174,16 +174,27 @@ class TestMainBlock:
         assert result.returncode == 0
         assert "usage:" in result.stdout
 
-    def test_no_args_exits_nonzero(self) -> None:
+    def test_no_args_shows_usage(self) -> None:
         result = subprocess.run(
-            [".venv/bin/python", "-m", "workspace.cli.vm_manager"],
+            ["bash", "workspace/scripts/bin/vm"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+        assert result.returncode == 0
+        assert "usage:" in result.stdout
+
+    def test_unknown_subcommand(self) -> None:
+        result = subprocess.run(
+            ["bash", "workspace/scripts/bin/vm", "nonexistent"],
             capture_output=True,
             text=True,
             timeout=10,
             check=False,
         )
         assert result.returncode == 1
-        assert "no subcommand" in result.stderr
+        assert "unknown subcommand" in result.stderr
 
 
 class TestPodman:

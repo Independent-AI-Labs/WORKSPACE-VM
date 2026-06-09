@@ -1,7 +1,7 @@
 #jinja2:lstrip_blocks:True
 FROM ubuntu:22.04 AS base
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        systemd iptables git curl rsync gnupg sudo ca-certificates \
+        systemd iptables git curl rsync gnupg sudo ca-certificates make \
     && rm -rf /var/lib/apt/lists/*
 RUN useradd -m -s /bin/bash ami && usermod -aG sudo ami
 COPY workspace/ /opt/ami-agents/workspace/
@@ -75,16 +75,7 @@ COPY vm-openvpn.service /etc/systemd/system/openvpn.service
 COPY {{ vpn_config }} /etc/openvpn/client.ovpn
 {% endif %}
 
-RUN systemctl enable opencode.service \
-{%- if traefik_enabled %}
-    && systemctl enable traefik.service \
-{%- endif %}
-{%- if network_enabled %}
-    && systemctl enable ami-network.service \
-{%- endif %}
-{%- if openvpn_enabled %}
-    && systemctl enable openvpn.service \
-{%- endif %}
+RUN systemctl enable opencode.service{% if traefik_enabled %} && systemctl enable traefik.service{% endif %}{% if network_enabled %} && systemctl enable ami-network.service{% endif %}{% if openvpn_enabled %} && systemctl enable openvpn.service{% endif %}
 
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
     CMD curl -sf http://127.0.0.1:4096/ || exit 1
