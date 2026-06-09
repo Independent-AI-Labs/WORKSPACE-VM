@@ -56,6 +56,7 @@ repos:
         entry: "bash -c 'source projects/CI/lib/checks.sh && ci_check_banned_words'"
         language: system
         pass_filenames: false
+        always_run: true
         stages: [pre-commit]
       - id: check-coverage-no-devolution
         name: Block Coverage Threshold De-Evolution
@@ -68,6 +69,7 @@ repos:
         entry: "bash -c 'source projects/CI/lib/checks.sh && ci_check_file_length'"
         language: system
         pass_filenames: false
+        always_run: true
       - id: check-markdown-docs
         name: Check Markdown Documentation References
         entry: "uv run python -m ci.check_markdown_docs --all-md --ignore 'docs/archive/**'"
@@ -98,9 +100,8 @@ repos:
         entry: uv run python -m mypy
         language: system
         pass_filenames: false
-        args: [ --config-file, res/config/mypy.toml, --exclude, projects/, workspace ]
-        files: \.py$
-        exclude: ^projects/
+        always_run: true
+        args: [ --config-file, res/config/mypy.toml, workspace ]
       - id: check-commit-message
         name: Check Commit Message Format
         entry: "bash -c 'source projects/CI/lib/checks.sh && ci_check_commit_message \"$1\"' --"

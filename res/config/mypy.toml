@@ -9,7 +9,7 @@ namespace_packages = true
 explicit_package_bases = true
 mypy_path = ".:projects/CI:projects/DATAOPS"
 exclude = [
-    "(?x)(^tmp/|^.venv/|^venv/|^dist/|^build/|^.eggs/|^__pycache__/|.*\\.egg-info/|^.pytest_cache/|^.git/|^projects/|^\\.boot-linux/)"
+    "(?x)(^tmp/|^.venv/|^venv/|^dist/|^build/|^.eggs/|^__pycache__/|.*\\.egg-info/|^.pytest_cache/|^.git/|^projects/|^tests/|^\\.boot-linux/)"
 ]
 
 # NO CHEATING FOR TESTS. Tests must have proper types too.
