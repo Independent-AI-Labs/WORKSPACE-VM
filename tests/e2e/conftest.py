@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -90,6 +91,23 @@ class VMTracker:
                     flush=True,
                 )
             self._cleanup_volumes(uuid_val)
+            try:
+                subprocess.run(
+                    ["podman", "rmi", "-f", f"ami-vm:{uuid_val}"],
+                    capture_output=True,
+                    text=True,
+                    timeout=30,
+                    check=True,
+                )
+            except subprocess.CalledProcessError as exc:
+                print(
+                    f"WARNING: cleanup image rm failed for {uuid_val}: "
+                    f"{exc.stderr.strip() if exc.stderr else exc}",
+                    flush=True,
+                )
+            vm_path = _VMS_DIR / uuid_val
+            if vm_path.exists():
+                shutil.rmtree(vm_path, ignore_errors=True)
 
 
 @pytest.fixture(scope="session")
