@@ -21,6 +21,14 @@ const RULES: Array<{ regex: RegExp; instruction: string }> = [
   },
 ]
 
+const BLOCK_PATTERNS: Array<{ regex: RegExp; instruction: string }> = [
+  {
+    regex: /\b(likely|may[bB][eE]|possibly|probably|perhaps|unclear|unsure|i think|i believe|might be|could be)\b/i,
+    instruction:
+      "## STOP — your last response used speculation words. VERIFY EVERY CLAIM WITH ACTUAL EVIDENCE BEFORE ANSWERING. NEVER GUESS.",
+  },
+]
+
 let matched: string[] = []
 
 export const amiContext = async () => {
@@ -32,13 +40,24 @@ export const amiContext = async () => {
       matched = []
       const seen = new Set<string>()
       for (const msg of output.messages) {
-        if (msg.info.role !== "user") continue
-        for (const part of msg.parts) {
-          if (part.type !== "text" || !part.text?.trim()) continue
-          for (const rule of RULES) {
-            if (rule.regex.test(part.text) && !seen.has(rule.instruction)) {
-              seen.add(rule.instruction)
-              matched.push(rule.instruction)
+        if (msg.info.role === "user") {
+          for (const part of msg.parts) {
+            if (part.type !== "text" || !part.text?.trim()) continue
+            for (const rule of RULES) {
+              if (rule.regex.test(part.text) && !seen.has(rule.instruction)) {
+                seen.add(rule.instruction)
+                matched.push(rule.instruction)
+              }
+            }
+          }
+        } else if (msg.info.role === "assistant") {
+          for (const part of msg.parts) {
+            if (part.type !== "text" || !part.text?.trim()) continue
+            for (const bp of BLOCK_PATTERNS) {
+              if (bp.regex.test(part.text) && !seen.has(bp.instruction)) {
+                seen.add(bp.instruction)
+                matched.push(bp.instruction)
+              }
             }
           }
         }

@@ -314,9 +314,9 @@ def check_container(name: str) -> bool:
             capture_output=True,
             text=True,
             timeout=_MAX_CHECK_TIMEOUT,
-            check=False,
+            check=True,
         )
-    except (subprocess.TimeoutExpired, OSError):
+    except (subprocess.TimeoutExpired, subprocess.CalledProcessError, OSError):
         return False
     return name in result.stdout
 

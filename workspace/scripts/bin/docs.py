@@ -73,7 +73,7 @@ def main() -> int:
         print(f"Error: {tool} not found. Run bootstrap to install it.", file=sys.stderr)
         return 1
 
-    return subprocess.run([binary, *sys.argv[2:]], check=False).returncode
+    return subprocess.run([binary, *sys.argv[2:]], check=True).returncode
 
 
 if __name__ == "__main__":

@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import re
 import stat
+import sys
 from pathlib import Path
 
 from workspace.scripts.shell.extension_registry import (
@@ -45,6 +46,7 @@ def fix_stale_shebang(binary: Path, ami_root: Path) -> None:
     try:
         content = binary.read_text()
     except (OSError, UnicodeDecodeError):
+        sys.stderr.write(f"Warning: cannot read {binary.name}, skipping shebang fix\n")
         return
 
     correct_python = str(ami_root / ".venv" / "bin" / "python3")

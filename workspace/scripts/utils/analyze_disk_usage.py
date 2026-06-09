@@ -73,6 +73,7 @@ def analyze(path: str, same_fs: bool = False) -> None:
 
             data.append((size, fpath))
         except ValueError:
+            sys.stderr.write(f"Warning: unparseable du output: {line}\n")
             continue
 
     data.sort(key=lambda x: x[0], reverse=True)

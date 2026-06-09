@@ -166,12 +166,16 @@ def create(config_path: str) -> None:
     )
 
     if cfg.network.mode == "bridge":
-        result = subprocess.run(
-            ["podman", "network", "exists", cfg.network.network_name],
-            capture_output=True,
-            check=False,
-        )
-        if result.returncode != 0:
+        exists_rc = 0
+        try:
+            subprocess.run(
+                ["podman", "network", "exists", cfg.network.network_name],
+                capture_output=True,
+                check=True,
+            )
+        except subprocess.CalledProcessError:
+            exists_rc = 1
+        if exists_rc != 0:
             subprocess.run(
                 ["podman", "network", "create", cfg.network.network_name],
                 check=True,

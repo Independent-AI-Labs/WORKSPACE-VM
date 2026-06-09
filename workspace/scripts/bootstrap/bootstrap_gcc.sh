@@ -26,7 +26,8 @@ log_error() { echo -e "${RED}[ERROR]${NC} $*"; }
 
 # Check if already installed
 if [[ -x "${GCC_MUSL_DIR}/bin/gcc" ]]; then
-    VERSION=$("${GCC_MUSL_DIR}/bin/gcc" --version 2>&1 | head -n1)
+    VERSION=$("${GCC_MUSL_DIR}/bin/gcc" --version 2>&1)
+    VERSION="${VERSION%%$'\n'*}"
     log_info "GCC/musl already installed: $VERSION"
     exit 0
 fi
@@ -70,7 +71,8 @@ if ! "${GCC_BIN_DIR}/gcc" --version &> /dev/null; then
     exit 1
 fi
 
-VERSION=$("${GCC_BIN_DIR}/gcc" --version 2>&1 | head -n1)
+VERSION=$("${GCC_BIN_DIR}/gcc" --version 2>&1)
+VERSION="${VERSION%%$'\n'*}"
 log_info "GCC extracted successfully: $VERSION"
 
 # Create symlinks in .boot-linux/bin
@@ -106,7 +108,9 @@ done
 
 # Verify the symlinked cc works
 if "${BIN_DIR}/cc" --version &> /dev/null; then
-    log_info "✓ C compiler bootstrapped successfully: $(${BIN_DIR}/cc --version 2>&1 | head -n1)"
+    _ccver="$("${BIN_DIR}/cc" --version 2>&1)"
+    _ccver="${_ccver%%$'\n'*}"
+    log_info "✓ C compiler bootstrapped successfully: ${_ccver}"
 else
     log_error "Bootstrapped cc failed to execute"
     exit 1

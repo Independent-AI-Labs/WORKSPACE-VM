@@ -83,7 +83,9 @@ ln -sf "../gh/bin/gh" "${BIN_DIR}/gh"
 
 # Verify
 if "${BIN_DIR}/gh" --version > /dev/null 2>&1; then
-    log_info "gh installed successfully: $("${BIN_DIR}/gh" --version | head -n 1)"
+    _ghver="$("${BIN_DIR}/gh" --version 2>&1)"
+    _ghver="${_ghver%%$'\n'*}"
+    log_info "gh installed successfully: ${_ghver}"
     log_info "Location: ${BIN_DIR}/gh -> ${GH_DIR}/bin/gh"
 else
     log_error "gh installation failed or binary incompatible"

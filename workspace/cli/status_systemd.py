@@ -69,7 +69,7 @@ def _load_services_from(path: Path, managed: set[str]) -> None:
         for svc_name in data.get("local_services", {}):
             managed.add(f"{svc_name}.service")
     except (OSError, yaml.YAMLError) as e:
-        print(f"Warning: Failed to load {path}: {e}", file=sys.stderr)
+        sys.stderr.write(f"Warning: Failed to load {path}: {e}\n")
 
 
 def get_managed_service_names() -> set[str]:

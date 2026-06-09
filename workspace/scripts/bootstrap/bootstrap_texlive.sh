@@ -66,7 +66,8 @@ cd "${INSTALLER_DIR}"
 tar -xzf "${INSTALLER_TARBALL}"
 
 # Find the installer directory (it has a date in the name)
-INSTALLER_SUBDIR=$(find . -maxdepth 1 -type d -name "install-tl-*" | head -n1)
+INSTALLER_SUBDIR=$(find . -maxdepth 1 -type d -name "install-tl-*" 2>&1)
+INSTALLER_SUBDIR="${INSTALLER_SUBDIR%%$'\n'*}"
 
 if [[ -z "${INSTALLER_SUBDIR}" ]]; then
     log_error "Could not find installer directory"
@@ -364,7 +365,9 @@ export TEXMFCNF="${TEXLIVE_DIR}/texmf/texmf.cnf"
 log_info "Verifying pdflatex installation"
 if "${VENV_DIR}/bin/pdflatex" --version >/dev/null 2>&1; then
     log_info "pdflatex installed successfully:"
-    "${VENV_DIR}/bin/pdflatex" --version | head -n 1
+    _pdflatexver="$("${VENV_DIR}/bin/pdflatex" --version 2>&1)"
+    _pdflatexver="${_pdflatexver%%$'\n'*}"
+    echo "  ${_pdflatexver}"
 else
     log_error "pdflatex installation verification failed"
     exit 1

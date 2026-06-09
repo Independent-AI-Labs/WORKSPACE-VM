@@ -31,7 +31,7 @@ export PLAYWRIGHT_BROWSERS_PATH="$BROWSERS_DIR"
 # playwright install --dry-run shows "Install location: ...chromium-NNN" only when
 # the expected version is missing or outdated. If no such line, we're up to date.
 if [[ -d "$BROWSERS_DIR" ]] && ! "$PLAYWRIGHT" install --dry-run chromium chrome 2>&1 | grep -q 'Install location:.*chromium-[0-9]'; then
-    EXISTING=$("$PLAYWRIGHT" --version 2>/dev/null || echo "unknown")
+    EXISTING=$("$PLAYWRIGHT" --version 2>&1 || echo "unknown")
     log_success "Playwright browsers already installed and up to date ($EXISTING)"
     log_success "  Path: $BROWSERS_DIR"
     exit 0
@@ -74,7 +74,7 @@ fi
 if [[ ${#MISSING_LIBS[@]} -eq 0 ]]; then
     log_info "Verifying chromium..."
     VERIFY_IMG="/tmp/playwright-verify-$$.png"
-    if timeout 30 "$PLAYWRIGHT" screenshot --browser chromium "data:text/html,<h1>AMI</h1>" "$VERIFY_IMG" 2>/dev/null; then
+    if timeout 30 "$PLAYWRIGHT" screenshot --browser chromium "data:text/html,<h1>AMI</h1>" "$VERIFY_IMG" 2>&1; then
         rm -f "$VERIFY_IMG"
         log_success "Chromium operational"
     else

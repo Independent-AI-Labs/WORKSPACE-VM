@@ -78,7 +78,7 @@ _install_components() {
 if [ -x "$RUST_HOME/bin/rustc" ] && [ -x "$RUST_HOME/bin/cargo" ]; then
     export RUSTUP_HOME="$RUST_HOME"
     export CARGO_HOME="$RUST_HOME"
-    if EXISTING_VER=$("$RUST_HOME/bin/rustc" --version 2>/dev/null); then
+    if EXISTING_VER=$("$RUST_HOME/bin/rustc" --version 2>&1); then
         log_info "Rust is already installed: $EXISTING_VER"
         _create_symlinks
         exit 0

@@ -63,7 +63,7 @@ echo
 
 # Check if already installed
 if [ -f "$GCLOUD_SDK_DIR/bin/gcloud" ]; then
-    CURRENT_VERSION=$("$GCLOUD_SDK_DIR/bin/gcloud" version --format="value(Google Cloud SDK)" 2>/dev/null || echo "unknown")
+    CURRENT_VERSION=$("$GCLOUD_SDK_DIR/bin/gcloud" version --format="value(Google Cloud SDK)" 2>&1 || echo "unknown")
     echo "gcloud CLI already installed (version: $CURRENT_VERSION)"
 
     # Check if running non-interactively (from oc or CI)
@@ -131,7 +131,7 @@ echo
 # Verify installation
 GCLOUD_BIN="$GCLOUD_SDK_DIR/bin/gcloud"
 if [ -x "$GCLOUD_BIN" ]; then
-    VERSION=$("$GCLOUD_BIN" version --format="value(Google Cloud SDK)" 2>/dev/null || echo "unknown")
+    VERSION=$("$GCLOUD_BIN" version --format="value(Google Cloud SDK)" 2>&1 || echo "unknown")
     echo "Installed version: $VERSION"
     echo "gcloud path: $GCLOUD_BIN"
 else

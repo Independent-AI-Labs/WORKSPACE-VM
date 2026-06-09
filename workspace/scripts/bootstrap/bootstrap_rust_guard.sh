@@ -116,6 +116,21 @@ build_guard_binary() {
         log_info "Rust bootstrapped successfully"
     fi
 
+    # Validate that rustup has a default toolchain configured.
+    # A prior broken/partial install can leave cargo on PATH with
+    # no usable toolchain, causing rustup commands to fail with
+    # "rustup could not choose a version of rustup to run".
+    if command -v rustup >/dev/null; then
+        if ! rustup show active-toolchain >/dev/null 2>&1; then
+            log_warn "rustup found but no default toolchain configured — installing stable"
+            rustup default stable || {
+                log_error "Failed to set default Rust toolchain"
+                return 1
+            }
+            log_info "Rust stable toolchain installed"
+        fi
+    fi
+
     local guard_dir="${PROJECT_ROOT}/projects/RUST-GUARD"
     if [[ ! -f "$guard_dir/Cargo.toml" ]]; then
         log_info "RUST-GUARD project not found at $guard_dir — cloning from remote..."

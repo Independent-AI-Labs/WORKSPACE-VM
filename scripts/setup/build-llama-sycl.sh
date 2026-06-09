@@ -18,7 +18,7 @@ fi
 
 echo "Sourcing Intel environment..."
 set +u
-source "$ONEAPI_VARS" --force
+source "$ONEAPI_VARS" --force || { echo "ERROR: failed to source $ONEAPI_VARS" >&2; exit 1; }
 set -u
 
 echo "=== Step 2: Preparing llama.cpp Source ==="

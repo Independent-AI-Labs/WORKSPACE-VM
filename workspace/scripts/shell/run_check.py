@@ -52,10 +52,7 @@ def _parse_semver(v: str) -> tuple[int, int, int] | None:
         return int(m.group(1)), int(m.group(2)), int(m.group(3))
     # Fall back to best-effort: take leading int(s) separated by dots.
     parts = re.split(r"[^0-9]", v, maxsplit=1)[0].split(".")
-    try:
-        nums = [int(p) for p in parts if p]
-    except ValueError:
-        return None
+    nums = [int(p) for p in parts if p and p.isdigit()]
     if not nums:
         return None
     while len(nums) < _SEMVER_PARTS:
@@ -193,9 +190,14 @@ def run_check(
             capture_output=True,
             text=True,
             timeout=timeout,
-            check=False,
+            check=True,
         )
-        rc, stdout, stderr = r.returncode, r.stdout, r.stderr
+        rc, stdout, stderr = 0, r.stdout, r.stderr
+        output = stdout + stderr
+    except subprocess.CalledProcessError as cpe:
+        rc = cpe.returncode
+        stdout = cpe.stdout or ""
+        stderr = cpe.stderr or ""
         output = stdout + stderr
     except subprocess.TimeoutExpired as e:
         exc = f"TimeoutExpired({timeout}s): {e}"

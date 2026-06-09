@@ -45,8 +45,8 @@ mkdir -p "${BIN_DIR}"
 
 # Clean any stale/corrupted binaries from previous runs
 for bin in kubectl helm; do
-    if [[ -e "${BIN_DIR}/${bin}" ]] && ! file -b "${BIN_DIR}/${bin}" 2>/dev/null | grep -qi "ELF"; then
-        log_warn "Removing stale ${bin} ($(file -b "${BIN_DIR}/${bin}" 2>/dev/null || echo unknown))"
+    if [[ -e "${BIN_DIR}/${bin}" ]] && ! file -b "${BIN_DIR}/${bin}" 2>&1 | grep -qi "ELF"; then
+        log_warn "Removing stale ${bin} ($(file -b "${BIN_DIR}/${bin}" 2>&1 || echo unknown))"
         rm -f "${BIN_DIR}/${bin}"
     fi
 done
@@ -70,7 +70,7 @@ OS="linux"
 
 # Detect WSL — warn about known performance issues
 _IS_WSL=0
-if grep -qi microsoft /proc/version 2>/dev/null; then
+if grep -qi microsoft /proc/version 2>&1; then
     _IS_WSL=1
     log_warn "WSL detected. If extraction stalls, add a Windows Defender exclusion:"
     log_warn "  PowerShell (admin): Add-MpExclusion -Path '\\\\wsl\$'"
@@ -102,7 +102,7 @@ log_debug "kubectl file type: $(file -b "${KUBECTL_BIN}")"
 # Validate kubectl is an actual binary, not an error page or wrapper script.
 # dl.k8s.io can return HTML behind proxies, and snap/system kubectl may be a wrapper.
 # Real kubectl is ~54M; a wrapper/error page is typically <1M.
-_kubectl_size=$(stat -c%s "${KUBECTL_BIN}" 2>/dev/null || stat -f%z "${KUBECTL_BIN}" 2>/dev/null || echo 0)
+_kubectl_size=$(stat -c%s "${KUBECTL_BIN}" 2>&1 || stat -f%z "${KUBECTL_BIN}" 2>&1 || echo 0)
 if ! file -b "${KUBECTL_BIN}" | grep -qi "ELF"; then
     log_error "kubectl download is not a valid ELF binary: $(file -b "${KUBECTL_BIN}")"
     log_error "Size: ${_kubectl_size} bytes (expected ~54MB)"
@@ -173,12 +173,12 @@ rm -rf "${_HELM_TMP}"
 # Move binaries to .boot-linux/bin
 log_step "Installing binaries to ${BIN_DIR}..."
 
-log_debug "Before mv: kubectl = $(file -b "${KUBECTL_BIN}" 2>/dev/null || echo missing), size=$(stat -c%s "${KUBECTL_BIN}" 2>/dev/null || echo 0)"
+log_debug "Before mv: kubectl = $(file -b "${KUBECTL_BIN}" 2>&1 || echo missing), size=$(stat -c%s "${KUBECTL_BIN}" 2>&1 || echo 0)"
 mv "${KUBECTL_BIN}" "${BIN_DIR}/kubectl"
-log_debug "After mv: kubectl = $(file -b "${BIN_DIR}/kubectl" 2>/dev/null || echo missing), size=$(stat -c%s "${BIN_DIR}/kubectl" 2>/dev/null || echo 0)"
+log_debug "After mv: kubectl = $(file -b "${BIN_DIR}/kubectl" 2>&1 || echo missing), size=$(stat -c%s "${BIN_DIR}/kubectl" 2>&1 || echo 0)"
 
 mv "${KUBERNETES_DIR}/helm" "${BIN_DIR}/helm"
-log_debug "After mv: helm = $(file -b "${BIN_DIR}/helm" 2>/dev/null || echo missing), size=$(stat -c%s "${BIN_DIR}/helm" 2>/dev/null || echo 0)"
+log_debug "After mv: helm = $(file -b "${BIN_DIR}/helm" 2>&1 || echo missing), size=$(stat -c%s "${BIN_DIR}/helm" 2>&1 || echo 0)"
 
 # Verification — use file(1) check + timeout to avoid Defender scan hangs on WSL.
 # First execution of a new binary on WSL triggers a full Defender scan that can
@@ -200,15 +200,18 @@ log_info "✓ kubectl and helm are valid ELF binaries"
 
 # Best-effort version check with 15s timeout (Defender may delay first exec)
 log_debug "Running kubectl version (15s timeout)..."
-if timeout 15 "${BIN_DIR}/kubectl" version --client --output=json 2>/dev/null | grep -q "clientVersion"; then
-    log_info "✓ kubectl $(timeout 5 "${BIN_DIR}/kubectl" version --client 2>/dev/null | head -1 || echo "v${KUBECTL_VERSION}")"
+if timeout 15 "${BIN_DIR}/kubectl" version --client --output=json 2>&1 | grep -q "clientVersion"; then
+    _kubever="$(timeout 5 "${BIN_DIR}/kubectl" version --client 2>&1)"
+    _kubever="${_kubever%%$'\n'*}"
+    log_info "✓ kubectl ${_kubever:-v${KUBECTL_VERSION}}"
 else
     log_warn "kubectl version check timed out or failed (binary is valid ELF — likely Defender delay on WSL)"
 fi
 
 log_debug "Running helm version (15s timeout)..."
-if timeout 15 "${BIN_DIR}/helm" version 2>/dev/null | grep -q "version"; then
-    log_info "✓ helm $(timeout 5 "${BIN_DIR}/helm" version --short 2>/dev/null || echo "v${HELM_VERSION}")"
+if timeout 15 "${BIN_DIR}/helm" version 2>&1 | grep -q "version"; then
+    _helmver="$(timeout 5 "${BIN_DIR}/helm" version --short 2>&1)"
+    log_info "✓ helm ${_helmver:-v${HELM_VERSION}}"
 else
     log_warn "helm version check timed out or failed (binary is valid ELF — likely Defender delay on WSL)"
 fi

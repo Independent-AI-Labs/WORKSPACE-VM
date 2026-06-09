@@ -59,7 +59,7 @@ def main() -> int:
             os.environ["SSL_CERT_DIR"] = cert_dir
 
     cmd = [binary, *args]
-    return subprocess.run(cmd, check=False).returncode
+    return subprocess.run(cmd, check=True).returncode
 
 
 if __name__ == "__main__":

@@ -152,7 +152,7 @@ ensure_git_submodules() {
                         url="${BASH_REMATCH[1]}"
                         https_url=$(_to_https "$url")
                         if [ "$https_url" != "$url" ]; then
-                            "$git_cmd" submodule set-url "$path" "$https_url" 2>/dev/null || log_warning "Could not set HTTPS URL for $path"
+                            "$git_cmd" submodule set-url "$path" "$https_url" 2>&1 || log_warning "Could not set HTTPS URL for $path"
                         fi
                         path=""
                         url=""
@@ -193,7 +193,8 @@ _find_shell_configs() {
 _register_aliases_in_shell() {
     local shell_rc="$1"
     local content
-    content=$(cat "$shell_rc" 2>/dev/null || echo "")
+    content=$(cat "$shell_rc" 2>&1)
+    if [[ $? -ne 0 ]]; then content=""; fi
 
     if [[ "$content" == *"shell-setup"* ]]; then
         return 0  # Already present

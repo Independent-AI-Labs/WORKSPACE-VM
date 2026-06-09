@@ -6,6 +6,7 @@ Duplicate file finder script that compares filenames between two directories.
 import argparse
 import os
 import shutil
+import sys
 from pathlib import Path
 from typing import NamedTuple
 
@@ -104,8 +105,8 @@ def _move_to_trash(dup: str, entries: list[FileEntry], trash_path: Path) -> int:
                 shutil.move(entry.path, dest_path)
                 print(f"Moved to trash: {entry.path}")
                 moved_count += 1
-            except Exception as e:
-                print(f"Error moving {entry.path}: {e}")
+            except (OSError, shutil.Error) as e:
+                sys.stderr.write(f"Error moving {entry.path}: {e}\n")
     return moved_count
 
 

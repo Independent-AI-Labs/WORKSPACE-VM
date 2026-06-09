@@ -62,7 +62,9 @@ chmod +x "${BIN_DIR}/adb" "${BIN_DIR}/fastboot"
 
 # Verify
 if "${BIN_DIR}/adb" version > /dev/null 2>&1; then
-    log_info "ADB installed successfully: $(${BIN_DIR}/adb version | head -n 1)"
+    _adb_ver="$("${BIN_DIR}/adb" version 2>&1)"
+    _adb_ver="${_adb_ver%%$'\n'*}"
+    log_info "ADB installed successfully: ${_adb_ver}"
 else
     log_error "ADB installation failed"
     exit 1

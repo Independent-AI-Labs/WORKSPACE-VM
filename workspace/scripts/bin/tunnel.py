@@ -61,7 +61,7 @@ def main() -> int:
             args = ["--config", config, *args]
 
     cmd = [binary, *args]
-    return subprocess.run(cmd, check=False).returncode
+    return subprocess.run(cmd, check=True).returncode
 
 
 if __name__ == "__main__":

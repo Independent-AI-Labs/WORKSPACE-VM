@@ -94,7 +94,9 @@ chmod +x "${TARGET_PATH}"
 
 # Verify
 if "${TARGET_PATH}" --version > /dev/null 2>&1; then
-    log_info "cloudflared installed successfully: $(${TARGET_PATH} --version | head -n 1)"
+    _cver="$("${TARGET_PATH}" --version 2>&1)"
+    _cver="${_cver%%$'\n'*}"
+    log_info "cloudflared installed successfully: ${_cver}"
     log_info "Location: ${TARGET_PATH}"
 else
     log_error "cloudflared installation failed or binary incompatible"

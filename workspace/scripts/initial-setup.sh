@@ -277,7 +277,7 @@ check_network_tools() {
 # Apt probing & install
 # =============================================================================
 # shellcheck source=initial-setup-apt.sh
-source "${SCRIPT_DIR}/initial-setup-apt.sh"
+source "${SCRIPT_DIR}/initial-setup-apt.sh" || { echo "ERROR: failed to source initial-setup-apt.sh" >&2; exit 1; }
 
 # =============================================================================
 # Main

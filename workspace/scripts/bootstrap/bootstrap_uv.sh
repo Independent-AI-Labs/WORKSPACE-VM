@@ -80,7 +80,7 @@ TEMP_DIR=$(mktemp -d)
 cd "$TEMP_DIR"
 
 # Try latest release first, fall back to specific version
-if ! curl -LsSf "https://github.com/astral-sh/uv/releases/latest/download/$UV_FILE_NAME" -o "$UV_FILE_NAME" 2>/dev/null; then
+if ! curl -LsSf "https://github.com/astral-sh/uv/releases/latest/download/$UV_FILE_NAME" -o "$UV_FILE_NAME"; then
     log_info "Latest version failed, trying stable version..."
     VERSION=$(curl -s https://api.github.com/repos/astral-sh/uv/releases/latest | grep '"tag_name"' | sed -E 's/.*"tag_name": "([^"]+)",.*/\1/')
     VERSION=${VERSION#v}

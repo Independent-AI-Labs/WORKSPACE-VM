@@ -34,7 +34,8 @@ GCC_BIN_NAME="x86_64-buildroot-linux-gnu-gcc.br_real"
 
 # Check if already installed
 if [[ -x "${GCC_GLIBC_DIR}/${TOOLCHAIN_DIR_NAME}/bin/${GCC_BIN_NAME}" ]]; then
-    VERSION=$("${GCC_GLIBC_DIR}/${TOOLCHAIN_DIR_NAME}/bin/${GCC_BIN_NAME}" --version 2>&1 | head -n1)
+    VERSION=$("${GCC_GLIBC_DIR}/${TOOLCHAIN_DIR_NAME}/bin/${GCC_BIN_NAME}" --version 2>&1)
+    VERSION="${VERSION%%$'\n'*}"
     log_info "GCC/glibc already installed: $VERSION"
     exit 0
 fi
@@ -67,7 +68,8 @@ if ! "${GCC_BIN}" --version &> /dev/null; then
     exit 1
 fi
 
-VERSION=$("${GCC_BIN}" --version 2>&1 | head -n1)
+VERSION=$("${GCC_BIN}" --version 2>&1)
+VERSION="${VERSION%%$'\n'*}"
 log_info "GCC extracted successfully: $VERSION"
 
 # Create wrapper script in .boot-linux/bin/ — do NOT overwrite gcc/cc (those are musl)
@@ -85,7 +87,9 @@ log_info "  Created gcc-glibc wrapper (musl gcc/cc unchanged)"
 
 # Verify
 if "${BIN_DIR}/gcc-glibc" --version &> /dev/null; then
-    log_info "✓ GCC/glibc bootstrapped: $(${BIN_DIR}/gcc-glibc --version 2>&1 | head -n1)"
+    _glibcver="$("${BIN_DIR}/gcc-glibc" --version 2>&1)"
+    _glibcver="${_glibcver%%$'\n'*}"
+    log_info "✓ GCC/glibc bootstrapped: ${_glibcver}"
 else
     log_error "Bootstrapped gcc-glibc failed to execute"
     exit 1

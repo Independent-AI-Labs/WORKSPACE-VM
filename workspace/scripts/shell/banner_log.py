@@ -63,7 +63,7 @@ def _close_fh(fh: TextIOWrapper) -> None:
     try:
         fh.close()
     except OSError as exc:
-        print(f"[banner-log] close failed: {exc}", file=sys.stderr)
+        sys.stderr.write(f"[banner-log] close failed: {exc}\n")
 
 
 def _write_footer(path: Path) -> None:

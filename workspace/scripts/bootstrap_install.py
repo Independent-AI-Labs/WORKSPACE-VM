@@ -8,6 +8,7 @@ import os
 import subprocess
 import sys
 from collections.abc import Callable
+from contextlib import suppress
 from pathlib import Path
 from typing import NamedTuple
 
@@ -83,21 +84,21 @@ def run_bootstrap_script(script_name: str) -> bool:
         # the user's terminal — bootstrap scripts running underneath must
         # never prompt (would freeze `make install` mid-walk; INCIDENT-2026-05-08
         # gcloud "Reinstall? (y/N)" hang).
-        result = subprocess.run(
+        subprocess.run(
             ["bash", str(script_path)],
             cwd=str(_PROJECT_ROOT),
             env=env,
             stdin=subprocess.DEVNULL,
-            check=False,
+            check=True,
         )
-    except (OSError, subprocess.SubprocessError) as exc:
+    except (OSError, subprocess.SubprocessError, subprocess.CalledProcessError) as exc:
         print(
             f"ERROR: failed to invoke bootstrap script {script_path}: {exc}",
             file=sys.stderr,
         )
         return False
     else:
-        return result.returncode == 0
+        return True
 
 
 def install_component(component: Component) -> bool:
@@ -126,20 +127,20 @@ def _run_script_path(script_rel: str) -> bool:
         return False
     try:
         env = get_bootstrap_env()
-        result = subprocess.run(
+        subprocess.run(
             ["bash", str(script_path)],
             cwd=str(_PROJECT_ROOT),
             env=env,
             stdin=subprocess.DEVNULL,
-            check=False,
+            check=True,
         )
-    except (OSError, subprocess.SubprocessError) as exc:
+    except (OSError, subprocess.SubprocessError, subprocess.CalledProcessError) as exc:
         print(
             f"ERROR: failed to invoke {script_rel}: {exc}",
             file=sys.stderr,
         )
         return False
-    return result.returncode == 0
+    return True
 
 
 def _pull_workspace_repo(component: Component) -> None:
@@ -147,12 +148,13 @@ def _pull_workspace_repo(component: Component) -> None:
     if repo_path is None:
         return
     if (repo_path / ".git").exists():
-        subprocess.run(
-            ["git", "pull", "--ff-only"],
-            cwd=repo_path,
-            stdin=subprocess.DEVNULL,
-            check=False,
-        )
+        with suppress(subprocess.CalledProcessError):
+            subprocess.run(
+                ["git", "pull", "--ff-only"],
+                cwd=repo_path,
+                stdin=subprocess.DEVNULL,
+                check=True,
+            )
         return
     try:
         subprocess.run(

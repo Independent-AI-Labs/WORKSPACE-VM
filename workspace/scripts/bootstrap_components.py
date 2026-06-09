@@ -131,13 +131,16 @@ class Component(BaseModel):
                 timeout=5,
                 cwd=str(PROJECT_ROOT),
                 env=env,
-                check=False,
+                check=True,
             )
-            if result.returncode == 0:
-                return self._extract_version(result.stdout + result.stderr)
-        except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
-            pass
-        return None
+            return self._extract_version(result.stdout + result.stderr)
+        except (
+            subprocess.CalledProcessError,
+            subprocess.TimeoutExpired,
+            FileNotFoundError,
+            OSError,
+        ):
+            return None
 
     def _extract_version(self, output: str) -> str | None:
         """Extract version from command output."""

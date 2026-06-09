@@ -21,8 +21,10 @@ repos:
         always_run: true
       - id: block-sensitive-files
         name: Block Sensitive Files
-        entry: "bash -c 'source projects/CI/lib/checks.sh && ci_block_sensitive_files \"$@\"' --"
+        entry: "bash -c 'source projects/CI/lib/checks.sh && ci_block_sensitive_files'"
         language: system
+        pass_filenames: false
+        always_run: true
       - id: gitleaks
         name: Block secrets in staged content (gitleaks)
         entry: gitleaks protect --staged --redact --no-banner --verbose
@@ -39,8 +41,16 @@ repos:
         name: Check Dependency Versions (strict pinning + latest)
         entry: bash -c 'uv run python -c "import ci" 2>/dev/null || { echo "FAILED: ci not installed — run: make sync" >&2; exit 1; }; exec uv run python -m ci.check_dependency_versions "$@"' --
         language: system
-        pass_filenames: true
-        files: (pyproject\.toml|package\.json|docker-compose\.ya?ml|Dockerfile)$
+        pass_filenames: false
+        always_run: true
+
+      - id: check-duplicate-dependencies
+        name: Check Duplicate/Redundant Dependencies
+        entry: bash -c 'uv run python -c "import ci" 2>/dev/null || { echo "FAILED: ci not installed — run: make sync" >&2; exit 1; }; exec uv run python -m ci.check_duplicate_dependencies "$@"' --
+        language: system
+        pass_filenames: false
+        always_run: true
+
       - id: check-banned-words
         name: Check Banned Words
         entry: "bash -c 'source projects/CI/lib/checks.sh && ci_check_banned_words'"
@@ -60,21 +70,23 @@ repos:
         pass_filenames: false
       - id: check-markdown-docs
         name: Check Markdown Documentation References
-        entry: "uv run python -m ci.check_markdown_docs --check-remote"
+        entry: "uv run python -m ci.check_markdown_docs --all-md --ignore 'docs/archive/**'"
         language: system
-        types: [markdown]
-        pass_filenames: true
+        pass_filenames: false
+        always_run: true
 
       - id: check-init-files
-        name: Enforce Empty __init__.py Files (CRITICAL SECURITY REQUIREMENT)
-        entry: "bash -c 'source projects/CI/lib/checks.sh && ci_check_init_files \"$@\"' --"
+        name: Enforce Empty __init__.py Files
+        entry: "bash -c 'source projects/CI/lib/checks.sh && ci_check_init_files'"
         language: system
-        files: __init__\.py$
+        pass_filenames: false
+        always_run: true
       - id: check-py-not-executable
-        name: Forbid +x bit on .py modules (hermetic-bootstrap guard)
-        entry: "bash -c 'source projects/CI/lib/checks.sh && ci_check_py_not_executable \"$@\"' --"
+        name: Forbid +x bit on .py modules
+        entry: "bash -c 'source projects/CI/lib/checks.sh && ci_check_py_not_executable'"
         language: system
-        files: \.py$
+        pass_filenames: false
+        always_run: true
       - id: check-no-dead-imports
         name: Forbid deleting .py modules that are still imported
         entry: "bash -c 'source projects/CI/lib/checks.sh && ci_check_no_dead_imports'"

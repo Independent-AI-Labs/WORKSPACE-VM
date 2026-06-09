@@ -163,7 +163,7 @@ if [[ ${#MISSING_SYS_DEPS[@]} -gt 0 ]]; then
 fi
 
 # AppArmor profile check (informational only)
-APPARMOR_USERNS=$(sysctl -n kernel.apparmor_restrict_unprivileged_userns 2>/dev/null || echo 0)
+APPARMOR_USERNS=$(sysctl -n kernel.apparmor_restrict_unprivileged_userns 2>&1 || echo 0)
 if [[ "$APPARMOR_USERNS" == "1" ]]; then
     log_warn "AppArmor restricts unprivileged user namespaces on this kernel"
     log_warn "Podman may require manual AppArmor profile setup for full rootless mode"

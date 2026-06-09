@@ -7,7 +7,7 @@
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 COMMON_SCRIPT="$SCRIPT_DIR/common.sh"
 if [ -f "$COMMON_SCRIPT" ]; then
-    source "$COMMON_SCRIPT"
+    source "$COMMON_SCRIPT" || { echo "ERROR: failed to source $COMMON_SCRIPT" >&2; exit 1; }
 else
     echo "ERROR: common.sh not found at $COMMON_SCRIPT"
     exit 1

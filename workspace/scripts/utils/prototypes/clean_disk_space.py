@@ -9,6 +9,7 @@ import argparse
 import json
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 from typing import Any, TypedDict, cast
 
@@ -120,7 +121,13 @@ class DiskCleaner:
 
             print(f"[DELETE] Container {name} ({c_id})")
             if not self.dry_run:
-                subprocess.run(["podman", "rm", "-f", c_id], check=False)
+                try:
+                    subprocess.run(["podman", "rm", "-f", c_id], check=True)
+                except subprocess.CalledProcessError as exc:
+                    print(
+                        f"[WARN] Failed to remove container {name}: {exc}",
+                        file=sys.stderr,
+                    )
 
     def clean_images(self) -> None:
         """Remove only dangling (<none>) images. Tagged images are kept."""
@@ -147,7 +154,13 @@ class DiskCleaner:
             img_id_short = img_id_full[:12]
             print(f"[DELETE] Dangling image ({img_id_short})")
             if not self.dry_run:
-                subprocess.run(["podman", "rmi", "-f", img_id_full], check=False)
+                try:
+                    subprocess.run(["podman", "rmi", "-f", img_id_full], check=True)
+                except subprocess.CalledProcessError as exc:
+                    print(
+                        f"[WARN] Failed to remove image {img_id_short}: {exc}",
+                        file=sys.stderr,
+                    )
 
     def clean_volumes(self) -> None:
         """Removes unused volumes (dangling), PROTECTING checkpoints and databases."""
@@ -195,7 +208,13 @@ class DiskCleaner:
 
             print(f"[DELETE] Unused Volume {name}")
             if not self.dry_run:
-                subprocess.run(["podman", "volume", "rm", "-f", name], check=False)
+                try:
+                    subprocess.run(["podman", "volume", "rm", "-f", name], check=True)
+                except subprocess.CalledProcessError as exc:
+                    print(
+                        f"[WARN] Failed to remove volume {name}: {exc}",
+                        file=sys.stderr,
+                    )
 
     def _find_cargo_projects(self) -> list[str]:
         """Find Cargo.toml files, skipping heavy dirs."""
@@ -214,7 +233,10 @@ class DiskCleaner:
             "-path",
             "*/node_modules/*",
         ]
-        result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+        try:
+            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        except subprocess.CalledProcessError:
+            return []
         output = result.stdout.strip()
         return output.splitlines() if output else []
 
@@ -239,6 +261,9 @@ class DiskCleaner:
             try:
                 size_kb = int(parts[0])
             except (ValueError, IndexError):
+                sys.stderr.write(
+                    f"Warning: unparseable du line: {size_output.strip()}\n"
+                )
                 continue
 
             if size_kb < MIN_SIZE_KB:

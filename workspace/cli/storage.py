@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import subprocess
+import sys
 from pathlib import Path
 
 import psutil
@@ -34,28 +35,33 @@ def _print_root_disk() -> None:
 
 def _clean_uv_cache() -> None:
     print("  * uv cache...", end=" ", flush=True)
-    r = subprocess.run(
-        ["uv", "cache", "clean", "--force"],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    print("done" if r.returncode == 0 else f"skipped ({r.stderr.strip()})")
+    try:
+        subprocess.run(
+            ["uv", "cache", "clean", "--force"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+    except subprocess.CalledProcessError as exc:
+        sys.stderr.write(f"uv cache clean skipped: {exc.stderr.strip()}\n")
+    else:
+        print("done")
 
 
 def _clean_podman_dangling() -> None:
     print("  * dangling podman images...", end=" ", flush=True)
-    r = subprocess.run(
-        ["podman", "image", "prune", "-f"],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    if r.returncode == 0:
+    try:
+        r = subprocess.run(
+            ["podman", "image", "prune", "-f"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+    except subprocess.CalledProcessError as exc:
+        sys.stderr.write(f"podman image prune skipped: {exc.stderr.strip()}\n")
+    else:
         count = len(r.stdout.strip().split("\n")) if r.stdout.strip() else 0
         print(f"done ({count} removed)" if count else "none to remove")
-    else:
-        print(f"skipped ({r.stderr.strip()})")
 
 
 def _clean_project_tmp(project_path: str) -> None:
@@ -71,8 +77,8 @@ def _clean_project_tmp(project_path: str) -> None:
                 continue
             count += 1 if _remove_path(item) else 0
         print("done" if count else "empty")
-    except Exception as e:
-        print(f"error: {e}")
+    except (OSError, PermissionError) as e:
+        sys.stderr.write(f"error: {e}\n")
 
 
 def _remove_path(item: Path) -> bool:
@@ -81,11 +87,11 @@ def _remove_path(item: Path) -> bool:
             subprocess.run(
                 ["rm", "-rf", str(item)],
                 capture_output=True,
-                check=False,
+                check=True,
             )
         else:
             item.unlink(missing_ok=True)
-    except Exception:
+    except (OSError, subprocess.CalledProcessError):
         return False
     else:
         return True
@@ -96,8 +102,8 @@ def _clean_system_tmp() -> None:
     try:
         cleaned = sum(1 for item in Path("/tmp").iterdir() if _remove_path(item))
         print(f"done ({cleaned} items removed)")
-    except Exception as e:
-        print(f"error: {e}")
+    except (OSError, PermissionError) as e:
+        sys.stderr.write(f"error cleaning /tmp: {e}\n")
 
 
 def _run_clean(project_path: str) -> None:

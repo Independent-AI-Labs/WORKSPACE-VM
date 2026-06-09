@@ -347,23 +347,23 @@ if [ "$TEST_BOOTSTRAP" = "1" ]; then
     }
 
     echo "Checking default components..."
-    check_component "Git" "git" "--version" || true
-    check_component "Go" "go" "version" || true
-    check_component "Podman" "podman" "--version" || true
-    check_component "OpenSSH" "ssh" "-V" || true
-    check_component "OpenSSL" "openssl" "version" || true
-    check_component "Ansible" "ansible" "--version" || true
+    check_component "Git" "git" "--version"; _rc=$?
+    check_component "Go" "go" "version"; _rc=$?
+    check_component "Podman" "podman" "--version"; _rc=$?
+    check_component "OpenSSH" "ssh" "-V"; _rc=$?
+    check_component "OpenSSL" "openssl" "version"; _rc=$?
+    check_component "Ansible" "ansible" "--version"; _rc=$?
 
     if [ "$FULL_INSTALL" = "1" ]; then
         echo ""
         echo "Checking full install components..."
-        check_component "sd (search/replace)" "sd" "--version" || true
-        check_component "kubectl" "kubectl" "version --client" || true
-        check_component "OpenVPN" "openvpn" "--version" || true
-        check_component "Cloudflared" "cloudflared" "--version" || true
-        check_component "Pandoc" "pandoc" "--version" || true
-        check_component "wkhtmltopdf" "wkhtmltopdf" "--version" || true
-        check_component "ADB" "adb" "version" || true
+        check_component "sd (search/replace)" "sd" "--version"; _rc=$?
+        check_component "kubectl" "kubectl" "version --client"; _rc=$?
+        check_component "OpenVPN" "openvpn" "--version"; _rc=$?
+        check_component "Cloudflared" "cloudflared" "--version"; _rc=$?
+        check_component "Pandoc" "pandoc" "--version"; _rc=$?
+        check_component "wkhtmltopdf" "wkhtmltopdf" "--version"; _rc=$?
+        check_component "ADB" "adb" "version"; _rc=$?
 
         # Check npm-installed components (in nodeenv)
         if [ -d "$BOOT_DIR/node-env/bin" ]; then

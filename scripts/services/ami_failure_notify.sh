@@ -46,7 +46,7 @@ if [[ $# -ne 1 ]] || [[ -z "${1:-}" ]]; then
 fi
 
 readonly FAILED_UNIT="$1"
-readonly HOSTNAME_SHORT="$(hostname --short 2>/dev/null || hostname)"
+readonly HOSTNAME_SHORT="$(hostname --short 2>&1 || hostname)"
 
 log "notifier invoked for unit=${FAILED_UNIT} host=${HOSTNAME_SHORT}"
 

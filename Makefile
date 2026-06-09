@@ -176,20 +176,21 @@ vm-cert: ## generate or print client cert for <id>
 
 .PHONY: install-hooks
 install-hooks: ensure-repos ## Install native git hooks
-	@bash projects/CI/scripts/cleanup-precommit 2>/dev/null || true
+	@bash projects/CI/scripts/cleanup-precommit || echo "cleanup-precommit not found, continuing"
 	bash projects/CI/scripts/generate-hooks
 
 .PHONY: install-hooks-recursive
 install-hooks-recursive: ensure-repos ## Install hooks in workspace + every nested .git under projects/
 	@echo "🔗 Installing hooks in workspace root..."
-	@bash projects/CI/scripts/cleanup-precommit 2>/dev/null || true
+	@bash projects/CI/scripts/cleanup-precommit || echo "cleanup-precommit not found, continuing"
 	@bash projects/CI/scripts/generate-hooks
 	@bash projects/CI/scripts/walk-projects | while IFS= read -r repo; do \
 		echo ""; \
 		echo "🔗 Installing hooks in $$repo..."; \
-		( cd "$$repo" && bash $(CURDIR)/projects/CI/scripts/cleanup-precommit 2>/dev/null || true; \
-		  bash $(CURDIR)/projects/CI/scripts/generate-hooks ) || \
-		  echo "⚠️  Hook install failed in $$repo (skipping)"; \
+		( cd "$$repo" && \
+		  bash $(CURDIR)/projects/CI/scripts/cleanup-precommit || echo "cleanup-precommit not found, continuing"; \
+		  bash $(CURDIR)/projects/CI/scripts/generate-hooks ) \
+		  || echo "⚠️  Hook install failed in $$repo (skipping)"; \
 	done
 
 .PHONY: check-hooks
@@ -257,6 +258,35 @@ rules-delete: ## Delete rule — make rules-delete NUM=3
 	@test -n "$$NUM" || { echo "ERROR: NUM required" >&2; exit 1; }
 	@bash workspace/scripts/bin/rules delete "$$NUM"
 
+.PHONY: rules-update
+rules-update: ## Update rule — make rules-update NUM=3 REGEX="pattern" RULE="instruction"
+	@test -n "$$NUM" || { echo "ERROR: NUM required" >&2; exit 1; }
+	@test -n "$$REGEX" || { echo "ERROR: REGEX required" >&2; exit 1; }
+	@test -n "$$RULE" || { echo "ERROR: RULE required" >&2; exit 1; }
+	@bash workspace/scripts/bin/rules update "$$NUM" -r "$$REGEX" -t "$$RULE"
+
+.PHONY: hooks
+hooks: ## List assistant response hooks and redeploy plugin
+	@bash workspace/scripts/bin/rules hooks
+
+.PHONY: hooks-add
+hooks-add: ## Add hook — make hooks-add REGEX="pattern" RULE="instruction"
+	@test -n "$$REGEX" || { echo "ERROR: REGEX required" >&2; exit 1; }
+	@test -n "$$RULE" || { echo "ERROR: RULE required" >&2; exit 1; }
+	@bash workspace/scripts/bin/rules hooks add -r "$$REGEX" -t "$$RULE"
+
+.PHONY: hooks-delete
+hooks-delete: ## Delete hook — make hooks-delete NUM=3
+	@test -n "$$NUM" || { echo "ERROR: NUM required" >&2; exit 1; }
+	@bash workspace/scripts/bin/rules hooks delete "$$NUM"
+
+.PHONY: hooks-update
+hooks-update: ## Update hook — make hooks-update NUM=3 REGEX="pattern" RULE="instruction"
+	@test -n "$$NUM" || { echo "ERROR: NUM required" >&2; exit 1; }
+	@test -n "$$REGEX" || { echo "ERROR: REGEX required" >&2; exit 1; }
+	@test -n "$$RULE" || { echo "ERROR: RULE required" >&2; exit 1; }
+	@bash workspace/scripts/bin/rules hooks update "$$NUM" -r "$$REGEX" -t "$$RULE"
+
 .PHONY: update-deps
 update-deps: ## Update Python dependencies only
 	@echo "🔄 Updating Python dependencies..."
@@ -283,7 +313,7 @@ scaffold-recursive: ensure-repos ## Scaffold quality_exceptions.yaml in every st
 	@bash projects/CI/scripts/walk-projects | while IFS= read -r repo; do \
 		_tier=$$(bash -c "source projects/CI/lib/checks_quality.sh && \
 			ci_resolve_tier '$$repo' \
-			'$(CURDIR)/workspace/config/project_enforcement.yaml'" 2>/dev/null || echo strict); \
+			'$(CURDIR)/workspace/config/project_enforcement.yaml'" || echo strict); \
 		if [ "$$_tier" != "strict" ]; then continue; fi; \
 		if [ ! -f "$$repo/quality_exceptions.yaml" ]; then \
 			pname=$$(basename "$$repo"); \
@@ -300,8 +330,8 @@ check-compliance-recursive: ensure-repos ## Audit every nested repo for CI contr
 	bash projects/CI/scripts/walk-projects | while IFS= read -r repo; do \
 		echo ""; \
 		echo "═══ Compliance: $$repo ═══"; \
-		bash -c "source projects/CI/lib/checks.sh && ci_compliance_score '$$repo'" || \
-			_failed=$$((_failed + 1)); \
+		bash -c "source projects/CI/lib/checks.sh && ci_compliance_score '$$repo'" \
+			|| _failed=$$((_failed + 1)); \
 	done; \
 	[ $$_failed -eq 0 ]
 

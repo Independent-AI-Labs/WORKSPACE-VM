@@ -65,17 +65,17 @@ display_system_status() {
     local sys_info_script="$AMI_ROOT/workspace/scripts/utils/sys_info.py"
     if [[ -f "$sys_info_script" ]]; then
         # Use uv run to ensure we have psutil available
-        uv run python "$sys_info_script" 2>/dev/null || {
+        uv run python "$sys_info_script" 2>&1 || {
             # Fallback if uv not available
             echo -e "${BLUE}📊 Storage Status:${NC}"
             echo -e "  > Free space (root): $(df -h . | awk 'NR==2 {print $4}') available ($(df -h . | awk 'NR==2 {print $5}') used)"
-            echo -e "  > Repository size:   $(du -sh . 2>/dev/null | awk '{print $1}')"
+            echo -e "  > Repository size:   $(du -sh . 2>&1 | awk '{print $1}')"
             echo -e ""
         }
     else
         echo -e "${BLUE}📊 Storage Status:${NC}"
         echo -e "  > Free space (root): $(df -h . | awk 'NR==2 {print $4}') available ($(df -h . | awk 'NR==2 {print $5}') used)"
-        echo -e "  > Repository size:   $(du -sh . 2>/dev/null | awk '{print $1}')"
+        echo -e "  > Repository size:   $(du -sh . 2>&1 | awk '{print $1}')"
         echo -e ""
     fi
 }
