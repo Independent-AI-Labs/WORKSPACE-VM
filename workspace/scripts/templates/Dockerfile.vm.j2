@@ -1,7 +1,7 @@
 #jinja2:lstrip_blocks:True
 FROM ubuntu:22.04 AS base
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        systemd iptables git curl rsync gnupg sudo ca-certificates make \
+        systemd iptables git curl rsync gnupg sudo ca-certificates make unzip openssh-client \
     && rm -rf /var/lib/apt/lists/*
 RUN useradd -m -s /bin/bash ami && usermod -aG sudo ami
 COPY workspace/ /opt/ami-agents/workspace/
@@ -15,7 +15,21 @@ RUN make init && make core
 RUN deluser ami sudo
 
 FROM init AS installer
-RUN make ensure-repos && make sync-package
+{% if ssh.mode == "inherit" %}
+{% for f in ssh.inherit_files -%}
+COPY --chown=ami:ami {{ f.src }} {{ f.dst }}
+{% endfor %}
+RUN chmod 0700 /home/ami/.ssh && chmod 0600 /home/ami/.ssh/id_*
+{% elif ssh.mode == "custom" %}
+{% for f in ssh.files -%}
+COPY --chown=ami:ami {{ f.src }} {{ f.dst }}
+{% endfor %}
+RUN chmod 0700 /home/ami/.ssh && chmod 0600 /home/ami/.ssh/id_*
+{% endif %}
+COPY projects/CI/ /opt/ami-agents/projects/CI/
+COPY projects/DATAOPS/ /opt/ami-agents/projects/DATAOPS/
+COPY projects/RUST-GUARD/ /opt/ami-agents/projects/RUST-GUARD/
+RUN make sync-package
 COPY {{ vm_install_defaults }} /tmp/install-defaults.yaml
 RUN make install-ci INSTALL_DEFAULTS=/tmp/install-defaults.yaml
 
@@ -24,7 +38,7 @@ ARG OPENCODE_SERVER_PASSWORD
 ARG AGENT_UID=1000
 
 {% if security.purge_sudo %}
-RUN apt-get purge -y sudo && rm -rf /etc/sudoers.d/*
+RUN SUDO_FORCE_REMOVE=yes apt-get purge -y sudo && rm -rf /etc/sudoers.d/*
 {% endif %}
 
 {% if certs %}
@@ -34,42 +48,26 @@ COPY {{ certs }} /etc/ssl/ami/
 RUN mkdir -p /workspace /transcripts /cache /home/ami/.config/opencode \
     && chown -R ami:ami /workspace /transcripts /cache /home/ami
 
-COPY --chown=ami:ami vm-opencode.json /home/ami/.config/opencode/config.json
+COPY --chown=ami:ami {{ vm_opencode_json }} /home/ami/.config/opencode/config.json
 
 {% if credentials.mode == "clone" %}
 COPY --chown=ami:ami {{ home }}/.config/opencode/ /home/ami/.config/opencode/
 {% endif %}
 
-{% if ssh.mode == "inherit" %}
-COPY --chown=ami:ami \
-{%- for f in ssh.inherit_files -%}
-  {{ f.src }} {{ f.dst }}
-{%- if not loop.last %} \{% endif %}
-{% endfor %}
-RUN chmod 0700 /home/ami/.ssh && chmod 0600 /home/ami/.ssh/id_*
-{% elif ssh.mode == "custom" %}
-COPY --chown=ami:ami \
-{%- for f in ssh.files -%}
-  {{ f.src }} {{ f.dst }}
-{%- if not loop.last %} \{% endif %}
-{% endfor %}
-RUN chmod 0700 /home/ami/.ssh && chmod 0600 /home/ami/.ssh/id_*
-{% endif %}
-
-COPY vm-opencode.service /etc/systemd/system/opencode.service
+COPY {{ vm_opencode_service }} /etc/systemd/system/opencode.service
 {% if traefik_enabled %}
-COPY vm-traefik.service /etc/systemd/system/traefik.service
-COPY vm-traefik-static.yml /etc/traefik/traefik.yml
-COPY vm-traefik-dynamic.yml /etc/traefik/dynamic.yml
+COPY {{ vm_traefik_service }} /etc/systemd/system/traefik.service
+COPY {{ vm_traefik_static }} /etc/traefik/traefik.yml
+COPY {{ vm_traefik_dynamic }} /etc/traefik/dynamic.yml
 RUN mkdir -p /etc/traefik
 {% endif %}
 {% if network_enabled %}
-COPY vm-ami-network.service /etc/systemd/system/ami-network.service
-COPY ami-network-setup /usr/local/sbin/ami-network-setup
+COPY {{ vm_ami_network_service }} /etc/systemd/system/ami-network.service
+COPY res/systemd/ami-network-setup /usr/local/sbin/ami-network-setup
 RUN chmod +x /usr/local/sbin/ami-network-setup
 {% endif %}
 {% if openvpn_enabled %}
-COPY vm-openvpn.service /etc/systemd/system/openvpn.service
+COPY {{ vm_openvpn_service }} /etc/systemd/system/openvpn.service
 {% endif %}
 {% if vpn_config %}
 COPY {{ vpn_config }} /etc/openvpn/client.ovpn

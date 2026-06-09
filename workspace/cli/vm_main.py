@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import sys
 
-from workspace.cli.vm_manager import create, rebuild, sync
+from workspace.cli.vm_manager import create, rebuild
+from workspace.cli.vm_sync import sync
 
 _MIN_ARGS = 1
 _SUB_CMD_ARGS = 2

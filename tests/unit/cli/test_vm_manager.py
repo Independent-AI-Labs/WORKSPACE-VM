@@ -9,23 +9,24 @@ from unittest.mock import MagicMock
 
 import yaml as _yaml
 
-from workspace.cli.vm_main import main
-from workspace.cli.vm_manager import (
+from workspace.cli.vm_build import (
     _build_run_args,
-    _config_sha256,
     _derive_cap_flags,
     _derive_network_flags,
+    _get_uid,
+    _pre_copy_files,
+)
+from workspace.cli.vm_core import (
+    _config_sha256,
     _generate_dockerignore,
     _generate_password,
-    _get_uid,
     _podman,
-    _pre_copy_files,
     _remove_hosts_entry,
     _render_template,
-    create,
-    rebuild,
-    sync,
 )
+from workspace.cli.vm_main import main
+from workspace.cli.vm_manager import create, rebuild
+from workspace.cli.vm_sync import sync
 from workspace.types.vm import VMConfig
 
 _PASSWORD_LEN = 32
@@ -324,8 +325,8 @@ class TestVMMainDispatch:
 
     def test_create_with_config(self, tmp_path: Path, monkeypatch) -> None:
         monkeypatch.setattr(subprocess, "run", _fake_subprocess_run)
-        monkeypatch.setattr("workspace.cli.vm_manager._podman", _fake_podman_run)
-        monkeypatch.setattr("workspace.cli.vm_manager._get_uid", lambda: "1000")
+        monkeypatch.setattr("workspace.cli.vm_core._podman", _fake_podman_run)
+        monkeypatch.setattr("workspace.cli.vm_build._get_uid", lambda: "1000")
         _patch_vms_dir(monkeypatch, tmp_path)
         cfg = tmp_path / "test.yaml"
         cfg.write_text("components: [opencode]")
@@ -335,8 +336,8 @@ class TestVMMainDispatch:
 
     def test_rebuild_with_uuid(self, tmp_path: Path, monkeypatch) -> None:
         monkeypatch.setattr(subprocess, "run", _fake_subprocess_run)
-        monkeypatch.setattr("workspace.cli.vm_manager._podman", _fake_podman_run)
-        monkeypatch.setattr("workspace.cli.vm_manager._get_uid", lambda: "1000")
+        monkeypatch.setattr("workspace.cli.vm_core._podman", _fake_podman_run)
+        monkeypatch.setattr("workspace.cli.vm_build._get_uid", lambda: "1000")
         vms_dir = _patch_vms_dir(monkeypatch, tmp_path)
         vm_dir = vms_dir / "test-uuid"
         vm_dir.mkdir(parents=True, exist_ok=True)
@@ -350,7 +351,9 @@ class TestVMMainDispatch:
     def test_sync_with_uuid(self, tmp_path: Path, monkeypatch) -> None:
         monkeypatch.setattr(subprocess, "run", _fake_subprocess_run)
         monkeypatch.setattr("workspace.cli.vm_manager._podman", _fake_podman_run)
+        monkeypatch.setattr("workspace.cli.vm_core._podman", _fake_podman_run)
         vms_dir = _patch_vms_dir(monkeypatch, tmp_path)
+        monkeypatch.setattr("workspace.cli.vm_core._VMS_DIR", vms_dir)
         vm_dir = vms_dir / "test-sync"
         vm_dir.mkdir(parents=True, exist_ok=True)
         (vm_dir / "vm.yaml").write_text(
@@ -364,8 +367,8 @@ class TestVMMainDispatch:
 class TestVMManagerCreate:
     def test_create_monkeypatched(self, tmp_path: Path, monkeypatch) -> None:
         monkeypatch.setattr(subprocess, "run", _fake_subprocess_run)
-        monkeypatch.setattr("workspace.cli.vm_manager._podman", _fake_podman_run)
-        monkeypatch.setattr("workspace.cli.vm_manager._get_uid", lambda: "1000")
+        monkeypatch.setattr("workspace.cli.vm_core._podman", _fake_podman_run)
+        monkeypatch.setattr("workspace.cli.vm_build._get_uid", lambda: "1000")
         _patch_vms_dir(monkeypatch, tmp_path)
         cfg = tmp_path / "test.yaml"
         cfg.write_text("components: [opencode]")
@@ -376,8 +379,8 @@ class TestVMManagerCreate:
 class TestVMManagerRebuild:
     def test_rebuild_monkeypatched(self, tmp_path: Path, monkeypatch) -> None:
         monkeypatch.setattr(subprocess, "run", _fake_subprocess_run)
-        monkeypatch.setattr("workspace.cli.vm_manager._podman", _fake_podman_run)
-        monkeypatch.setattr("workspace.cli.vm_manager._get_uid", lambda: "1000")
+        monkeypatch.setattr("workspace.cli.vm_core._podman", _fake_podman_run)
+        monkeypatch.setattr("workspace.cli.vm_build._get_uid", lambda: "1000")
         vms_dir = _patch_vms_dir(monkeypatch, tmp_path)
         vm_dir = vms_dir / "test-uuid"
         vm_dir.mkdir(parents=True, exist_ok=True)
@@ -396,7 +399,9 @@ class TestVMManagerSync:
     def test_sync_monkeypatched(self, tmp_path: Path, monkeypatch) -> None:
         monkeypatch.setattr(subprocess, "run", _fake_subprocess_run)
         monkeypatch.setattr("workspace.cli.vm_manager._podman", _fake_podman_run)
+        monkeypatch.setattr("workspace.cli.vm_core._podman", _fake_podman_run)
         vms_dir = _patch_vms_dir(monkeypatch, tmp_path)
+        monkeypatch.setattr("workspace.cli.vm_core._VMS_DIR", vms_dir)
         vm_dir = vms_dir / "test-sync"
         vm_dir.mkdir(parents=True, exist_ok=True)
         (vm_dir / "vm.yaml").write_text(
@@ -430,5 +435,7 @@ def _fake_podman_run(*args, **kwargs):
 def _patch_vms_dir(monkeypatch, tmp_path: Path) -> MagicMock:
     vms_dir = tmp_path / ".vms"
     vms_dir.mkdir(exist_ok=True)
+    monkeypatch.setattr("workspace.cli.vm_core._VMS_DIR", vms_dir)
     monkeypatch.setattr("workspace.cli.vm_manager._VMS_DIR", vms_dir)
+    monkeypatch.setattr("workspace.cli.vm_sync._VMS_DIR", vms_dir)
     return vms_dir
