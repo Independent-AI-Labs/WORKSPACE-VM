@@ -211,14 +211,14 @@ All 24 opencode hook types from `@opencode-ai/plugin` Hooks interface + PluginV2
 event: chat.messages.transform        # Before LLM context sent (messages array mutable)
 event: chat.system.transform          # Before system prompt finalized (system[] mutable)
 event: chat.message                   # User sends message (message + parts mutable)
-event: chat.params                    # Before LLM request (temperature, topP, maxOutputTokens mutable)
+event: chat.params                    # Before LLM request (temperature, topP, maxOutputTokens mutable). Canonical name per @opencode-ai/plugin.
 event: chat.headers                   # Before LLM request (headers mutable)
 event: command.execute.before         # Before slash command runs (parts mutable)
 event: tool.execute.before            # Before tool execution (args mutable, can block)
 event: tool.execute.after             # After tool execution (title, output, metadata mutable)
 event: tool.definition                # When tool schema sent to LLM (description, parameters mutable)
 event: shell.env                      # Before shell/PTY spawn (env vars injectable)
-event: permission.ask                 # Permission check (status: ask|deny|allow mutable)
+event: permission.ask                 # Permission check (status: ask|deny|allow mutable). **⚠️ NOT YET DISPATCHED** by opencode — this hook exists in the Hooks interface but `plugin.trigger("permission.ask", ...)` has zero call sites in opencode as of v1.16. Pending upstream fix.
 event: experimental.text.complete     # After LLM finishes text block (text mutable)
 event: experimental.session.compacting       # Before compaction (context[], prompt? mutable)
 event: experimental.compaction.autocontinue  # After compaction (enabled boolean)
@@ -251,16 +251,23 @@ match:
 | `ends_with` | Suffix match | `value: ".py"` |
 | `glob` | Glob (fnmatch) pattern | `value: "**/*.env"` |
 
-**Common field paths** (by event):
+**Common field paths** (by event). For the complete authoritative schema, see `@opencode-ai/plugin` Hooks interface types at `packages/plugin/src/index.ts`:
 
 | Event | Available Fields |
 |-------|-----------------|
-| `chat.messages.transform` | `text` (message content), `role` (user/assistant/system) |
-| `tool.execute.before` | `tool_name`, `args.command`, `args.file_path`, `args.content` |
-| `tool.execute.after` | `tool_name`, `args.*`, `output.text`, `title` |
-| `shell.env` | `cwd`, `session_id` |
-| `chat.params` | `model.providerID`, `model.modelID`, `agent` |
-| `command.execute.before` | `command`, `arguments` |
+| `chat.messages.transform` | `text` (message content), `role` (user/assistant/system), `msg.info.role`, `part.type`, `part.text` |
+| `chat.system.transform` | `system[]` (system prompt array), `sessionID`, `model` |
+| `chat.message` | `message` (content), `parts[]`, `sessionID`, `agent`, `model`, `messageID`, `variant` |
+| `tool.execute.before` | `tool` (tool name string), `args.command`, `args.file_path`, `args.content`, `sessionID`, `callID` |
+| `tool.execute.after` | `tool`, `args.*`, `title`, `output` (text), `metadata`, `sessionID`, `callID` |
+| `tool.definition` | `toolID`, `description`, `parameters` |
+| `shell.env` | `cwd`, `sessionID`, `callID` |
+| `chat.params` | `model.providerID`, `model.modelID`, `agent`, `sessionID`, `message`, `provider` |
+| `chat.headers` | `headers` (object), `sessionID`, `agent`, `model`, `provider`, `message` |
+| `command.execute.before` | `command` (name), `arguments` (string), `sessionID` |
+| `experimental.text.complete` | `text` (string), `sessionID`, `messageID`, `partID` |
+| `experimental.session.compacting` | `context[]` (array), `sessionID` |
+| `config` | Full merged opencode config object |
 
 Match conditions use AND logic. All conditions in the `match` array must be satisfied for the policy to trigger.
 
@@ -311,7 +318,7 @@ action:
 | `ask` | `tool.execute.before`, `permission.ask` | Pause for human approval; show `reason` |
 | `modify` | `chat.params`, `chat.headers`, `tool.execute.before`, `tool.execute.after`, `shell.env`, `experimental.text.complete` | Modify output fields in place |
 | `env` | `shell.env` | Inject environment variables |
-| `run` | `tool.execute.before`, `tool.execute.after`, `command.execute.before` | Execute script for custom logic |
+| `run` | `tool.execute.before`, `tool.execute.after`, `command.execute.before` | Execute script for custom logic; receives context as JSON on stdin, reads decision JSON from stdout. See §1.6. |
 
 **Event-Action Compatibility Matrix:**
 
@@ -324,8 +331,187 @@ action:
 | `shell.env` | — | — | — | — | — | ✓ | ✓ | — |
 | `chat.params` | — | — | — | — | — | ✓ | — | — |
 | `chat.headers` | — | — | — | — | — | ✓ | — | — |
-| `permission.ask` | — | ✓ | ✓ | — | ✓ | — | — | — |
+| `command.execute.before` | — | ✓ | ✓ | ✓ | ✓ | ✓ | — | ✓ |
+| `chat.message` | ✓ | — | — | ✓ | — | ✓ | — | — |
+| `tool.definition` | — | — | — | — | — | ✓ | — | — |
+| `permission.ask`[^1] | — | ✓ | ✓ | — | ✓ | — | — | — |
 | `experimental.text.complete` | — | — | — | — | — | ✓ | — | — |
+| `experimental.session.compacting` | ✓ | — | — | — | — | ✓ | — | — |
+| `experimental.compaction.autocontinue` | — | — | — | — | — | ✓ | — | — |
+| `event` | — | — | — | — | — | — | — | — |
+| `config` | — | — | — | — | — | ✓ | — | — |
+| PluginV2: `catalog.transform` | — | — | — | — | — | ✓ | — | — |
+| PluginV2: `account.switched` | — | — | — | — | — | — | — | — |
+| PluginV2: `aisdk.sdk` | — | — | — | — | — | — | — | — |
+| PluginV2: `aisdk.language` | — | — | — | — | — | — | — | — |
+
+[^1]: **`permission.ask` is defined in the opencode Hooks interface but not yet dispatched.** As of opencode v1.16, `plugin.trigger("permission.ask", ...)` has zero call sites. Policies targeting this event will not fire. Route `ask`-type tool policies through `tool.execute.before` until the upstream dispatch is added. See opencode issue #5894 (subagent hook propagation) and #4066 (permission bypass) for related upstream discussion.
+
+---
+
+### 1.6 Run Action Protocol
+
+The `run` action executes an external script via Bun's built-in `$` shell API (no system shell is spawned). The script receives policy context as JSON on stdin and returns a decision as JSON on stdout. This enables arbitrarily complex policy logic — LLM analysis, external API calls, filesystem inspection — while keeping the plugin JS static.
+
+#### 1.6.1 Schema
+
+```yaml
+action:
+  type: run
+  command: "path/to/script.sh"               # absolute or relative to AMI_ROOT
+  timeout_ms: 5000                           # max execution time in ms (default: 5000)
+  cwd: "/home/user/project"                  # optional working directory (default: plugin's directory)
+```
+
+**`command`** (required): Path to the script. `#!` shebang determines the interpreter (`#!/usr/bin/env bash`, `#!/usr/bin/env python3`, etc.). The script MUST be executable and on disk at render time.
+
+**`timeout_ms`** (optional, default 5000): Maximum wall-clock time for script execution. Exceeding this produces `{"action":"block","reason":"timeout"}`.
+
+**`cwd`** (optional): Working directory for the script. Defaults to the plugin's directory at runtime.
+
+#### 1.6.2 Stdin Protocol — Context JSON
+
+The script receives a single JSON object on stdin. The shape depends on the hook event:
+
+**`tool.execute.before`:**
+```json
+{
+  "hook": "tool.execute.before",
+  "tool": "bash",
+  "sessionID": "abc123",
+  "callID": "call456",
+  "args": {
+    "command": "rm -rf /tmp/build",
+    "workdir": "/home/user/project"
+  }
+}
+```
+
+**`tool.execute.after`:**
+```json
+{
+  "hook": "tool.execute.after",
+  "tool": "bash",
+  "sessionID": "abc123",
+  "callID": "call456",
+  "args": {
+    "command": "git status",
+    "workdir": "/home/user/project"
+  },
+  "result": {
+    "title": "Ran git status",
+    "output": "On branch main\nnothing to commit, working tree clean",
+    "metadata": {}
+  }
+}
+```
+
+**`command.execute.before`:**
+```json
+{
+  "hook": "command.execute.before",
+  "command": "/docs",
+  "sessionID": "abc123",
+  "arguments": "design-patterns"
+}
+```
+
+#### 1.6.3 Stdout Protocol — Decision JSON
+
+The script MUST write a single JSON object to stdout. No other output channels are read. The plugin parses stdout and dispatches based on `action`:
+
+```json
+{ "action": "allow" }
+```
+```json
+{ "action": "block", "reason": "Destructive command pattern detected: rm -rf" }
+```
+```json
+{ "action": "warn", "reason": "Operating outside workspace boundary" }
+```
+```json
+{ "action": "modify", "fields": { "command": "npm run test -- --changed", "workdir": "/safe/path" } }
+```
+```json
+{ "action": "inject", "system_prompt": "## ARCHITECTURE CONTEXT\nThis PR touches files across 4 packages: ..." }
+```
+
+| Decision | Effect | Plugin Behavior |
+|----------|--------|-----------------|
+| `block` | Tool execution KILLED | Plugin `throw`s `Error(reason)`. The reason is surfaced to the user and logged to audit. |
+| `allow` | Tool proceeds normally | Plugin returns, tool executes as originally specified. |
+| `warn` | Tool proceeds but warning injected | Plugin injects `reason` into system prompt and logs to audit. Tool still executes. |
+| `modify` | Tool arguments mutated | Plugin deep-merges `fields` into `output.args` (for `tool.execute.before`) or `output.{title,output,metadata}` (for `tool.execute.after`). The tool sees the modified values. |
+| `inject` | System prompt injected | Plugin pushes `system_prompt` (arbitrary markdown) into the system context for the current message. Does NOT block the tool — use alongside `allow` or alone. |
+
+The `modify` action is event-dependent:
+- `tool.execute.before`: `fields` merged into `output.args`
+- `tool.execute.after`: `fields` merged into `output.{title, output, metadata}`
+- `command.execute.before`: `fields` with `arguments` key merged into output parts
+
+#### 1.6.4 Error Handling (Fail-Closed)
+
+Every non-success outcome is treated as `block`:
+
+| Condition | Result |
+|-----------|--------|
+| Non-zero exit code | `block` — reason: "Script exited with code N" |
+| Timeout exceeded | `block` — reason: "Script timed out after Nms" |
+| stdout is empty or not valid JSON | `block` — reason: "Script returned invalid output: <truncated stdout>" |
+| Script not found on disk | `block` — reason: "Script not found: <path>" (checked at render time, verified at runtime) |
+| `action` field is unknown | `block` — reason: "Unknown action: <value>" |
+| Any unhandled exception in script execution | `block` — reason: error message |
+
+There is NO path to `allow` by default. A run script MUST explicitly return `{"action":"allow"}` to permit the tool call.
+
+#### 1.6.5 Audit Trail
+
+Every `run` action decision is logged to the audit trail with:
+- `action_type`: `"run"`
+- `script_path`: full path to the executed script
+- `exit_code`: process exit code
+- `wall_time_ms`: actual execution duration
+- `decision`: the parsed decision object
+- `stdout_hash`: SHA-256 of raw stdout (for tamper evidence)
+
+#### 1.6.6 Security Model
+
+**Trust boundary:** Scripts invoked by `run` execute with the same user and filesystem permissions as the opencode process. Policy authors MUST only reference trusted scripts from the `workspace/config/opencode/policies/scripts/` directory or equivalent controlled location.
+
+**No system shell:** Bun's `$` API is the execution layer. It auto-escapes all arguments, preventing command injection. The shebang line determines the interpreter — `/bin/sh`, `/usr/bin/env python3`, or any other executable.
+
+**Network access:** Scripts CAN make network calls (via `curl`, `fetch`, etc.) but the policy engine makes no network calls itself. Network access is governed by the script's environment, not the plugin. Policy authors SHOULD document any network-dependent scripts.
+
+**Determinism:** Run scripts SHOULD be deterministic in their decision-making. Non-deterministic scripts (random, time-dependent, external-API-dependent) MAY produce inconsistent policy enforcement and SHOULD be documented as such.
+
+**Concurrency:** Multiple `run` scripts can execute concurrently (one per tool call). The plugin spawns each as an independent subprocess. No inter-script locking is provided.
+
+**Sandboxing (Phase 3):** Run scripts currently execute with full user filesystem permissions. A malicious or buggy script can read, write, or delete any file the user can access. Per WS-7 research recommendations, a gVisor-based sandbox with workspace read-only + explicit write grants is planned for Phase 3. Until then, only trusted scripts from the controlled `policies/scripts/` directory should be referenced.
+
+---
+
+### 1.7 Prompt Injection and Defense Posture
+
+The policy engine's match conditions operate on raw message text via regex — the same attack surface targeted by prompt injection. Per the academic consensus (WS-5, 84 papers; especially arXiv 2605.17634), prompt injection is a structural property of the LLM interface, not a vulnerability that can be patched. No regex-based filter can guarantee protection against adversarial LLM outputs.
+
+**Phase 1 (current specification):** Regex-based matching provides a first-pass filter. It catches known patterns (speculation words, destructive commands, known bypass attempts) but is structurally insufficient against novel or adversarial attacks.
+
+**Phase 2 (planned, NFR roadmap):** LLM-in-the-loop validators, adapted from V2 REQ-HOOKS-050-057. A lightweight classifier model evaluates policy match conditions with access to the full session context. This brings the defense to the level documented in WS-1 (Anthropic Constitutional Classifiers++: 95%+ jailbreak blocked, 0.05% over-refusal; Google: separate User Alignment Critic model).
+
+**Phase 3 (planned):** Semantic virtualization (Guest/Visor split, STI protocol: Suitability, Taint, Integrity). Per AgentVisor (arXiv 2604.24118), treating the LLM as an untrusted Guest mediated by a trusted Visor achieves near-zero attack success rate. This is the architectural recommendation from WS-7.
+
+Refer to `docs/archive/v2/research/WS-7-SYNTHESIS-AND-STRATEGY.md` for the full threat landscape analysis (20 threats scored on NIST SP 800-30 methodology).
+
+### 1.8 V2 HookManager Migration
+
+The existing V2 HookManager (v4.0.0, `hook_manager.py`, `guards.py`) operates at shell/editor boundaries only (PRE_BASH, PRE_EDIT, POST_OUTPUT) with 21 hard-deny patterns and a command-tier system (observe/modify/execute/admin). The policy engine replaces and supersedes this system:
+
+**Migration path:**
+1. **Phase 1:** Policy engine deploys alongside HookManager. The `tool.execute.before`/`after` hooks provide tool-call-level enforcement that the V2 system cannot offer. HookManager's 21 hard-deny patterns are migrated to `template/tool-guards.template.yaml` as policy rules.
+2. **Phase 2:** HookManager is disabled by default. A `--legacy-hooks` flag enables it for backward compatibility. All new deployments use the policy engine exclusively.
+3. **Phase 3:** HookManager code is archived to `docs/archive/v2/`. All enforcement flows through the policy engine and opencode plugin hooks.
+
+The V2 HookManager's command-tier architecture (observe/modify/execute/admin) maps directly to the policy engine's `block`/`allow`/`warn`/`ask` action types. The 21 hard-deny patterns are expressible as `match` conditions with `action: block`.
 
 ---
 
@@ -395,6 +581,108 @@ const auditEntries = [];
 function auditLog(policy, context, matched, action, detail) { /* append to array */ }
 function flushAudit() { /* write auditEntries to JSONL */ }
 
+// ── Run action executor (Bun $ shell API) ──
+async function executeRunAction(policy, context, input, output) {
+  const command = policy.action.command;
+  const timeoutMs = policy.action.timeout_ms || 5000;
+  const stdin = JSON.stringify({
+    hook: context.hook || "",
+    tool: input.tool || "",
+    sessionID: input.sessionID || "",
+    callID: input.callID || "",
+    args: output.args || {},
+    ...(context.result ? { result: context.result } : {}),
+  });
+
+  const start = Date.now();
+  let proc;
+
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+    proc = await $`${command}`
+      .nothrow()
+      .quiet()
+      .env({
+        AMI_POLICY_NAME: policy.name,
+        AMI_SESSION_ID: input.sessionID || "",
+      })
+      .cwd(policy.action.cwd || process.cwd());
+
+    clearTimeout(timer);
+  } catch (e) {
+    if (e.name === "AbortError" || e.message?.includes("abort")) {
+      throw new Error(
+        `[POLICY RUN] ${policy.name}: Script timed out after ${timeoutMs}ms`
+      );
+    }
+    throw new Error(
+      `[POLICY RUN] ${policy.name}: Script execution failed: ${e.message}`
+    );
+  }
+
+  const wallMs = Date.now() - start;
+
+  if (proc.exitCode !== 0) {
+    throw new Error(
+      `[POLICY RUN] ${policy.name}: Script exited with code ${proc.exitCode}`
+    );
+  }
+
+  const stdout = proc.stdout.toString().trim();
+  if (!stdout) {
+    throw new Error(
+      `[POLICY RUN] ${policy.name}: Script returned empty output`
+    );
+  }
+
+  let decision;
+  try {
+    decision = JSON.parse(stdout);
+  } catch {
+    throw new Error(
+      `[POLICY RUN] ${policy.name}: Invalid JSON output: ${stdout.slice(0, 200)}`
+    );
+  }
+
+  auditLog(policy, context, true, "run", JSON.stringify({
+    script_path: command,
+    exit_code: proc.exitCode,
+    wall_time_ms: wallMs,
+    decision,
+    stdout_hash: sha256(stdout),
+  }));
+
+  switch (decision.action) {
+    case "block":
+      throw new Error(
+        `[POLICY BLOCK] ${policy.name}: ${decision.reason || "Script blocked execution"}`
+      );
+    case "allow":
+      return;
+    case "warn":
+      globalThis.__amiInjections.push(
+        `## POLICY WARN — ${policy.name}: ${decision.reason || "Warning from policy script"}`
+      );
+      return;
+    case "modify":
+      if (decision.fields && typeof decision.fields === "object") {
+        Object.assign(output.args, decision.fields);
+      }
+      return;
+    case "inject":
+      if (decision.system_prompt) {
+        globalThis.__amiInjections.push(decision.system_prompt);
+      }
+      return;
+    default:
+      throw new Error(
+        `[POLICY RUN] ${policy.name}: Unknown action in script output: ${decision.action}`
+      );
+  }
+}
+
 // ── opencode plugin export ──
 export const amiContext = async () => {
   return {
@@ -450,6 +738,7 @@ export const amiContext = async () => {
             case "allow": return;
             case "ask": return { __ami_ask: true, policy: policy.name, reason: policy.action.reason };
             case "modify": applyModifications(output.args, policy.action.fields); break;
+            case "run": await executeRunAction(policy, ctx, input, output); break;
           }
         }
       }
@@ -964,6 +1253,8 @@ profile-delete: ## Delete a profile: make profile-delete NAME=my-profile
 | `lib/context.sh` shared library with bash + yq functions (incl. _init_userfile) | NOT STARTED |
 | `template/rules.template.yaml` + `template/guards.template.yaml` from existing template.js | NOT STARTED |
 | Static plugin JS (`add-user-message-context.js`) written + tested | NOT STARTED |
+| `executeRunAction` handler in static plugin (Bun `$` shell API, stdin/stdout protocol, fail-closed) | NOT STARTED |
+| `case "run"` in `tool.execute.before` and `tool.execute.after` switch statements | NOT STARTED |
 | Gitignore: policies/*.yaml, profiles/*.yaml, plugins/policies.json | NOT STARTED |
 | `policy` CLI: validate, render (yq), apply, list | NOT STARTED |
 | `rules` CLI rewrite (thin wrapper, sources lib) | NOT STARTED |

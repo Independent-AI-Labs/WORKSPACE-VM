@@ -90,7 +90,7 @@ The system follows the same template→userfile→deploy pattern as the current 
 The system SHALL support policy definition in YAML with a schema covering all 24 opencode hook types. A policy SHALL consist of: unique name, optional description, enabled flag, hook event, optional scope, priority, optional agent filter, match conditions, and action block.
 
 **FR-1.2 — Event → Match → Action Structure:**
-Every policy SHALL follow the universal `Event → Match → Action` structure observed across 10+ industry policy engines (harness, Mirage, Aegis, Veto, Agent RuleZ, mcp-claude-hooks, hooksmith, hookify, Zrb, Cohorte).
+Every policy SHALL follow the universal `Event → Match → Action` structure observed across industry policy engines (Anthropic Constitutional Classifiers++, Google Agent Gateway + Project Mariner, AWS Bedrock Guardrails, NVIDIA NeMo Guardrails Colang DSL, AgentSpec/ShieldAgent academic frameworks, Hooksmith, Zrb).
 
 **FR-1.3 — Multiline System Prompt Injection:**
 For `inject` actions, the system SHALL support multi-line system prompt text with full markdown formatting, preserving whitespace and indentation.
@@ -109,6 +109,15 @@ Policies SHALL support a `priority` integer field (default 0). Higher priority p
 
 **FR-1.8 — Enable/Disable Without Deletion:**
 Every policy SHALL support an `enabled` boolean field. Disabled policies are skipped during rendering but retained in the source file.
+
+**FR-1.9 — Executable Policy Actions (`run`):**
+The system SHALL support `action: run` which executes an external script via Bun's built-in `$` shell API (not a system shell — Bun auto-escapes arguments, preventing command injection). The script receives the full event context as JSON on stdin and MUST return a decision object as JSON on stdout. Supported decisions: `block` (throw, kill execution), `allow` (proceed normally), `warn` (inject reason into system prompt, proceed), `modify` (deep-merge `fields` into tool arguments). Script execution SHALL be time-bounded with a configurable timeout (default 5000ms). The run action SHALL be compatible with `tool.execute.before`, `tool.execute.after`, and `command.execute.before` hook events, matching the event-action compatibility matrix defined in the specification.
+
+**FR-1.10 — Run Action stdin/stdout JSON Protocol:**
+The run action SHALL follow a well-defined stdin/stdout JSON protocol. stdin SHALL contain a JSON object with context fields keyed by hook event: `hook` (event name), `tool` (tool identifier), `sessionID`, `callID`, `args` (tool arguments), and `result` (for `tool.execute.after` only). stdout SHALL contain a single JSON object with `action` (one of `block`/`allow`/`warn`/`modify`), `reason` (optional, for block/warn), and `fields` (optional, for modify — merged into output args). Every non-success condition (non-zero exit, timeout, empty stdout, invalid JSON, unknown action, script not found) SHALL be treated as `block` (fail-closed). There SHALL be NO path to `allow` by default — the script MUST explicitly return `{"action":"allow"}`.
+
+**FR-1.11 — Run Action Audit Trail:**
+Every `run` action decision SHALL be logged to the structured audit trail with: action type (`"run"`), full script path, process exit code, wall-clock execution time (ms), the parsed decision object, and SHA-256 hash of raw stdout for tamper evidence. The logged decision SHALL be searchable by policy name and session ID.
 
 ### FR-2: Policy File Architecture
 
@@ -215,12 +224,18 @@ Audit entries SHALL follow the AgentContract-compatible format:
   "policy_name": "string",
   "event": "hook event name",
   "match": true | false,
-  "action": "inject | block | allow | warn | ask | modify | env",
-  "action_detail": "action-specific payload hash",
+  "action": "inject | block | allow | warn | ask | modify | env | run",
+  "action_detail": "action-specific payload (hash for non-run actions, structured JSON string for run actions)",
   "agent": "agent identifier",
+  "delegation_depth": 0,
+  "parent_sessionID": "null | session UUID",
   "input_hash": "SHA-256 of matched input"
 }
 ```
+For `action: run` entries, `action_detail` SHALL be a JSON object encoded as string containing: `script_path` (full path to executed script), `exit_code` (process exit code), `wall_time_ms` (execution duration), `decision` (the parsed decision object from stdout), and `stdout_hash` (SHA-256 of raw stdout for tamper evidence).
+
+**FR-7.2a — Subagent Delegation Tracking:**
+When a policy fires during a subagent's tool execution (spawned via the `task` tool), the audit entry SHALL record `delegation_depth` (integer, 0 for parent session, 1+ for nested subagents) and `parent_sessionID` (the session that spawned this subagent, or null for the root session). This enables reconstruction of multi-agent delegation chains for A2A trust model compliance (REG-5.3) and incident forensics.
 
 **FR-7.3 — Tamper Evidence:**
 Audit entries SHALL form a hash chain (each entry includes `prev_hash` of the previous entry) per-session. The final entry's hash SHALL be logged to `session_audit_chain` for post-hoc verification.
@@ -273,6 +288,12 @@ Match condition values from user input (regex patterns, field names) SHALL be va
 
 **NFR-2.5 — Deny-by-Default Principle:**
 The deployed static plugin SHALL default to denying tool calls that match no explicit allow policy (fail-closed for tool execution hooks).
+
+**NFR-2.6 — Run Action Fail-Closed:**
+If a run action script exits with non-zero status, times out, produces invalid or empty JSON on stdout, or is not found on disk, the policy engine SHALL treat the outcome as `action: block` (fail-closed). Truncated, malformed, or missing stdout output SHALL NOT result in allow-by-default. The block reason SHALL be surfaced to the user and logged to the audit trail with the specific failure cause (exit code, timeout duration, parse error message).
+
+**NFR-2.7 — Run Action Script Trust Boundary:**
+Scripts invoked by `action: run` execute with the same user identity and filesystem permissions as the opencode plugin process. Policy authors SHALL NOT include commands from untrusted sources in run action paths. The `command` field SHALL be validated at render time to confirm the script exists on disk. Run actions SHALL NOT execute arbitrary shell expressions — the `command` field is treated as a literal path, not an evaluated expression. Bun's built-in `$` shell API SHALL be the execution layer (not `/bin/sh`), which auto-escapes all arguments and prevents command injection. Every run action execution SHALL be logged to the audit trail with the full script path, process exit code, and wall-clock execution time.
 
 ### NFR-3: Reliability
 
@@ -491,6 +512,9 @@ For deployments in financial services (DORA) or critical infrastructure (NIS2):
 | FR-1.6 | A2A AgentCard `skills[].id`, AgentContract agent-scoped clauses | Agent Scoping | MEDIUM |
 | FR-1.7 | mcp-claude-hooks priority system, hooksmith priority | Priority | MEDIUM |
 | FR-1.8 | Veto `enabled` field, all 10+ systems | Toggle | HIGH |
+| FR-1.9 | Bun `$` shell API, opencode plugin context injection | Run Action | HIGH |
+| FR-1.10 | Self (stdin/stdout protocol design) | Run Protocol | HIGH |
+| FR-1.11 | AgentContract audit schema, Cullis ATN | Run Audit Trail | HIGH |
 | FR-2.1 | Self (separation of concerns) | File Architecture | HIGH |
 | FR-2.2 | harness policy pack architecture, hooksmith rule files | Extensibility | HIGH |
 | FR-2.3 | REQ-HOOKS-003 override chain | Config Resolution | MEDIUM |
@@ -551,6 +575,7 @@ For deployments in financial services (DORA) or critical infrastructure (NIS2):
 - [ ] `rules` and `guards` CLIs operational with list/add/delete/update/enable/disable
 - [ ] Existing rules (5) and hooks (1) migrated to template→userfile YAML format
 - [ ] `policy validate` catches schema and event compatibility errors
+- [ ] Run action functional: scripts receive context JSON on stdin, decisions read from stdout, fail-closed on error
 - [ ] Userfiles and `policies.json` gitignored; template files tracked
 - [ ] All scripts pass shellcheck and remain under 512 lines
 - [ ] Extension manifest registers `rules`, `guards`, `policy`, `profile`
