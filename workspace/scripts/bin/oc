@@ -36,6 +36,7 @@ OC_SRC="$AMI_ROOT/workspace/config/opencode"
 OC_DIR="${HOME}/.config/opencode"
 mkdir -p "$OC_DIR/plugins"
 [ ! -f "$OC_DIR/opencode.jsonc" ] && cp "$OC_SRC/opencode.jsonc" "$OC_DIR/opencode.jsonc"
+[ ! -f "$OC_DIR/system-instruction.md" ] && cp "$OC_SRC/system-instruction.template.md" "$OC_DIR/system-instruction.md"
 export OPENCODE_ENABLE_EXA=1
 if [[ $# -gt 0 ]]; then
     if [[ "$1" = -* ]]; then

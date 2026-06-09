@@ -124,6 +124,15 @@ class TestOcConfigDeployment:
         assert '"~/.config/opencode/ami-environment.md"' in content, (
             "ami-environment.md reference missing"
         )
+        assert '"~/.config/opencode/system-instruction.md"' in content, (
+            "system-instruction.md reference missing"
+        )
+
+        sys_tmpl = OC_SRC / "system-instruction.template.md"
+        assert sys_tmpl.is_file(), f"system-instruction.template.md missing: {sys_tmpl}"
+        content = sys_tmpl.read_text()
+        assert "AUDITED" in content, "audit language missing"
+        assert "PENALTIES" in content, "penalties language missing"
 
         plugin = OC_SRC / "plugins" / "add-user-message-context.template.js"
         assert plugin.is_file(), (
@@ -222,6 +231,61 @@ class TestOcEnvironmentFile:
 
 
 @pytest.mark.integration
+class TestSystemInstructionDeployment:
+    """Test system-instruction template deployment."""
+
+    def test_template_deployed_on_first_run(self, tmp_path: Path):
+        """First run with no existing file: system-instruction.md is created."""
+        home = tmp_path / "home"
+        home.mkdir()
+        oc_dir = home / ".config" / "opencode"
+        oc_dir.mkdir(parents=True)
+
+        sys_file = oc_dir / "system-instruction.md"
+        assert not sys_file.exists()
+
+        src_tmpl = OC_SRC / "system-instruction.template.md"
+        assert src_tmpl.is_file(), "source template missing"
+        subprocess.run(
+            ["cp", str(src_tmpl), str(sys_file)],
+            check=True,
+        )
+        assert sys_file.is_file(), "system-instruction.md not created"
+        content = sys_file.read_text()
+        assert "AUDITED" in content
+        assert "PENALTIES" in content
+        assert "RECORDED" in content
+
+    def test_idempotent_does_not_overwrite(self, tmp_path: Path):
+        """Second run preserves existing content, does not overwrite."""
+        home = tmp_path / "home"
+        home.mkdir()
+        oc_dir = home / ".config" / "opencode"
+        oc_dir.mkdir(parents=True)
+
+        sys_file = oc_dir / "system-instruction.md"
+        custom_content = "CUSTOM AUDIT INSTRUCTION\n"
+        sys_file.write_text(custom_content)
+
+        script = rf"""
+            SYS_FILE="{sys_file}"
+            if [ ! -f "$SYS_FILE" ]; then
+                cp "{OC_SRC / "system-instruction.template.md"}" "$SYS_FILE"
+            fi
+        """
+        result = subprocess.run(
+            ["bash", "-c", script],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        assert result.returncode == 0
+        assert sys_file.read_text() == custom_content, (
+            "system-instruction.md was overwritten"
+        )
+
+
+@pytest.mark.integration
 class TestOcScriptSelfChecks:
     """Test that the oc script itself is well-formed."""
 
@@ -288,4 +352,7 @@ class TestOcScriptSelfChecks:
         assert "OC_SRC" in content, "Missing OC_SRC variable"
         assert "OC_DIR" in content, "Missing OC_DIR variable"
         assert "opencode.jsonc" in content, "Missing opencode.jsonc reference"
+        assert "system-instruction.template.md" in content, (
+            "Missing system-instruction deployment"
+        )
         assert "mkdir -p" in content, "Missing mkdir -p for plugins dir"
