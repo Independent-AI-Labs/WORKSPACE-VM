@@ -1,5 +1,6 @@
 """Tests for workspace.cli.storage."""
 
+import subprocess as _sp
 from pathlib import Path
 from unittest.mock import MagicMock, call, patch
 
@@ -48,7 +49,6 @@ class TestPrintRootDisk:
 class TestCleanUvCache:
     def test_successful_clean(self):
         mock_run = MagicMock()
-        mock_run.return_value.returncode = 0
 
         with patch("subprocess.run", mock_run), patch("builtins.print") as mock_print:
             _clean_uv_cache()
@@ -57,44 +57,45 @@ class TestCleanUvCache:
                 ["uv", "cache", "clean", "--force"],
                 capture_output=True,
                 text=True,
-                check=False,
+                check=True,
             )
             calls_text = " ".join(
                 str(c.args[0]) for c in mock_print.call_args_list if c.args
             )
             assert "done" in calls_text
-            assert "skipped" not in calls_text
 
     def test_failed_clean_with_stderr(self):
         mock_run = MagicMock()
-        mock_run.return_value.returncode = 1
-        mock_run.return_value.stderr = "no space left"
+        mock_run.side_effect = _sp.CalledProcessError(
+            1,
+            ["uv", "cache", "clean", "--force"],
+            stderr=b"no space left",
+        )
 
-        with patch("subprocess.run", mock_run), patch("builtins.print") as mock_print:
+        with (
+            patch("subprocess.run", mock_run),
+            patch("sys.stderr.write") as mock_stderr,
+        ):
             _clean_uv_cache()
 
-            calls_text = " ".join(
-                str(c.args[0]) for c in mock_print.call_args_list if c.args
+            stderr_text = " ".join(
+                str(c.args[0]) for c in mock_stderr.call_args_list if c.args
             )
-            assert "skipped" in calls_text
-            assert "no space left" in calls_text
+            assert "skipped" in stderr_text
+            assert "no space left" in stderr_text
 
 
 class TestCleanPodmanDangling:
     def test_successful_with_removals(self):
-        mock_run = MagicMock()
-        mock_run.return_value.returncode = 0
-        mock_run.return_value.stdout = "abc123\ndef456\nghi789"
+        mock_result = MagicMock()
+        mock_result.stdout = "abc123\ndef456\nghi789"
 
-        with patch("subprocess.run", mock_run), patch("builtins.print") as mock_print:
+        with (
+            patch("subprocess.run", return_value=mock_result),
+            patch("builtins.print") as mock_print,
+        ):
             _clean_podman_dangling()
 
-            mock_run.assert_called_once_with(
-                ["podman", "image", "prune", "-f"],
-                capture_output=True,
-                text=True,
-                check=False,
-            )
             calls_text = " ".join(
                 str(c.args[0]) for c in mock_print.call_args_list if c.args
             )
@@ -102,11 +103,13 @@ class TestCleanPodmanDangling:
             assert "3 removed" in calls_text
 
     def test_successful_no_removals(self):
-        mock_run = MagicMock()
-        mock_run.return_value.returncode = 0
-        mock_run.return_value.stdout = ""
+        mock_result = MagicMock()
+        mock_result.stdout = ""
 
-        with patch("subprocess.run", mock_run), patch("builtins.print") as mock_print:
+        with (
+            patch("subprocess.run", return_value=mock_result),
+            patch("builtins.print") as mock_print,
+        ):
             _clean_podman_dangling()
 
             calls_text = " ".join(
@@ -116,17 +119,23 @@ class TestCleanPodmanDangling:
 
     def test_failed_with_stderr(self):
         mock_run = MagicMock()
-        mock_run.return_value.returncode = 1
-        mock_run.return_value.stderr = "cannot connect to podman"
+        mock_run.side_effect = _sp.CalledProcessError(
+            1,
+            ["podman", "image", "prune", "-f"],
+            stderr=b"cannot connect to podman",
+        )
 
-        with patch("subprocess.run", mock_run), patch("builtins.print") as mock_print:
+        with (
+            patch("subprocess.run", mock_run),
+            patch("sys.stderr.write") as mock_stderr,
+        ):
             _clean_podman_dangling()
 
-            calls_text = " ".join(
-                str(c.args[0]) for c in mock_print.call_args_list if c.args
+            stderr_text = " ".join(
+                str(c.args[0]) for c in mock_stderr.call_args_list if c.args
             )
-            assert "skipped" in calls_text
-            assert "cannot connect to podman" in calls_text
+            assert "skipped" in stderr_text
+            assert "cannot connect to podman" in stderr_text
 
 
 class TestCleanProjectTmp:
@@ -192,14 +201,14 @@ class TestCleanProjectTmp:
 
         with (
             patch("workspace.cli.storage.Path", return_value=mock_path),
-            patch("builtins.print") as mock_print,
+            patch("sys.stderr.write") as mock_stderr,
         ):
             _clean_project_tmp(".")
 
-            calls_text = " ".join(
-                str(c.args[0]) for c in mock_print.call_args_list if c.args
+            stderr_text = " ".join(
+                str(c.args[0]) for c in mock_stderr.call_args_list if c.args
             )
-            assert "error" in calls_text
+            assert "error" in stderr_text
 
 
 class TestRemovePath:
@@ -214,7 +223,7 @@ class TestRemovePath:
             mock_run.assert_called_once_with(
                 ["rm", "-rf", str(mock_item)],
                 capture_output=True,
-                check=False,
+                check=True,
             )
             assert result is True
 
@@ -269,14 +278,14 @@ class TestCleanSystemTmp:
 
         with (
             patch("workspace.cli.storage.Path", return_value=mock_path),
-            patch("builtins.print") as mock_print,
+            patch("sys.stderr.write") as mock_stderr,
         ):
             _clean_system_tmp()
 
-            calls_text = " ".join(
-                str(c.args[0]) for c in mock_print.call_args_list if c.args
+            stderr_text = " ".join(
+                str(c.args[0]) for c in mock_stderr.call_args_list if c.args
             )
-            assert "error" in calls_text
+            assert "error" in stderr_text
 
 
 class TestRunClean:

@@ -90,7 +90,9 @@ class TestRunBootstrapScript:
     def test_returns_false_on_script_failure(self, mock_dir, mock_run) -> None:
         """Test returns False if script fails."""
         mock_dir.return_value = Path("/scripts")
-        mock_run.return_value = MagicMock(returncode=1)
+        mock_run.side_effect = subprocess.CalledProcessError(
+            1, ["bash", "/scripts/test.sh"]
+        )
 
         with patch.object(Path, "exists", return_value=True):
             result = run_bootstrap_script("test.sh")
@@ -449,7 +451,9 @@ class TestRunScriptPath:
     @patch("workspace.scripts.bootstrap_install.subprocess.run")
     @patch("workspace.scripts.bootstrap_install._PROJECT_ROOT", Path("/test/root"))
     def test_runs_script_path_failure(self, mock_run) -> None:
-        mock_run.return_value = MagicMock(returncode=1)
+        mock_run.side_effect = subprocess.CalledProcessError(
+            1, ["bash", str(Path("/test/root/projects/CI/scripts/bootstrap-gitleaks"))]
+        )
         comp = Component(
             name="test",
             label="T",
