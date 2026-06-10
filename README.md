@@ -14,10 +14,7 @@ The WORKSPACE-VM workspace is a federated, hard-walled infrastructure for develo
 ```bash
 git clone git@github.com:Independent-AI-Labs/WORKSPACE-VM.git && cd WORKSPACE-VM
 
-# 1. Automate system dependency installation
-make init
-
-# 2. Workspace bootstrap (TUI)
+# Interactive workspace bootstrap (TUI)
 make install
 ```
 *The `make install` TUI handles the federated dependency graph. Choose the sub-projects relevant to your development focus. Once finished, `ami-oc` (opencode wrapper) will be available in your path.*
@@ -27,7 +24,7 @@ make install
 ## 2. Workspace Philosophy
 This workspace is not a standard monorepo; it is a **federated system**.
 - **Fail-Closed Security:** All interactions are gated by `git-guard` (immutability) and `podman-guard` (network/FS isolation).
-- **Compliance as Code:** The `AMI-CI` contract enforces strict quality gates (hooks, coverage, linting) on every sub-project.
+- **Compliance as Code:** The `WORKSPACE-CI` contract enforces strict quality gates (hooks, coverage, linting) on every sub-project.
 - **Topological Orchestration:** We use `moon` to manage the dependency graph. **Never run tasks manually in sub-projects** if a `moon` task exists.
 
 ---

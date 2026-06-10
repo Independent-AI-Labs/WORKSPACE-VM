@@ -15,11 +15,11 @@
 #   3  — himalaya unavailable but findings present (operator MUST see logs)
 #
 # Run via cron weekly:
-#   cron add "0 4 * * 1" "$HOME/AMI-AGENTS/scripts/services/ami_gitleaks_sweep.sh" --label gitleaks-sweep
+#   cron add "0 4 * * 1" "$(git -C "$HOME/WORKSPACE-VM" rev-parse --show-toplevel 2>/dev/null || echo "$HOME/WORKSPACE-VM")/scripts/services/ami_gitleaks_sweep.sh" --label gitleaks-sweep
 
 set -euo pipefail
 
-readonly WORKSPACE="${WORKSPACE_WORKSPACE_ROOT:-${HOME}/AMI-AGENTS}"
+readonly WORKSPACE="${WORKSPACE_WORKSPACE_ROOT:-${HOME}/WORKSPACE-VM}"
 readonly GITLEAKS_BIN="${WORKSPACE_GITLEAKS_BIN:-${WORKSPACE}/.boot-linux/bin/gitleaks}"
 readonly TO_ADDR="${WORKSPACE_FAILURE_NOTIFY_TO:-independentailabs@gmail.com}"
 readonly HIMALAYA_BIN="${WORKSPACE_HIMALAYA_BIN:-${WORKSPACE}/.boot-linux/bin/himalaya}"

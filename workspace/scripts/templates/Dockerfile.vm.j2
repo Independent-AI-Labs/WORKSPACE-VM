@@ -10,11 +10,7 @@ COPY Makefile pyproject.toml moon.yml /opt/ami-agents/
 ARG AGENT_UID=1000
 WORKDIR /opt/ami-agents
 
-FROM base AS init
-RUN make init && make core
-RUN deluser ami sudo
-
-FROM init AS installer
+FROM base AS installer
 {% if ssh.mode == "inherit" %}
 {% for f in ssh.inherit_files -%}
 COPY --chown=ami:ami {{ f.src }} {{ f.dst }}
@@ -26,10 +22,6 @@ COPY --chown=ami:ami {{ f.src }} {{ f.dst }}
 {% endfor %}
 RUN chmod 0700 /home/ami/.ssh && chmod 0600 /home/ami/.ssh/id_*
 {% endif %}
-COPY projects/CI/ /opt/ami-agents/projects/CI/
-COPY projects/DATAOPS/ /opt/ami-agents/projects/DATAOPS/
-COPY projects/WORKSPACE-GUARD/ /opt/ami-agents/projects/WORKSPACE-GUARD/
-RUN make sync-package
 COPY {{ vm_install_defaults }} /tmp/install-defaults.yaml
 RUN make install-ci INSTALL_DEFAULTS=/tmp/install-defaults.yaml
 

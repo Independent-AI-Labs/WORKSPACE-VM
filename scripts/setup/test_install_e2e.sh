@@ -2,85 +2,15 @@
 set -e
 
 # =============================================================================
-# Usage
-# =============================================================================
-usage() {
-    echo "Usage: $0 [OPTIONS]"
-    echo ""
-    echo "E2E installation test for AMI-AGENTS"
-    echo ""
-    echo "By default runs the full test suite: all 21 components (install-all.yaml)"
-    echo "and bootstrap verification. Use --minimal or --skip-bootstrap to reduce scope."
-    echo ""
-    echo "Options:"
-    echo "  --target-dir DIR    Directory where test will run (default: ./tmp/e2e_test_<timestamp>)"
-    echo "  --skip-cleanup      Skip cleanup on exit (for debugging)"
-    echo "  --minimal           Use install-defaults.yaml (8 components) instead of full install"
-    echo "  --skip-bootstrap    Skip bootstrap installer and component verification phases"
-    echo "  -h, --help          Show this help"
-    echo ""
-    echo "Example:"
-    echo "  $0                              # Full e2e test (default)"
-    echo "  $0 --minimal --skip-bootstrap   # Quick smoke test"
-    echo "  $0 --skip-cleanup               # Full test, keep test dir for inspection"
-    exit 0
-}
-
-# =============================================================================
-# Parse arguments
+# E2E installation test for WORKSPACE-VM
 # =============================================================================
 BASE_DIR=$(pwd)
-TEST_DIR=""
-SKIP_CLEANUP=0
-FULL_INSTALL=1
-TEST_BOOTSTRAP=1
+TEST_DIR="$BASE_DIR/tmp/e2e_test_$(date +%s)"
 
-while [[ $# -gt 0 ]]; do
-    case $1 in
-        --target-dir)
-            TEST_DIR="$2"
-            shift 2
-            ;;
-        --skip-cleanup)
-            SKIP_CLEANUP=1
-            shift
-            ;;
-        --minimal)
-            FULL_INSTALL=0
-            shift
-            ;;
-        --skip-bootstrap)
-            TEST_BOOTSTRAP=0
-            shift
-            ;;
-        -h|--help)
-            usage
-            ;;
-        *)
-            echo "Unknown option: $1"
-            usage
-            ;;
-    esac
-done
-
-# Default test dir if not specified
-if [ -z "$TEST_DIR" ]; then
-    TEST_DIR="$BASE_DIR/tmp/e2e_test_$(date +%s)"
-fi
-
-echo ">>> E2E INSTALLATION TEST (AMI-AGENTS) STARTING <<<"
+echo ">>> E2E INSTALLATION TEST STARTING <<<"
 echo "Test directory: $TEST_DIR"
-echo "Full install: $FULL_INSTALL"
-echo "Test bootstrap: $TEST_BOOTSTRAP"
 
-# =============================================================================
-# Cleanup trap
-# =============================================================================
 cleanup() {
-    if [ "$SKIP_CLEANUP" = "1" ]; then
-        echo "[INFO] Skipping cleanup (--skip-cleanup). Test dir: $TEST_DIR"
-        return 0
-    fi
     echo "Cleaning up test directory: $TEST_DIR"
     cd "$BASE_DIR"
     rm -rf "$TEST_DIR"
@@ -100,7 +30,7 @@ echo "PHASE 0: Checking prerequisites"
 echo "=========================================="
 
 if ! command -v uv &> /dev/null; then
-    echo "[FAIL] uv is not installed. Install it first: https://docs.astral.sh/uv/"
+    echo "[FAIL] uv is not installed."
     exit 1
 fi
 echo "[PASS] uv is available: $(uv --version)"
@@ -112,25 +42,25 @@ fi
 echo "[PASS] git is available."
 
 # =============================================================================
-# 1. Clone AMI-AGENTS
+# 1. Clone from remote
 # =============================================================================
 echo ""
 echo "=========================================="
-echo "PHASE 1: Cloning AMI-AGENTS"
+echo "PHASE 1: Cloning from remote"
 echo "=========================================="
 
-git clone git@hf.co:ami-ailabs/AMI-AGENTS AMI-AGENTS 2>&1 | tee clone_output.log
+git clone git@github.com:Independent-AI-Labs/WORKSPACE-VM.git WORKSPACE-VM 2>&1 | tee clone_output.log
 clone_ret=${PIPESTATUS[0]}
 tail -5 clone_output.log
 if [ "$clone_ret" -ne 0 ]; then
     echo "[FAIL] Clone failed."
     exit 1
 fi
-cd AMI-AGENTS
-echo "[PASS] AMI-AGENTS cloned."
+cd WORKSPACE-VM
+echo "[PASS] WORKSPACE-VM cloned."
 
 # =============================================================================
-# 2. Run make install-ci (non-interactive full install)
+# 2. Run make install-ci
 # =============================================================================
 echo ""
 echo "=========================================="
@@ -155,10 +85,8 @@ echo "=========================================="
 echo "PHASE 3: Deep Verification - Core"
 echo "=========================================="
 
-# --- Check 1: Venv Structure ---
 if [ ! -d ".venv" ]; then
     echo "[FAIL] .venv directory missing."
-    ls -la
     exit 1
 fi
 if [ ! -f ".venv/bin/python" ]; then
@@ -167,14 +95,12 @@ if [ ! -f ".venv/bin/python" ]; then
 fi
 echo "[PASS] Venv structure valid."
 
-# --- Check 2: uv.lock exists ---
 if [ ! -f "uv.lock" ]; then
     echo "[FAIL] uv.lock missing."
     exit 1
 fi
 echo "[PASS] uv.lock present."
 
-# --- Check 3: Dependency Integrity (Import Test) ---
 echo "Verifying critical imports..."
 .venv/bin/python -c "
 import loguru
@@ -188,12 +114,10 @@ print(f'Pandas: {pandas.__version__}')
 " 2>&1 | tee import_test.log
 if [ ${PIPESTATUS[0]} -ne 0 ]; then
     echo "[FAIL] Dependency import failed."
-    cat import_test.log
     exit 1
 fi
 echo "[PASS] Critical dependencies loadable."
 
-# --- Check 4: AMI package importable ---
 echo "Verifying ami package imports..."
 .venv/bin/python -c "
 from ami.config_utils import get_project_root
@@ -203,12 +127,10 @@ print('AMI core imports successful')
 " 2>&1 | tee ami_import_test.log
 if [ ${PIPESTATUS[0]} -ne 0 ]; then
     echo "[FAIL] AMI package import failed."
-    cat ami_import_test.log
     exit 1
 fi
 echo "[PASS] AMI package importable."
 
-# --- Check 5b: WORKSPACE-CI namespace package accessible ---
 echo "Verifying ci namespace package..."
 .venv/bin/python -c "
 from ci.check_dependency_versions import main
@@ -216,12 +138,10 @@ print('WORKSPACE-CI namespace package accessible')
 " 2>&1 | tee ci_import_test.log
 if [ ${PIPESTATUS[0]} -ne 0 ]; then
     echo "[FAIL] WORKSPACE-CI namespace import failed."
-    cat ci_import_test.log
     exit 1
 fi
 echo "[PASS] WORKSPACE-CI namespace package importable."
 
-# --- Check 5: Configuration files ---
 if [ ! -f "pyproject.toml" ]; then
     echo "[FAIL] pyproject.toml missing."
     exit 1
@@ -241,7 +161,6 @@ ret=${PIPESTATUS[0]}
 tail -10 hooks.log
 if [ "$ret" -ne 0 ]; then
     echo "[FAIL] make install-hooks failed."
-    cat hooks.log
     exit 1
 fi
 
@@ -252,14 +171,13 @@ fi
 echo "[PASS] Pre-commit hooks installed."
 
 # =============================================================================
-# 5. Verify make targets work
+# 5. Verify make targets
 # =============================================================================
 echo ""
 echo "=========================================="
 echo "PHASE 5: Verifying make targets"
 echo "=========================================="
 
-# Test that lint target works
 make lint 2>&1 | tee lint.log
 ret=${PIPESTATUS[0]}
 tail -10 lint.log
@@ -268,7 +186,6 @@ if [ "$ret" -ne 0 ]; then
 fi
 echo "[PASS] make lint target functional."
 
-# Test that test target works (run a quick subset)
 echo "Running quick test sanity check..."
 .venv/bin/python -m pytest tests/unit -x -q --timeout=60 2>&1 | tee pytest_output.log
 ret=${PIPESTATUS[0]}
@@ -279,129 +196,101 @@ fi
 echo "[PASS] Test infrastructure functional."
 
 # =============================================================================
-# 6. Test Bootstrap Installer (optional)
+# 6. Verify Bootstrap Environment
 # =============================================================================
-if [ "$TEST_BOOTSTRAP" = "1" ]; then
-    echo ""
-    echo "=========================================="
-    echo "PHASE 6: Testing Bootstrap Installer"
-    echo "=========================================="
+echo ""
+echo "=========================================="
+echo "PHASE 6: Verifying Bootstrap Environment"
+echo "=========================================="
 
-    # --- 6a: Test bootstrap directory creation ---
-    BOOT_DIR="$PWD/.boot-linux"
-    echo "Testing bootstrap environment at: $BOOT_DIR"
+BOOT_DIR="$PWD/.boot-linux"
+echo "Testing bootstrap environment at: $BOOT_DIR"
 
-    # --- 6b: Run bootstrap installer with appropriate config ---
-    if [ "$FULL_INSTALL" = "1" ]; then
-        INSTALL_CONFIG="workspace/config/install-all.yaml"
-        echo "Using full install config: $INSTALL_CONFIG"
+if [ ! -d "$BOOT_DIR" ]; then
+    echo "[FAIL] Bootstrap directory $BOOT_DIR not created."
+    exit 1
+fi
+echo "[PASS] Bootstrap directory exists: $BOOT_DIR"
+ls -la "$BOOT_DIR"
+
+echo ""
+echo "Testing Node.js bootstrap environment..."
+NODEENV_DIR="$BOOT_DIR/node-env"
+if [ -d "$NODEENV_DIR" ]; then
+    echo "[PASS] Node.js environment exists: $NODEENV_DIR"
+    if [ -f "$NODEENV_DIR/bin/node" ]; then
+        echo "[PASS] Node binary found"
+        "$NODEENV_DIR/bin/node" --version
+    fi
+    if [ -f "$NODEENV_DIR/bin/npm" ]; then
+        echo "[PASS] npm binary found"
+        "$NODEENV_DIR/bin/npm" --version
+    fi
+else
+    echo "[WARN] Node.js environment not found"
+fi
+
+# =============================================================================
+# 7. Verify Installed Components
+# =============================================================================
+echo ""
+echo "=========================================="
+echo "PHASE 7: Verifying Installed Components"
+echo "=========================================="
+
+check_component() {
+    local name="$1"
+    local cmd="$2"
+    local version_flag="${3:---version}"
+
+    if command -v "$cmd" &> /dev/null; then
+        local version
+        version=$($cmd $version_flag 2>&1) || version="(version unknown)"
+        echo "[PASS] $name: $version"
+        return 0
     else
-        INSTALL_CONFIG="workspace/config/install-defaults.yaml"
-        echo "Using default install config: $INSTALL_CONFIG"
+        echo "[SKIP] $name: not found in PATH"
+        return 1
     fi
+}
 
-    echo "Running bootstrap installer..."
-    .venv/bin/python workspace/scripts/bootstrap_installer.py --defaults "$INSTALL_CONFIG" 2>&1 | tee bootstrap.log
-    if [ ${PIPESTATUS[0]} -ne 0 ]; then
-        echo "[FAIL] Bootstrap installer failed."
-        cat bootstrap.log
-        exit 1
-    fi
-    echo "[PASS] Bootstrap installer completed."
+echo "Checking default components..."
+check_component "Git" "git" "--version"
+check_component "Go" "go" "version"
+check_component "Podman" "podman" "--version"
+check_component "OpenSSH" "ssh" "-V"
+check_component "OpenSSL" "openssl" "version"
+check_component "Ansible" "ansible" "--version"
 
-    # --- 6c: Verify bootstrap directory structure ---
-    if [ ! -d "$BOOT_DIR" ]; then
-        echo "[WARN] Bootstrap directory $BOOT_DIR not created (may be expected if no components needed it)"
-    else
-        echo "[PASS] Bootstrap directory exists: $BOOT_DIR"
-        ls -la "$BOOT_DIR"
-    fi
+echo ""
+echo "Checking extended components..."
+check_component "sd (search/replace)" "sd" "--version"
+check_component "kubectl" "kubectl" "version --client"
+check_component "OpenVPN" "openvpn" "--version"
+check_component "Cloudflared" "cloudflared" "--version"
+check_component "Pandoc" "pandoc" "--version"
+check_component "wkhtmltopdf" "wkhtmltopdf" "--version"
+check_component "ADB" "adb" "version"
 
-    # --- 6d: Test Node.js bootstrap (if full install) ---
-    if [ "$FULL_INSTALL" = "1" ]; then
-        echo ""
-        echo "Testing Node.js bootstrap environment..."
-        NODEENV_DIR="$BOOT_DIR/node-env"
-        if [ -d "$NODEENV_DIR" ]; then
-            echo "[PASS] Node.js environment exists: $NODEENV_DIR"
-            if [ -f "$NODEENV_DIR/bin/node" ]; then
-                echo "[PASS] Node binary found"
-                "$NODEENV_DIR/bin/node" --version
-            fi
-            if [ -f "$NODEENV_DIR/bin/npm" ]; then
-                echo "[PASS] npm binary found"
-                "$NODEENV_DIR/bin/npm" --version
-            fi
-        else
-            echo "[WARN] Node.js environment not found (may be expected if npm packages not installed)"
-        fi
-    fi
-
-    # =============================================================================
-    # 7. Verify Installed Components
-    # =============================================================================
+if [ -d "$BOOT_DIR/node-env/bin" ]; then
     echo ""
-    echo "=========================================="
-    echo "PHASE 7: Verifying Installed Components"
-    echo "=========================================="
+    echo "Checking npm-installed components..."
+    NPM_BIN="$BOOT_DIR/node-env/bin"
+    [ -f "$NPM_BIN/claude" ] && echo "[PASS] claude CLI installed" || echo "[SKIP] claude CLI not found"
+    [ -f "$NPM_BIN/gemini" ] && echo "[PASS] gemini CLI installed" || echo "[SKIP] gemini CLI not found"
+    [ -f "$NPM_BIN/qwen" ] && echo "[PASS] qwen CLI installed" || echo "[SKIP] qwen CLI not found"
+fi
 
-    # Function to check if a command exists and get version
-    check_component() {
-        local name="$1"
-        local cmd="$2"
-        local version_flag="${3:---version}"
+# =============================================================================
+# 8. Test Component Detection System
+# =============================================================================
+echo ""
+echo "=========================================="
+echo "PHASE 8: Testing Component Detection"
+echo "=========================================="
 
-        if command -v "$cmd" &> /dev/null; then
-            local version
-            version=$($cmd $version_flag 2>&1) || version="(version unknown)"
-            echo "[PASS] $name: $version"
-            return 0
-        else
-            echo "[SKIP] $name: not found in PATH"
-            return 1
-        fi
-    }
-
-    echo "Checking default components..."
-    check_component "Git" "git" "--version"; _rc=$?
-    check_component "Go" "go" "version"; _rc=$?
-    check_component "Podman" "podman" "--version"; _rc=$?
-    check_component "OpenSSH" "ssh" "-V"; _rc=$?
-    check_component "OpenSSL" "openssl" "version"; _rc=$?
-    check_component "Ansible" "ansible" "--version"; _rc=$?
-
-    if [ "$FULL_INSTALL" = "1" ]; then
-        echo ""
-        echo "Checking full install components..."
-        check_component "sd (search/replace)" "sd" "--version"; _rc=$?
-        check_component "kubectl" "kubectl" "version --client"; _rc=$?
-        check_component "OpenVPN" "openvpn" "--version"; _rc=$?
-        check_component "Cloudflared" "cloudflared" "--version"; _rc=$?
-        check_component "Pandoc" "pandoc" "--version"; _rc=$?
-        check_component "wkhtmltopdf" "wkhtmltopdf" "--version"; _rc=$?
-        check_component "ADB" "adb" "version"; _rc=$?
-
-        # Check npm-installed components (in nodeenv)
-        if [ -d "$BOOT_DIR/node-env/bin" ]; then
-            echo ""
-            echo "Checking npm-installed components..."
-            NPM_BIN="$BOOT_DIR/node-env/bin"
-            [ -f "$NPM_BIN/claude" ] && echo "[PASS] claude CLI installed" || echo "[SKIP] claude CLI not found"
-            [ -f "$NPM_BIN/gemini" ] && echo "[PASS] gemini CLI installed" || echo "[SKIP] gemini CLI not found"
-            [ -f "$NPM_BIN/qwen" ] && echo "[PASS] qwen CLI installed" || echo "[SKIP] qwen CLI not found"
-        fi
-    fi
-
-    # =============================================================================
-    # 8. Test Component Detection System
-    # =============================================================================
-    echo ""
-    echo "=========================================="
-    echo "PHASE 8: Testing Component Detection"
-    echo "=========================================="
-
-    echo "Running component status detection..."
-    .venv/bin/python -c "
+echo "Running component status detection..."
+.venv/bin/python -c "
 from ami.scripts.bootstrap_components import get_components_by_group
 
 print('Component Status Report:')
@@ -421,25 +310,20 @@ for group_info in get_components_by_group():
 
 print('\n' + '=' * 60)
 " 2>&1 | tee detection.log
-    if [ ${PIPESTATUS[0]} -ne 0 ]; then
-        echo "[FAIL] Component detection failed."
-        cat detection.log
-        exit 1
-    fi
-    echo "[PASS] Component detection system working."
-
-fi  # End TEST_BOOTSTRAP
+if [ ${PIPESTATUS[0]} -ne 0 ]; then
+    echo "[FAIL] Component detection failed."
+    exit 1
+fi
+echo "[PASS] Component detection system working."
 
 # =============================================================================
-# 9-13. Moon-driven flow phases (Phase 7 of moon-as-orchestrator migration)
-# Sourced from companion file to keep this script under the 512-line cap.
+# 9-13. Moon-driven flow phases
 # =============================================================================
 MOON_PHASES_SH="$(dirname "$0")/test_install_e2e_moon_phases.sh"
 if [ -f "$MOON_PHASES_SH" ]; then
-    # shellcheck source=./test_install_e2e_moon_phases.sh
     source "$MOON_PHASES_SH" || exit 1
 else
-    echo "[WARN] $MOON_PHASES_SH not found — skipping moon-driven flow phases (9-13)"
+    echo "[WARN] $MOON_PHASES_SH not found — skipping moon phases (9-13)"
 fi
 
 # =============================================================================
@@ -453,13 +337,12 @@ echo ""
 echo "Test Summary:"
 echo "  - Core installation: PASS"
 echo "  - Dependencies: PASS"
-    echo "  - WORKSPACE-CI namespace: PASS"
+echo "  - WORKSPACE-CI namespace: PASS"
 echo "  - Pre-commit hooks: PASS"
 echo "  - Make targets: PASS"
-if [ "$TEST_BOOTSTRAP" = "1" ]; then
-    echo "  - Bootstrap installer: PASS"
-    echo "  - Component detection: PASS"
-fi
+echo "  - Bootstrap environment: PASS"
+echo "  - Component verification: PASS"
+echo "  - Component detection: PASS"
 echo "  - Moon graph integrity: PASS"
 echo "  - Tag filter sanity: PASS"
 echo "  - bootstrap-repos walk: PASS"
@@ -467,6 +350,3 @@ echo "  - Moon caching (cold + cached): PASS"
 echo "  - Update-walk ordering: PASS"
 echo ""
 echo "Test directory: $TEST_DIR"
-if [ "$SKIP_CLEANUP" = "1" ]; then
-    echo "(preserved for inspection)"
-fi

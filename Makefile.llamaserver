@@ -86,7 +86,7 @@ ifeq ($(FLAVOR),)
 	$(error FLAVOR is required. Usage: make install-llamaserver FLAVOR=vulkan)
 endif
 	@cd ansible && \
-		export $$(grep -v '^\s*#' "$(HOME)/AMI-AGENTS/.env" 2>/dev/null | xargs) && \
+		export $$(grep -v '^\s*#' "$(CURDIR)/.env" 2>/dev/null | xargs) && \
 		ansible-playbook \
 			--diff \
 			-e "llama_flavor=$(FLAVOR)" \

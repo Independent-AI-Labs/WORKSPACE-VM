@@ -26,8 +26,8 @@ get_default_root() {
         fi
         curr="$(dirname "$curr")"
     done
-    # Final fallback
-    echo "$HOME/AMI-AGENTS"
+    # Final fallback — resolve from git root
+    git rev-parse --show-toplevel 2>/dev/null || echo "$HOME/WORKSPACE-VM"
 }
 
 # Get current root (from file, env, or default)

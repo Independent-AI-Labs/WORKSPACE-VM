@@ -14,15 +14,15 @@ from workspace.scripts import check_workspace_repos_aligned as mod
 MOON_OK = """\
 projects:
   ami-agents: '.'
-  ami-ci: 'projects/AMI-CI'
+  ci: 'projects/CI'
   ami-dataops: 'projects/AMI-DATAOPS'
 """
 
 CLONES_OK = """\
 workspaceClones:
-  ami-ci:
-    remote: 'git@example.com:ami-ci.git'
-    path: 'projects/AMI-CI'
+  ci:
+    remote: 'git@example.com:ci.git'
+    path: 'projects/CI'
     mandatory: true
   ami-dataops:
     remote: 'git@example.com:ami-dataops.git'
@@ -75,7 +75,7 @@ class TestAlignmentCheck:
         moon = (
             "projects:\n"
             "  ami-agents: '.'\n"
-            "  ami-ci: 'projects/AMI-CI'\n"
+            "  ci: 'projects/CI'\n"
             "  ami-dataops: 'projects/WRONG'\n"
         )
         root = _make_workspace(tmp_path, moon, CLONES_OK)

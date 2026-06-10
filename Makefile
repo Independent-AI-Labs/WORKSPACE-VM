@@ -37,28 +37,25 @@ core: ## Bootstrap uv + python + git-xet + node (prereq for sync-package)
 # --- Install — component selection ---
 
 .PHONY: build-guard
-build-guard: ensure-repos sync-package ## Build git-guard binary (no root needed)
-	@if [ -f workspace/scripts/bootstrap/bootstrap_workspace_guard.sh ]; then \
-		bash workspace/scripts/bootstrap/bootstrap_workspace_guard.sh build-only; \
-	fi
+build-guard: ensure-repos sync-package ## Build git-guard binary (no root needed) — delegates to CI
+	@$(MAKE) -C projects/CI build-guard
 
 .PHONY: install-guard
-install-guard: ## Install git-guard to /usr/bin/git (requires sudo, binary must be pre-built)
-	@if [ -f workspace/scripts/bootstrap/bootstrap_workspace_guard.sh ]; then \
-		sudo bash workspace/scripts/bootstrap/bootstrap_workspace_guard.sh install-only; \
-	fi
+install-guard: ## Install git-guard to /usr/bin/git (requires sudo, binary must be pre-built) — delegates to CI
+	@$(MAKE) -C projects/CI install-guard
 
 .PHONY: install
-install: init-check sync-package build-guard ## Interactive TUI to select and install components
+install: init-check sync-package ## Interactive TUI to select and install components
 	@.venv/bin/python workspace/scripts/bootstrap_installer.py && \
 	$(MAKE) register-extensions && \
 	$(MAKE) install-shell && \
 	bash workspace/scripts/shell/shell-setup --welcome
 
 .PHONY: install-ci
-install-ci: ## Non-interactive component install (uses install-defaults.yaml)
+install-ci: init-check sync-package ## Non-interactive component install (uses install-defaults.yaml)
 	@.venv/bin/python workspace/scripts/bootstrap_installer.py --defaults workspace/config/install-defaults.yaml && \
 	$(MAKE) register-extensions && \
+	$(MAKE) install-shell && \
 	echo "✨ Installation complete (CI mode)!"
 
 # --- Repos ---

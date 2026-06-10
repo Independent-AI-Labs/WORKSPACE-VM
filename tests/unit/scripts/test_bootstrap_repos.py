@@ -93,9 +93,9 @@ def _run_walker(
 
 SAMPLE_YAML = """\
 workspaceClones:
-  ami-ci:
-    remote: 'git@github.com:Independent-AI-Labs/AMI-CI.git'
-    path: 'projects/AMI-CI'
+  ci:
+    remote: 'git@github.com:Independent-AI-Labs/WORKSPACE-CI.git'
+    path: 'projects/CI'
     mandatory: true
   ami-dataops:
     remote: 'git@github.com:Independent-AI-Labs/AMI-DATAOPS.git'
@@ -178,7 +178,12 @@ class TestAllOptional:
 
         assert result.returncode == 0, result.stderr
         log = log_file.read_text() if log_file.exists() else ""
-        for repo in ("AMI-CI.git", "AMI-DATAOPS.git", "AMI-PORTAL.git", "AMI-SRP.git"):
+        for repo in (
+            "WORKSPACE-CI.git",
+            "AMI-DATAOPS.git",
+            "AMI-PORTAL.git",
+            "AMI-SRP.git",
+        ):
             assert repo in log
         assert "0 optional skipped" in result.stdout
 
@@ -189,7 +194,7 @@ class TestPullExisting:
     def test_pull_runs_pull_on_existing(self, tmp_path: Path) -> None:
         walker = _make_fake_repo_root(tmp_path, SAMPLE_YAML)
         # Pre-create one of the mandatory targets as if already cloned.
-        already = tmp_path / "projects" / "AMI-CI" / ".git"
+        already = tmp_path / "projects" / "CI" / ".git"
         already.mkdir(parents=True)
         log_file = tmp_path / "git-calls.log"
         stub = tmp_path / "stub-bin"
@@ -203,7 +208,7 @@ class TestPullExisting:
 
     def test_no_pull_without_flag(self, tmp_path: Path) -> None:
         walker = _make_fake_repo_root(tmp_path, SAMPLE_YAML)
-        already = tmp_path / "projects" / "AMI-CI" / ".git"
+        already = tmp_path / "projects" / "CI" / ".git"
         already.mkdir(parents=True)
         log_file = tmp_path / "git-calls.log"
         stub = tmp_path / "stub-bin"
