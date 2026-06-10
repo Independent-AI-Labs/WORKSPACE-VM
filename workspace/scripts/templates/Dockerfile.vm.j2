@@ -1,8 +1,7 @@
 #jinja2:lstrip_blocks:True
 FROM ubuntu:22.04 AS base
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        systemd iptables git curl rsync gnupg sudo ca-certificates make unzip openssh-client \
-    && rm -rf /var/lib/apt/lists/*
+        systemd iptables git curl rsync gnupg sudo ca-certificates make unzip openssh-client
 RUN useradd -m -s /bin/bash ami && usermod -aG sudo ami
 COPY workspace/ /opt/ami-agents/workspace/
 COPY workspace/config/ /opt/ami-agents/workspace/config/
@@ -23,7 +22,8 @@ COPY --chown=ami:ami {{ f.src }} {{ f.dst }}
 RUN chmod 0700 /home/ami/.ssh && chmod 0600 /home/ami/.ssh/id_*
 {% endif %}
 COPY {{ vm_install_defaults }} /tmp/install-defaults.yaml
-RUN make install-ci INSTALL_DEFAULTS=/tmp/install-defaults.yaml
+RUN make init && rm -rf /var/lib/apt/lists/*
+RUN --mount=type=ssh mkdir -p ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts && make install-ci INSTALL_DEFAULTS=/tmp/install-defaults.yaml
 
 FROM installer AS runtime
 ARG OPENCODE_SERVER_PASSWORD

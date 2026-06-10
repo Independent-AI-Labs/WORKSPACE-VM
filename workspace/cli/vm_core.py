@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import os
 import secrets
 import string
 import subprocess
@@ -32,6 +33,7 @@ def _podman(*args: str) -> subprocess.CompletedProcess[str]:
             text=True,
             check=True,
             timeout=_PODMAN_TIMEOUT,
+            env={**os.environ},
         )
     except subprocess.CalledProcessError as exc:
         if exc.stderr:

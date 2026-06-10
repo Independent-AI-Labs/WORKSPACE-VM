@@ -206,7 +206,7 @@ def _build_context(
     return {
         "security": cfg.security,
         "credentials": cfg.credentials,
-        "ssh": {"mode": "none"},
+        "ssh": cfg.ssh,
         "network": cfg.network,
         "traefik_enabled": net_enabled and cfg.web_ui,
         "network_enabled": net_enabled and cfg.network.policy in ("internet", "proxy"),
@@ -238,6 +238,8 @@ def _render_and_build(
         "build",
         "--format",
         "docker",
+        "--ssh",
+        "default",
         "-t",
         f"ami-vm:{uuid_str}",
         "--build-arg",

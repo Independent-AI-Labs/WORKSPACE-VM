@@ -10,9 +10,9 @@
 #   Phase 10: tag filtering — --tags python returns >0 projects
 #   Phase 11: bootstrap-repos data-driven walk (no-op against
 #             already-cloned workspace; catches script regressions)
-#   Phase 12: cacheable check task — cold ami-ci:lint vs cached run
+#   Phase 12: cacheable check task — cold ci:lint vs cached run
 #   Phase 13: update-walk topology — workspace:update graph
-#             includes ami-ci:update + ami-dataops:update nodes
+#             includes ci:update + dataops:update nodes
 #
 # All phases skip cleanly when moon binary isn't on PATH (smoke-test
 # mode); hard-fail when moon IS available but produces broken output.
@@ -43,7 +43,7 @@ else
     fi
     echo "[PASS] moon project-graph parses cleanly"
 
-    for expected in workspace ami-ci ami-dataops; do
+    for expected in workspace ci dataops; do
         if ! grep -q "\"id\": \"$expected\"" moon_graph.json; then
             echo "[FAIL] moon graph missing required project: $expected"
             exit 1
@@ -112,20 +112,20 @@ echo "=========================================="
 if [ -n "$MOON" ]; then
     # rc captured for inspection; cache warmup is the intent.
     cold_start=$(date +%s%N)
-    "$MOON" run ami-ci:lint > moon_cold.log 2>&1; cold_rc=$?
+    "$MOON" run ci:lint > moon_cold.log 2>&1; cold_rc=$?
     cold_end=$(date +%s%N)
     cold_ms=$(( (cold_end - cold_start) / 1000000 ))
-    echo "[INFO] cold ami-ci:lint = ${cold_ms}ms (rc=$cold_rc)"
+    echo "[INFO] cold ci:lint = ${cold_ms}ms (rc=$cold_rc)"
 
     # rc captured; assertion is on duration + 'cached' marker.
     cached_start=$(date +%s%N)
-    "$MOON" run ami-ci:lint > moon_cached.log 2>&1; cached_rc=$?
+    "$MOON" run ci:lint > moon_cached.log 2>&1; cached_rc=$?
     cached_end=$(date +%s%N)
     cached_ms=$(( (cached_end - cached_start) / 1000000 ))
-    echo "[INFO] cached ami-ci:lint = ${cached_ms}ms"
+    echo "[INFO] cached ci:lint = ${cached_ms}ms"
 
     if [ "$cached_ms" -gt 1000 ]; then
-        echo "[FAIL] second run of ami-ci:lint took ${cached_ms}ms — cache not working"
+        echo "[FAIL] second run of ci:lint took ${cached_ms}ms — cache not working"
         exit 1
     fi
     if ! grep -q "cached" moon_cached.log; then
@@ -149,13 +149,13 @@ if [ -n "$MOON" ]; then
         head update_graph.dot
         exit 1
     fi
-    if ! grep -q "ami-ci:update" update_graph.dot; then
-        echo "[FAIL] update graph missing ami-ci:update node"
+    if ! grep -q "ci:update" update_graph.dot; then
+        echo "[FAIL] update graph missing ci:update node"
         exit 1
     fi
-    if ! grep -q "ami-dataops:update" update_graph.dot; then
-        echo "[FAIL] update graph missing ami-dataops:update node"
+    if ! grep -q "dataops:update" update_graph.dot; then
+        echo "[FAIL] update graph missing dataops:update node"
         exit 1
     fi
-    echo "[PASS] update-walk action graph includes ami-ci:update + ami-dataops:update"
+    echo "[PASS] update-walk action graph includes ci:update + dataops:update"
 fi

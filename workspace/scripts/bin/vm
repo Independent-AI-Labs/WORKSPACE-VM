@@ -10,7 +10,7 @@ done
 export AMI_ROOT && cd "$AMI_ROOT"
 
 _VMS_DIR=".vms"
-_PYTHON=".venv/bin/python"
+_PYTHON="/home/ami/AMI-AGENTS/.venv/bin/python"
 _CERTS_SCRIPT="workspace/scripts/bootstrap/bootstrap_certs.sh"
 _VM_MANAGER="workspace.cli.vm_main"
 
@@ -129,7 +129,7 @@ cmd_delete() {
     else
         podman rm "$uuid" || die "delete: cannot remove VM '$uuid'"
     fi
-    podman rmi -f "ami-vm:$uuid" 2>/dev/null || true
+    podman rmi -f "ami-vm:$uuid" 2>/dev/null || die "delete: cannot remove image for VM '$uuid'"
     _remove_hosts_entry "$uuid"
     rm -f "$_VMS_DIR/$uuid/pid"
     if $purge; then
