@@ -129,6 +129,7 @@ cmd_delete() {
     else
         podman rm "$uuid" || die "delete: cannot remove VM '$uuid'"
     fi
+    podman rmi -f "ami-vm:$uuid" 2>/dev/null || true
     _remove_hosts_entry "$uuid"
     rm -f "$_VMS_DIR/$uuid/pid"
     if $purge; then
