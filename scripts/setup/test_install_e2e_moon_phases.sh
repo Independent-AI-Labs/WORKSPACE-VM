@@ -110,14 +110,14 @@ echo "PHASE 12: Cacheable check task — cold + cached"
 echo "=========================================="
 
 if [ -n "$MOON" ]; then
-    # silent-ok: rc captured for inspection; cache warmup is the intent.
+    # rc captured for inspection; cache warmup is the intent.
     cold_start=$(date +%s%N)
     "$MOON" run ami-ci:lint > moon_cold.log 2>&1; cold_rc=$?
     cold_end=$(date +%s%N)
     cold_ms=$(( (cold_end - cold_start) / 1000000 ))
     echo "[INFO] cold ami-ci:lint = ${cold_ms}ms (rc=$cold_rc)"
 
-    # silent-ok: rc captured; assertion is on duration + 'cached' marker.
+    # rc captured; assertion is on duration + 'cached' marker.
     cached_start=$(date +%s%N)
     "$MOON" run ami-ci:lint > moon_cached.log 2>&1; cached_rc=$?
     cached_end=$(date +%s%N)

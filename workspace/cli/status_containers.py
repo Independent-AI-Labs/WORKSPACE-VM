@@ -283,7 +283,7 @@ def get_system_docker_containers() -> list[PodmanContainer]:
     except (
         json.JSONDecodeError,
         KeyError,
-    ):  # silent-ok: malformed JSON, return defaults
+    ):  # malformed JSON, return defaults
         return []
     return containers
 

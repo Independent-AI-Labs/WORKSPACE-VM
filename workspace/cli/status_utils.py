@@ -82,7 +82,7 @@ def _collect_ports_from_process(p: "psutil.Process", ports: set[str]) -> None:
     except (
         psutil.NoSuchProcess,
         psutil.AccessDenied,
-    ):  # silent-ok: process may have exited between listing and query, skip
+    ):  # process may have exited between listing and query, skip
         pass
 
 

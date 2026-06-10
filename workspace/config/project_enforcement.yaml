@@ -1,8 +1,8 @@
 # project_enforcement.yaml — workspace-level tier registry.
 #
-# This file is the PER-MACHINE COPY of the AMI-CI enforcement template. It
+# This file is the PER-MACHINE COPY of the WORKSPACE-CI enforcement template. It
 # is gitignored at the workspace root; it gets autocreated from
-# projects/AMI-CI/templates/project_enforcement.template.yaml on first need
+# projects/CI/templates/project_enforcement.template.yaml on first need
 # (by the git-guard wrapper, by generate-hooks, or by any *-recursive
 # Makefile target). Edit it to add machine-local overrides.
 #

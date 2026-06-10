@@ -119,7 +119,13 @@ echo "=========================================="
 echo "PHASE 1: Cloning AMI-AGENTS"
 echo "=========================================="
 
-git clone git@hf.co:ami-ailabs/AMI-AGENTS AMI-AGENTS 2>&1 | tail -5
+git clone git@hf.co:ami-ailabs/AMI-AGENTS AMI-AGENTS 2>&1 | tee clone_output.log
+clone_ret=${PIPESTATUS[0]}
+tail -5 clone_output.log
+if [ "$clone_ret" -ne 0 ]; then
+    echo "[FAIL] Clone failed."
+    exit 1
+fi
 cd AMI-AGENTS
 echo "[PASS] AMI-AGENTS cloned."
 
@@ -131,8 +137,10 @@ echo "=========================================="
 echo "PHASE 2: Running make install-ci"
 echo "=========================================="
 
-make install-ci 2>&1 | tee install.log | tail -30
-if [ ${PIPESTATUS[0]} -ne 0 ]; then
+make install-ci 2>&1 | tee install.log
+ret=${PIPESTATUS[0]}
+tail -30 install.log
+if [ "$ret" -ne 0 ]; then
     echo "[FAIL] make install-ci failed."
     cat install.log
     exit 1
@@ -200,18 +208,18 @@ if [ ${PIPESTATUS[0]} -ne 0 ]; then
 fi
 echo "[PASS] AMI package importable."
 
-# --- Check 5b: AMI-CI namespace package accessible ---
-echo "Verifying ami.ci namespace package..."
+# --- Check 5b: WORKSPACE-CI namespace package accessible ---
+echo "Verifying ci namespace package..."
 .venv/bin/python -c "
-from ami.ci.check_dependency_versions import main
-print('AMI-CI namespace package accessible')
+from ci.check_dependency_versions import main
+print('WORKSPACE-CI namespace package accessible')
 " 2>&1 | tee ci_import_test.log
 if [ ${PIPESTATUS[0]} -ne 0 ]; then
-    echo "[FAIL] AMI-CI namespace import failed."
+    echo "[FAIL] WORKSPACE-CI namespace import failed."
     cat ci_import_test.log
     exit 1
 fi
-echo "[PASS] AMI-CI namespace package importable."
+echo "[PASS] WORKSPACE-CI namespace package importable."
 
 # --- Check 5: Configuration files ---
 if [ ! -f "pyproject.toml" ]; then
@@ -228,8 +236,10 @@ echo "=========================================="
 echo "PHASE 4: Installing pre-commit hooks"
 echo "=========================================="
 
-make install-hooks 2>&1 | tee hooks.log | tail -10
-if [ ${PIPESTATUS[0]} -ne 0 ]; then
+make install-hooks 2>&1 | tee hooks.log
+ret=${PIPESTATUS[0]}
+tail -10 hooks.log
+if [ "$ret" -ne 0 ]; then
     echo "[FAIL] make install-hooks failed."
     cat hooks.log
     exit 1
@@ -250,16 +260,22 @@ echo "PHASE 5: Verifying make targets"
 echo "=========================================="
 
 # Test that lint target works
-if ! make lint 2>&1 | tee lint.log | tail -10; then
+make lint 2>&1 | tee lint.log
+ret=${PIPESTATUS[0]}
+tail -10 lint.log
+if [ "$ret" -ne 0 ]; then
     echo "[WARN] make lint had issues (may be expected if code has lint errors)."
 fi
 echo "[PASS] make lint target functional."
 
 # Test that test target works (run a quick subset)
 echo "Running quick test sanity check..."
-.venv/bin/python -m pytest tests/unit -x -q --timeout=60 2>&1 | tail -20 || {
+.venv/bin/python -m pytest tests/unit -x -q --timeout=60 2>&1 | tee pytest_output.log
+ret=${PIPESTATUS[0]}
+tail -20 pytest_output.log
+if [ "$ret" -ne 0 ]; then
     echo "[WARN] Some unit tests failed (may need investigation)."
-}
+fi
 echo "[PASS] Test infrastructure functional."
 
 # =============================================================================
@@ -298,7 +314,7 @@ if [ "$TEST_BOOTSTRAP" = "1" ]; then
         echo "[WARN] Bootstrap directory $BOOT_DIR not created (may be expected if no components needed it)"
     else
         echo "[PASS] Bootstrap directory exists: $BOOT_DIR"
-        ls -la "$BOOT_DIR" | head -10
+        ls -la "$BOOT_DIR"
     fi
 
     # --- 6d: Test Node.js bootstrap (if full install) ---
@@ -337,7 +353,7 @@ if [ "$TEST_BOOTSTRAP" = "1" ]; then
 
         if command -v "$cmd" &> /dev/null; then
             local version
-            version=$($cmd $version_flag 2>&1 | head -1) || version="(version unknown)"
+            version=$($cmd $version_flag 2>&1) || version="(version unknown)"
             echo "[PASS] $name: $version"
             return 0
         else
@@ -421,7 +437,7 @@ fi  # End TEST_BOOTSTRAP
 MOON_PHASES_SH="$(dirname "$0")/test_install_e2e_moon_phases.sh"
 if [ -f "$MOON_PHASES_SH" ]; then
     # shellcheck source=./test_install_e2e_moon_phases.sh
-    . "$MOON_PHASES_SH"
+    source "$MOON_PHASES_SH" || exit 1
 else
     echo "[WARN] $MOON_PHASES_SH not found — skipping moon-driven flow phases (9-13)"
 fi
@@ -437,7 +453,7 @@ echo ""
 echo "Test Summary:"
 echo "  - Core installation: PASS"
 echo "  - Dependencies: PASS"
-echo "  - AMI-CI namespace: PASS"
+    echo "  - WORKSPACE-CI namespace: PASS"
 echo "  - Pre-commit hooks: PASS"
 echo "  - Make targets: PASS"
 if [ "$TEST_BOOTSTRAP" = "1" ]; then

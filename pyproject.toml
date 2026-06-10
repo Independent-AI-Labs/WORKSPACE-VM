@@ -81,7 +81,7 @@ ami = [
 
 [project.optional-dependencies]
 dev = [
-    "ci[dev]",
+    "workspace-ci[dev]",
     "dataops",
 ]
 
@@ -89,7 +89,7 @@ dev = [
 package = true
 
 [tool.uv.sources]
-ci = { path = "projects/CI", editable = true }
+workspace-ci = { path = "projects/CI", editable = true }
 dataops = { path = "projects/DATAOPS", editable = true }
 
 [tool.mypy]

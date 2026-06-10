@@ -1,5 +1,6 @@
 # Per-repo safe exceptions for sensitive file detection.
-# These are merged with projects/AMI-CI/config/sensitive_files.yaml safe_exceptions.
+# These are merged with projects/CI/config/sensitive_files.yaml safe_exceptions.
 
 safe_exceptions:
   - .gitattributes
+  - .markdown_docs_exceptions.yaml

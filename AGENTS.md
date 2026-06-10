@@ -127,4 +127,69 @@ Before pushing, verify:
 - Match arms must be exhaustive. No wildcard fallthroughs that hide logic errors.
 - Network operations (pull, push, fetch) must fail the operation, not degrade silently.
 
+## Rule 14: Shell Strict Mode — Never Mask Exit Codes with Pipelines
+
+All shell scripts in this project use `#!/bin/bash` (bash, not sh).
+
+### Required Boilerplate
+Every shell script must start with:
+```bash
+#!/bin/bash
+set -euo pipefail
+```
+
+### Never Pipe to head or tail (SIGPIPE)
+
+`head` and `tail` close stdin early after reading N lines/elements. The upstream
+command receives SIGPIPE (exit 141), which `set -o pipefail` correctly surfaces
+as a failure. A genuinely-failing upstream command also produces a non-zero exit.
+Piping to head/tail makes both cases indistinguishable — it flat-out swallows errors.
+
+**Banned pattern:**
+```bash
+command 2>&1 | tail -30          # SIGPIPE masks command's real exit code
+command 2>&1 | tee log | tail -N # same problem, plus tee gets killed too
+command | head -10               # same
+```
+
+**Correct pattern — decouple capture from display:**
+```bash
+# Option A: redirect to file, check exit, then tail the file
+command 2>&1 | tee output.log
+ret=${PIPESTATUS[0]}
+tail -30 output.log
+if [ "$ret" -ne 0 ]; then
+    echo "[FAIL] command failed."
+    exit 1
+fi
+
+# Option B: capture to variable, then display (small output only)
+output=$(command 2>&1)
+ret=$?
+echo "$output" | tail -30
+if [ "$ret" -ne 0 ]; then
+    echo "[FAIL] command failed."
+    exit 1
+fi
+```
+
+### Source Files with `source`, Not `.`
+
+In bash scripts (`#!/bin/bash`), use `source` instead of bare `.`.
+Both are flagged as `sh-bare-source` unless an exit check follows:
+```bash
+source "$SCRIPT_PATH" || exit 1    # correct
+. "$SCRIPT_PATH"                   # banned: sh-bare-source
+source "$SCRIPT_PATH"              # banned: sh-bare-source (no exit check)
+```
+
+### PIPESTATUS Is Ephemeral
+
+`PIPESTATUS` is overwritten by the **very next command** — even `echo` or an
+assignment. Capture it immediately after the pipeline:
+```bash
+command | tee output.log
+ret=${PIPESTATUS[0]}       # must be first line after pipeline
+```
+
 ## 作弊就是死刑 — REMEMBER THIS

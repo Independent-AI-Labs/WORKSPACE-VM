@@ -113,7 +113,7 @@ def _collect_compose_files(src: Path, base_dir: Path, paths: set[str]) -> None:
     except (
         OSError,
         yaml.YAMLError,
-    ):  # silent-ok: compose file may not exist or be malformed, skip extraction
+    ):  # compose file may not exist or be malformed, skip extraction
         pass
 
 

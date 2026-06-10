@@ -8,7 +8,7 @@
 
 workspaceClones:
   ci:
-    remote: 'git@github.com:Independent-AI-Labs/AMI-CI.git'
+    remote: 'git@github.com:Independent-AI-Labs/WORKSPACE-CI.git'
     path: 'projects/CI'
     mandatory: true
   dataops:

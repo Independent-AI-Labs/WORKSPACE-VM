@@ -150,8 +150,8 @@ learning/forecasting/
 uv.lock
 ami/config/automation.yaml
 # Per-machine workspace registry — autocreated from
-# projects/AMI-CI/templates/project_enforcement.template.yaml on first use.
-# See projects/AMI-CI/lib/checks_quality.sh::ci_autocreate_project_enforcement.
+# projects/CI/templates/project_enforcement.template.yaml on first use.
+# See projects/CI/lib/checks_quality.sh::ci_autocreate_project_enforcement.
 ami/config/project_enforcement.yaml
 projects/
 
