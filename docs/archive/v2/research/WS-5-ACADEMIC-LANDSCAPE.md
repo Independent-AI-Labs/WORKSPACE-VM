@@ -27,7 +27,7 @@
 - Container escape techniques specific to AI agent workloads
 - Confidential computing for agents (TEE + GPU attestation)
 - Microkernel/VMM approaches for agent isolation (seL4, AWS Nitro, etc.)
-- Follow-through from RUST-GUARD/RESEARCH.md on gVisor, Firecracker, Kata
+- Follow-through from WORKSPACE-GUARD/RESEARCH.md on gVisor, Firecracker, Kata
 
 ### 1.4 Agent-to-Agent Security
 

@@ -47,7 +47,7 @@ This workspace is not a standard monorepo; it is a **federated system**.
 
 1.  **"Operation not permitted" on `git`:**
     *   **Reason:** `git-guard` has set the `+i` (immutable) attribute on your binaries to prevent history manipulation.
-    *   **Fix:** Use `sudo projects/RUST-GUARD/scripts/bootstrap_git_guard.sh --uninstall` if you absolutely must bypass the guard for a maintenance task.
+    *   **Fix:** Use `sudo projects/WORKSPACE-GUARD/scripts/bootstrap_git_guard.sh --uninstall` if you absolutely must bypass the guard for a maintenance task.
 2.  **Podman/Container Failures:**
     *   **Reason:** Service state drift or network policy enforcement.
     *   **Fix:** Use `make -C projects/DATAOPS runtime-down` then `runtime-up` to reset the container stack.

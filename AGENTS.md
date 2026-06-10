@@ -49,17 +49,17 @@ Every rule below is absolute. Violation means you are sabotaging the project.
 Before every commit, run ALL of these that apply to the project:
 
 ```
-cargo test                                                # Rust (in projects/RUST-GUARD/)
+cargo test                                                # Rust (in projects/WORKSPACE-GUARD/)
 python -m pytest                                           # Python
-cargo fmt --check                                          # Rust format (in projects/RUST-GUARD/)
+cargo fmt --check                                          # Rust format (in projects/WORKSPACE-GUARD/)
 ruff format --check                                       # Python format
-cargo clippy -- -D warnings                                # Rust lint (in projects/RUST-GUARD/)
+cargo clippy -- -D warnings                                # Rust lint (in projects/WORKSPACE-GUARD/)
 ruff check                                                # Python lint
 All files under 512 lines                                  # Length
 
-The RUST-GUARD repo (projects/RUST-GUARD/) has its own pre-commit hooks
+The WORKSPACE-GUARD repo (projects/WORKSPACE-GUARD/) has its own pre-commit hooks
 (cargo-fmt, cargo-build, cargo-clippy) and pre-push hook (cargo-test).
-Run those from within the RUST-GUARD directory. Do NOT skip them with `--no-verify`.
+Run those from within the WORKSPACE-GUARD directory. Do NOT skip them with `--no-verify`.
 If the project has a Makefile with a `check` or `preflight` target, run that too.
 
 ## Rule 5: Shell-First, Framework-Never for CI Hooks

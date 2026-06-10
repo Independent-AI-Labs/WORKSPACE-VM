@@ -38,14 +38,14 @@ core: ## Bootstrap uv + python + git-xet + node (prereq for sync-package)
 
 .PHONY: build-guard
 build-guard: ensure-repos sync-package ## Build git-guard binary (no root needed)
-	@if [ -f workspace/scripts/bootstrap/bootstrap_rust_guard.sh ]; then \
-		bash workspace/scripts/bootstrap/bootstrap_rust_guard.sh build-only; \
+	@if [ -f workspace/scripts/bootstrap/bootstrap_workspace_guard.sh ]; then \
+		bash workspace/scripts/bootstrap/bootstrap_workspace_guard.sh build-only; \
 	fi
 
 .PHONY: install-guard
 install-guard: ## Install git-guard to /usr/bin/git (requires sudo, binary must be pre-built)
-	@if [ -f workspace/scripts/bootstrap/bootstrap_rust_guard.sh ]; then \
-		sudo bash workspace/scripts/bootstrap/bootstrap_rust_guard.sh install-only; \
+	@if [ -f workspace/scripts/bootstrap/bootstrap_workspace_guard.sh ]; then \
+		sudo bash workspace/scripts/bootstrap/bootstrap_workspace_guard.sh install-only; \
 	fi
 
 .PHONY: install

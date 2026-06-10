@@ -30,7 +30,7 @@ projects:
   zk-portal: 'projects/ZK-PORTAL'
   polymarket-tracker: 'projects/polymarket-insider-tracker'
   ami-docs: 'projects/docs'
-  rust-guard: 'projects/RUST-GUARD'
+  workspace-guard: 'projects/WORKSPACE-GUARD'
 
 vcs:
   client: 'git'

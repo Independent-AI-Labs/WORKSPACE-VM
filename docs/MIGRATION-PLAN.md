@@ -38,7 +38,7 @@ AMI-AGENTS is a federated AI-agent workspace with:
 - **Container specification** (DRAFT) — `docs/specifications/SPEC-AGENT-CONTAINERS.md` plans container isolation
 - **Docker infrastructure** — AMI-DATAOPS compose stack (postgres, redis, dgraph, mongo, keycloak, vaultwarden, prometheus, searxng) — no reverse proxy deployed yet (per-VM Traefik planned, see §5)
 - **Ansible** — llamaserver deployment playbooks
-- **CI/quality** — AMI-CI enforcement, pre-commit hooks, RUST-GUARD git immutability
+- **CI/quality** — AMI-CI enforcement, pre-commit hooks, WORKSPACE-GUARD git immutability
 
 ### 1.2 What Changes
 
@@ -62,7 +62,7 @@ AMI-AGENTS is a federated AI-agent workspace with:
 | `projects/opencode/` | **Source clone** — continues as the development branch for opencode itself |
 | `projects/AMI-DATAOPS/` | Data infrastructure (postgres, keycloak, etc.) — independent of agent choice |
 | `projects/AMI-CI/` | CI enforcement — independent of agent choice |
-| `projects/RUST-GUARD/` | Git immutability — security infrastructure |
+| `projects/WORKSPACE-GUARD/` | Git immutability — security infrastructure |
 | `workspace/config/` | Configuration (automation, bootstrap components, hooks) — still used by Makefile |
 | `workspace/scripts/bootstrap/` | System tool bootstrapping (uv, python, rust, podman, moon, etc.) — independent |
 | `workspace/scripts/pre-req.sh` | System pre-requisites — still needed |

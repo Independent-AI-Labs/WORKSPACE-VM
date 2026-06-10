@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Bootstrap: Build and install SUID rust guard (git PoC)
+# Bootstrap: Build and install SUID workspace guard (git PoC)
 # Called by: initial-setup.sh (after apt dependencies installed)
 set -euo pipefail
 
@@ -19,7 +19,7 @@ divert_is_active() {
 }
 
 uninstall_guard() {
-    log_info "Uninstalling rust guard..."
+    log_info "Uninstalling workspace guard..."
     if command -v chattr >/dev/null; then
         test -f /usr/bin/git       && chattr -i /usr/bin/git
         test -f /usr/bin/git.original && chattr -i /usr/bin/git.original
@@ -45,11 +45,11 @@ uninstall_guard() {
         return 1
     fi
     # Clean up all guard-related system paths (current + former ami-git-guard)
-    rm -f /etc/apt/apt.conf.d/99rust-guard
+    rm -f /etc/apt/apt.conf.d/99workspace-guard
     rm -f /etc/apt/apt.conf.d/99git-guard
-    rm -rf /usr/lib/rust-guard
+    rm -rf /usr/lib/workspace-guard
     rm -rf /usr/lib/ami-git-guard
-    rm -rf /var/log/rust-guard
+    rm -rf /var/log/workspace-guard
     rm -rf /var/log/ami-git-guard
     log_info "Git guard uninstalled — /usr/bin/git restored, system paths cleaned"
     git --version
@@ -96,7 +96,7 @@ preflight_check() {
 }
 
 build_guard_binary() {
-    log_info "Building rust-guard Rust binary..."
+    log_info "Building workspace-guard Rust binary..."
     local boot_rust="${PROJECT_ROOT}/.boot-linux/bin"
     local rust_home="${PROJECT_ROOT}/.boot-linux/rust"
     export PATH="$boot_rust:$PATH"
@@ -131,9 +131,9 @@ build_guard_binary() {
         fi
     fi
 
-    local guard_dir="${PROJECT_ROOT}/projects/RUST-GUARD"
+    local guard_dir="${PROJECT_ROOT}/projects/WORKSPACE-GUARD"
     if [[ ! -f "$guard_dir/Cargo.toml" ]]; then
-        log_info "RUST-GUARD project not found at $guard_dir — cloning from remote..."
+        log_info "WORKSPACE-GUARD project not found at $guard_dir — cloning from remote..."
 
         if [[ -z "${SSH_AUTH_SOCK:-}" ]] && [[ -n "${SUDO_USER:-}" ]]; then
             local user_ssh_sock
@@ -146,17 +146,17 @@ build_guard_binary() {
         fi
 
         local guard_remote
-        guard_remote=$(grep -A3 'rust-guard:' "${PROJECT_ROOT}/workspace/config/workspace-clones.yaml" | grep 'remote:' | awk '{print $2}' | tr -d "'\"")
+        guard_remote=$(grep -A3 'workspace-guard:' "${PROJECT_ROOT}/workspace/config/workspace-clones.yaml" | grep 'remote:' | awk '{print $2}' | tr -d "'\"")
         if [[ -z "$guard_remote" ]]; then
-            guard_remote="git@github.com:Independent-AI-Labs/RUST-GUARD.git"
+            guard_remote="git@github.com:Independent-AI-Labs/WORKSPACE-GUARD.git"
         fi
         mkdir -p "$(dirname "$guard_dir")"
         if ! sudo -u "${SUDO_USER:-$USER}" git clone "$guard_remote" "$guard_dir"; then
-            log_error "Failed to clone RUST-GUARD from $guard_remote"
+            log_error "Failed to clone WORKSPACE-GUARD from $guard_remote"
             return 1
         fi
         chown -R root:root "$guard_dir"
-        log_info "RUST-GUARD cloned from $guard_remote"
+        log_info "WORKSPACE-GUARD cloned from $guard_remote"
     fi
 
     cd "$guard_dir"
@@ -171,16 +171,16 @@ build_guard_binary() {
         if echo "$installed_targets" | grep -q musl; then
             log_info "Building statically linked binary (musl)..."
             cargo build --release --target x86_64-unknown-linux-musl
-            guard_bin="target/x86_64-unknown-linux-musl/release/rust-guard"
+            guard_bin="target/x86_64-unknown-linux-musl/release/workspace-guard"
         else
             log_info "Building dynamically linked binary (gnu)..."
             PATH="/usr/bin:/usr/sbin:/usr/local/bin:$PATH" CC=gcc cargo build --release
-            guard_bin="target/release/rust-guard"
+            guard_bin="target/release/workspace-guard"
         fi
     else
         log_info "Building dynamically linked binary (gnu, no rustup)..."
         PATH="/usr/bin:/usr/sbin:/usr/local/bin:$PATH" CC=gcc cargo build --release
-        guard_bin="target/release/rust-guard"
+        guard_bin="target/release/workspace-guard"
     fi
 
     if [[ ! -f "$guard_bin" ]]; then
@@ -231,7 +231,7 @@ install_guard_binary() {
     echo "            git pull --ff-only, git fetch, git stash"
     echo "  • dpkg-divert protects from apt overwrites"
     echo "  • Immutable attributes (chattr +i) prevent tampering"
-    echo "  • Logs every git invocation to /var/log/rust-guard/"
+    echo "  • Logs every git invocation to /var/log/workspace-guard/"
     echo ""
     echo "WHY IT'S RECOMMENDED:"
     echo "  • CI agents, AI coding assistants, and automated tooling can"
@@ -243,7 +243,7 @@ install_guard_binary() {
     echo "    the exact git invocation that was attempted."
     echo ""
     echo "To uninstall:"
-    echo "  sudo bash workspace/scripts/bootstrap/bootstrap_rust_guard.sh uninstall"
+    echo "  sudo bash workspace/scripts/bootstrap/bootstrap_workspace_guard.sh uninstall"
     echo ""
 
     if [[ -t 0 ]]; then
@@ -329,25 +329,25 @@ install_guard_binary() {
     done
 
     # Phase 4: Register apt post-invoke hook
-    cat > /etc/apt/apt.conf.d/99rust-guard << 'EOF'
-DPkg::Post-Invoke { "/usr/lib/rust-guard/apt-check.sh"; };
+    cat > /etc/apt/apt.conf.d/99workspace-guard << 'EOF'
+DPkg::Post-Invoke { "/usr/lib/workspace-guard/apt-check.sh"; };
 EOF
-    mkdir -p /usr/lib/rust-guard
-    cat > /usr/lib/rust-guard/apt-check.sh << 'EOF'
+    mkdir -p /usr/lib/workspace-guard
+    cat > /usr/lib/workspace-guard/apt-check.sh << 'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 if dpkg -l git | grep -q '^ii' && [[ ! -f /usr/bin/git.original ]]; then
-    echo '[WARN] Git package changed but rust guard not detected. Re-run: sudo make install-guard' >&2
+    echo '[WARN] Git package changed but workspace guard not detected. Re-run: sudo make install-guard' >&2
 fi
 if [[ -f /usr/bin/git.distrib ]]; then
     chmod 0700 /usr/bin/git.distrib
     chown root:root /usr/bin/git.distrib
 fi
 EOF
-    chmod 755 /usr/lib/rust-guard/apt-check.sh
+    chmod 755 /usr/lib/workspace-guard/apt-check.sh
 
-    mkdir -p /var/log/rust-guard
-    chmod 1777 /var/log/rust-guard
+    mkdir -p /var/log/workspace-guard
+    chmod 1777 /var/log/workspace-guard
 
     # Phase 5: Verification
     echo ""
@@ -399,9 +399,9 @@ EOF
         log_info "  /usr/bin/git.original (0700 root:root, immutable)"
         log_info "  dpkg-divert configured"
         log_info "  apt hook registered"
-        log_info "  audit log: /var/log/rust-guard/"
+        log_info "  audit log: /var/log/workspace-guard/"
         echo ""
-        log_info "To verify: bash workspace/scripts/bootstrap/bootstrap_rust_guard.sh check"
+        log_info "To verify: bash workspace/scripts/bootstrap/bootstrap_workspace_guard.sh check"
     else
         log_error "Installation verification failed — rolling back"
         rollback_guard
@@ -442,7 +442,7 @@ check_guard() {
         else
             log_warn "  dpkg-divert: MISSING"
         fi
-        if [[ -f /etc/apt/apt.conf.d/99rust-guard ]]; then
+        if [[ -f /etc/apt/apt.conf.d/99workspace-guard ]]; then
             log_info "  apt hook: INSTALLED"
         else
             log_warn "  apt hook: MISSING"
@@ -467,7 +467,7 @@ case "$MODE" in
     check) check_guard ;;
     build-only) build_guard_binary ;;
     install-only)
-        GUARD_BIN="${PROJECT_ROOT}/projects/RUST-GUARD/target/release/rust-guard"
+        GUARD_BIN="${PROJECT_ROOT}/projects/WORKSPACE-GUARD/target/release/workspace-guard"
         install_guard_binary "$GUARD_BIN"
         ;;
     reinstall|install) install_guard ;;

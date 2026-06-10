@@ -28,7 +28,7 @@ RUN chmod 0700 /home/ami/.ssh && chmod 0600 /home/ami/.ssh/id_*
 {% endif %}
 COPY projects/CI/ /opt/ami-agents/projects/CI/
 COPY projects/DATAOPS/ /opt/ami-agents/projects/DATAOPS/
-COPY projects/RUST-GUARD/ /opt/ami-agents/projects/RUST-GUARD/
+COPY projects/WORKSPACE-GUARD/ /opt/ami-agents/projects/WORKSPACE-GUARD/
 RUN make sync-package
 COPY {{ vm_install_defaults }} /tmp/install-defaults.yaml
 RUN make install-ci INSTALL_DEFAULTS=/tmp/install-defaults.yaml
