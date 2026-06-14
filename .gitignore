@@ -19,6 +19,7 @@ lib/
 !ux/cms/
 !ux/cms/app/
 !ux/cms/app/lib/
+!workspace/scripts/lib/
 lib64/
 parts/
 sdist/
