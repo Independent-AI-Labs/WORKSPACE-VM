@@ -49,6 +49,9 @@ install: init-check sync-package ## Interactive TUI to select and install compon
 	@.venv/bin/python workspace/scripts/bootstrap_installer.py && \
 	$(MAKE) register-extensions && \
 	$(MAKE) install-shell && \
+	$(MAKE) install-hooks && \
+	$(MAKE) build-guard && \
+	$(MAKE) install-guard && \
 	bash workspace/scripts/shell/shell-setup --welcome
 
 .PHONY: install-ci
@@ -56,7 +59,10 @@ install-ci: init-check sync-package ## Non-interactive component install (uses i
 	@.venv/bin/python workspace/scripts/bootstrap_installer.py --defaults workspace/config/install-defaults.yaml && \
 	$(MAKE) register-extensions && \
 	$(MAKE) install-shell && \
-	echo "✨ Installation complete (CI mode)!"
+	$(MAKE) install-hooks && \
+	$(MAKE) build-guard && \
+	echo "✨ Installation complete (CI mode)!" && \
+	echo "⚠️  Git guard binary built but not installed — run: sudo make install-guard"
 
 # --- Repos ---
 
