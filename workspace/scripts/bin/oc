@@ -11,23 +11,46 @@ BOOT_DIR="${BOOT_LINUX_DIR:-${AMI_ROOT}/.boot-linux}"
 NPX="${BOOT_DIR}/bin/npx"
 OPN="${BOOT_DIR}/bin/opencode"
 
-if [[ "$1" == "--help" ]] || [[ "$1" == "-h" ]]; then
-    echo "oc — opencode AI agent wrapper with AMI welcome context"
+_oc_help() {
+    echo "oc - opencode AI agent wrapper with AMI welcome context"
     echo "Usage: oc [task...]"
     echo "  Without arguments: starts interactive opencode session"
     echo "  With arguments:    runs opencode with the given task"
+}
+
+if [[ "$1" == "--help" ]] || [[ "$1" == "-h" ]]; then
+    _oc_help
     exit 0
 fi
 if [[ "$1" == "--version" ]] || [[ "$1" == "-V" ]]; then
-    "$OPN" --version 2>/dev/null || echo "unknown"
+    if [[ -x "$OPN" ]]; then
+        "$OPN" --version
+    else
+        echo "unknown"
+    fi
     exit 0
 fi
+
+for _arg in "$@"; do
+    if [[ "$_arg" == "--help" ]] || [[ "$_arg" == "-h" ]]; then
+        if [[ ! -x "$OPN" ]]; then
+            _oc_help
+            exit 0
+        fi
+        break
+    fi
+done
 
 if [[ ! -x "$OPN" ]]; then
     echo "oc: opencode binary not found. Run 'make install' first." >&2
     exit 1
 fi
-WELCOME=$("$AMI_ROOT/workspace/scripts/bin/welcome" --plain 2>/dev/null || echo "AMI-AGENTS workspace")
+WELCOME=""
+if _tmp_welcome=$("$AMI_ROOT/workspace/scripts/bin/welcome" --plain 2>&1); then
+    WELCOME="$_tmp_welcome"
+else
+    WELCOME="AMI-AGENTS workspace"
+fi
 printf '%b\n' "$WELCOME" && echo ""
 # Regenerate the instruction file so opencode picks it up fresh each session
 printf '%b\n' "$WELCOME" > "${HOME}/.config/opencode/ami-environment.md"

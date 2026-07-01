@@ -1,10 +1,10 @@
-"""Unit tests for VM idempotency — no containers needed."""
+"""Unit tests for VM idempotency - no containers needed."""
 
 from __future__ import annotations
 
 import pytest
 
-from workspace.cli.vm_manager import _config_sha256, _generate_password
+from workspace.cli.vm_core import _config_sha256, _generate_password
 from workspace.types.vm import VMConfig
 from workspace.utils.uuid_utils import uuid7
 

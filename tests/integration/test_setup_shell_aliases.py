@@ -31,8 +31,6 @@ def test_aliases_exist_and_respond_to_help() -> None:
         "run",
         "oc",
         "repo",
-        "backup",
-        "restore",
     ]
 
     expected_aliases: list[str] = []

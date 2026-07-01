@@ -11,7 +11,7 @@ help: ## Show this help message
 	@echo ""
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  %%-28s %%s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
-# --- Init — system dependencies ---
+# --- Init - system dependencies ---
 
 .PHONY: init-check
 init-check: ## Check system dependencies
@@ -34,14 +34,18 @@ core: ## Bootstrap uv + python + git-xet + node (prereq for sync-package)
 	@AMI_ROOT="$$(pwd)" bash workspace/scripts/bootstrap/bootstrap_node.sh
 	@echo "✅ Core bootstrap complete"
 
-# --- Install — component selection ---
+# --- Install - component selection ---
+
+.PHONY: ci-install-deps
+ci-install-deps: ensure-repos ## Install CI project deps (boot tools, Python venv, gitleaks) - delegates to CI
+	@$(MAKE) -C projects/CI install-deps
 
 .PHONY: build-guard
-build-guard: ensure-repos sync-package ## Build git-guard binary (no root needed) — delegates to CI
+build-guard: ensure-repos sync-package ## Build git-guard binary (no root needed) - delegates to CI
 	@$(MAKE) -C projects/CI build-guard
 
 .PHONY: install-guard
-install-guard: ## Install git-guard to /usr/bin/git (requires sudo, binary must be pre-built) — delegates to CI
+install-guard: ## Install git-guard to /usr/bin/git (requires sudo, binary must be pre-built) - delegates to CI
 	@$(MAKE) -C projects/CI install-guard
 
 .PHONY: install
@@ -49,9 +53,10 @@ install: init-check sync-package ## Interactive TUI to select and install compon
 	@.venv/bin/python workspace/scripts/bootstrap_installer.py && \
 	$(MAKE) register-extensions && \
 	$(MAKE) install-shell && \
+	$(MAKE) ci-install-deps && \
 	$(MAKE) install-hooks && \
-	$(MAKE) build-guard && \
-	$(MAKE) install-guard && \
+	if ! $(MAKE) build-guard; then echo "⚠️  Git guard build failed - continuing without guard"; fi && \
+	if ! $(MAKE) install-guard; then echo "⚠️  Git guard installation skipped (needs sudo)"; fi && \
 	bash workspace/scripts/shell/shell-setup --welcome
 
 .PHONY: install-ci
@@ -59,10 +64,11 @@ install-ci: init-check sync-package ## Non-interactive component install (uses i
 	@.venv/bin/python workspace/scripts/bootstrap_installer.py --defaults workspace/config/install-defaults.yaml && \
 	$(MAKE) register-extensions && \
 	$(MAKE) install-shell && \
+	$(MAKE) ci-install-deps && \
 	$(MAKE) install-hooks && \
-	$(MAKE) build-guard && \
+	if ! $(MAKE) build-guard; then echo "⚠️  Git guard build failed - continuing without guard"; fi && \
 	echo "✨ Installation complete (CI mode)!" && \
-	echo "⚠️  Git guard binary built but not installed — run: sudo make install-guard"
+	echo "⚠️  Git guard binary built but not installed - run: sudo make install-guard"
 
 # --- Repos ---
 
@@ -179,21 +185,22 @@ vm-cert: ## generate or print client cert for <id>
 
 .PHONY: install-hooks
 install-hooks: ensure-repos ## Install native git hooks
-	@bash projects/CI/scripts/cleanup-precommit || echo "cleanup-precommit not found, continuing"
+	@if ! bash projects/CI/scripts/cleanup-precommit; then echo "cleanup-precommit not found, continuing"; fi
 	bash projects/CI/scripts/generate-hooks
 
 .PHONY: install-hooks-recursive
 install-hooks-recursive: ensure-repos ## Install hooks in workspace + every nested .git under projects/
 	@echo "🔗 Installing hooks in workspace root..."
-	@bash projects/CI/scripts/cleanup-precommit || echo "cleanup-precommit not found, continuing"
+	@if ! bash projects/CI/scripts/cleanup-precommit; then echo "cleanup-precommit not found, continuing"; fi
 	@bash projects/CI/scripts/generate-hooks
 	@bash projects/CI/scripts/walk-projects | while IFS= read -r repo; do \
 		echo ""; \
 		echo "🔗 Installing hooks in $$repo..."; \
 		( cd "$$repo" && \
-		  bash $(CURDIR)/projects/CI/scripts/cleanup-precommit || echo "cleanup-precommit not found, continuing"; \
-		  bash $(CURDIR)/projects/CI/scripts/generate-hooks ) \
-		  || echo "⚠️  Hook install failed in $$repo (skipping)"; \
+		  if ! bash $(CURDIR)/projects/CI/scripts/cleanup-precommit; then echo "cleanup-precommit not found, continuing"; fi && \
+		  bash $(CURDIR)/projects/CI/scripts/generate-hooks ); \
+		_hook_rc=$$?; \
+		if [ $$_hook_rc -ne 0 ]; then echo "⚠️  Hook install failed in $$repo (skipping)"; fi; \
 	done
 
 .PHONY: check-hooks
@@ -229,7 +236,7 @@ dead-code: ## Run AST-based dead code analysis (delegates to moon for caching)
 # --- Update ---
 
 .PHONY: update
-update: ## Update workspace via moon — walks every project topologically (^:update)
+update: ## Update workspace via moon - walks every project topologically (^:update)
 	@TMP_WS=$$(mktemp) && \
 	awk -f workspace/scripts/filter_moon_workspace.awk .moon/workspace.yml > "$$TMP_WS" && \
 	MOON_WORKSPACE="$$TMP_WS" moon run :update; \
@@ -255,18 +262,18 @@ rules: ## List context rules and redeploy plugin
 	@bash workspace/scripts/bin/rules list
 
 .PHONY: rules-add
-rules-add: ## Add rule — make rules-add REGEX="pattern" RULE="instruction"
+rules-add: ## Add rule - make rules-add REGEX="pattern" RULE="instruction"
 	@test -n "$$REGEX" || { echo "ERROR: REGEX required" >&2; exit 1; }
 	@test -n "$$RULE" || { echo "ERROR: RULE required" >&2; exit 1; }
 	@bash workspace/scripts/bin/rules add -r "$$REGEX" -t "$$RULE"
 
 .PHONY: rules-delete
-rules-delete: ## Delete rule — make rules-delete NUM=3
+rules-delete: ## Delete rule - make rules-delete NUM=3
 	@test -n "$$NUM" || { echo "ERROR: NUM required" >&2; exit 1; }
 	@bash workspace/scripts/bin/rules delete "$$NUM"
 
 .PHONY: rules-update
-rules-update: ## Update rule — make rules-update NUM=3 REGEX="pattern" RULE="instruction"
+rules-update: ## Update rule - make rules-update NUM=3 REGEX="pattern" RULE="instruction"
 	@test -n "$$NUM" || { echo "ERROR: NUM required" >&2; exit 1; }
 	@test -n "$$REGEX" || { echo "ERROR: REGEX required" >&2; exit 1; }
 	@test -n "$$RULE" || { echo "ERROR: RULE required" >&2; exit 1; }
@@ -277,18 +284,18 @@ hooks: ## List assistant response hooks and redeploy plugin
 	@bash workspace/scripts/bin/rules hooks
 
 .PHONY: hooks-add
-hooks-add: ## Add hook — make hooks-add REGEX="pattern" RULE="instruction"
+hooks-add: ## Add hook - make hooks-add REGEX="pattern" RULE="instruction"
 	@test -n "$$REGEX" || { echo "ERROR: REGEX required" >&2; exit 1; }
 	@test -n "$$RULE" || { echo "ERROR: RULE required" >&2; exit 1; }
 	@bash workspace/scripts/bin/rules hooks add -r "$$REGEX" -t "$$RULE"
 
 .PHONY: hooks-delete
-hooks-delete: ## Delete hook — make hooks-delete NUM=3
+hooks-delete: ## Delete hook - make hooks-delete NUM=3
 	@test -n "$$NUM" || { echo "ERROR: NUM required" >&2; exit 1; }
 	@bash workspace/scripts/bin/rules hooks delete "$$NUM"
 
 .PHONY: hooks-update
-hooks-update: ## Update hook — make hooks-update NUM=3 REGEX="pattern" RULE="instruction"
+hooks-update: ## Update hook - make hooks-update NUM=3 REGEX="pattern" RULE="instruction"
 	@test -n "$$NUM" || { echo "ERROR: NUM required" >&2; exit 1; }
 	@test -n "$$REGEX" || { echo "ERROR: REGEX required" >&2; exit 1; }
 	@test -n "$$RULE" || { echo "ERROR: RULE required" >&2; exit 1; }
@@ -320,7 +327,8 @@ scaffold-recursive: ensure-repos ## Scaffold quality_exceptions.yaml in every st
 	@bash projects/CI/scripts/walk-projects | while IFS= read -r repo; do \
 		_tier=$$(bash -c "source projects/CI/lib/checks_quality.sh && \
 			ci_resolve_tier '$$repo' \
-			'$(CURDIR)/workspace/config/project_enforcement.yaml'" || echo strict); \
+			'$(CURDIR)/workspace/config/project_enforcement.yaml'"); \
+		if [ -z "$$_tier" ]; then _tier=strict; fi; \
 		if [ "$$_tier" != "strict" ]; then continue; fi; \
 		if [ ! -f "$$repo/quality_exceptions.yaml" ]; then \
 			pname=$$(basename "$$repo"); \
@@ -343,6 +351,6 @@ check-compliance-recursive: ensure-repos ## Audit every nested repo for CI contr
 	[ $$_failed -eq 0 ]
 
 # ==============================================================================
-# LlamaServer — multi-flavor build + deployment (cpu, sycl, vulkan)
+# LlamaServer - multi-flavor build + deployment (cpu, sycl, vulkan)
 # ==============================================================================
 -include Makefile.llamaserver

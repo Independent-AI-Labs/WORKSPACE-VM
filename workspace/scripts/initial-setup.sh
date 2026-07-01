@@ -2,7 +2,7 @@
 set -uo pipefail
 
 # =============================================================================
-# Bootstrap — install system dependencies and bootstrap tools.
+# Bootstrap - install system dependencies and bootstrap tools.
 # =============================================================================
 # Usage:
 #   sudo make bootstrap                       # install missing system deps
@@ -183,14 +183,14 @@ check_cmd() {
         return 0
     else
     if [[ "$optional" == "True" ]]; then
-        log_warn "$desc ${DIM}(optional — not found)${NC}"
+        log_warn "$desc ${DIM}(optional - not found)${NC}"
         return 0
     else
         if [[ -n "$bootstrap" ]]; then
-            log_miss "$desc ${DIM}(not found — bootstrap)${NC}"
+            log_miss "$desc ${DIM}(not found - bootstrap)${NC}"
             MISSING_ENTRIES+=("${cmd}|bootstrap|${bootstrap}")
         elif [[ -n "$pkg" ]]; then
-            log_miss "$desc ${DIM}(not found — needs: $pkg)${NC}"
+            log_miss "$desc ${DIM}(not found - needs: $pkg)${NC}"
             MISSING_ENTRIES+=("${cmd}|${pkg}|${desc}")
         fi
         return 1
@@ -273,11 +273,30 @@ check_network_tools() {
     fi
 }
 
+check_libolm_headers() {
+    local olm_h_paths=(
+        "/usr/include/olm/olm.h"
+        "/usr/local/include/olm/olm.h"
+    )
+    for h in "${olm_h_paths[@]}"; do
+        if [[ -f "$h" ]]; then
+            log_ok "libolm headers found at $h"
+            return 0
+        fi
+    done
+    log_miss "libolm development headers not found (needed to build python-olm)"
+    MISSING_ENTRIES+=("libolm-dev|libolm-dev|libolm development headers (python-olm build dependency)")
+    return 1
+}
+
 # =============================================================================
 # Apt probing & install
 # =============================================================================
 # shellcheck source=initial-setup-apt.sh
-source "${SCRIPT_DIR}/initial-setup-apt.sh" || { echo "ERROR: failed to source initial-setup-apt.sh" >&2; exit 1; }
+if ! source "${SCRIPT_DIR}/initial-setup-apt.sh"; then
+    echo "ERROR: failed to source initial-setup-apt.sh" >&2
+    exit 1
+fi
 
 # =============================================================================
 # Main
@@ -304,6 +323,7 @@ while IFS='|' read -r entry_type rest; do
                 c-compiler)  check_c_compiler ;;
                 network-tools) check_network_tools ;;
                 playwright-libs) check_playwright_libs ;;
+                libolm-headers) check_libolm_headers ;;
             esac
             ;;
     esac
@@ -324,7 +344,7 @@ if [[ "$export_missing" == "true" ]]; then
     fi
     printf '%s\n' "${MISSING_ENTRIES[@]}" > "$MISSING_FILE"
     echo "$MISSING_FILE" > "${TMPDIR:-/tmp}/ami-init-missing.path"
-    log_warn "${BOLD}Missing ${#MISSING_ENTRIES[@]} dependencies — wrote list for sudo install${NC}"
+    log_warn "${BOLD}Missing ${#MISSING_ENTRIES[@]} dependencies - wrote list for sudo install${NC}"
     exit 0
 fi
 

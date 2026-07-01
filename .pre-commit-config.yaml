@@ -53,9 +53,9 @@ repos:
 
       - id: check-banned-words
         name: Check Banned Words
-        entry: "bash -c 'source projects/CI/lib/checks.sh && ci_check_banned_words'"
+        entry: "bash -c 'source projects/CI/lib/checks.sh && ci_check_banned_words \"$@\"' _"
         language: system
-        pass_filenames: false
+        pass_filenames: true
         always_run: true
         stages: [pre-commit]
       - id: check-coverage-no-devolution
