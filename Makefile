@@ -54,7 +54,8 @@ install: init-check sync-package ## Interactive TUI to select and install compon
 	$(MAKE) register-extensions && \
 	$(MAKE) install-shell && \
 	$(MAKE) ci-install-deps && \
-	$(MAKE) install-hooks && \
+	$(MAKE) install-deps-recursive && \
+	$(MAKE) install-hooks-recursive && \
 	if ! $(MAKE) build-guard; then echo "⚠️  Git guard build failed - continuing without guard"; fi && \
 	if ! $(MAKE) install-guard; then echo "⚠️  Git guard installation skipped (needs sudo)"; fi && \
 	bash workspace/scripts/shell/shell-setup --welcome
@@ -65,7 +66,8 @@ install-ci: init-check sync-package ## Non-interactive component install (uses i
 	$(MAKE) register-extensions && \
 	$(MAKE) install-shell && \
 	$(MAKE) ci-install-deps && \
-	$(MAKE) install-hooks && \
+	$(MAKE) install-deps-recursive && \
+	$(MAKE) install-hooks-recursive && \
 	if ! $(MAKE) build-guard; then echo "⚠️  Git guard build failed - continuing without guard"; fi && \
 	echo "✨ Installation complete (CI mode)!" && \
 	echo "⚠️  Git guard binary built but not installed - run: sudo make install-guard"
@@ -185,23 +187,34 @@ vm-cert: ## generate or print client cert for <id>
 
 .PHONY: install-hooks
 install-hooks: ensure-repos ## Install native git hooks
-	@if ! bash projects/CI/scripts/cleanup-precommit; then echo "cleanup-precommit not found, continuing"; fi
+	@if [ -x projects/CI/scripts/cleanup-precommit ]; then bash projects/CI/scripts/cleanup-precommit; fi
 	bash projects/CI/scripts/generate-hooks
+
+.PHONY: install-deps-recursive
+install-deps-recursive: ensure-repos ## Install deps in every nested repo (skip CI, handled by ci-install-deps)
+	@_failed=0; \
+	for repo in $$(bash projects/CI/scripts/walk-projects); do \
+		if [ "$$repo" = "projects/CI" ]; then continue; fi; \
+		echo ""; \
+		echo "📦 Installing deps in $$repo..."; \
+		$(MAKE) -C "$$repo" install-ci || { echo "❌ Dep install failed in $$repo"; _failed=$$((_failed + 1)); }; \
+	done; \
+	[ $$_failed -eq 0 ] || { echo "❌ Dep install failed in $$_failed repo(s)"; exit 1; }
 
 .PHONY: install-hooks-recursive
 install-hooks-recursive: ensure-repos ## Install hooks in workspace + every nested .git under projects/
 	@echo "🔗 Installing hooks in workspace root..."
-	@if ! bash projects/CI/scripts/cleanup-precommit; then echo "cleanup-precommit not found, continuing"; fi
+	@if [ -x projects/CI/scripts/cleanup-precommit ]; then bash projects/CI/scripts/cleanup-precommit; fi
 	@bash projects/CI/scripts/generate-hooks
-	@bash projects/CI/scripts/walk-projects | while IFS= read -r repo; do \
+	@_failed=0; \
+	for repo in $$(bash projects/CI/scripts/walk-projects); do \
 		echo ""; \
 		echo "🔗 Installing hooks in $$repo..."; \
 		( cd "$$repo" && \
-		  if ! bash $(CURDIR)/projects/CI/scripts/cleanup-precommit; then echo "cleanup-precommit not found, continuing"; fi && \
-		  bash $(CURDIR)/projects/CI/scripts/generate-hooks ); \
-		_hook_rc=$$?; \
-		if [ $$_hook_rc -ne 0 ]; then echo "⚠️  Hook install failed in $$repo (skipping)"; fi; \
-	done
+		  if [ -x $(CURDIR)/projects/CI/scripts/cleanup-precommit ]; then bash $(CURDIR)/projects/CI/scripts/cleanup-precommit; fi && \
+		  bash $(CURDIR)/projects/CI/scripts/generate-hooks ) || { echo "❌ Hook install failed in $$repo"; _failed=$$((_failed + 1)); }; \
+	done; \
+	[ $$_failed -eq 0 ] || { echo "❌ Hook install failed in $$_failed repo(s)"; exit 1; }
 
 .PHONY: check-hooks
 check-hooks: ensure-repos ## Preview generated hooks (dry-run)

@@ -24,15 +24,50 @@ log_error() {
     echo -e "${RED}[ERROR]${NC} $*"
 }
 
+# Resolve required Python version from pyproject.toml requires-python.
+# Extracts the major.minor version (e.g. "3.13") from patterns like:
+#   ==3.13.*  >=3.13  ==3.11.*  >=3.11,<3.14
+_PYPROJECT="${PROJECT_ROOT}/pyproject.toml"
+if [[ ! -f "$_PYPROJECT" ]]; then
+    log_error "pyproject.toml not found at ${_PYPROJECT}"
+    exit 1
+fi
+REQUIRED_PYTHON="$(grep -m1 'requires-python' "$_PYPROJECT")"
+if [[ -z "$REQUIRED_PYTHON" ]]; then
+    log_error "requires-python not found in ${_PYPROJECT}"
+    exit 1
+fi
+# Extract the quoted value from the grep line
+REQUIRED_PYTHON="${REQUIRED_PYTHON#*\"}"
+REQUIRED_PYTHON="${REQUIRED_PYTHON%\"*}"
+if [[ -z "$REQUIRED_PYTHON" ]]; then
+    log_error "requires-python value is empty in ${_PYPROJECT}"
+    exit 1
+fi
+# Extract major.minor from the constraint (first X.Y pair found)
+# Use bash regex instead of piping to grep to avoid pipefail masking
+if [[ "$REQUIRED_PYTHON" =~ ([0-9]+\.[0-9]+) ]]; then
+    PY_VERSION="${BASH_REMATCH[1]}"
+else
+    log_error "Cannot parse Python version from requires-python='${REQUIRED_PYTHON}'"
+    exit 1
+fi
+log_info "Required Python: ${PY_VERSION} (from pyproject.toml requires-python=\"${REQUIRED_PYTHON}\")"
+
 # Check symlink target, not just bin/python
 if [ -x "${PYTHON_ENV}/bin/python" ]; then
-    log_info "Python already installed at ${PYTHON_ENV}"
-    "${PYTHON_ENV}/bin/python" --version
-    # Always recreate symlinks (fixes broken links after repo move)
-    mkdir -p "${BIN_DIR}"
-    ln -sf "${PYTHON_ENV}/bin/python" "${BIN_DIR}/python"
-    ln -sf "${PYTHON_ENV}/bin/pip" "${BIN_DIR}/pip"
-    exit 0
+    _current_ver="$("${PYTHON_ENV}/bin/python" -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')"
+    if [[ "$_current_ver" == "$PY_VERSION" ]]; then
+        log_info "Python ${PY_VERSION} already installed at ${PYTHON_ENV}"
+        "${PYTHON_ENV}/bin/python" --version
+        # Always recreate symlinks (fixes broken links after repo move)
+        mkdir -p "${BIN_DIR}"
+        ln -sf "${PYTHON_ENV}/bin/python" "${BIN_DIR}/python"
+        ln -sf "${PYTHON_ENV}/bin/pip" "${BIN_DIR}/pip"
+        exit 0
+    fi
+    log_info "Python ${_current_ver} found at ${PYTHON_ENV}, upgrading to ${PY_VERSION}..."
+    rm -rf "${PYTHON_ENV}"
 fi
 
 # Find uv - must be in .boot-linux/bin
@@ -49,7 +84,8 @@ log_info "Creating Python venv in ${PYTHON_ENV} using uv..."
 mkdir -p "${BIN_DIR}"
 
 # Create venv in subdirectory (not at .boot-linux root)
-"$UV_CMD" venv "${PYTHON_ENV}" --seed
+# Python version resolved from pyproject.toml requires-python above.
+"$UV_CMD" venv "${PYTHON_ENV}" --seed --python "$PY_VERSION"
 
 # Symlink to bin/ so other scripts can find the binary
 ln -sf "${PYTHON_ENV}/bin/python" "${BIN_DIR}/python"

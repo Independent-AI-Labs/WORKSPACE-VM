@@ -8,14 +8,26 @@ BOOT_DIR="${BOOT_LINUX_DIR:-${AMI_ROOT}/.boot-linux}"
 
 NPM="${BOOT_DIR}/bin/npm"
 if [[ ! -x "$NPM" ]]; then
-    echo "[${OP}] hermetic npm not found at ${NPM} — run make pre-req first"
+    echo "[${OP}] hermetic npm not found at ${NPM} -- run make pre-req first"
     exit 1
 fi
 
 export PATH="${BOOT_DIR}/bin:${PATH}"
 
 echo "[${OP}] Installing opencode-ai into .venv..."
-npm install --prefix "${AMI_ROOT}/.venv" opencode-ai@latest
+_npm_rc=0
+npm install --prefix "${AMI_ROOT}/.venv" opencode-ai@latest || _npm_rc=$?
+if [[ $_npm_rc -ne 0 ]]; then
+    echo "[${OP}] npm install failed (rc=${_npm_rc}), retrying once..."
+    sleep 2
+    _npm_rc=0
+    npm install --prefix "${AMI_ROOT}/.venv" opencode-ai@latest || _npm_rc=$?
+    if [[ $_npm_rc -ne 0 ]]; then
+        echo "[${OP}] ERROR: npm install failed after retry (rc=${_npm_rc})"
+        exit 1
+    fi
+    echo "[${OP}] npm install succeeded on retry"
+fi
 
 OPN_BIN="${AMI_ROOT}/.venv/node_modules/.bin/opencode"
 if [[ -x "$OPN_BIN" ]]; then
