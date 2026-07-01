@@ -7,7 +7,7 @@ AMI_ROOT="$("$SCRIPT_DIR/pwd")"
 export AMI_ROOT
 
 VENV_DIR="$AMI_ROOT/.venv"
-VENV_PYTHON="/home/ami/AMI-AGENTS/.venv/bin/python"
+VENV_PYTHON="/home/agent/WORKSPACE-VM/.venv/bin/python"
 BOOT_DIR="$AMI_ROOT/.boot-linux"
 
 [[ -f "$AMI_ROOT/.env" ]] && export $(grep -v '^#' "$AMI_ROOT/.env" | xargs) || true

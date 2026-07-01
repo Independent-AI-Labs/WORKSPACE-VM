@@ -10,7 +10,7 @@ done
 export AMI_ROOT && cd "$AMI_ROOT"
 
 _VMS_DIR=".vms"
-_PYTHON="/home/ami/AMI-AGENTS/.venv/bin/python"
+_PYTHON="/home/agent/WORKSPACE-VM/.venv/bin/python"
 _CERTS_SCRIPT="workspace/scripts/bootstrap/bootstrap_certs.sh"
 _VM_MANAGER="workspace.cli.vm_main"
 
