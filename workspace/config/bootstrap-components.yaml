@@ -87,6 +87,14 @@ requires:
   - check_cmd: gitleaks
     description: Gitleaks (secret scanning)
 
+  - check_cmd: newuidmap
+    apt_package: uidmap
+    description: newuidmap/newgidmap (rootless container UID mapping)
+
+  - check_cmd: slirp4netns
+    apt_package: slirp4netns
+    description: Rootless container networking
+
   - check_cmd: crontab
     apt_package: cron
     description: System cron daemon
