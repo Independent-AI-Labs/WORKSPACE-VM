@@ -39,6 +39,9 @@ Every rule below is absolute. Violation means you are sabotaging the project.
 ## Rule 3.5: No Going Back — Only Forward
 
 - NEVER run `git reset`, `git checkout --hard`, `git rebase`, or `git commit --amend`.
+- EXCEPTION: `git pull --rebase` IS allowed — the guard treats it as `pull` with a flag,
+  not as standalone `git rebase`. Use it to sync a diverged branch: rebase local commits
+  on top of upstream, resolve conflicts, `git add` + `git rebase --continue`.
 - History is immutable. What is committed stays committed.
 - If the working tree is dirty, commit it. If it's not ready, stash it (full or partial).
 - The only valid moves are: commit, stash, push. Everything else is forbidden.
