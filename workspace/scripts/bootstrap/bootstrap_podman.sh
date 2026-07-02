@@ -71,16 +71,16 @@ DO_RESET=false
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --reset|-r)
+        -reset|-r)
             DO_RESET=true
             shift
             ;;
-        --help|-h)
+        -help|-h)
             echo "Usage: $0 [OPTIONS]"
             echo ""
             echo "Options:"
-            echo "  --reset, -r    Reset corrupted Podman state before install (preserves volumes)"
-            echo "  --help, -h     Show this help message"
+            echo "  -reset, -r    Reset corrupted Podman state before install (preserves volumes)"
+            echo "  -help, -h     Show this help message"
             exit 0
             ;;
         *)
@@ -163,7 +163,12 @@ if [[ ${#MISSING_SYS_DEPS[@]} -gt 0 ]]; then
 fi
 
 # AppArmor profile check (informational only)
-APPARMOR_USERNS=$(sysctl -n kernel.apparmor_restrict_unprivileged_userns 2>&1 || echo 0)
+_aa_err="$(mktemp)"
+APPARMOR_USERNS=$(sysctl -n kernel.apparmor_restrict_unprivileged_userns 2>"$_aa_err") || {
+    echo "[bootstrap-podman] sysctl apparmor check failed: $(cat "$_aa_err")" >&2
+    APPARMOR_USERNS=0
+}
+rm -f "$_aa_err"
 if [[ "$APPARMOR_USERNS" == "1" ]]; then
     log_warn "AppArmor restricts unprivileged user namespaces on this kernel"
     log_warn "Podman may require manual AppArmor profile setup for full rootless mode"
@@ -178,7 +183,7 @@ if [[ ! -d "${VENV_DIR}" ]]; then
     if [[ -x "${BOOT_LINUX_DIR:-${PROJECT_ROOT}/.boot-linux}/bin/uv" ]]; then
         "${BOOT_LINUX_DIR:-${PROJECT_ROOT}/.boot-linux}/bin/uv" venv "${VENV_DIR}"
     else
-        log_error "uv not found — run make core first"
+        log_error "uv not found - run make core first"
         exit 1
     fi
 fi
@@ -202,7 +207,7 @@ fi
 
 # Extract Podman
 log_info "Extracting Podman to ${PODMAN_DIR}"
-tar -xzf "${PODMAN_TARBALL}" -C "${PODMAN_DIR}" --strip-components=1
+tar -xzf "${PODMAN_TARBALL}" -C "${PODMAN_DIR}" -strip-components=1
 
 # Download conmon
 CONMON_URL="https://github.com/containers/conmon/releases/download/v${CONMON_VERSION}/conmon.${PODMAN_ARCH}"
@@ -344,8 +349,8 @@ log_info "✓ Created ${CONTAINERS_CONF}"
 
 # Verify installation (use real-podman for direct check)
 log_info "Verifying Podman installation"
-if "${VENV_DIR}/bin/real-podman" --version; then
-    log_info "Podman installed successfully: $(${VENV_DIR}/bin/real-podman --version)"
+if "${VENV_DIR}/bin/real-podman" -version; then
+    log_info "Podman installed successfully: $(${VENV_DIR}/bin/real-podman -version)"
 else
     log_error "Podman installation verification failed"
     exit 1
@@ -353,7 +358,7 @@ fi
 
 # Verify guard is working
 log_info "Verifying safety guard"
-if "${VENV_DIR}/bin/podman" --version >/dev/null 2>&1; then
+if "${VENV_DIR}/bin/podman" -version >/dev/null 2>&1; then
     log_info "✓ Safety guard is operational"
 else
     log_warn "Safety guard verification failed - check podman-guard script"
@@ -362,8 +367,8 @@ fi
 # Verify podman-compose with PATH set
 export PATH="${VENV_DIR}/bin:$PATH"
 if command -v podman-compose &> /dev/null; then
-    if podman-compose --version; then
-        log_info "podman-compose installed successfully: $(podman-compose --version)"
+    if podman-compose -version; then
+        log_info "podman-compose installed successfully: $(podman-compose -version)"
     else
         log_warn "podman-compose installation verification failed"
         log_warn "This may be OK if podman-compose is not yet fully configured"
@@ -398,4 +403,4 @@ log_info "  2. Or activate venv: source ${VENV_DIR}/bin/activate"
 log_info "  3. Run podman commands: podman ps, podman-compose up, etc."
 log_info "  4. Or use docker commands: docker ps, docker-compose up (they map to podman)"
 log_info ""
-log_info "To reset corrupted state: $0 --reset"
+log_info "To reset corrupted state: $0 -reset"

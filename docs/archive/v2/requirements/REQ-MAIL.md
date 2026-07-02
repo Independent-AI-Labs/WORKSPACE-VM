@@ -5,15 +5,15 @@
 
 ami-mail is now built as a himalaya fork in the AMI-STREAMS project. Requirements and specifications live there.
 
----
+--
 
 ## Background
 
-The current `ami-mail` CLI supports basic SMTP send, IMAP fetch, and send-block (human-in-the-loop). It lacks multi-account configuration, secrets management, templating, and full IMAP operations. The server already runs an exim relay (port 2525/2526, relaying through Gmail) and Postmoogle (email-to-Matrix bridge, separate concern — not part of ami-mail).
+The current `ami-mail` CLI supports basic SMTP send, IMAP fetch, and send-block (human-in-the-loop). It lacks multi-account configuration, secrets management, templating, and full IMAP operations. The server already runs an exim relay (port 2525/2526, relaying through Gmail) and Postmoogle (email-to-Matrix bridge, separate concern - not part of ami-mail).
 
 **Architecture decision:** ami-mail wraps himalaya (Rust CLI) as backend, same pattern as ami-docs wrapping pandoc.
 
----
+--
 
 ## Core Requirements
 
@@ -45,13 +45,13 @@ The current `ami-mail` CLI supports basic SMTP send, IMAP fetch, and send-block 
 ### 3a. Batch Sending & Personalization
 
 - **REQ-MAIL-100**: System shall support batch sending to a recipient list (file, group, or inline)
-- **REQ-MAIL-101**: System shall support per-recipient personalization — each recipient receives an individually rendered message with their own template variables (mail merge)
+- **REQ-MAIL-101**: System shall support per-recipient personalization - each recipient receives an individually rendered message with their own template variables (mail merge)
 - **REQ-MAIL-102**: Recipient data shall be loadable from CSV or YAML/JSON files, where each row/entry provides per-recipient template variables
 - **REQ-MAIL-103**: System shall support configurable rate limiting for batch sends (max messages per second/minute, configurable delay between sends)
 - **REQ-MAIL-104**: System shall report batch progress (sent/total, failures) during execution
 - **REQ-MAIL-105**: System shall log each send result (recipient, status, error) for audit
-- **REQ-MAIL-106**: Failed sends in a batch shall not abort the remaining batch — failures are logged and reported at the end
-- **REQ-MAIL-107**: System shall support `--dry-run` for batch sends — render all messages, report what would be sent, send nothing
+- **REQ-MAIL-106**: Failed sends in a batch shall not abort the remaining batch - failures are logged and reported at the end
+- **REQ-MAIL-107**: System shall support `-dry-run` for batch sends - render all messages, report what would be sent, send nothing
 - **REQ-MAIL-108**: Batch sends shall support BCC mode (single message to all recipients) or individual mode (one message per recipient with personalization)
 
 ### 4. Email Reading
@@ -104,7 +104,7 @@ This is a core agent automation capability: an agent sends an email asking a hum
 - **REQ-MAIL-090**: System shall validate SPF and DMARC DNS records for a given domain
 - **REQ-MAIL-091**: Validation results shall indicate pass/fail with details
 
----
+--
 
 ## Constraints
 
@@ -112,14 +112,14 @@ This is a core agent automation capability: an agent sends an email asking a hum
 - himalaya invoked as subprocess (same pattern as ami-docs/pandoc)
 - Jinja2 for templating
 - No LLM SDK dependencies
-- Non-interactive — all operations scriptable
+- Non-interactive - all operations scriptable
 
 ## Dependencies
 
 ### Internal
 - ami-docs (PDF generation via pandoc)
 - Bootstrap system (himalaya component)
-- REQ-IAM (OpenBao for credentials — interim: config file / env vars)
+- REQ-IAM (OpenBao for credentials - interim: config file / env vars)
 
 ### External
 - himalaya (Rust CLI, bootstrapped binary)
@@ -128,10 +128,10 @@ This is a core agent automation capability: an agent sends an email asking a hum
 
 ## Non-Requirements (Explicitly Out of Scope)
 
-- **Local mail storage** — no Maildir, no mbsync, no notmuch sync
-- **Interactive TUI** — use himalaya directly for interactive use
-- **Postmoogle integration** — Postmoogle is a Matrix-internal email bridge for Matrix's own needs (deployed via AMI-STREAMS). Not related to ami-mail.
-- **PGP/S/MIME encryption** — deferred to future phase
-- **Bounce handling** — deferred to future phase
-- **Mail queue/retry** — deferred to future phase
-- **OAuth2 IMAP auth** — himalaya supports it natively; no AMI-specific wrapper needed
+- **Local mail storage** - no Maildir, no mbsync, no notmuch sync
+- **Interactive TUI** - use himalaya directly for interactive use
+- **Postmoogle integration** - Postmoogle is a Matrix-internal email bridge for Matrix's own needs (deployed via AMI-STREAMS). Not related to ami-mail.
+- **PGP/S/MIME encryption** - deferred to future phase
+- **Bounce handling** - deferred to future phase
+- **Mail queue/retry** - deferred to future phase
+- **OAuth2 IMAP auth** - himalaya supports it natively; no AMI-specific wrapper needed

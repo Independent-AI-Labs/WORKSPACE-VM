@@ -1,4 +1,4 @@
----
+--
 - name: Validate llama_server_path exists
   ansible.builtin.stat:
     path: "{{ llama_server_path }}"
@@ -46,12 +46,12 @@
           -m {{ llama_model_path }} \
           -c {{ llama_context_size }} \
           -ngl {{ llama_gpu_layers }} \
-          --host {{ llama_server_host }} \
-          --port {{ llama_server_port }} \
+          -host {{ llama_server_host }} \
+          -port {{ llama_server_port }} \
           -t 4 \
-          --fit off \
+          -fit off \
           -np 1 \
-          --api-key ${LLAMA_API_KEY}
+          -api-key ${LLAMA_API_KEY}
       Environment=LD_LIBRARY_PATH={{ vulkan_build_lib }}:{{ ansible_env.LD_LIBRARY_PATH | default('') }}
       EnvironmentFile={{ ansible_env.HOME }}/.config/llamaserver/llamaserver-vulkan.env
       StandardOutput=journal
@@ -66,9 +66,9 @@
     backup: false
 
 - name: Daemon-reload systemd user instance
-  ansible.builtin.command: systemctl --user daemon-reload
+  ansible.builtin.command: systemctl -user daemon-reload
   changed_when: true
 
 - name: Enable and start llamaserver-vulkan user service
-  ansible.builtin.command: systemctl --user enable --now {{ llama_service_name }}.service
+  ansible.builtin.command: systemctl -user enable -now {{ llama_service_name }}.service
   changed_when: true

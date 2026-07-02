@@ -13,7 +13,7 @@ Run AI coding agents (Claude, Qwen, Gemini) in isolated Podman containers with c
 ## Naming Convention
 
 | Binary | Role | Where it runs |
-|--------|------|---------------|
+|----|---|--------|
 | `ami-agent` | The agent itself (BootloaderAgent, ReAct loop, CLI providers) | Host AND containers |
 | `ami-agentd` | Container manager + A2A gateway. Single Rust binary, two modes. | **Host only** (disabled inside containers) |
 
@@ -35,7 +35,7 @@ This mirrors the `podman` model, serving as both a CLI tool and a service (`podm
 4. **A2A server inside container**: ~100 LOC Python wrapping BootloaderAgent
 5. **Gateway for remote access**: Rust/Axum reverse proxy, only needed when browser/remote services need to reach agents
 
----
+--
 
 ## Architecture
 
@@ -56,20 +56,20 @@ graph TD
         end
     end
 
-    TRADING -- "POST + SSE :8900" --> GW
-    SRP -- "POST + SSE :8900" --> GW
-    GW -- "UDS" --> A1 & A2
-    CLI -- "podman run/stop/rm" --> PODMAN
-    CLI -- "UDS (direct)" --> A1 & A2
+    TRADING - "POST + SSE :8900" -> GW
+    SRP - "POST + SSE :8900" -> GW
+    GW - "UDS" -> A1 & A2
+    CLI - "podman run/stop/rm" -> PODMAN
+    CLI - "UDS (direct)" -> A1 & A2
 ```
 
----
+--
 
 ## 1. Container Image
 
 ### FR-1.1: Parameterised Dockerfile
 
-Single `Dockerfile.agent` at AMI-AGENTS repo root:
+Single `Dockerfile.agent` at WORKSPACE-VM repo root:
 
 ```dockerfile
 FROM python:3.11.14-slim-bookworm
@@ -79,10 +79,10 @@ ARG INSTALL_CONFIG=ami/config/install-defaults.yaml
 ARG AGENT_UID=1000
 
 # System deps
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get install -y -no-install-recommends \
     git curl rsync iptables gosu ca-certificates gnupg && \
     curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | \
-    gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg && \
+    gpg -dearmor -o /etc/apt/keyrings/nodesource.gpg && \
     echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_20.x nodistro main" \
     > /etc/apt/sources.list.d/nodesource.list && \
     apt-get update && apt-get install -y nodejs && \
@@ -91,7 +91,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Non-root user
 RUN groupadd -g ${AGENT_UID} agent && useradd -u ${AGENT_UID} -g agent -m agent
 
-# AMI-AGENTS source + install
+# WORKSPACE-VM source + install
 COPY . /opt/ami-agents
 WORKDIR /opt/ami-agents
 COPY ${INSTALL_CONFIG} /tmp/install-config.yaml
@@ -103,12 +103,12 @@ COPY res/docker/agent-entrypoint.sh /entrypoint.sh
 
 ENV AMI_CONTAINER=1
 LABEL ami.type="agent"
-HEALTHCHECK --interval=30s CMD test -S /run/a2a/agent.sock
+HEALTHCHECK -interval=30s CMD test -S /run/a2a/agent.sock
 
 ENTRYPOINT ["/entrypoint.sh"]
 ```
 
-**Acceptance criteria**: `podman build -f Dockerfile.agent --build-arg PROVIDER=claude -t ami-agent:claude .` succeeds.
+**Acceptance criteria**: `podman build -f Dockerfile.agent -build-arg PROVIDER=claude -t ami-agent:claude .` succeeds.
 
 ### FR-1.2: Entrypoint (gosu privilege drop)
 
@@ -117,20 +117,20 @@ ENTRYPOINT ["/entrypoint.sh"]
 # 1. Apply iptables whitelist (runs as root)
 iptables -P OUTPUT DROP
 iptables -A OUTPUT -o lo -j ACCEPT
-iptables -A OUTPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+iptables -A OUTPUT -m state -state ESTABLISHED,RELATED -j ACCEPT
 # Whitelist from labels (injected by ami-agentdCLI)
 for rule in $AMI_NETWORK_WHITELIST; do
     IFS=: read -r ip port <<< "$rule"
-    iptables -A OUTPUT -p tcp -d "$ip" --dport "$port" -j ACCEPT
+    iptables -A OUTPUT -p tcp -d "$ip" -dport "$port" -j ACCEPT
 done
 
 # 2. Drop to agent user, start A2A server
-exec gosu agent python -m ami_agent_a2a --sock /run/a2a/agent.sock
+exec gosu agent python -m ami_agent_a2a -sock /run/a2a/agent.sock
 ```
 
 **Acceptance criteria**: `ps` inside container shows no root processes after init. A2A socket exists.
 
----
+--
 
 ## 2. Agent Metadata via Podman Labels
 
@@ -138,32 +138,32 @@ No custom registry. No `agent.json`. No `~/.ami/agents/`. Podman IS the registry
 
 ```bash
 podman run -d \
-  --name claude-research \
-  --label ami.type=agent \
-  --label ami.provider=claude \
-  --label ami.model=claude-sonnet-4-5 \
-  --label ami.network=whitelist \
-  --label ami.created="$(date -Iseconds)" \
-  --label ami.scope.observe=allow \
-  --label ami.scope.modify=deny \
-  --label ami.scope.execute=deny \
-  --label ami.scope.admin=deny \
+  -name claude-research \
+  -label ami.type=agent \
+  -label ami.provider=claude \
+  -label ami.model=claude-sonnet-4-5 \
+  -label ami.network=whitelist \
+  -label ami.created="$(date -Iseconds)" \
+  -label ami.scope.observe=allow \
+  -label ami.scope.modify=deny \
+  -label ami.scope.execute=deny \
+  -label ami.scope.admin=deny \
   ...
 ```
 
 Query metadata:
 ```bash
 # List all agents
-podman ps -a --filter label=ami.type=agent \
-  --format "table {{.Names}} {{.Status}} {{.Label \"ami.provider\"}} {{.Label \"ami.model\"}}"
+podman ps -a -filter label=ami.type=agent \
+  -format "table {{.Names}} {{.Status}} {{.Label \"ami.provider\"}} {{.Label \"ami.model\"}}"
 
 # Inspect one agent
-podman inspect claude-research --format '{{json .Config.Labels}}'
+podman inspect claude-research -format '{{json .Config.Labels}}'
 ```
 
-**Acceptance criteria**: `podman ps --filter label=ami.type=agent` lists all agents with their metadata. No external files needed.
+**Acceptance criteria**: `podman ps -filter label=ami.type=agent` lists all agents with their metadata. No external files needed.
 
----
+--
 
 ## 3. Persistence via Named Volumes
 
@@ -173,7 +173,7 @@ podman volume create claude-research-transcripts
 podman volume create claude-research-cache
 
 podman run -d \
-  --name claude-research \
+  -name claude-research \
   -v claude-research-workspace:/workspace \
   -v claude-research-transcripts:/transcripts \
   -v claude-research-cache:/cache \
@@ -186,9 +186,9 @@ podman run -d \
 
 Volumes survive `podman stop/start/restart`. Destroyed only with `podman rm -v` or `podman volume rm`.
 
-**Acceptance criteria**: `podman stop claude-research && podman start claude-research` preserves all data. `podman volume ls --filter label=ami.agent=claude-research` lists volumes.
+**Acceptance criteria**: `podman stop claude-research && podman start claude-research` preserves all data. `podman volume ls -filter label=ami.agent=claude-research` lists volumes.
 
----
+--
 
 ## 4. Credentials via Read-Only Bind Mounts
 
@@ -205,7 +205,7 @@ For credential rotation: agent CLI subprocess re-reads credentials from disk on 
 
 **Acceptance criteria**: Agent can read API keys. Agent cannot modify credential files. Key rotation on host takes effect on next agent CLI invocation.
 
----
+--
 
 ## 5. Network Isolation
 
@@ -215,7 +215,7 @@ The entrypoint script (running as root before gosu) applies iptables rules. Whit
 
 ```bash
 podman run -d \
-  --cap-add=NET_ADMIN \
+  -cap-add=NET_ADMIN \
   -e AMI_NETWORK_WHITELIST="api.anthropic.com:443 github.com:443 pypi.org:443 registry.npmjs.org:443" \
   ...
 ```
@@ -230,7 +230,7 @@ Agents on the mesh share a host directory for UDS sockets:
 # Mesh agent
 podman run -d \
   -v /tmp/ami-agentd-mesh:/mesh \
-  --label ami.mesh=true \
+  -label ami.mesh=true \
   ...
 
 # Non-mesh agent (no /mesh mount = no access)
@@ -240,22 +240,22 @@ podman run -d ...
 ### FR-5.3: Network Modes
 
 | Mode | iptables | Whitelist |
-|------|----------|-----------|
+|---|-----|------|
 | `whitelist` (default) | DROP default + explicit ACCEPT | Provider API + package registries |
 | `allow-all` | No rules | Everything allowed |
 | `deny-all` | DROP all + loopback only | Nothing, fully offline |
 
 **Acceptance criteria**: `curl google.com` fails in whitelist/deny-all modes. Provider API works in whitelist mode.
 
----
+--
 
 ## 6. ami-agentdCLI (Thin Podman Wrapper)
 
 Every command translates to one or more `podman` commands. No custom state management.
 
 ```bash
-ami-agentdcreate {name} --provider {p}     # podman build (if needed) + podman run
-ami-agentdlist                              # podman ps --filter label=ami.type=agent
+ami-agentdcreate {name} -provider {p}     # podman build (if needed) + podman run
+ami-agentdlist                              # podman ps -filter label=ami.type=agent
 ami-agentdstart {name}                      # podman start {name}
 ami-agentdstop {name}                       # podman stop {name}
 ami-agentdrestart {name}                    # podman restart {name}
@@ -263,14 +263,14 @@ ami-agentddestroy {name}                    # podman rm -v {name} (with confirma
 ami-agentdshell {name}                      # podman exec -it -u agent {name} /bin/bash
 ami-agentdroot-shell {name}                 # podman exec -it -u root {name} /bin/bash
 ami-agentdlogs {name}                       # podman logs -f {name}
-ami-agentdstatus {name}                     # podman inspect + podman stats --no-stream
-ami-agentdsync {name} [--path P]            # rsync host → container volume
-ami-agentddiscover                          # podman ps --filter + read agent cards
+ami-agentdstatus {name}                     # podman inspect + podman stats -no-stream
+ami-agentdsync {name} [-path P]            # rsync host → container volume
+ami-agentddiscover                          # podman ps -filter + read agent cards
 ami-agentdsend {name} "message"             # A2A SendMessage via UDS
 ```
 
 `ami-agentdcreate` is the only "smart" command. It:
-1. Builds image if not cached (`podman build --build-arg PROVIDER=...`)
+1. Builds image if not cached (`podman build -build-arg PROVIDER=...`)
 2. Creates named volumes (`podman volume create`)
 3. Generates the `podman run` command with all labels, volumes, mounts, env vars
 4. Starts the container
@@ -278,7 +278,7 @@ ami-agentdsend {name} "message"             # A2A SendMessage via UDS
 
 **Acceptance criteria**: Every `ami-agentd` command maps to documented `podman` commands. No hidden state files. `podman` commands work independently of `ami-agentd`.
 
----
+--
 
 ## 7. Workspace Sync (rsync on demand)
 
@@ -286,23 +286,23 @@ NOT live-mounted. NOT a daemon. Manual rsync when needed:
 
 ```bash
 ami-agentdsync claude-research                          # full workspace sync
-ami-agentdsync claude-research --path src/core/         # partial sync
-ami-agentdsync claude-research --direction pull          # container → host
-ami-agentdsync claude-research --dry-run                 # preview only
+ami-agentdsync claude-research -path src/core/         # partial sync
+ami-agentdsync claude-research -direction pull          # container → host
+ami-agentdsync claude-research -dry-run                 # preview only
 ```
 
 Translates to:
 ```bash
-rsync -av --partial --exclude='.git' --exclude='node_modules' --exclude='.venv' \
-  /home/ami/AMI-AGENTS/ \
-  $(podman volume inspect claude-research-workspace --format '{{.Mountpoint}}')/
+rsync -av -partial -exclude='.git' -exclude='node_modules' -exclude='.venv' \
+  /home/ami/WORKSPACE-VM/ \
+  $(podman volume inspect claude-research-workspace -format '{{.Mountpoint}}')/
 ```
 
 No sync daemon. No inotifywait. No change detection. User syncs when they want to.
 
-**Acceptance criteria**: `ami-agentdsync X` copies files. `--dry-run` shows what would change. `--path` syncs a subset.
+**Acceptance criteria**: `ami-agentdsync X` copies files. `-dry-run` shows what would change. `-path` syncs a subset.
 
----
+--
 
 ## 8. Security
 
@@ -310,14 +310,14 @@ No sync daemon. No inotifywait. No change detection. User syncs when they want t
 
 ```bash
 podman run \
-  --userns=keep-id \
-  --cap-drop=ALL \
-  --cap-add=NET_ADMIN \
-  --security-opt=no-new-privileges \
-  --read-only \
-  --tmpfs /tmp:rw,noexec,nosuid \
-  --tmpfs /run:rw,noexec,nosuid \
-  --memory=4g --cpus=2 --pids-limit=256 \
+  -userns=keep-id \
+  -cap-drop=ALL \
+  -cap-add=NET_ADMIN \
+  -security-opt=no-new-privileges \
+  -read-only \
+  -tmpfs /tmp:rw,noexec,nosuid \
+  -tmpfs /run:rw,noexec,nosuid \
+  -memory=4g -cpus=2 -pids-limit=256 \
   ...
 ```
 
@@ -334,7 +334,7 @@ Inside the container, BootloaderAgent runs with:
 
 See `REQUIREMENTS-CHAT-AGENT-PROFILE.md` for full details.
 
----
+--
 
 ## 9. A2A Server Inside Container
 
@@ -365,7 +365,7 @@ Publishes Agent Card, handles SendMessage/SendStreamingMessage, streams via SSE 
 
 **Acceptance criteria**: Gateway can send A2A message to agent UDS. Agent streams response back.
 
----
+--
 
 ## 10. Gateway (`ami-agentd serve`)
 
@@ -382,12 +382,12 @@ Started via `ami-agentd serve`. Same Rust binary as the CLI, just a different su
 - `GET /health`: unauthenticated, returns agent count + health status
 
 **Agent health monitoring (both layers)**:
-1. **Podman HEALTHCHECK**: already in Dockerfile, checks UDS socket exists. Gateway reads via `podman inspect --format '{{.State.Health.Status}}'`
+1. **Podman HEALTHCHECK**: already in Dockerfile, checks UDS socket exists. Gateway reads via `podman inspect -format '{{.State.Health.Status}}'`
 2. **A2A probe**: gateway periodically sends a lightweight request to each agent's UDS. If no response within 5s, marks agent as unhealthy in `/health` response.
 
 See `REQUIREMENTS-CHAT-BACKEND.md` for full gateway specification.
 
----
+--
 
 ## 11. Agent Upgrades (In-Place)
 
@@ -397,9 +397,9 @@ ami-agentdshell claude-research
 npm update @anthropic-ai/claude-code
 ```
 
-No image rebuild. Volumes preserved. Image drifts from Dockerfile, which is acceptable for dev. For prod, rebuild: `ami-agentdcreate claude-research --provider claude --rebuild`.
+No image rebuild. Volumes preserved. Image drifts from Dockerfile, which is acceptable for dev. For prod, rebuild: `ami-agentdcreate claude-research -provider claude -rebuild`.
 
----
+--
 
 ## 12. Monitoring
 
@@ -411,12 +411,12 @@ ami-agentdlogs claude-research -f   # podman logs -f
 
 Container logs go to Podman's default log driver (journald). No external monitoring stack.
 
----
+--
 
 ## Resolved Decisions
 
 | # | Decision | Choice |
-|---|----------|--------|
+|--|-----|----|
 | 1 | Registry | **Podman labels**, no custom filesystem registry |
 | 2 | Credentials | **Bind mount :ro**, not rsync |
 | 3 | Workspace sync | **rsync on demand**, no daemon, no inotifywait |

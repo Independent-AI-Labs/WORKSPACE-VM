@@ -63,7 +63,12 @@ echo
 
 # Check if already installed
 if [ -f "$GCLOUD_SDK_DIR/bin/gcloud" ]; then
-    CURRENT_VERSION=$("$GCLOUD_SDK_DIR/bin/gcloud" version --format="value(Google Cloud SDK)" 2>&1 || echo "unknown")
+    _gv_err="$(mktemp)"
+    CURRENT_VERSION=$("$GCLOUD_SDK_DIR/bin/gcloud" version -format="value(Google Cloud SDK)" 2>"$_gv_err") || {
+        echo "[bootstrap-gcloud] gcloud version check failed: $(cat "$_gv_err")" >&2
+        CURRENT_VERSION="unknown"
+    }
+    rm -f "$_gv_err"
     echo "gcloud CLI already installed (version: $CURRENT_VERSION)"
 
     # Check if running non-interactively (from oc or CI)
@@ -116,10 +121,10 @@ rm -f "$GCLOUD_DIR/$ARCHIVE_FILE"
 # Run install script non-interactively
 echo "Running gcloud install script..."
 if ! "$GCLOUD_SDK_DIR/install.sh" \
-    --usage-reporting=false \
-    --command-completion=false \
-    --path-update=false \
-    --quiet; then
+    -usage-reporting=false \
+    -command-completion=false \
+    -path-update=false \
+    -quiet; then
     echo "Error: gcloud install script failed"
     exit 1
 fi
@@ -131,7 +136,12 @@ echo
 # Verify installation
 GCLOUD_BIN="$GCLOUD_SDK_DIR/bin/gcloud"
 if [ -x "$GCLOUD_BIN" ]; then
-    VERSION=$("$GCLOUD_BIN" version --format="value(Google Cloud SDK)" 2>&1 || echo "unknown")
+    _gv_err="$(mktemp)"
+    VERSION=$("$GCLOUD_BIN" version -format="value(Google Cloud SDK)" 2>"$_gv_err") || {
+        echo "[bootstrap-gcloud] gcloud version check failed: $(cat "$_gv_err")" >&2
+        VERSION="unknown"
+    }
+    rm -f "$_gv_err"
     echo "Installed version: $VERSION"
     echo "gcloud path: $GCLOUD_BIN"
 else
@@ -150,8 +160,8 @@ echo
 echo "2. Grant impersonation permission (if using service account):"
 echo "   $GCLOUD_BIN iam service-accounts add-iam-policy-binding \\"
 echo "     SERVICE_ACCOUNT_EMAIL \\"
-echo "     --member=\"user:YOUR_EMAIL\" \\"
-echo "     --role=\"roles/iam.serviceAccountTokenCreator\""
+echo "     -member=\"user:YOUR_EMAIL\" \\"
+echo "     -role=\"roles/iam.serviceAccountTokenCreator\""
 echo
 echo "3. Configure .env with service account email:"
 echo "   GDRIVE_AUTH_METHOD=impersonation"

@@ -102,11 +102,11 @@ Fix the code or stop.
   # Creating git bypass scripts:
   Write("/tmp/commit_script.sh", "#!/bin/bash\ncd /path\n/usr/bin/git commit ...")
   Write("/tmp/push_script.sh", "#!/bin/bash\nexport SKIP_TESTS=1\ngit push")
-  Write("/tmp/fix_commit.sh", "#!/bin/bash\ngit reset --soft HEAD~1")
+  Write("/tmp/fix_commit.sh", "#!/bin/bash\ngit reset -soft HEAD~1")
 
   # Creating file modification scripts:
   Write("/tmp/modify_files.sh", "#!/bin/bash\nsed -i 's/pattern/replacement/' file.py")
-  Write("/tmp/bypass_hooks.sh", "#!/bin/bash\ngit commit --no-verify")
+  Write("/tmp/bypass_hooks.sh", "#!/bin/bash\ngit commit -no-verify")
   ```
 - **Why CRITICAL**:
   - Circumvents pre-commit hooks (security checks, linting, type checking)

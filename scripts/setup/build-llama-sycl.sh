@@ -18,7 +18,10 @@ fi
 
 echo "Sourcing Intel environment..."
 set +u
-source "$ONEAPI_VARS" --force || { echo "ERROR: failed to source $ONEAPI_VARS" >&2; exit 1; }
+if ! source "$ONEAPI_VARS" -force; then
+    echo "ERROR: failed to source $ONEAPI_VARS" >&2
+    exit 1
+fi
 set -u
 
 echo "=== Step 2: Preparing llama.cpp Source ==="
@@ -42,7 +45,7 @@ cmake -B "$BUILD_DIR" \
     -DCMAKE_BUILD_TYPE=Release
 
 echo "=== Step 4: Building ==="
-cmake --build "$BUILD_DIR" --config Release -j"$(nproc)"
+cmake -build "$BUILD_DIR" -config Release -j"$(nproc)"
 
 echo "================================================================"
 echo " BUILD SUCCESSFUL! "

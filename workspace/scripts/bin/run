@@ -7,10 +7,17 @@ AMI_ROOT="$("$SCRIPT_DIR/pwd")"
 export AMI_ROOT
 
 VENV_DIR="$AMI_ROOT/.venv"
-VENV_PYTHON="/home/agent/WORKSPACE-VM/.venv/bin/python"
+VENV_PYTHON="$VENV_DIR/bin/python"
 BOOT_DIR="$AMI_ROOT/.boot-linux"
 
-[[ -f "$AMI_ROOT/.env" ]] && export $(grep -v '^#' "$AMI_ROOT/.env" | xargs) || true
+if [[ -f "$AMI_ROOT/.env" ]]; then
+    _env_err="$(mktemp)"
+    _env_out="$(grep -v '^#' "$AMI_ROOT/.env" | xargs 2>"$_env_err")" || {
+        if [[ -s "$_env_err" ]]; then cat "$_env_err" >&2; fi
+    }
+    [[ -n "$_env_out" ]] && export $_env_out
+    rm -f "$_env_err"
+fi
 
 export PATH="$BOOT_DIR/bin:$VENV_DIR/bin:$PATH"
 
@@ -25,7 +32,7 @@ if [[ -d "$AMI_ROOT/projects" ]]; then
 fi
 export PYTHONPATH="$AMI_ROOT:${PROJECT_PATHS}${PYTHONPATH:-}"
 
-if [[ "$#" -gt 0 && ("$1" == "-h" || "$1" == "--help") ]]; then
+if [[ "$#" -gt 0 && ("$1" == "-h" || "$1" == "-help") ]]; then
     echo "run: Universal execution wrapper for AMI Orchestrator"
     echo ""
     echo "Usage: run [subcommand] [args...]"
@@ -34,8 +41,13 @@ if [[ "$#" -gt 0 && ("$1" == "-h" || "$1" == "--help") ]]; then
     exit 0
 fi
 
-if [[ "$#" -gt 0 && "$1" == "--version" ]]; then
-    VERSION="$(git -C "$AMI_ROOT" describe --always --dirty 2>/dev/null || echo "unknown")"
+if [[ "$#" -gt 0 && "$1" == "-version" ]]; then
+    _err_tmp="$(mktemp)"
+    if ! VERSION="$(git -C "$AMI_ROOT" describe -always -dirty 2>"$_err_tmp")"; then
+        if [[ -s "$_err_tmp" ]]; then cat "$_err_tmp" >&2; fi
+        VERSION="unknown"
+    fi
+    rm -f "$_err_tmp"
     echo "run (AMI Orchestrator) ${VERSION}"
     exit 0
 fi
@@ -88,7 +100,17 @@ case "$SUBCOMMAND" in
         R_DIR="$AMI_ROOT/.runtime/wrapped/$SVC_ID"
         mkdir -p "$R_DIR"
         PID_F="$R_DIR/pid.lock"
-        [[ -f "$PID_F" ]] && kill -0 $(cat "$PID_F") 2>/dev/null && echo "Already running" >&2 && exit 1
+        if [[ -f "$PID_F" ]]; then
+            _kill_err="$(mktemp)"
+            if kill -0 "$(cat "$PID_F")" 2>"$_kill_err"; then
+                rm -f "$_kill_err"
+                echo "Already running" >&2
+                exit 1
+            else
+                if [[ -s "$_kill_err" ]]; then cat "$_kill_err" >&2; fi
+                rm -f "$_kill_err"
+            fi
+        fi
         nohup "$0" "${CMD[@]}" > "$R_DIR/std.log" 2>&1 &
         echo $! > "$PID_F"
         echo "Started $SVC_ID (PID: $!)"
@@ -107,12 +129,12 @@ case "$SUBCOMMAND" in
         exec "$BOOT_DIR/go/bin/go" "${ARGS[@]}"
         ;;
     extras)
-        exec "$VENV_PYTHON" "$AMI_ROOT/workspace/scripts/shell/banner_helper.py" --mode extras "${ARGS[@]}"
+        exec "$VENV_PYTHON" "$AMI_ROOT/workspace/scripts/shell/banner_helper.py" -mode extras "${ARGS[@]}"
         ;;
     doctor)
-        exec "$VENV_PYTHON" "$AMI_ROOT/workspace/scripts/shell/banner_helper.py" --mode doctor "${ARGS[@]}"
+        exec "$VENV_PYTHON" "$AMI_ROOT/workspace/scripts/shell/banner_helper.py" -mode doctor "${ARGS[@]}"
         ;;
     banner)
-        exec "$VENV_PYTHON" "$AMI_ROOT/workspace/scripts/shell/banner_helper.py" --mode banner "${ARGS[@]}"
+        exec "$VENV_PYTHON" "$AMI_ROOT/workspace/scripts/shell/banner_helper.py" -mode banner "${ARGS[@]}"
         ;;
 esac

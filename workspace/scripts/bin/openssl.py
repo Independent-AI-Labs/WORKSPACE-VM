@@ -42,7 +42,7 @@ def _find_cert_dir() -> str | None:
 
 
 def main() -> int:
-    """Main entry point — pass through to openssl with AMI defaults."""
+    """Main entry point - pass through to openssl with AMI defaults."""
     binary = _find_openssl()
     if not binary:
         print("Error: openssl not found. Run bootstrap to install it.", file=sys.stderr)

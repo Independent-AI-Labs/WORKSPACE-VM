@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=https://moonrepo.dev/schemas/project.json
 #
 # moon project config for workspace (workspace umbrella repo).
-# Workspace-level overlay only — see projects/docs/MOON-MIGRATION-PLAN.md.
+# Workspace-level overlay only - see projects/docs/MOON-MIGRATION-PLAN.md.
 # Per-repo tasks (lint, test, build, install, etc.) live in the Makefile
 # and are invoked directly when working inside this repo. moon does not
 # duplicate them.
@@ -22,7 +22,7 @@ tags:
 # Workspace clone manifest lives in workspace/config/workspace-clones.yaml
 # (moon.yml schema doesn't accept arbitrary top-level metadata fields).
 # That separate file is the single source of truth for "what repos
-# belong to the AMI workspace" — read by workspace/scripts/bin/bootstrap-repos.
+# belong to the AMI workspace" - read by workspace/scripts/bin/bootstrap-repos.
 
 dependsOn:
   - 'ci'
@@ -83,7 +83,7 @@ tasks:
     deps:
       - '~:check'
   update:
-    command: 'bash -c "git pull --ff-only 2>/dev/null || true && make sync"'
+    command: 'bash -c "git pull -ff-only 2>/dev/null || true && make sync"'
     deps:
       - '^:update'
     options:

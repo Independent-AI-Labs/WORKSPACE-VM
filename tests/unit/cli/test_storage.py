@@ -54,7 +54,7 @@ class TestCleanUvCache:
             _clean_uv_cache()
 
             mock_run.assert_called_once_with(
-                ["uv", "cache", "clean", "--force"],
+                ["uv", "cache", "clean", "-force"],
                 capture_output=True,
                 text=True,
                 check=True,
@@ -68,7 +68,7 @@ class TestCleanUvCache:
         mock_run = MagicMock()
         mock_run.side_effect = _sp.CalledProcessError(
             1,
-            ["uv", "cache", "clean", "--force"],
+            ["uv", "cache", "clean", "-force"],
             stderr=b"no space left",
         )
 

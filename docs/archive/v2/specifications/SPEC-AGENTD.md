@@ -1,7 +1,7 @@
 # SPEC-AGENTD: Gateway and OIDC/A2A Proxy
 
 ## Overview
-`ami-agentd` serves as the centralized Rust (Axum) gateway for the AMI-AGENTS ecosystem, bridging external HTTPS/SSE requests to local, container-isolated AI agents via A2A protocol over Unix Domain Sockets (UDS).
+`ami-agentd` serves as the centralized Rust (Axum) gateway for the WORKSPACE-VM ecosystem, bridging external HTTPS/SSE requests to local, container-isolated AI agents via A2A protocol over Unix Domain Sockets (UDS).
 
 ## Architecture
 - **Host Layer:** Single binary CLI/Daemon.

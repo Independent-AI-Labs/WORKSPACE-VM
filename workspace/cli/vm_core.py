@@ -1,4 +1,4 @@
-"""VM core utilities — shared constants and helper functions."""
+"""VM core utilities - shared constants and helper functions."""
 
 from __future__ import annotations
 

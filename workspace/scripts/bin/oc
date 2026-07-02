@@ -18,13 +18,13 @@ _oc_help() {
     echo "  With arguments:    runs opencode with the given task"
 }
 
-if [[ "$1" == "--help" ]] || [[ "$1" == "-h" ]]; then
+if [[ "$1" == "-help" ]] || [[ "$1" == "-h" ]]; then
     _oc_help
     exit 0
 fi
-if [[ "$1" == "--version" ]] || [[ "$1" == "-V" ]]; then
+if [[ "$1" == "-version" ]] || [[ "$1" == "-V" ]]; then
     if [[ -x "$OPN" ]]; then
-        "$OPN" --version
+        "$OPN" -version
     else
         echo "unknown"
     fi
@@ -32,7 +32,7 @@ if [[ "$1" == "--version" ]] || [[ "$1" == "-V" ]]; then
 fi
 
 for _arg in "$@"; do
-    if [[ "$_arg" == "--help" ]] || [[ "$_arg" == "-h" ]]; then
+    if [[ "$_arg" == "-help" ]] || [[ "$_arg" == "-h" ]]; then
         if [[ ! -x "$OPN" ]]; then
             _oc_help
             exit 0
@@ -46,10 +46,10 @@ if [[ ! -x "$OPN" ]]; then
     exit 1
 fi
 WELCOME=""
-if _tmp_welcome=$("$AMI_ROOT/workspace/scripts/bin/welcome" --plain 2>&1); then
+if _tmp_welcome=$("$AMI_ROOT/workspace/scripts/bin/welcome" -plain 2>&1); then
     WELCOME="$_tmp_welcome"
 else
-    WELCOME="AMI-AGENTS workspace"
+    WELCOME="WORKSPACE-VM workspace"
 fi
 printf '%b\n' "$WELCOME" && echo ""
 # Regenerate the instruction file so opencode picks it up fresh each session
@@ -65,7 +65,7 @@ if [[ $# -gt 0 ]]; then
     if [[ "$1" = -* ]]; then
         exec "$OPN" "$@"
     fi
-    exec "$OPN" run --dir "$ORIG_PWD" "$@"
+    exec "$OPN" run -dir "$ORIG_PWD" "$@"
 else
     exec "$OPN" "$ORIG_PWD"
 fi

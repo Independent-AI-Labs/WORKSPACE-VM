@@ -35,7 +35,7 @@ Configurable validation pipeline intercepting agent actions at key points. YAML-
 - **REQ-HOOK-012**: Hard deny patterns shall block unconditionally with no scope override:
   - Command chaining: `&&`, `;`, `||`, background `&`
   - Nested shells: bash, sh, zsh, ksh, csh, dash, node
-  - Dangerous invocations: `--no-verify`, inline python (`python -c`, pipe to python), pip (use uv), cd (use absolute paths), `git rm --cached`, dd, shred, wipe
+  - Dangerous invocations: `-no-verify`, inline python (`python -c`, pipe to python), pip (use uv), cd (use absolute paths), `git rm -cached`, dd, shred, wipe
 - **REQ-HOOK-013**: Tier definitions and hard deny patterns shall be in a YAML config file, editable without code changes
 
 ## 4. Scope Overrides
@@ -64,11 +64,11 @@ Configurable validation pipeline intercepting agent actions at key points. YAML-
 
 - **REQ-HOOK-050**: System shall support LLM-based validation as a validator type, available on any hook event (PRE_BASH, PRE_EDIT, POST_OUTPUT)
 - **REQ-HOOK-051**: LLM validators shall load evaluation prompts from external files (TXT/MD) referenced in hook config
-- **REQ-HOOK-052**: LLM evaluation shall use the agent's existing CLI backend (claude, qwen, gemini, or OpenCode) — no direct API calls, no SDK imports
+- **REQ-HOOK-052**: LLM evaluation shall use the agent's existing CLI backend (claude, qwen, gemini, or OpenCode) - no direct API calls, no SDK imports
 - **REQ-HOOK-053**: LLM validator shall receive full context (command, content, event type, project root) as input to the evaluation prompt
 - **REQ-HOOK-054**: LLM validator shall return a structured decision (ALLOW/DENY/MODIFY/REQUEST_FEEDBACK) with reasoning
 - **REQ-HOOK-055**: LLM evaluation shall have a configurable timeout (default: 30s) with DENY on timeout (fail-closed)
-- **REQ-HOOK-056**: LLM validators shall be optional per-hook — pattern validators remain the fast path; LLM is an additional layer
+- **REQ-HOOK-056**: LLM validators shall be optional per-hook - pattern validators remain the fast path; LLM is an additional layer
 - **REQ-HOOK-057**: LLM validation results shall be logged for audit
 
 ## 8. Action Modification
@@ -81,7 +81,7 @@ Configurable validation pipeline intercepting agent actions at key points. YAML-
 ## 9. Feedback Injection
 
 - **REQ-HOOK-070**: When a validator returns REQUEST_FEEDBACK, the feedback message shall be prepended to the agent's next LLM interaction as system context
-- **REQ-HOOK-071**: Feedback shall not block the current action — the action proceeds, but the agent receives guidance for subsequent actions
+- **REQ-HOOK-071**: Feedback shall not block the current action - the action proceeds, but the agent receives guidance for subsequent actions
 - **REQ-HOOK-072**: Feedback injection shall support both corrective ("avoid doing X") and instructive ("prefer doing Y") messages
 - **REQ-HOOK-073**: Accumulated feedback shall be visible in the agent's context and clearable by the user
 - **REQ-HOOK-074**: Feedback shall expire after a configurable number of interactions (default: 5) to prevent context pollution
@@ -96,16 +96,16 @@ Configurable validation pipeline intercepting agent actions at key points. YAML-
   - Additional pattern files to load or suppress
   - LLM validator prompt files (if any)
   - Allowed tool list for containerized agents
-- **REQ-HOOK-083**: Loadout shall be selectable at agent startup via `--loadout <name>` flag or `AMI_LOADOUT` env var
+- **REQ-HOOK-083**: Loadout shall be selectable at agent startup via `-loadout <name>` flag or `AMI_LOADOUT` env var
 - **REQ-HOOK-084**: Default loadout (`standard`) shall match current v4.0.0 behavior
-- **REQ-HOOK-085**: Loadouts shall be composable — a loadout can extend another (e.g., `deployment` extends `standard` with stricter admin rules)
+- **REQ-HOOK-085**: Loadouts shall be composable - a loadout can extend another (e.g., `deployment` extends `standard` with stricter admin rules)
 - **REQ-HOOK-086**: Containerized agents (REQ-AGENT-CONTAINERS) shall have their loadout set at container creation, not changeable at runtime
 - **REQ-HOOK-087**: Loadout changes at runtime shall require CONFIRM from user
 
 ## 11. Validator Protocol
 
 - **REQ-HOOK-090**: All validators shall implement a common protocol (name + check method returning a result)
-- **REQ-HOOK-091**: System shall be fail-closed — if any validator raises an exception, the action is DENIED
+- **REQ-HOOK-091**: System shall be fail-closed - if any validator raises an exception, the action is DENIED
 - **REQ-HOOK-092**: New validators shall be addable without modifying existing validator code (registry + config)
 
 ## 12. Integration
@@ -113,14 +113,14 @@ Configurable validation pipeline intercepting agent actions at key points. YAML-
 - **REQ-HOOK-100**: Hook validation shall run on every agent shell execution and file edit
 - **REQ-HOOK-101**: Hook validation shall be compatible with all agent providers (Claude, Qwen, Gemini)
 - **REQ-HOOK-102**: Hooks shall be disablable per-agent via configuration
-- **REQ-HOOK-103**: Hook system shall not import or depend on any LLM provider SDK — CLI invocation only
+- **REQ-HOOK-103**: Hook system shall not import or depend on any LLM provider SDK - CLI invocation only
 
 ## Constraints
 
 ### Technical
 - Python 3.11+
 - YAML-based configuration
-- No LLM SDK dependencies — agents invoked via CLI or OpenCode
+- No LLM SDK dependencies - agents invoked via CLI or OpenCode
 - Synchronous validation (no async)
 
 ### Security

@@ -116,7 +116,7 @@ class TestComponent:
             description="Test",
             type=ComponentType.SCRIPT,
             group="Test",
-            detect_cmd=["test", "--version"],
+            detect_cmd=["test", "-version"],
         )
 
         status = comp.get_status()
@@ -175,7 +175,7 @@ class TestComponent:
             type=ComponentType.SCRIPT,
             group="Test",
             detect_path="bin/test",
-            version_cmd=["bin/test", "--version"],
+            version_cmd=["bin/test", "-version"],
             version_pattern=r"v(\d+\.\d+\.\d+)",
         )
 
@@ -204,7 +204,7 @@ class TestComponent:
             type=ComponentType.SCRIPT,
             group="Test",
             detect_path="bin/broken",
-            version_cmd=["bin/broken", "--version"],
+            version_cmd=["bin/broken", "-version"],
         )
 
         with (
@@ -243,7 +243,7 @@ class TestComponent:
             description="Test",
             type=ComponentType.SCRIPT,
             group="Test",
-            version_cmd=["/usr/bin/tool", "--version"],
+            version_cmd=["/usr/bin/tool", "-version"],
         )
         assert comp._runnable_binary_present() is True
 
@@ -255,7 +255,7 @@ class TestComponent:
             description="Test",
             type=ComponentType.SCRIPT,
             group="Test",
-            version_cmd=["ls", "--version"],
+            version_cmd=["ls", "-version"],
         )
         with patch.object(Path, "exists", return_value=False):
             assert comp._runnable_binary_present() is True
@@ -392,7 +392,7 @@ class TestGetComponentByName:
 class TestYamlLoadedManifest:
     """Tests that the YAML manifest loaded into ALL_COMPONENTS / GROUPS is
     well-formed. Group names are derived from the manifest, not hardcoded
-    here — adding/removing groups in YAML must not require a test edit."""
+    here - adding/removing groups in YAML must not require a test edit."""
 
     def test_groups_non_empty(self) -> None:
         assert len(GROUPS) > 0
@@ -452,7 +452,7 @@ class TestComponentVersionParsing:
             description="t",
             type=ComponentType.SCRIPT,
             group="t",
-            version_cmd=["test", "--version"],
+            version_cmd=["test", "-version"],
         )
         assert comp._get_version_from_cmd() is None
 
@@ -466,7 +466,7 @@ class TestComponentVersionParsing:
             description="t",
             type=ComponentType.SCRIPT,
             group="t",
-            version_cmd=["test", "--version"],
+            version_cmd=["test", "-version"],
             version_pattern=r"v(\d+\.\d+\.\d+)",
         )
         assert comp._get_version_from_cmd() == "1.2.3"
@@ -481,6 +481,6 @@ class TestComponentVersionParsing:
             description="t",
             type=ComponentType.SCRIPT,
             group="t",
-            version_cmd=["test", "--version"],
+            version_cmd=["test", "-version"],
         )
         assert comp._get_version_from_cmd() is None

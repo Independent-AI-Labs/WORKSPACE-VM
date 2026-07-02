@@ -1,4 +1,4 @@
-"""E2E tests for VM error handling — no build required."""
+"""E2E tests for VM error handling - no build required."""
 
 from __future__ import annotations
 
@@ -82,7 +82,7 @@ class TestVMErrors:
         assert result.returncode != 0
 
     def test_help_exits_zero(self) -> None:
-        result = vm_cmd("--help")
+        result = vm_cmd("-help")
         assert result.returncode == 0
         assert "usage:" in result.stdout.lower()
 

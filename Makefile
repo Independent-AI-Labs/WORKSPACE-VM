@@ -11,7 +11,7 @@ help: ## Show this help message
 	@echo ""
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  %%-28s %%s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
-# --- Init - system dependencies ---
+# -- Init - system dependencies --
 
 .PHONY: init-check
 init-check: ## Check system dependencies
@@ -19,13 +19,13 @@ init-check: ## Check system dependencies
 
 .PHONY: init
 init: ## Install system dependencies
-	@AMI_ROOT="$$(pwd)" bash workspace/scripts/initial-setup.sh --export-missing
-	@AMI_ROOT="$$(pwd)" bash workspace/scripts/initial-setup.sh --install-only
+	@AMI_ROOT="$$(pwd)" bash workspace/scripts/initial-setup.sh -export-missing
+	@AMI_ROOT="$$(pwd)" bash workspace/scripts/initial-setup.sh -install-only
 
-# --- Core prereqs ---
+# -- Core prereqs --
 
 .PHONY: core
-core: ## Bootstrap uv + python + git-xet + node + ansible (prereq for sync-package)
+core: ## Bootstrap uv + python + git-xet + node + ansible + playwright (prereq for sync-package)
 	@echo "🔧 Bootstrapping core tools..."
 	@mkdir -p .boot-linux/bin
 	@AMI_ROOT="$$(pwd)" bash workspace/scripts/bootstrap/bootstrap_uv.sh
@@ -33,9 +33,10 @@ core: ## Bootstrap uv + python + git-xet + node + ansible (prereq for sync-packa
 	@AMI_ROOT="$$(pwd)" bash workspace/scripts/bootstrap/bootstrap_git_xet.sh
 	@AMI_ROOT="$$(pwd)" bash workspace/scripts/bootstrap/bootstrap_node.sh
 	@AMI_ROOT="$$(pwd)" bash workspace/scripts/bootstrap/bootstrap_ansible.sh
+	@AMI_ROOT="$$(pwd)" bash workspace/scripts/bootstrap/bootstrap_playwright.sh
 	@echo "✅ Core bootstrap complete"
 
-# --- Install - component selection ---
+# -- Install - component selection --
 
 .PHONY: ci-install-deps
 ci-install-deps: ensure-repos ## Install CI project deps (boot tools, Python venv, gitleaks) - delegates to CI
@@ -59,11 +60,11 @@ install: init-check sync-package ## Interactive TUI to select and install compon
 	$(MAKE) install-hooks-recursive && \
 	if ! $(MAKE) build-guard; then echo "⚠️  Git guard build failed - continuing without guard"; fi && \
 	if ! $(MAKE) install-guard; then echo "⚠️  Git guard installation skipped (needs sudo)"; fi && \
-	bash workspace/scripts/shell/shell-setup --welcome
+	bash workspace/scripts/shell/shell-setup -welcome
 
 .PHONY: install-ci
 install-ci: init-check sync-package ## Non-interactive component install (uses install-defaults.yaml)
-	@.venv/bin/python workspace/scripts/bootstrap_installer.py --defaults workspace/config/install-defaults.yaml && \
+	@.venv/bin/python workspace/scripts/bootstrap_installer.py -defaults workspace/config/install-defaults.yaml && \
 	$(MAKE) register-extensions && \
 	$(MAKE) install-shell && \
 	$(MAKE) ci-install-deps && \
@@ -73,21 +74,21 @@ install-ci: init-check sync-package ## Non-interactive component install (uses i
 	echo "✨ Installation complete (CI mode)!" && \
 	echo "⚠️  Git guard binary built but not installed - run: sudo make install-guard"
 
-# --- Repos ---
+# -- Repos --
 
 .PHONY: ensure-repos
 ensure-repos: ## Clone every workspace repo per moon.yml metadata
-	@bash workspace/scripts/bin/bootstrap-repos --pull
+	@bash workspace/scripts/bin/bootstrap-repos -pull
 
-# --- Package sync ---
+# -- Package sync --
 
 .PHONY: sync-package
 sync-package: core ensure-repos ## Sync package dependencies via uv
 	@echo "🔧 Syncing workspace..."
-	.boot-linux/bin/uv sync --extra dev
+	.boot-linux/bin/uv sync -extra dev
 	@echo "✅ Package 'workspace' installed with dev dependencies"
 
-# --- Config ---
+# -- Config --
 
 .PHONY: setup-config
 setup-config: setup-automation setup-linter-config ## Setup configuration files
@@ -126,26 +127,26 @@ setup-automation: ## Setup automation configuration
 		echo "ℹ️  Automation configuration already exists at workspace/config/automation.yaml"; \
 	fi
 
-# --- Extensions ---
+# -- Extensions --
 
 .PHONY: register-extensions
 register-extensions: ## Register extensions in .boot-linux/bin
 	@echo "🔌 Registering extensions in ~/.bashrc..."
 	@.venv/bin/python workspace/scripts/register_extensions.py
 
-# --- Shell ---
+# -- Shell --
 
 .PHONY: install-shell
 install-shell: ## Install AMI shell environment to ~/.bashrc
 	@echo "🐚 Installing shell environment..."
-	@bash workspace/scripts/shell/shell-setup --install
+	@bash workspace/scripts/shell/shell-setup -install
 	@echo "✅ Shell environment installed"
 
 .PHONY: uninstall-shell
 uninstall-shell: ## Remove AMI shell environment from ~/.bashrc
-	@bash workspace/scripts/shell/shell-setup --uninstall
+	@bash workspace/scripts/shell/shell-setup -uninstall
 
-# --- VM Management ---
+# -- VM Management --
 
 .PHONY: vm vm-start vm-stop vm-resume vm-delete vm-kill vm-shell vm-exec \
 	vm-logs vm-list vm-status vm-rebuild vm-sync vm-config vm-cert
@@ -167,11 +168,11 @@ vm-kill: ## read .vms/<id>/pid and send SIGKILL directly
 	@bash workspace/scripts/bin/vm kill $(filter-out $@,$(MAKECMDGOALS))
 vm-shell: ## podman exec -it <id> bash
 	@bash workspace/scripts/bin/vm shell $(filter-out $@,$(MAKECMDGOALS))
-vm-exec: ## podman exec <id> -- <cmd>
+vm-exec: ## podman exec <id> - <cmd>
 	@bash workspace/scripts/bin/vm exec $(filter-out $@,$(MAKECMDGOALS))
 vm-logs: ## podman logs <id>
 	@bash workspace/scripts/bin/vm logs $(filter-out $@,$(MAKECMDGOALS))
-vm-list: ## podman ps -a --filter label=ami.type=vm
+vm-list: ## podman ps -a -filter label=ami.type=vm
 	@bash workspace/scripts/bin/vm list
 vm-status: ## podman inspect + stats for <id>
 	@bash workspace/scripts/bin/vm status $(filter-out $@,$(MAKECMDGOALS))
@@ -184,7 +185,7 @@ vm-config: ## print the vm.yaml used to create <id>
 vm-cert: ## generate or print client cert for <id>
 	@bash workspace/scripts/bin/vm cert $(filter-out $@,$(MAKECMDGOALS))
 
-# --- Hooks ---
+# -- Hooks --
 
 .PHONY: install-hooks
 install-hooks: ensure-repos ## Install native git hooks
@@ -219,9 +220,9 @@ install-hooks-recursive: ensure-repos ## Install hooks in workspace + every nest
 
 .PHONY: check-hooks
 check-hooks: ensure-repos ## Preview generated hooks (dry-run)
-	bash projects/CI/scripts/generate-hooks --dry-run
+	bash projects/CI/scripts/generate-hooks -dry-run
 
-# --- Quality & Test ---
+# -- Quality & Test --
 
 .PHONY: test
 test: ## Run tests (delegates to moon for caching)
@@ -229,7 +230,7 @@ test: ## Run tests (delegates to moon for caching)
 
 .PHONY: test-e2e
 test-e2e: ## Run end-to-end VM integration tests
-	@.venv/bin/python -m pytest tests/e2e/ -v -m e2e --timeout 600
+	@.venv/bin/python -m pytest tests/e2e/ -v -m e2e -timeout 600
 
 .PHONY: lint
 lint: ## Run linters (delegates to moon for caching)
@@ -247,7 +248,7 @@ check: ## Run all checks (lint + type-check + test, with caching)
 dead-code: ## Run AST-based dead code analysis (delegates to moon for caching)
 	@moon run workspace:dead-code
 
-# --- Update ---
+# -- Update --
 
 .PHONY: update
 update: ## Update workspace via moon - walks every project topologically (^:update)
@@ -259,17 +260,17 @@ update: ## Update workspace via moon - walks every project topologically (^:upda
 .PHONY: update-oc
 update-oc: ## Update opencode to latest version via npm
 	@echo "🔄 Updating opencode..."
-	@.boot-linux/bin/npm install --prefix .venv opencode-ai@latest
+	@.boot-linux/bin/npm install -prefix .venv opencode-ai@latest
 	@OPN_BIN=".venv/node_modules/.bin/opencode"; \
 		if [ -x "$$OPN_BIN" ]; then \
 			ln -sf "../../.venv/node_modules/.bin/opencode" .boot-linux/bin/opencode; \
-			echo "✅ opencode $$("$$OPN_BIN" --version)"; \
+			echo "✅ opencode $$("$$OPN_BIN" -version)"; \
 		else \
 			echo "❌ opencode binary not found after install" >&2; \
 			exit 1; \
 		fi
 
-# --- Rules ---
+# -- Rules --
 
 .PHONY: rules
 rules: ## List context rules and redeploy plugin
@@ -325,7 +326,7 @@ uninstall: ## Uninstall workspace
 	@echo "🗑️  Uninstalling workspace..."
 	.boot-linux/bin/uv pip uninstall workspace -y
 
-# --- Utility ---
+# -- Utility --
 
 .PHONY: clean
 clean: ## Clean build artifacts

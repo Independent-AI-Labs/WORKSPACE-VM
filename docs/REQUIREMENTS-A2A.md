@@ -1,9 +1,9 @@
-# A2A Remote Agent Integration — Enterprise Requirements Specification
+# A2A Remote Agent Integration - Enterprise Requirements Specification
 
 **Document ID:** AMI-REQ-A2A-v1.0
 **Status:** Draft
 **Date:** 2026-06-01
-**Classification:** Internal — Enterprise
+**Classification:** Internal - Enterprise
 **Authors:** AMI-Agents Engineering
 **References:**
 - A2A Protocol Specification v1.0 (a2aproject/A2A, Linux Foundation)
@@ -15,7 +15,7 @@
 - DORA (Digital Operational Resilience Act), NIS2 Directive
 - WS-1 through WS-7 research programme (docs/research/)
 
----
+--
 
 ## 1. Scope
 
@@ -26,12 +26,12 @@ This document specifies the hard functional, non-functional, and regulatory requ
 - Hosting an A2A Server endpoint (exposing AMI-Agents as a remote agent).
 - MCP (Model Context Protocol) integration, except where A2A and MCP interact at a requirement level.
 
----
+--
 
 ## 2. Terminology
 
 | Term | Definition |
-|------|------------|
+|---|------|
 | A2A Client | An application or agent that initiates requests to an A2A Server on behalf of a user or another system. |
 | A2A Server (Remote Agent) | An agent or agentic system that exposes an A2A-compliant endpoint, processing tasks and providing responses. |
 | Agent Card | A JSON metadata document published by an A2A Server, describing its identity, capabilities, skills, service endpoint, and authentication requirements. |
@@ -43,29 +43,29 @@ This document specifies the hard functional, non-functional, and regulatory requ
 | Session Trust | A runtime-scoped approval that permits A2A communication with a specific domain for the duration of a session. |
 | Deployer | The enterprise or individual deploying and operating the A2A Client (as defined per EU AI Act Art. 26). |
 
----
+--
 
 ## 3. Functional Requirements
 
 ### FR-1: Agent Discovery
 
-**FR-1.1 — Agent Card Acquisition:**
+**FR-1.1 - Agent Card Acquisition:**
 The system SHALL fetch an Agent Card from a remote agent's well-known URI as defined in the specification:
 
-> "A2A Servers make their Agent Card discoverable by hosting it at a standardized, well-known URI on their domain. The standard path is `https://{agent-server-domain}/.well-known/agent-card.json`, following the principles of RFC 8615." — A2A Agent Discovery topic, §1 (Well-Known URI)
+> "A2A Servers make their Agent Card discoverable by hosting it at a standardized, well-known URI on their domain. The standard path is `https://{agent-server-domain}/.well-known/agent-card.json`, following the principles of RFC 8615." - A2A Agent Discovery topic, §1 (Well-Known URI)
 
-**FR-1.2 — Agent Card Validation:**
+**FR-1.2 - Agent Card Validation:**
 The system SHALL validate that a fetched Agent Card conforms to the required structure: identity metadata (`name`, `description`, `version`), service endpoint (`url`), capabilities (`streaming`, `pushNotifications`, `extendedAgentCard`), skills list, security schemes, and default input/output modes.
 
-**FR-1.3 — Agent Card Caching:**
+**FR-1.3 - Agent Card Caching:**
 The system SHALL cache Agent Cards and honor HTTP caching semantics. Per the specification:
 
-> "Clients fetching Agent Cards should honor standard HTTP caching semantics. When a cached card expires, clients should use conditional requests (for example, `If-None-Match` with the stored `ETag` or `If-Modified-Since`) rather than unconditionally re-fetching the full card." — A2A Agent Discovery topic, Client Guidance (Caching)
+> "Clients fetching Agent Cards should honor standard HTTP caching semantics. When a cached card expires, clients should use conditional requests (for example, `If-None-Match` with the stored `ETag` or `If-Modified-Since`) rather than unconditionally re-fetching the full card." - A2A Agent Discovery topic, Client Guidance (Caching)
 
-**FR-1.4 — Discovery Strategies:**
+**FR-1.4 - Discovery Strategies:**
 The system SHALL support at minimum the Well-Known URI discovery strategy and Direct Configuration / Private Discovery strategy as defined in the A2A specification sections §1 and §3. Support for Curated Registries (Catalog-Based Discovery, §2) is OPTIONAL for initial delivery.
 
-**FR-1.5 — Domain Reference Parsing:**
+**FR-1.5 - Domain Reference Parsing:**
 The system SHALL parse agent references in the format `@domain.com` or `@domain.com/path`, where:
 - `@domain.com` resolves to `https://domain.com/.well-known/agent-card.json`
 - `@domain.com/path` resolves to `https://domain.com/path/agent-card.json`
@@ -73,30 +73,30 @@ The system SHALL parse agent references in the format `@domain.com` or `@domain.
 
 ### FR-2: Agent Communication
 
-**FR-2.1 — Task Initiation (Send Message):**
+**FR-2.1 - Task Initiation (Send Message):**
 The system SHALL implement the Send Message operation to initiate tasks on a remote agent:
 
-> "The primary operation for initiating agent interactions. Clients send a message to an agent and receive either a task that tracks the processing or a direct response message." — A2A Specification §3.1.1 (Send Message)
+> "The primary operation for initiating agent interactions. Clients send a message to an agent and receive either a task that tracks the processing or a direct response message." - A2A Specification §3.1.1 (Send Message)
 
-**FR-2.2 — Streaming:**
+**FR-2.2 - Streaming:**
 The system SHALL implement the Send Streaming Message operation for real-time updates:
 
-> "Similar to Send Message but with real-time streaming of updates during processing." — A2A Specification §3.1.2 (Send Streaming Message)
+> "Similar to Send Message but with real-time streaming of updates during processing." - A2A Specification §3.1.2 (Send Streaming Message)
 
 The system MUST first verify that the agent's Agent Card declares `capabilities.streaming: true` before attempting streaming operations, per §3.3.4 capability validation requirements.
 
-**FR-2.3 — Multi-Turn Conversations:**
+**FR-2.3 - Multi-Turn Conversations:**
 The system SHALL support multi-turn conversations through context identifiers (`contextId`) and task references (`taskId`):
 
-> "A contextId is an identifier that logically groups multiple related Task and Message objects, providing continuity across a series of interactions." — A2A Specification §3.4.1 (Context)
+> "A contextId is an identifier that logically groups multiple related Task and Message objects, providing continuity across a series of interactions." - A2A Specification §3.4.1 (Context)
 
-**FR-2.4 — Task Lifecycle Management:**
+**FR-2.4 - Task Lifecycle Management:**
 The system SHALL support the following task lifecycle operations:
-- Get Task (§3.1.3) — retrieve current task state
-- Cancel Task (§3.1.5) — request task cancellation
-- Subscribe to Task (§3.1.6) — establish streaming connection for task updates
+- Get Task (§3.1.3) - retrieve current task state
+- Cancel Task (§3.1.5) - request task cancellation
+- Subscribe to Task (§3.1.6) - establish streaming connection for task updates
 
- **FR-2.5 — Streaming Event Handling:**
+ **FR-2.5 - Streaming Event Handling:**
 The system SHALL process the following stream event types:
 - `Task` objects representing current task state
 - `TaskStatusUpdateEvent` communicating changes in task lifecycle state (e.g., `working` → `input-required` → `completed`)
@@ -106,12 +106,12 @@ Per the A2A specification's JSON-RPC streaming binding (§9.4.2), each SSE event
 
 ### FR-3: Authentication & Authorization
 
-**FR-3.1 — Auth Scheme Discovery:**
+**FR-3.1 - Auth Scheme Discovery:**
 The system SHALL read and interpret the `securitySchemes` and `security` fields in the Agent Card to determine the required authentication mechanism. Per the A2A Enterprise Features (Authentication):
 
-> "Authentication requirements are advertised by the A2A server in its Agent Card. The Agent Card describes the authentication schemes it supports in its `security` field [...]." — A2A Enterprise Features, Authentication (Agent Card Declaration)
+> "Authentication requirements are advertised by the A2A server in its Agent Card. The Agent Card describes the authentication schemes it supports in its `security` field [...]." - A2A Enterprise Features, Authentication (Agent Card Declaration)
 
-**FR-3.2 — OAuth 2.0 with PKCE:**
+**FR-3.2 - OAuth 2.0 with PKCE:**
 The system SHALL support OAuth 2.0 Authorization Code flow with PKCE (Proof Key for Code Exchange) for remote agents that declare an OAuth2 security scheme in their Agent Card. This SHALL include:
 - Generating code verifier and code challenge (SHA-256)
 - Building the authorization URL with required parameters (`response_type`, `client_id`, `redirect_uri`, `state`, `code_challenge`, `code_challenge_method`, `scope`)
@@ -120,15 +120,15 @@ The system SHALL support OAuth 2.0 Authorization Code flow with PKCE (Proof Key 
 - Exchanging the authorization code for access and refresh tokens
 - PKCE as defined in RFC 7636
 
-**FR-3.3 — Token Refresh:**
+**FR-3.3 - Token Refresh:**
 The system SHALL support automatic access token refresh using stored refresh tokens, without user intervention, per the OAuth 2.0 refresh token grant (RFC 6749 §1.5). The A2A Agent Card's `securitySchemes` provides the `refresh_url` endpoint for this purpose.
 
-**FR-3.4 — Bearer Token Injection:**
+**FR-3.4 - Bearer Token Injection:**
 The system SHALL include the access token in the `Authorization: Bearer <TOKEN>` HTTP header for all A2A API calls to authenticated remote agents. Per the specification:
 
-> "Credentials must be transmitted in standard HTTP headers as per the requirements of the chosen authentication scheme. Examples include `Authorization: Bearer <TOKEN>` or `API-Key: <KEY_VALUE>`." — A2A Enterprise Features, Authentication
+> "Credentials must be transmitted in standard HTTP headers as per the requirements of the chosen authentication scheme. Examples include `Authorization: Bearer <TOKEN>` or `API-Key: <KEY_VALUE>`." - A2A Enterprise Features, Authentication
 
-**FR-3.5 — In-Task Authentication Halt:**
+**FR-3.5 - In-Task Authentication Halt:**
 The system SHALL handle the `TASK_STATE_AUTH_REQUIRED` interrupted state, where a remote agent requires additional credentials during task processing. The system SHALL:
 - Surface the authentication requirement to the user
 - Obtain secondary credentials through an out-of-band process (per Enterprise §3)
@@ -136,122 +136,122 @@ The system SHALL handle the `TASK_STATE_AUTH_REQUIRED` interrupted state, where 
 
 ### FR-4: Trust & Permission Model
 
-**FR-4.1 — Domain Trust Evaluation:**
+**FR-4.1 - Domain Trust Evaluation:**
 The system SHALL evaluate domain trust on every remote agent invocation, with the following precedence (highest to lowest):
-1. **Session trust** — domain approved during the current session
-2. **Permission configuration** — rules in the agent permission system for `remote_agent`
-3. **Legacy configuration** — domains listed in legacy remote agent domain configuration
-4. **Default** — prompt user for approval (`"ask"`)
+1. **Session trust** - domain approved during the current session
+2. **Permission configuration** - rules in the agent permission system for `remote_agent`
+3. **Legacy configuration** - domains listed in legacy remote agent domain configuration
+4. **Default** - prompt user for approval (`"ask"`)
 
-**FR-4.2 — Trust Actions:**
+**FR-4.2 - Trust Actions:**
 The system SHALL support three trust actions:
-- `"allow"` — auto-discover and invoke without user prompt
-- `"deny"` — block invocation with an explicit DeniedError
-- `"ask"` — prompt the user for approval on first use within a session
+- `"allow"` - auto-discover and invoke without user prompt
+- `"deny"` - block invocation with an explicit DeniedError
+- `"ask"` - prompt the user for approval on first use within a session
 
-**FR-4.3 — Session-Scoped Trust:**
+**FR-4.3 - Session-Scoped Trust:**
 Once a user approves a domain during a session, the system SHALL consider it trusted for the remainder of that session without re-prompting. Session trust SHALL NOT persist across sessions.
 
-**FR-4.4 — Permission Configuration:**
+**FR-4.4 - Permission Configuration:**
 The system SHALL support configuration of `remote_agent` permission rules with explicit allow/deny/ask actions, wildcard patterns (`*`), and last-matching-rule-wins evaluation order, per the existing permission system design.
 
 ### FR-5: Agent Capability Representation
 
-**FR-5.1 — Agent Card Skills as Capabilities:**
+**FR-5.1 - Agent Card Skills as Capabilities:**
 The system SHALL read and expose the `skills` array from a remote agent's Agent Card to inform the user about available agent capabilities. The skills structure per the specification includes:
 
-> "`skills`: List of `AgentSkill` (id, name, description, tags, examples)." — A2A Specification, Agent Card §2.1
+> "`skills`: List of `AgentSkill` (id, name, description, tags, examples)." - A2A Specification, Agent Card §2.1
 
 The AgentSkill type also includes optional fields `input_modes`, `output_modes`, and `security_requirements`.
 
-**FR-5.2 — Text Part Exchange:**
+**FR-5.2 - Text Part Exchange:**
 The system SHALL support sending and receiving `text` Parts in both Messages and Artifacts, as the default input and output mode.
 
-**FR-5.3 — Modality Negotiation:**
+**FR-5.3 - Modality Negotiation:**
 The system SHALL respect the `defaultInputModes` and `defaultOutputModes` declared in the remote agent's Agent Card. The system SHALL NOT send content in a mode not declared as supported.
 
-> "Supports exchange of diverse content types including text, audio/video (via file references), structured data/forms, and potentially embedded UI components (e.g., iframes referenced in parts)." — A2A Specification §1.2
+> "Supports exchange of diverse content types including text, audio/video (via file references), structured data/forms, and potentially embedded UI components (e.g., iframes referenced in parts)." - A2A Specification §1.2
 
-**FR-5.4 — Artifact Output:**
+**FR-5.4 - Artifact Output:**
 The system SHALL treat Artifacts as the authoritative output delivery mechanism, distinct from Messages:
 
-> "Messages SHOULD NOT be used to deliver task outputs. Results SHOULD BE returned using Artifacts associated with a Task. This separation allows for a clear distinction between communication (Messages) and data output (Artifacts)." — A2A Specification §3.7
+> "Messages SHOULD NOT be used to deliver task outputs. Results SHOULD BE returned using Artifacts associated with a Task. This separation allows for a clear distinction between communication (Messages) and data output (Artifacts)." - A2A Specification §3.7
 
 ### FR-6: Observability & Audit
 
-**FR-6.1 — Task Event Recording:**
+**FR-6.1 - Task Event Recording:**
 The system SHALL record all significant A2A task lifecycle events, including: task creation, state transitions (submitted, working, completed, failed, canceled, input-required, auth-required), artifact delivery, and errors.
 
-**FR-6.2 — Distributed Trace Propagation:**
+**FR-6.2 - Distributed Trace Propagation:**
 The system SHOULD participate in distributed tracing systems, propagating trace context (trace IDs, span IDs) through standard HTTP headers such as W3C Trace Context headers, per:
 
-> "A2A Clients and Servers should participate in distributed tracing systems. For example, use OpenTelemetry to propagate trace context, including trace IDs and span IDs, through standard HTTP headers, such as W3C Trace Context headers." — A2A Enterprise Features, Observability and Tracing
+> "A2A Clients and Servers should participate in distributed tracing systems. For example, use OpenTelemetry to propagate trace context, including trace IDs and span IDs, through standard HTTP headers, such as W3C Trace Context headers." - A2A Enterprise Features, Observability and Tracing
 
-**FR-6.3 — Agent Invocation Metadata:**
+**FR-6.3 - Agent Invocation Metadata:**
 The system SHALL capture and persist metadata for every remote agent invocation, including: remote domain, agent name from Agent Card, task start/end timestamps, task status on completion, total tokens or cost (if available), and the user who authorized the invocation.
 
----
+--
 
 ## 4. Non-Functional Requirements
 
 ### NFR-1: Performance
 
-**NFR-1.1 — Agent Card Fetch Latency:**
+**NFR-1.1 - Agent Card Fetch Latency:**
 The system SHALL time out Agent Card fetch requests after 10 seconds. Cache hits SHALL return in <10ms.
 
-**NFR-1.2 — Streaming Responsiveness:**
+**NFR-1.2 - Streaming Responsiveness:**
 The system SHALL render streaming text output from remote agents incrementally as events arrive, with no artificial buffering delay.
 
-**NFR-1.3 — Startup Latency:**
+**NFR-1.3 - Startup Latency:**
 System startup SHALL NOT block on agent discovery. Auto-discovery of remote agents SHALL execute asynchronously and SHALL NOT delay user interaction readiness.
 
 ### NFR-2: Security
 
-**NFR-2.1 — Transport Security:**
+**NFR-2.1 - Transport Security:**
 All A2A communication in production SHALL occur over HTTPS. Per the A2A specification:
 
-> "All A2A communication in production environments must occur over HTTPS. [...] TLS 1.2 or higher is recommended. Strong, industry-standard cipher suites should be used to protect data from eavesdropping and tampering." — A2A Enterprise Features, Transport Level Security (TLS)
+> "All A2A communication in production environments must occur over HTTPS. [...] TLS 1.2 or higher is recommended. Strong, industry-standard cipher suites should be used to protect data from eavesdropping and tampering." - A2A Enterprise Features, Transport Level Security (TLS)
 
-**NFR-2.2 — Token Storage Security:**
+**NFR-2.2 - Token Storage Security:**
 OAuth tokens SHALL be stored with file permissions restricted to the owning user (mode 0600 or equivalent). Token storage SHALL use layered precedence where project-level tokens may override user-level tokens for the same domain.
 
-**NFR-2.3 — OAuth State Validation:**
+**NFR-2.3 - OAuth State Validation:**
 The OAuth callback server SHALL validate the `state` parameter on every callback to prevent CSRF attacks. Per the A2A security model, callbacks with missing or invalid state parameters SHALL be rejected with a 400 response.
 
-**NFR-2.4 — SSRF Prevention:**
+**NFR-2.4 - SSRF Prevention:**
 Agent Card fetching SHALL validate that resolved URLs are well-formed before issuing HTTP requests. The system SHALL NOT follow redirects to `file://` or `localhost` (except explicit `@localhost:PORT` references).
 
-**NFR-2.5 — Deny-by-Default:**
+**NFR-2.5 - Deny-by-Default:**
 The default trust action for unknown remote agent domains SHALL be `"ask"` (prompt user). The system SHALL NOT auto-discover or auto-invoke agents without explicit user consent or configuration.
 
 ### NFR-3: Reliability
 
-**NFR-3.1 — Graceful Degradation on Remote Failure:**
+**NFR-3.1 - Graceful Degradation on Remote Failure:**
 If a remote agent is unreachable, returns an error, or violates the protocol, the system SHALL surface a clear error message to the user and SHALL NOT affect the stability of the local agent or other concurrent operations.
 
-**NFR-3.2 — Streaming Reconnection:**
+**NFR-3.2 - Streaming Reconnection:**
 The system SHOULD handle streaming connection interruption by attempting resubscription using the `SubscribeToTask` operation per the A2A specification:
 
-> "If a client's SSE connection breaks prematurely while a task is still active, the client is able to attempt to reconnect to the stream using the `SubscribeToTask` RPC method." — A2A Specification §3.5.2 (Reconnection)
+> "If a client's SSE connection breaks prematurely while a task is still active, the client is able to attempt to reconnect to the stream using the `SubscribeToTask` RPC method." - A2A Specification §3.5.2 (Reconnection)
 
 ### NFR-4: Scalability
 
-**NFR-4.1 — Concurrent Remote Agent Invocations:**
+**NFR-4.1 - Concurrent Remote Agent Invocations:**
 The system SHALL support multiple concurrent remote agent invocations (to different domains or the same domain) without blocking each other.
 
 ### NFR-5: Privacy
 
-**NFR-5.1 — Data Minimization:**
+**NFR-5.1 - Data Minimization:**
 The system SHALL send only the minimum context required to fulfil the user's request to a remote agent. Full conversation history SHALL NOT be forwarded unless explicitly configured.
 
-> "Avoid including or requesting unnecessarily sensitive information in A2A exchanges." — A2A Enterprise Features, Data Privacy and Confidentiality
+> "Avoid including or requesting unnecessarily sensitive information in A2A exchanges." - A2A Enterprise Features, Data Privacy and Confidentiality
 
-**NFR-5.2 — Opaque Execution Default:**
+**NFR-5.2 - Opaque Execution Default:**
 Per the A2A principle, the system SHALL NOT expose its internal state, memory, tools, or system prompt to remote agents:
 
-> "Agents collaborate based on declared capabilities and exchanged information, without needing to share their internal thoughts, plans, or tool implementations." — A2A Specification §1.2 (Guiding Principles)
+> "Agents collaborate based on declared capabilities and exchanged information, without needing to share their internal thoughts, plans, or tool implementations." - A2A Specification §1.2 (Guiding Principles)
 
----
+--
 
 ## 5. Regulatory Requirements
 
@@ -259,7 +259,7 @@ Per the A2A principle, the system SHALL NOT expose its internal state, memory, t
 
 The following requirements derive from the EU AI Act, which takes full effect on **2 August 2026** (approximately 9 weeks from the date of this document). Non-compliance with Articles 12, 14, or 26 can result in fines up to **15M EUR or 3% of worldwide annual turnover** (Art. 99).
 
-#### REG-1.1 — Automatic Logging (Article 12)
+#### REG-1.1 - Automatic Logging (Article 12)
 
 The system SHALL satisfy Article 12(1) and 12(2) by enabling automatic recording of events for remote agent invocations. When processing on behalf of a high-risk AI system (as classified under Article 6 / Annex III), the system SHALL log at minimum:
 - The start time and end time of each remote agent invocation (Art. 12(3)(a))
@@ -273,20 +273,20 @@ Logs SHALL be retained for a minimum of **6 months** per Article 26(6), and SHAL
 
 > Per WS-4 §3.1.1: "For autonomous agents, this requires continuous logging of: all tool calls, decisions, context windows used, model outputs, human override events, state transitions."
 
-#### REG-1.2 — Human Oversight (Article 14)
+#### REG-1.2 - Human Oversight (Article 14)
 
 Before every remote agent invocation, the system SHALL:
 - Provide the user with clear information about the remote agent's identity, capabilities, and limitations (Art. 14(4)(a))
 - Allow the user to understand the remote domain and purpose of the invocation
-- Enable the user to cancel or reject the invocation before it proceeds (Art. 14(4)(d) — disregard, override, or reverse)
+- Enable the user to cancel or reject the invocation before it proceeds (Art. 14(4)(d) - disregard, override, or reverse)
 
 During remote agent execution, the system SHALL:
-- Provide a mechanism to **interrupt or stop** a running remote agent task (Art. 14(4)(e) — "stop button or similar procedure that brings the system to a halt in a safe state")
+- Provide a mechanism to **interrupt or stop** a running remote agent task (Art. 14(4)(e) - "stop button or similar procedure that brings the system to a halt in a safe state")
 - Display the remote agent's output and current status to the user
 
-> Per WS-4 §3.1.2: "Stop button requirement: Every autonomous agent MUST have a mechanism for safe halting. This is not optional — it is a legal requirement for high-risk systems."
+> Per WS-4 §3.1.2: "Stop button requirement: Every autonomous agent MUST have a mechanism for safe halting. This is not optional - it is a legal requirement for high-risk systems."
 
-#### REG-1.3 — Deployer Duties (Article 26)
+#### REG-1.3 - Deployer Duties (Article 26)
 
 The system SHALL support deployer obligations (Art. 26) by:
 - Providing logs suitable for 6+ month retention (REG-1.1)
@@ -294,7 +294,7 @@ The system SHALL support deployer obligations (Art. 26) by:
 - Ensuring input data sent to remote agents is relevant and limited to what is necessary (Art. 26(4))
 - Supporting the deployer in fulfilling Data Protection Impact Assessment (DPIA) obligations under GDPR Art. 35, using the information from Art. 13 transparency requirements (Art. 26(9))
 
-#### REG-1.4 — High-Risk Classification Awareness (Article 6 / Annex III)
+#### REG-1.4 - High-Risk Classification Awareness (Article 6 / Annex III)
 
 The system SHALL support classification documentation by:
 - Recording the specific agent use case for each remote agent invocation
@@ -303,11 +303,11 @@ The system SHALL support classification documentation by:
 
 > Per WS-4 §3.1.4: "Document the classification decision for every agent use case, especially if claiming non-high-risk under Art. 6(3)."
 
-#### REG-1.5 — Transparency (Article 13)
+#### REG-1.5 - Transparency (Article 13)
 
 The system SHALL clearly indicate to the user when it is communicating with a remote agent (as opposed to a local sub-agent or the primary model). The remote agent's identity (name and domain from Agent Card) SHALL be displayed to the user before, during, and after the interaction.
 
-### REG-2: GDPR Article 22 — Automated Decision-Making
+### REG-2: GDPR Article 22 - Automated Decision-Making
 
 If the local agent's primary function involves making automated decisions that "produce legal effects concerning [the data subject] or similarly significantly affects [them]" (GDPR Art. 22(1)), then tasks delegated to remote agents SHALL:
 - Not result in solely automated decisions without a meaningful human review pathway
@@ -319,23 +319,23 @@ If the local agent's primary function involves making automated decisions that "
 ### REG-3: ISO/IEC 42001 Alignment
 
 The A2A integration SHALL support alignment with ISO/IEC 42001:2023 (AI Management System) by:
-- Providing audit evidence for Clause 8 (Operation) — recording of remote agent invocation as part of AI system operation controls
-- Supporting Clause 9 (Evaluation) — logs SHALL be structured to enable monitoring and evaluation of remote agent behaviour
-- Enabling Clause 7.5 (Documented Information) — all A2A-related configuration (trusted domains, permission rules) SHALL be persisted as documented information
+- Providing audit evidence for Clause 8 (Operation) - recording of remote agent invocation as part of AI system operation controls
+- Supporting Clause 9 (Evaluation) - logs SHALL be structured to enable monitoring and evaluation of remote agent behaviour
+- Enabling Clause 7.5 (Documented Information) - all A2A-related configuration (trusted domains, permission rules) SHALL be persisted as documented information
 
 ### REG-4: OWASP Top 10 for LLM Applications
 
 The following OWASP entries are directly relevant to A2A remote agent integration:
 
 | OWASP Entry | Relevance | Requirement |
-|-------------|-----------|-------------|
-| LLM01: Prompt Injection | **CRITICAL** — remote agent responses may contain injected instructions | All remote agent output SHALL be treated as untrusted input. Output SHALL be validated before further local processing. |
-| LLM06: Excessive Agency | **CRITICAL** — remote agents may attempt operations beyond intended scope | Remote agent scope SHALL be bounded by the task description. The system SHALL NOT forward all local capabilities to remote agents. |
-| LLM07: Insecure Plugin Design | Remote agent tool/plugin access | The system SHALL treat remote agents as opaque systems per the A2A specification principle — no internal state, memory, or tools are shared. |
+|-------|------|-------|
+| LLM01: Prompt Injection | **CRITICAL** - remote agent responses may contain injected instructions | All remote agent output SHALL be treated as untrusted input. Output SHALL be validated before further local processing. |
+| LLM06: Excessive Agency | **CRITICAL** - remote agents may attempt operations beyond intended scope | Remote agent scope SHALL be bounded by the task description. The system SHALL NOT forward all local capabilities to remote agents. |
+| LLM07: Insecure Plugin Design | Remote agent tool/plugin access | The system SHALL treat remote agents as opaque systems per the A2A specification principle - no internal state, memory, or tools are shared. |
 
-> Per WS-4 §3.4.1: "Excessive Agency (LLM06) is the systemic failure mode — the root cause of PocketOS, Kiro, and Claude Code incidents."
+> Per WS-4 §3.4.1: "Excessive Agency (LLM06) is the systemic failure mode - the root cause of PocketOS, Kiro, and Claude Code incidents."
 
-### REG-5: DORA / NIS2 — Incident Reporting
+### REG-5: DORA / NIS2 - Incident Reporting
 
 For deployments in financial services (DORA) or critical infrastructure (NIS2):
 - Remote agent invocation failures that disrupt services SHALL trigger incident classification
@@ -351,12 +351,12 @@ The system SHALL respect data residency requirements:
 
 > Per WS-4 §3.5.3 and WS-7 §4: EU data sovereignty is the single dimension where AMI currently leads the competitive landscape. This advantage MUST be preserved in A2A design.
 
----
+--
 
 ## 6. Constraints
 
 | ID | Constraint | Source |
-|----|------------|--------|
+|--|------|----|
 | C-1 | The system MUST NOT expose local agent internal state, memory, or tools to remote agents (opaque execution per A2A §1.2). | A2A Specification |
 | C-2 | The system MUST NOT send data to remote agents in jurisdictions without adequate data protection unless explicitly configured by the deployer. | GDPR Art. 44-49 |
 | C-3 | The A2A protocol version used MUST be declared in `A2A-Version` header (or equivalent). Clients MUST send this with every request to maintain compatibility. | A2A Specification §3.6.1 |
@@ -364,12 +364,12 @@ The system SHALL respect data residency requirements:
 | C-5 | OAuth 2.0 PKCE (RFC 7636) is the REQUIRED authentication flow for agents declaring OAuth2 security schemes. | RFC 7636, A2A Implementation |
 | C-6 | No remote agent SHALL be invoked without first establishing a non-default trust state (allow or ask). | REG-1.2 (Art. 14) |
 
----
+--
 
 ## 7. Assumptions
 
 | ID | Assumption |
-|----|------------|
+|--|------|
 | A-1 | Remote agents implement the A2A protocol correctly per the specification v1.0. Non-compliant behaviour will be surfaced as errors. |
 | A-2 | Remote agent domains are reachable over HTTPS from the local network. |
 | A-3 | The A2A specification's versioning guarantees (Major.Minor compatibility) will be maintained by implementers. |
@@ -377,56 +377,56 @@ The system SHALL respect data residency requirements:
 | A-5 | The EU AI Act Article 6(5) guidelines (due 2 February 2026) will provide further clarity on high-risk classification for agent invocations, and the system should be adaptable to those guidelines. |
 | A-6 | A2A protocol version 0.3 clients will be assumed if the `A2A-Version` header is empty (per §3.6.2), but the implementation targets v1.0. |
 
----
+--
 
 ## 8. Traceability Matrix
 
 | Requirement ID | A2A Spec Section | Regulatory Source | Priority |
-|:---------------|:-----------------|:------------------|:---------|
-| FR-1.1 | Discovery §1 | — | HIGH |
-| FR-1.2 | §4.4.1 AgentCard | — | HIGH |
-| FR-1.3 | Discovery §6 + §8.6 | — | MEDIUM |
-| FR-1.5 | Agent Card §2.1 | — | HIGH |
-| FR-2.1 | §3.1.1 | — | HIGH |
-| FR-2.2 | §3.1.2 | — | HIGH |
-| FR-2.3 | §3.4.1 | — | HIGH |
-| FR-2.4 | §3.1.3, §3.1.5, §3.1.6 | — | HIGH |
-| FR-2.5 | §3.1.2 + §9.4.2 (JSON-RPC Streaming) | — | HIGH |
-| FR-3.1 | Enterprise Features, Authentication | — | HIGH |
-| FR-3.2 | Enterprise Features, Authentication / Data Privacy | — | HIGH |
-| FR-3.3 | Enterprise Features, Authentication + RFC 6749 §1.5 | — | HIGH |
-| FR-3.4 | Enterprise Features, Authentication | — | HIGH |
-| FR-3.5 | §3.1.3 (AUTH_REQUIRED) | — | MEDIUM |
-| FR-4.1 | Implementation Spec §Trust | — | HIGH |
-| FR-4.2 | Implementation Spec §Trust | — | HIGH |
-| FR-5.1 | §4.4.1 AgentCard | — | HIGH |
-| FR-5.2 | §4.1.6 Part | — | HIGH |
-| FR-5.3 | §1.2 Guiding Principles | — | MEDIUM |
-| FR-5.4 | §3.7 Messages and Artifacts | — | HIGH |
-| FR-6.1 | Enterprise §8 | — | HIGH |
-| FR-6.2 | Enterprise Features, Observability and Tracing | — | MEDIUM |
-| REG-1.1 | — | EU AI Act Art. 12 | **CRITICAL** |
+|:--------|:---------|:---------|:-----|
+| FR-1.1 | Discovery §1 | - | HIGH |
+| FR-1.2 | §4.4.1 AgentCard | - | HIGH |
+| FR-1.3 | Discovery §6 + §8.6 | - | MEDIUM |
+| FR-1.5 | Agent Card §2.1 | - | HIGH |
+| FR-2.1 | §3.1.1 | - | HIGH |
+| FR-2.2 | §3.1.2 | - | HIGH |
+| FR-2.3 | §3.4.1 | - | HIGH |
+| FR-2.4 | §3.1.3, §3.1.5, §3.1.6 | - | HIGH |
+| FR-2.5 | §3.1.2 + §9.4.2 (JSON-RPC Streaming) | - | HIGH |
+| FR-3.1 | Enterprise Features, Authentication | - | HIGH |
+| FR-3.2 | Enterprise Features, Authentication / Data Privacy | - | HIGH |
+| FR-3.3 | Enterprise Features, Authentication + RFC 6749 §1.5 | - | HIGH |
+| FR-3.4 | Enterprise Features, Authentication | - | HIGH |
+| FR-3.5 | §3.1.3 (AUTH_REQUIRED) | - | MEDIUM |
+| FR-4.1 | Implementation Spec §Trust | - | HIGH |
+| FR-4.2 | Implementation Spec §Trust | - | HIGH |
+| FR-5.1 | §4.4.1 AgentCard | - | HIGH |
+| FR-5.2 | §4.1.6 Part | - | HIGH |
+| FR-5.3 | §1.2 Guiding Principles | - | MEDIUM |
+| FR-5.4 | §3.7 Messages and Artifacts | - | HIGH |
+| FR-6.1 | Enterprise §8 | - | HIGH |
+| FR-6.2 | Enterprise Features, Observability and Tracing | - | MEDIUM |
+| REG-1.1 | - | EU AI Act Art. 12 | **CRITICAL** |
 | REG-1.2 | §3.1.5 Cancel Task | EU AI Act Art. 14 | **CRITICAL** |
 | REG-1.3 | Enterprise Features, Observability and Tracing | EU AI Act Art. 26 | **CRITICAL** |
-| REG-1.4 | — | EU AI Act Art. 6 / Annex III | HIGH |
+| REG-1.4 | - | EU AI Act Art. 6 / Annex III | HIGH |
 | REG-1.5 | Enterprise Features, Authentication | EU AI Act Art. 13 | HIGH |
-| REG-2 | — | GDPR Art. 22 | HIGH |
-| REG-4 | — | OWASP LLM06, LLM01, LLM07 | HIGH |
+| REG-2 | - | GDPR Art. 22 | HIGH |
+| REG-4 | - | OWASP LLM06, LLM01, LLM07 | HIGH |
 
----
+--
 
 ## 9. Glossary of Regulatory Sources (Excerpts)
 
-> **EU AI Act Article 12(1):** "High-risk AI systems shall be designed and developed with capabilities enabling the automatic recording of events (logs) over the lifetime of the system." — WS-4 §3.1.1
+> **EU AI Act Article 12(1):** "High-risk AI systems shall be designed and developed with capabilities enabling the automatic recording of events (logs) over the lifetime of the system." - WS-4 §3.1.1
 
-> **EU AI Act Article 14(4)(e):** "The oversight measures shall enable [...] the natural person to intervene or interrupt the system through a 'stop' button or similar procedure that brings the system to a halt in a safe state." — WS-4 §3.1.2
+> **EU AI Act Article 14(4)(e):** "The oversight measures shall enable [...] the natural person to intervene or interrupt the system through a 'stop' button or similar procedure that brings the system to a halt in a safe state." - WS-4 §3.1.2
 
-> **EU AI Act Article 26(6):** "Deployers shall keep the logs automatically generated by the high-risk AI system for a period of at least six months." — WS-4 §3.1.3
+> **EU AI Act Article 26(6):** "Deployers shall keep the logs automatically generated by the high-risk AI system for a period of at least six months." - WS-4 §3.1.3
 
-> **EU AI Act Article 99(2):** "Non-compliance with any of the requirements or obligations under Articles 12 to 26 shall be subject to administrative fines of up to 15,000,000 EUR or, if the offender is a company, up to 3% of its total worldwide annual turnover for the preceding financial year, whichever is higher." — WS-4 §3.1.6
+> **EU AI Act Article 99(2):** "Non-compliance with any of the requirements or obligations under Articles 12 to 26 shall be subject to administrative fines of up to 15,000,000 EUR or, if the offender is a company, up to 3% of its total worldwide annual turnover for the preceding financial year, whichever is higher." - WS-4 §3.1.6
 
-> **Agents and the EU AI Act:** "Any agent making decisions in employment, credit, education, or essential services (Annex III categories 3-5) is automatically high-risk unless it passes the narrow procedural task derogation. Document the decision." — WS-4 §7
+> **Agents and the EU AI Act:** "Any agent making decisions in employment, credit, education, or essential services (Annex III categories 3-5) is automatically high-risk unless it passes the narrow procedural task derogation. Document the decision." - WS-4 §7
 
----
+--
 
 *This requirements specification incorporates material from the A2A Protocol Specification v1.0 (a2aproject/A2A, Linux Foundation), the EU AI Act (Regulation (EU) 2024/1689), GDPR, ISO/IEC standards, OWASP guidance, and the AMI-Agents research programme (docs/research/). All quotations from the A2A specification are reproduced verbatim from the official source document. Regulatory quotations are excerpted from WS-4 Regulatory Deep Dive, which references the primary legal sources.*

@@ -49,7 +49,7 @@ function Test-ServerRunning {
         return ($r.StatusCode -eq 200)
     } catch {
         try {
-            $r = curl.exe -s --max-time 2 "http://localhost:8080/health" 2>$null
+            $r = curl.exe -s -max-time 2 "http://localhost:8080/health" 2>$null
             return ($r -match '"ok"')
         } catch {
             return $false
@@ -207,7 +207,7 @@ function Do-Status {
     if (Test-ServerRunning) {
         Write-Host "Server: RUNNING" -ForegroundColor Green
         try {
-            $r = curl.exe -s --max-time 2 "http://localhost:8080/health" 2>$null
+            $r = curl.exe -s -max-time 2 "http://localhost:8080/health" 2>$null
             if ($r -match '"ok"') { Write-Host "Health: OK" -ForegroundColor Green }
         } catch { Write-Host "Health: unreachable" -ForegroundColor Red }
     } else {

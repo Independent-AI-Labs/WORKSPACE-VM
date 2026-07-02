@@ -5,7 +5,7 @@ After=network.target{% if network_enabled %} ami-network.service{% endif %} open
 [Service]
 Type=simple
 User=ami
-ExecStart=/opt/ami-agents/.boot-linux/bin/traefik --configfile=/etc/traefik/traefik.yml
+ExecStart=/opt/ami-agents/.boot-linux/bin/traefik -configfile=/etc/traefik/traefik.yml
 Restart=on-failure
 RestartSec=5
 StandardOutput=journal

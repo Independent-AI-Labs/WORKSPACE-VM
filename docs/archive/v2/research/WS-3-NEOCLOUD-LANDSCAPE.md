@@ -1,9 +1,9 @@
-# WS-3: Neocloud Offerings — Infrastructure-Level Agent Security
+# WS-3: Neocloud Offerings - Infrastructure-Level Agent Security
 
 > **Part of the Agentic Guardrails, Compliance, Standardisation & Security research programme**
 > Status: **COMPLETE** | Last updated: 2026-05-25
 
----
+--
 
 ## 1. Research Scope & Questions
 
@@ -14,7 +14,7 @@
 **Key questions:**
 - What tenant isolation models exist? (VM, container, bare metal?)
 - What compliance certifications do they hold? (SOC2, ISO 27001, ISO 42001?)
-- EU data residency options — where are their data centres?
+- EU data residency options - where are their data centres?
 - Do they offer any agent-level security features? (or just raw compute?)
 - Network security architecture (VPC, firewall, DDoS?)
 - Audit logging and monitoring capabilities?
@@ -46,7 +46,7 @@
 
 **Key questions:**
 - Security implications of running agents on distributed compute
-- Data confidentiality — TEE support?
+- Data confidentiality - TEE support?
 - Data residency challenges in permissionless networks
 - Practical assessment: viable for regulated enterprise workloads?
 
@@ -56,11 +56,11 @@
 
 **Key questions:**
 - GPU/AI-specific offerings? (pricing, availability, hardware)
-- Data sovereignty guarantees — legal jurisdiction analysis
+- Data sovereignty guarantees - legal jurisdiction analysis
 - Certification posture (SOC2, ISO 27001, C5, SecNumCloud)
 - Do any offer agent-specific infrastructure?
 
----
+--
 
 ## 2. Findings
 
@@ -68,7 +68,7 @@
 
 #### CoreWeave
 
-**Tenant Isolation Model:** Bare metal with NVIDIA BlueField-3 DPU hardware enforcement. No hypervisor. Each compute node runs CoreWeave Kubernetes Service (CKS) with single-tenant nodes — every node is dedicated to one customer. Tenant isolation is enforced at the DPU level using EVPN Type 5 overlays and VXLAN VNI segmentation per VRF. Kubernetes namespaces map to isolated VRF+VNI combos. Dedicated Access AZs provide full single-tenant infrastructure (no other customer workloads share the network fabric).
+**Tenant Isolation Model:** Bare metal with NVIDIA BlueField-3 DPU hardware enforcement. No hypervisor. Each compute node runs CoreWeave Kubernetes Service (CKS) with single-tenant nodes - every node is dedicated to one customer. Tenant isolation is enforced at the DPU level using EVPN Type 5 overlays and VXLAN VNI segmentation per VRF. Kubernetes namespaces map to isolated VRF+VNI combos. Dedicated Access AZs provide full single-tenant infrastructure (no other customer workloads share the network fabric).
 
 **Compliance Certifications:**
 - SOC 2 Type II (Bare Metal and CKS)
@@ -76,7 +76,7 @@
 - ISO 27017 (cloud security)
 - ISO 27018 (personal data in cloud)
 - GDPR compliant; HIPAA alignment available
-- ISO/IEC 42001 (in progress — responsible AI management)
+- ISO/IEC 42001 (in progress - responsible AI management)
 - PCI DSS alignment available
 - Aligned with NIST frameworks
 
@@ -120,15 +120,15 @@
 
 #### Lambda Labs
 
-**Tenant Isolation Model:** Hybrid model — single-tenant hardware for compute (GPU nodes), multi-tenant with hardware virtualization for management nodes. 1-Click Clusters use single-tenant compute nodes with logical network segmentation. Superclusters are full single-tenant: dedicated cabinets, dedicated slab-to-slab hard-walled cages, no shared components from firewall down. VM support available for management-plane isolation. InfiniBand fabric is completely isolated per customer.
+**Tenant Isolation Model:** Hybrid model - single-tenant hardware for compute (GPU nodes), multi-tenant with hardware virtualization for management nodes. 1-Click Clusters use single-tenant compute nodes with logical network segmentation. Superclusters are full single-tenant: dedicated cabinets, dedicated slab-to-slab hard-walled cages, no shared components from firewall down. VM support available for management-plane isolation. InfiniBand fabric is completely isolated per customer.
 
 **Compliance Certifications:**
-- SOC 2 Type II (Security & Availability criteria) — Certified, annual audit
-- ISO 27001 — Certified (cert # ISO27001-2024-LAMBDA)
-- PCI DSS Level 1 — Compliant (highest level)
-- HIPAA / HITECH compliant — BAAs available
+- SOC 2 Type II (Security & Availability criteria) - Certified, annual audit
+- ISO 27001 - Certified (cert # ISO27001-2024-LAMBDA)
+- PCI DSS Level 1 - Compliant (highest level)
+- HIPAA / HITECH compliant - BAAs available
 - HITRUST CSF certified
-- FedRAMP Moderate — In progress (expected Q3 2026)
+- FedRAMP Moderate - In progress (expected Q3 2026)
 - GDPR compliant
 - NIST 800-88 (secure data sanitization)
 - SOX support
@@ -155,7 +155,7 @@
 
 **Network Security Architecture:**
 - Logically isolated Ethernet switching fabric per customer
-- Dedicated InfiniBand fabric — customer traffic only on dedicated IB links
+- Dedicated InfiniBand fabric - customer traffic only on dedicated IB links
 - Client VPN on perimeter firewall for remote access
 - Site-to-site IPsec VPN
 - Direct Connect / ExpressRoute / Interconnect private connectivity
@@ -176,10 +176,10 @@
 
 #### RunPod
 
-**Tenant Isolation Model:** Two-tier model: (1) **Secure Cloud** — T3/T4 data centres with enterprise-grade security, reliable redundancy, SOC 2/ISO 27001-certified infrastructure partners. (2) **Community Cloud** — peer-to-peer GPU computing with vetted, invite-only host providers. Both tiers use Docker container isolation. No hypervisor layer; containerized workloads. Data is destroyed on instance deletion. Global Networking provides private internal network for inter-Pod communication.
+**Tenant Isolation Model:** Two-tier model: (1) **Secure Cloud** - T3/T4 data centres with enterprise-grade security, reliable redundancy, SOC 2/ISO 27001-certified infrastructure partners. (2) **Community Cloud** - peer-to-peer GPU computing with vetted, invite-only host providers. Both tiers use Docker container isolation. No hypervisor layer; containerized workloads. Data is destroyed on instance deletion. Global Networking provides private internal network for inter-Pod communication.
 
 **Compliance Certifications:**
-- SOC 2 Type II (obtained October 13, 2025) — platform level
+- SOC 2 Type II (obtained October 13, 2025) - platform level
 - SOC 2 Type I (obtained February 2025)
 - HIPAA compliant (verified, BAAs available)
 - GDPR compliant (DPAs available)
@@ -225,14 +225,14 @@
 
 #### Vast.ai
 
-**Tenant Isolation Model:** Marketplace connecting GPU providers (individuals to T4 data centres) with renters. Instances run as unprivileged Docker containers with cgroup isolation (separate namespaces, network, filesystem, process isolation). VM instances (KVM-based) added December 2024 for workloads requiring kernel access. Two security tiers: **Verified Hosts** (general-purpose, Docker-level isolation) and **Secure Cloud** (vetted ISO 27001 data centres). GPUs are exclusive per instance — never shared between users.
+**Tenant Isolation Model:** Marketplace connecting GPU providers (individuals to T4 data centres) with renters. Instances run as unprivileged Docker containers with cgroup isolation (separate namespaces, network, filesystem, process isolation). VM instances (KVM-based) added December 2024 for workloads requiring kernel access. Two security tiers: **Verified Hosts** (general-purpose, Docker-level isolation) and **Secure Cloud** (vetted ISO 27001 data centres). GPUs are exclusive per instance - never shared between users.
 
 **Compliance Certifications (Platform):**
-- SOC 2 Type II (achieved August 2025) — 12-month audit cycle
+- SOC 2 Type II (achieved August 2025) - 12-month audit cycle
 - SOC 2 Type I (achieved April 2025)
 - SOC 3 (public summary available)
 - HIPAA-supportive on Secure Cloud tier (BAAs available)
-- GDPR compliance — DPAs with data centre partners
+- GDPR compliance - DPAs with data centre partners
 
 **Data Centre Partner Certifications:**
 - ISO 27001, ISO 20000-1, ISO 22301, ISO 14001
@@ -241,10 +241,10 @@
 - NIST frameworks
 
 **EU Data Residency:**
-- Decentralized marketplace — providers globally distributed
+- Decentralized marketplace - providers globally distributed
 - Secure Cloud data centres include EU locations (specific locations depend on provider availability)
 - Data Processing Agreements govern all data handling
-- No fixed "EU region" — tenant selects providers meeting their requirements
+- No fixed "EU region" - tenant selects providers meeting their requirements
 
 **Agent-Level Security Features:**
 - Per-instance API key (CONTAINER_API_KEY env var)
@@ -261,7 +261,7 @@
 - SSH encrypted by default
 - Firewall rules configurable inside container
 - Static IPs available on select providers for IP whitelisting
-- No VPC abstraction — relies on provider-level network security
+- No VPC abstraction - relies on provider-level network security
 - Community Cloud: shared IPs, dynamic port mapping
 - Port limits: 64 open ports per instance
 
@@ -274,7 +274,7 @@
 - Access reviews and recertification
 - Six-year track record with no major security incidents
 
----
+--
 
 ### 2.2 Model-as-a-Service Neoclouds
 
@@ -298,8 +298,8 @@
 - Dedicated storage deployments matching data residency requirements
 
 **Safety Filters / Content Moderation:**
-- No forced system prompts or censorship — "models run as the author published"
-- Models at full precision — no distillation or modification
+- No forced system prompts or censorship - "models run as the author published"
+- Models at full precision - no distillation or modification
 - Opt-in data sharing for training (not enabled by default)
 - Zero Data Retention mode available for API calls
 - Acceptable Use Policy governs abuse
@@ -327,13 +327,13 @@
 
 #### Fireworks AI
 
-**Tenant Isolation Model:** Multi-cloud inference engine running across 18+ global regions, 8 cloud providers. Bring Your Own Cloud (BYOC) for deploying inside customer VPC. Airgapped deployment option for AWS EKS (no metadata sent to Fireworks). Virtual Cloud abstraction layer with 3D Optimizer for speed/quality/cost tradeoffs. Customer data stored only during active jobs — auditable deletion confirmation.
+**Tenant Isolation Model:** Multi-cloud inference engine running across 18+ global regions, 8 cloud providers. Bring Your Own Cloud (BYOC) for deploying inside customer VPC. Airgapped deployment option for AWS EKS (no metadata sent to Fireworks). Virtual Cloud abstraction layer with 3D Optimizer for speed/quality/cost tradeoffs. Customer data stored only during active jobs - auditable deletion confirmation.
 
 **Compliance Certifications:**
 - SOC 2 Type II (certified)
-- ISO 27001 (Information Security Management) — achieved
-- ISO 27701 (Privacy Information Management) — achieved
-- ISO 42001 (AI Management Systems — responsible AI development) — achieved
+- ISO 27001 (Information Security Management) - achieved
+- ISO 27701 (Privacy Information Management) - achieved
+- ISO 42001 (AI Management Systems - responsible AI development) - achieved
 - HIPAA compliant
 - GDPR & CCPA aligned
 - All three ISO certifications maintained through continuous monitoring and annual audits
@@ -364,7 +364,7 @@
 - Airgapped: no external dependencies for inference
 - Bring Your Own Bucket (GCS, S3, Azure Blob) for training data
 - Least-privilege IAM: only bucket/path prefixes needed
-- No long-lived credentials — OIDC federation for cross-cloud access
+- No long-lived credentials - OIDC federation for cross-cloud access
 - Own encryption keys (coming soon)
 - Role-based access controls (Google, OIDC, SAML SSO)
 - Real-time monitoring and anomaly detection
@@ -373,17 +373,17 @@
 
 #### Replicate
 
-**Tenant Isolation Model:** Containerized model serving with OCI images. "Director" process alongside each model container for trusted control communication. All internal traffic now encrypted (TLS) after Wiz disclosure (Feb 2024). NET_ADMIN/NET_RAW capabilities dropped from model containers. Community model marketplace — thousands of models published by third parties. Raw GPU access not exposed.
+**Tenant Isolation Model:** Containerized model serving with OCI images. "Director" process alongside each model container for trusted control communication. All internal traffic now encrypted (TLS) after Wiz disclosure (Feb 2024). NET_ADMIN/NET_RAW capabilities dropped from model containers. Community model marketplace - thousands of models published by third parties. Raw GPU access not exposed.
 
 **Compliance Certifications:**
-- SOC 2 Type II — self-attested (publicly referenced; SOC 2 claim)
+- SOC 2 Type II - self-attested (publicly referenced; SOC 2 claim)
 - No published ISO 27001, ISO 42001, or HIPAA certifications
 - No published independent security audit reports
 - GDPR documentation available but no comprehensive DPA structure
 - No Cyber Essentials or other government certification
 
 **EU Data Residency:**
-- US-only infrastructure — no EU data centre options
+- US-only infrastructure - no EU data centre options
 - No published data residency / sovereign cloud offerings
 - US jurisdiction (Delaware incorporation); CLOUD Act applies
 - Not GDPR-compliant for production EU personal data processing
@@ -417,16 +417,16 @@
 - No SIEM integration documented
 - No compliance portal with evidence packages
 
----
+--
 
 ### 2.3 Serverless + Infra Neoclouds
 
 #### Modal
 
-**Tenant Isolation Model:** Containerized + virtualized using **gVisor** (Google's sandboxing technology). gVisor provides a userspace kernel that isolates containers from the host OS. Each function/container runs in its own isolated environment with dedicated CPU, memory, GPU, and network resources. No shared state between containers. Custom Rust-based container runtime. Multi-cloud routing across multiple cloud providers. No hypervisor layer — gVisor replaces it.
+**Tenant Isolation Model:** Containerized + virtualized using **gVisor** (Google's sandboxing technology). gVisor provides a userspace kernel that isolates containers from the host OS. Each function/container runs in its own isolated environment with dedicated CPU, memory, GPU, and network resources. No shared state between containers. Custom Rust-based container runtime. Multi-cloud routing across multiple cloud providers. No hypervisor layer - gVisor replaces it.
 
 **Compliance Certifications:**
-- SOC 2 Type II (achieved January 2025) — clean audit, no deviations
+- SOC 2 Type II (achieved January 2025) - clean audit, no deviations
 - SOC 2 Type I (achieved earlier)
 - HIPAA-compatible (BAAs required for Enterprise plan; BAA covers all features except filesystem/directory snapshots)
 - GDPR compliant
@@ -434,13 +434,13 @@
 
 **EU Data Residency:**
 - Multi-cloud infrastructure (AWS, GCP, others)
-- Region selection available — customers can constrain to locations
+- Region selection available - customers can constrain to locations
 - Specific EU data centre locations depend on capacity solver routing
 - $30/month free compute for all users
 - Not primarily focused on EU data sovereignty
 
 **Agent-Level Security Features:**
-- gVisor sandbox — stronger than Docker/runc, 100x faster than traditional VMs
+- gVisor sandbox - stronger than Docker/runc, 100x faster than traditional VMs
 - Sandbox with checkpoint/restore for stateful agent sessions
 - Proxy Auth Tokens for authenticating web endpoint access
 - HTTPS enforced for all services (TLS)
@@ -470,7 +470,7 @@
 
 #### Beam (beta9)
 
-**Tenant Isolation Model:** Open-source serverless runtime (beta9, AGPL-3.0). Uses gVisor sandboxing for container isolation (same technology as Modal, Google Cloud Run). Custom Go-based container runtime with sub-second launch. Distributed storage decoupled from compute via Tigris. Multi-cloud capacity pool. 100% open-source and self-hostable — can run on AWS, on-prem, or any bare metal.
+**Tenant Isolation Model:** Open-source serverless runtime (beta9, AGPL-3.0). Uses gVisor sandboxing for container isolation (same technology as Modal, Google Cloud Run). Custom Go-based container runtime with sub-second launch. Distributed storage decoupled from compute via Tigris. Multi-cloud capacity pool. 100% open-source and self-hostable - can run on AWS, on-prem, or any bare metal.
 
 **Compliance Certifications:**
 - SOC 2 Type II (claimed on trust.beam.org)
@@ -524,23 +524,23 @@
 - No SOC 2 or ISO certifications documented
 - No EU data centre documentation
 
----
+--
 
 ### 2.4 Decentralized Compute
 
 #### Akash Network
 
-**Tenant Isolation Model:** Container-based on Kubernetes. Each deployment runs in an isolated Kubernetes namespace with network policies, resource limits, and separate service accounts. No privileged containers by default. Confidential Compute via Kata Containers (micro-VMs) — being rolled out (AEP-65, AEP-83). Hardware Verification via TEE attestation (AEP-29, estimated completion May 2026). Providers are permissionless — any data centre or individual can join. GPU support via NVIDIA device plugin.
+**Tenant Isolation Model:** Container-based on Kubernetes. Each deployment runs in an isolated Kubernetes namespace with network policies, resource limits, and separate service accounts. No privileged containers by default. Confidential Compute via Kata Containers (micro-VMs) - being rolled out (AEP-65, AEP-83). Hardware Verification via TEE attestation (AEP-29, estimated completion May 2026). Providers are permissionless - any data centre or individual can join. GPU support via NVIDIA device plugin.
 
 **Compliance Certifications:**
 - No SOC 2 or ISO certifications (decentralized, permissionless network)
-- Provider-level: individual providers may hold ISO 27001, SOC 2, etc. — not network-level
+- Provider-level: individual providers may hold ISO 27001, SOC 2, etc. - not network-level
 - Audited provider program: third-party auditors verify provider hardware and operations
 - Confidential Computing via Intel TDX and NVIDIA NVTrust (roadmap)
 - Bare metal access eliminates VM overhead (10-15% performance gain)
 
 **EU Data Residency:**
-- Fully decentralized — providers can be located anywhere
+- Fully decentralized - providers can be located anywhere
 - Tenants choose providers based on attributes including location
 - GDPR compliance depends on provider selection
 - Akash blockchain is global; no jurisdiction-specific data controls
@@ -583,7 +583,7 @@
 - No HIPAA, GDPR certificates at network level
 
 **EU Data Residency:**
-- Fully decentralized — providers globally distributed
+- Fully decentralized - providers globally distributed
 - No data residency controls at protocol level
 - GDPR compliance left to individual participants
 - Ethereum-based settlement layer is global
@@ -654,7 +654,7 @@
 - No SIEM-level tenant audit logging documented
 - Smart contract-verified resource allocation
 
----
+--
 
 ### 2.5 European Neoclouds
 
@@ -663,16 +663,16 @@
 #### Scaleway (FR)
 - NVIDIA H100 GPUs available in France (Paris region)
 - SOC 2, ISO 27001, SecNumCloud (French government最高认证)
-- GDPR native — French jurisdiction
+- GDPR native - French jurisdiction
 - GPU instances: limited catalogue vs US neoclouds
 - No specific agent-level security features
 
 #### Hetzner (DE)
 - Lower-cost GPU options (A100 limited)
 - ISO 27001 certified, GDPR compliant
-- German jurisdiction — strong data sovereignty
+- German jurisdiction - strong data sovereignty
 - No SOC 2; C5 (German cloud standard) attested
-- Pure IaaS — no agent-level security
+- Pure IaaS - no agent-level security
 - No VPC (single flat network per project)
 
 #### OVHcloud (FR)
@@ -703,12 +703,12 @@
 - Anti-DDoS, private network
 - No agent-level security features
 
----
+--
 
 ## 3. Comparative Analysis
 
 | Provider | Type | Tenant Isolation | SOC2 | ISO 27001 | ISO 42001 | EU DCs | HIPAA | GPU TEE | VPC | MFA/SSO | Audit Logs | Safety Filter | Content Mod |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+|--|--|--|--|--|--|--|--|--|--|--|--|--|--|
 | **CoreWeave** | GPU-first | Bare metal + DPU, single-tenant nodes | Type II | Yes | In progress | UK, SE, NO, ES | Yes | NVIDIA CC (H100+) | Yes | Yes | Loki/Kafka/SIEM | N/A | N/A |
 | **Lambda Labs** | GPU-first | Single-tenant compute, virtualized mgmt | Type II | Yes | No | Limited | Yes | Via Intel SGX | IPsec/Direct Connect | Yes | Immutable logs + SIEM | N/A | N/A |
 | **RunPod** | GPU-first | Docker containers (Secure Cloud T3/T4) | Type II | Partner-level | No | CZ, FR, NL, RO, SE, IS | Yes (Secure Cloud) | No | Global Networking (no VPC peering) | SSH key | SOC 2 audited | N/A | N/A |
@@ -722,7 +722,7 @@
 | **Golem** | Decentralized | Sandboxed env, SGX explored | No | No | No | Global (P2P) | No | SGX (explored) | No | OIDC (Golem Cloud) | Durable agent log | N/A | N/A |
 | **Spheron** | Decentralized | VM/bare metal from tiered DCs | Partner-level | Partner-level | No | US, EU, CA | Partner-level | Yes (NVIDIA CC) | Provider-managed | SSH key | Provider dashboard | N/A | N/A |
 
----
+--
 
 ## 4. Sources Consulted
 
@@ -735,9 +735,9 @@
 - CoreWeave EU-NORTH: https://docs.coreweave.com/platform/regions/eu-north
 - CoreWeave EU-WEST: https://docs.coreweave.com/platform/regions/eu-west
 - CoreWeave EU-SOUTH: https://docs.coreweave.com/platform/regions/eu-south
-- CoreWeave Blog — Security by Design: https://www.coreweave.com/blog/how-coreweave-builds-security-into-the-architecture-that-powers-modern-ai
-- CoreWeave Blog — #1 AI Cloud SemiAnalysis: https://www.coreweave.com/blog/coreweave-ranks-as-1-ai-cloud-backed-by-semianalysiss-platinum-clustermax-tm-rating
-- CoreWeave Blog — Data Center Operations: https://www.coreweave.com/blog/coreweave-data-center-operations-built-for-ai
+- CoreWeave Blog - Security by Design: https://www.coreweave.com/blog/how-coreweave-builds-security-into-the-architecture-that-powers-modern-ai
+- CoreWeave Blog - #1 AI Cloud SemiAnalysis: https://www.coreweave.com/blog/coreweave-ranks-as-1-ai-cloud-backed-by-semianalysiss-platinum-clustermax-tm-rating
+- CoreWeave Blog - Data Center Operations: https://www.coreweave.com/blog/coreweave-data-center-operations-built-for-ai
 - CoreWeave UK Data Centres (PR): https://wf.coreweave.com/news/coreweave-announces-two-initial-data-centers-in-the-uk-are-now-operational
 - CoreWeave $2.2B EU Expansion (PR, June 2024): https://www.prnewswire.co.uk/news-releases/coreweave-announces-significant-european-expansion-commits-an-incremental-2-2-billion-to-meet-surging-demand-for-ai-infrastructure-in-the-region-302164174.html
 - CoreWeave x MERLIN Barcelona: https://tech.eu/2025/05/13/coreweave-and-merlin-edged-launch-barcelona-data-centre/
@@ -868,25 +868,25 @@
 - Europe Data Center Map 2026: https://www.thenextgentechinsider.com/posts/ai-surge-and-policy-shifts-redraw-europes-data-center-map-by-2026
 - DeployBase SOC 2 GPU Cloud: https://deploybase.ai/articles/best-gpu-cloud-with-soc-2-compliance
 
----
+--
 
 ## 5. Key Takeaways
 
-### Tier 1 — Enterprise-Ready with Full Compliance & EU Presence
+### Tier 1 - Enterprise-Ready with Full Compliance & EU Presence
 **CoreWeave** leads on every axis: bare metal with DPU-enforced isolation, SOC 2 + ISO 27001 + ISO 27017/27018 + HIPAA, multi-region EU data centres (UK, Sweden, Norway, Spain), NVIDIA CC for GPU TEE, full VPC/SSO/SIEM. **Fireworks AI** uniquely holds ISO 42001 (AI Management), plus SOC 2, ISO 27001/27701, HIPAA, and BYOC/airgapped for maximum customer control. **Lambda Labs** is strong on certs (SOC 2, ISO 27001, PCI DSS Level 1, HIPAA, HITRUST) but weak on EU data centres.
 
-### Tier 2 — Growing Compliance with Some Gaps
+### Tier 2 - Growing Compliance with Some Gaps
 **Together AI** (SOC 2 Type II, HIPAA, expanding EU presence in Sweden), **RunPod** (SOC 2 Type II, HIPAA, GDPR, wide EU data centre coverage but no VPC peering), **Modal** (SOC 2 Type II, HIPAA, gVisor sandbox), **Beam** (SOC 2 Type II, open-source runtime, gVisor).
 
-### Tier 3 — Limited Compliance; Best for Dev/Experimental
-**Vast.ai** (SOC 2 Type II but marketplace model limits enterprise assurance), **Replicate** (SOC 2 self-attested, US-only, no ISO/HIPAA — best for prototyping), **Akash/Golem/Spheron** (decentralized — no platform-level compliance, though Spheron partners with certified data centres).
+### Tier 3 - Limited Compliance; Best for Dev/Experimental
+**Vast.ai** (SOC 2 Type II but marketplace model limits enterprise assurance), **Replicate** (SOC 2 self-attested, US-only, no ISO/HIPAA - best for prototyping), **Akash/Golem/Spheron** (decentralized - no platform-level compliance, though Spheron partners with certified data centres).
 
 ### Key Gaps Identified
-1. **ISO 42001 (AI Management)** — Only Fireworks AI has achieved this. CoreWeave is in progress. No other provider pursues it.
-2. **GPU TEE (Confidential Computing)** — CoreWeave (NVIDIA CC on H100+), Spheron (NVIDIA CC), Akash (roadmap). Others do not offer GPU TEE.
-3. **EU Data Sovereignty** — CoreWeave dominates with 8+ EU AZs. Together AI expanding. Lambda and Replicate are US-centric.
-4. **Agent-Specific Infrastructure** — None of the providers offer agent-specific security primitives (e.g., agent identity, agent sandboxing, inter-agent policies). Modal and Beam's gVisor sandboxes are the closest approximation for running untrusted agent code.
-5. **Safety Filters / Content Moderation** — Only Fireworks AI (via ISO 42001) and Together AI (opt-in ZDR) offer structured approaches. Replicate has none. No provider offers a programmable safety filter API for agentic workloads.
+1. **ISO 42001 (AI Management)** - Only Fireworks AI has achieved this. CoreWeave is in progress. No other provider pursues it.
+2. **GPU TEE (Confidential Computing)** - CoreWeave (NVIDIA CC on H100+), Spheron (NVIDIA CC), Akash (roadmap). Others do not offer GPU TEE.
+3. **EU Data Sovereignty** - CoreWeave dominates with 8+ EU AZs. Together AI expanding. Lambda and Replicate are US-centric.
+4. **Agent-Specific Infrastructure** - None of the providers offer agent-specific security primitives (e.g., agent identity, agent sandboxing, inter-agent policies). Modal and Beam's gVisor sandboxes are the closest approximation for running untrusted agent code.
+5. **Safety Filters / Content Moderation** - Only Fireworks AI (via ISO 42001) and Together AI (opt-in ZDR) offer structured approaches. Replicate has none. No provider offers a programmable safety filter API for agentic workloads.
 
 ### Strategic Recommendations
 - For **enterprise agent deployments in EU**: CoreWeave (compute) + Fireworks AI (inference with BYOC) is the strongest stack.

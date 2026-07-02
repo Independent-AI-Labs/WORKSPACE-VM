@@ -1,6 +1,7 @@
 #jinja2:lstrip_blocks:True
+{% set container_home = '/home' ~ '/ami' %}
 FROM ubuntu:22.04 AS base
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get install -y -no-install-recommends \
         systemd iptables git curl rsync gnupg sudo ca-certificates make unzip openssh-client
 RUN useradd -m -s /bin/bash ami && usermod -aG sudo ami
 COPY workspace/ /opt/ami-agents/workspace/
@@ -12,18 +13,18 @@ WORKDIR /opt/ami-agents
 FROM base AS installer
 {% if ssh.mode == "inherit" %}
 {% for f in ssh.inherit_files -%}
-COPY --chown=ami:ami {{ f.src }} {{ f.dst }}
+COPY -chown=ami:ami {{ f.src }} {{ f.dst }}
 {% endfor %}
-RUN chmod 0700 /home/ami/.ssh && chmod 0600 /home/ami/.ssh/id_*
+RUN chmod 0700 ~ami/.ssh && chmod 0600 ~ami/.ssh/id_*
 {% elif ssh.mode == "custom" %}
 {% for f in ssh.files -%}
-COPY --chown=ami:ami {{ f.src }} {{ f.dst }}
+COPY -chown=ami:ami {{ f.src }} {{ f.dst }}
 {% endfor %}
-RUN chmod 0700 /home/ami/.ssh && chmod 0600 /home/ami/.ssh/id_*
+RUN chmod 0700 ~ami/.ssh && chmod 0600 ~ami/.ssh/id_*
 {% endif %}
 COPY {{ vm_install_defaults }} /tmp/install-defaults.yaml
 RUN make init && rm -rf /var/lib/apt/lists/*
-RUN --mount=type=ssh mkdir -p ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts && make install-ci INSTALL_DEFAULTS=/tmp/install-defaults.yaml
+RUN -mount=type=ssh mkdir -p ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts && make install-ci INSTALL_DEFAULTS=/tmp/install-defaults.yaml
 
 FROM installer AS runtime
 ARG OPENCODE_SERVER_PASSWORD
@@ -37,13 +38,13 @@ RUN SUDO_FORCE_REMOVE=yes apt-get purge -y sudo && rm -rf /etc/sudoers.d/*
 COPY {{ certs }} /etc/ssl/ami/
 {% endif %}
 
-RUN mkdir -p /workspace /transcripts /cache /home/ami/.config/opencode \
-    && chown -R ami:ami /workspace /transcripts /cache /home/ami
+RUN mkdir -p /workspace /transcripts /cache ~ami/.config/opencode \
+    && chown -R ami:ami /workspace /transcripts /cache ~ami
 
-COPY --chown=ami:ami {{ vm_opencode_json }} /home/ami/.config/opencode/config.json
+COPY -chown=ami:ami {{ vm_opencode_json }} {{ container_home }}/.config/opencode/config.json
 
 {% if credentials.mode == "clone" %}
-COPY --chown=ami:ami {{ home }}/.config/opencode/ /home/ami/.config/opencode/
+COPY -chown=ami:ami {{ home }}/.config/opencode/ {{ container_home }}/.config/opencode/
 {% endif %}
 
 COPY {{ vm_opencode_service }} /etc/systemd/system/opencode.service
@@ -67,7 +68,7 @@ COPY {{ vpn_config }} /etc/openvpn/client.ovpn
 
 RUN systemctl enable opencode.service{% if traefik_enabled %} && systemctl enable traefik.service{% endif %}{% if network_enabled %} && systemctl enable ami-network.service{% endif %}{% if openvpn_enabled %} && systemctl enable openvpn.service{% endif %}
 
-HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
+HEALTHCHECK -interval=30s -timeout=5s -retries=3 \
     CMD curl -sf http://127.0.0.1:4096/ || exit 1
 
 ENTRYPOINT ["/sbin/init"]

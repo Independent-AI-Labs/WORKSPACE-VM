@@ -388,7 +388,7 @@ def test_parse_systemd_details_empty() -> None:
 
 
 def test_extract_compose_info_podman_compose() -> None:
-    info = _extract_compose_info("podman-compose -f /etc/web.yml --profile prod up -d")
+    info = _extract_compose_info("podman-compose -f /etc/web.yml -profile prod up -d")
     assert info[1] == "/etc/web.yml"
     assert "prod" in info[2]
 

@@ -1,4 +1,4 @@
-# AMI-AGENTS Test Coverage Thresholds
+# WORKSPACE-VM Test Coverage Thresholds
 
 unit:
   path: tests/unit

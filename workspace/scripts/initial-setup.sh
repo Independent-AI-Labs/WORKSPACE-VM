@@ -35,9 +35,9 @@ MODE="${1:-check}"
 install_mode=false
 export_missing=false
 install_only=false
-[[ "$MODE" == "--install" ]] && install_mode=true
-[[ "$MODE" == "--export-missing" ]] && export_missing=true
-[[ "$MODE" == "--install-only" ]] && { install_only=true; install_mode=true; }
+[[ "$MODE" == "-install" ]] && install_mode=true
+[[ "$MODE" == "-export-missing" ]] && export_missing=true
+[[ "$MODE" == "-install-only" ]] && { install_only=true; install_mode=true; }
 
 # =============================================================================
 # Read dependency entries from YAML via inline Python
@@ -171,7 +171,7 @@ check_cmd() {
     local found_path="" version="" raw=""
 
     if found_path=$(find_binary "$cmd"); then
-        raw=$("$found_path" --version 2>&1) || raw=""
+        raw=$("$found_path" -version 2>&1) || raw=""
         version=$(first_line "$raw" | cut -c1-60)
         [[ -z "$version" ]] && { raw=$("$found_path" -V 2>&1) || raw=""; version=$(first_line "$raw" | cut -c1-60); }
         [[ -z "$version" ]] && { raw=$("$found_path" version 2>&1) || raw=""; version=$(first_line "$raw" | cut -c1-60); }
@@ -204,7 +204,7 @@ check_c_compiler() {
         local found_path=""
         if found_path=$(find_binary "$compiler"); then
             local raw version
-            raw=$("$found_path" --version 2>&1) || raw=""
+            raw=$("$found_path" -version 2>&1) || raw=""
             version=$(first_line "$raw" | cut -c1-60)
             log_ok "C compiler: $version"
             return 0

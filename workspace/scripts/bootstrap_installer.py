@@ -5,7 +5,7 @@ Bootstrap Installer TUI for AMI Orchestrator.
 Provides an interactive multi-select interface for installing optional
 bootstrap components with status detection.
 
-Supports non-interactive mode via --defaults flag for CI environments.
+Supports non-interactive mode via -defaults flag for CI environments.
 """
 
 from __future__ import annotations
@@ -147,7 +147,7 @@ def build_menu_items(
 ) -> MenuBuildResult:
     """Build menu items with status information.
 
-    Workspace repos are NOT included here — they have a dedicated first-step
+    Workspace repos are NOT included here - they have a dedicated first-step
     dialog (`select_workspace_repos`). This dialog is for tools/components only.
 
     Returns:
@@ -227,7 +227,7 @@ def _is_mandatory_repo(comp: Component) -> bool:
 def select_workspace_repos(
     statuses: list[NamedComponentStatus],
 ) -> list[Component]:
-    """Step 1 of the TUI — dedicated workspace-repo selection.
+    """Step 1 of the TUI - dedicated workspace-repo selection.
 
     Mandatory entries (workspace-ci, ami-dataops) render locked-on so the user sees
     the full workspace topology and can't deselect them. Optional entries
@@ -237,7 +237,7 @@ def select_workspace_repos(
     if not repos:
         return []
 
-    print_section("Step 1 of 2 — Select Workspace Repositories")
+    print_section("Step 1 of 2 - Select Workspace Repositories")
     print(
         f"  {DIM}Mandatory repos are pre-selected and locked. "
         f"Optional repos opt-in below.{RESET}\n"
@@ -275,7 +275,7 @@ def select_workspace_repos(
     selected = cast(list["MenuItem[Component]"], raw)
     chosen = _extract_components([s for s in selected if s.value is not None])
 
-    # Mandatory entries always come back even if disabled in the menu —
+    # Mandatory entries always come back even if disabled in the menu -
     # but defend against UI quirks: re-add any missing mandatories.
     chosen_names = {c.name for c in chosen}
     for comp in repos:
@@ -423,7 +423,7 @@ def _main_impl() -> int:
         description="Bootstrap Installer for AMI Orchestrator"
     )
     parser.add_argument(
-        "--defaults",
+        "-defaults",
         type=Path,
         metavar="FILE",
         help="Run non-interactively using component list from YAML file",
@@ -438,19 +438,19 @@ def _main_impl() -> int:
     if not sys.stdin.isatty():
         print(f"{RED}Error:{RESET} This script requires an interactive terminal.")
         print("Run it directly, not through a pipe.")
-        print(f"\n{CYAN}Tip:{RESET} Use --defaults FILE for non-interactive CI mode.")
+        print(f"\n{CYAN}Tip:{RESET} Use -defaults FILE for non-interactive CI mode.")
         return 1
 
     print(BANNER)
     statuses = scan_components()
 
-    # Step 1 — dedicated workspace-repo selection (mandatory locked-on,
+    # Step 1 - dedicated workspace-repo selection (mandatory locked-on,
     # optional opt-in). Repos clone first so subsequent component installs
     # have the on-disk graph available.
     repo_components = select_workspace_repos(statuses)
 
-    # Step 2 — components multi-select (everything except workspace repos).
-    print_section("Step 2 of 2 — Select Components")
+    # Step 2 - components multi-select (everything except workspace repos).
+    print_section("Step 2 of 2 - Select Components")
     menu_build_result = build_menu_items(statuses)
     menu_items = menu_build_result.menu_items
     preselected = menu_build_result.preselected_ids

@@ -57,8 +57,8 @@ def generate_banner_lines(
 
 if __name__ == "__main__":
     root = None
-    if "--project-root" in sys.argv:
-        idx = sys.argv.index("--project-root")
+    if "-project-root" in sys.argv:
+        idx = sys.argv.index("-project-root")
         if idx + 1 < len(sys.argv):
             root = Path(sys.argv[idx + 1]).resolve()
     print(generate_banner_text(project_root=root))

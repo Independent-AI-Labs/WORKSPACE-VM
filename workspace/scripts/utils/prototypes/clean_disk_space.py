@@ -63,7 +63,7 @@ class DiskCleaner:
         self.dry_run = dry_run
         self.scan_root = Path(scan_root).resolve()
         if not self.force and not self.dry_run:
-            print("[INFO] Running in DRY RUN mode. Use --force to execute deletions.")
+            print("[INFO] Running in DRY RUN mode. Use -force to execute deletions.")
             self.dry_run = True
 
     def get_json_items(self, cmd: list[str]) -> list[PodmanItem]:
@@ -85,17 +85,17 @@ class DiskCleaner:
 
     def clean_containers(self) -> None:
         """Removes stopped/exited/created containers."""
-        print("\n--- Analyzing Containers ---")
+        print("\n-- Analyzing Containers --")
         # Filter for non-running containers
         cmd = [
             "podman",
             "ps",
             "-a",
-            "--filter",
+            "-filter",
             "status=exited",
-            "--filter",
+            "-filter",
             "status=created",
-            "--format",
+            "-format",
             "json",
         ]
         containers = self.get_json_items(cmd)
@@ -131,13 +131,13 @@ class DiskCleaner:
 
     def clean_images(self) -> None:
         """Remove only dangling (<none>) images. Tagged images are kept."""
-        print("\n--- Analyzing Dangling Images ---")
+        print("\n-- Analyzing Dangling Images --")
         cmd = [
             "podman",
             "images",
-            "--filter",
+            "-filter",
             "dangling=true",
-            "--format",
+            "-format",
             "json",
         ]
         dangling = self.get_json_items(cmd)
@@ -164,14 +164,14 @@ class DiskCleaner:
 
     def clean_volumes(self) -> None:
         """Removes unused volumes (dangling), PROTECTING checkpoints and databases."""
-        print("\n--- Analyzing Volumes ---")
+        print("\n-- Analyzing Volumes --")
         cmd = [
             "podman",
             "volume",
             "ls",
-            "--filter",
+            "-filter",
             "dangling=true",
-            "--format",
+            "-format",
             "json",
         ]
         volumes = self.get_json_items(cmd)
@@ -242,7 +242,7 @@ class DiskCleaner:
 
     def clean_rust_targets(self) -> None:
         """Remove Rust target/ directories (build artifacts)."""
-        print(f"\n--- Analyzing Rust Build Artifacts under {self.scan_root} ---")
+        print(f"\n-- Analyzing Rust Build Artifacts under {self.scan_root} --")
         cargo_paths = self._find_cargo_projects()
         if not cargo_paths:
             print("No Rust projects found.")
@@ -291,12 +291,12 @@ class DiskCleaner:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Safe Disk Space Cleaner")
     parser.add_argument(
-        "--force",
+        "-force",
         action="store_true",
         help="Actually execute deletions (default: Dry Run)",
     )
     parser.add_argument(
-        "--scan-path",
+        "-scan-path",
         default=".",
         help="Root path to scan for Rust target/ directories (default: cwd)",
     )

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# rules — manage add-user-message-context.js rules/hooks for opencode.
+# rules - manage add-user-message-context.js rules/hooks for opencode.
 #
 #   rules                             → display rule table, redeploy
 #   rules hooks                       → display hook table, redeploy
@@ -123,11 +123,11 @@ _count_blocks() {
     echo "$n"
 }
 
-# --- RULES commands ---
+# -- RULES commands --
 
 cmd_list() {
     _init_userfile; _deploy
-    _display_blocks "Context Rules — injected on every user message" "$USERFILE" "RULES"
+    _display_blocks "Context Rules - injected on every user message" "$USERFILE" "RULES"
     _remind
 }
 
@@ -168,11 +168,11 @@ cmd_update() {
     cmd_list
 }
 
-# --- HOOKS commands ---
+# -- HOOKS commands --
 
 cmd_hooks() {
     _init_userfile; _deploy
-    _display_blocks "Assistant Response Hooks — fires when assistant uses matched words" "$USERFILE" "BLOCK_PATTERNS"
+    _display_blocks "Assistant Response Hooks - fires when assistant uses matched words" "$USERFILE" "BLOCK_PATTERNS"
     _remind
 }
 
@@ -213,7 +213,7 @@ cmd_hooks_update() {
     cmd_hooks
 }
 
-# --- block-level helpers ---
+# -- block-level helpers --
 
 # Insert a { regex, instruction } block before the closing ] of $section
 _insert_block() {
@@ -244,7 +244,7 @@ _delete_block() {
     local file="$1" section="$2" num="$3"
     local count
     count=$(_count_blocks "$file" "$section")
-    [[ "$num" -lt 1 || "$num" -gt "$count" ]] && _err "Entry $num out of range (1–$count)"
+    [[ "$num" -lt 1 || "$num" -gt "$count" ]] && _err "Entry $num out of range (1-$count)"
     local tmp n=0 in_section=0 in_block=0 skip=0
     tmp="$(mktemp)"
     while IFS= read -r line; do
@@ -269,7 +269,7 @@ _delete_block() {
     mv "$tmp" "$file"
 }
 
-# --- main ---
+# -- main --
 case "${1:-list}" in
     hooks)
         shift
@@ -285,7 +285,7 @@ case "${1:-list}" in
     add)         shift; cmd_add "$@" ;;
     delete)      shift; cmd_delete "${1:-}" ;;
     update)      shift; cmd_update "$@" ;;
-    --help|-h)
+    -help|-h)
         echo "Usage: rules [COMMAND]"
         echo ""
         echo "  rules                                  Show rules, redeploy"

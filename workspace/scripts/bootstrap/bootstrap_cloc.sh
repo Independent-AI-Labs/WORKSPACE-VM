@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Cloc Bootstrap Script for AMI-AGENTS
+# Cloc Bootstrap Script for WORKSPACE-VM
 # Downloads and installs cloc (Count Lines of Code) into the .boot-linux environment.
-# cloc is a single-file Perl script — just drop it in bin/ and chmod +x.
+# cloc is a single-file Perl script - just drop it in bin/ and chmod +x.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
@@ -40,8 +40,8 @@ fi
 chmod +x "${CLOC_BIN}"
 
 log_info "Verifying cloc installation"
-if "${CLOC_BIN}" --version >/dev/null 2>&1; then
-    log_info "cloc installed: $(${CLOC_BIN} --version)"
+if "${CLOC_BIN}" -version >/dev/null 2>&1; then
+    log_info "cloc installed: $(${CLOC_BIN} -version)"
     log_info "Binary: ${CLOC_BIN}"
 else
     log_error "cloc verification failed"

@@ -8,22 +8,22 @@
 Two runtime Merkle-tree implementations currently exist in the RUST-TRADING workspaces:
 
 - `projects/RUST-TRADING/rust-zk-compliance-api/crates/sanctions-oracle/src/merkle_set.rs`
-  (`SanctionsMerkleTree`) — sorted Poseidon tree over
+  (`SanctionsMerkleTree`) - sorted Poseidon tree over
   `UniversalAddress`, supports non-membership proofs.
 - `projects/RUST-TRADING/rust-zk-compliance-api/crates/energy-oracle/src/merkle.rs`
-  (`EnergyMerkleTree`) — wraps the same storage idea (`Vec<Fr>`, root,
+  (`EnergyMerkleTree`) - wraps the same storage idea (`Vec<Fr>`, root,
   depth, label) over energy commitments.
 
 `EnergyMerkleTree`'s module docstring claims to "wrap" the sanctions
 tree, but in practice it re-declares the state fields rather than
 delegating. The circuit gadget
 (`rust-zk-protocol/crates/zk-circuits/src/gadgets/merkle.rs`,
-`MerklePathVar`) is intentionally separate — it produces constraints,
-not runtime data — and is out of scope.
+`MerklePathVar`) is intentionally separate - it produces constraints,
+not runtime data - and is out of scope.
 
 ## Options
 
-### Option A — Energy delegates to Sanctions (minimum change)
+### Option A - Energy delegates to Sanctions (minimum change)
 
 Make `EnergyMerkleTree` own only energy-specific logic (commitment
 schema, domain separation, leaf encoding) and hold a
@@ -34,7 +34,7 @@ schema, domain separation, leaf encoding) and hold a
 - **Con:** `SanctionsMerkleTree` keeps its `sanctions-oracle` home,
   which is semantically wrong once another oracle depends on it.
 
-### Option B — Extract `merkle-core` crate (clean)
+### Option B - Extract `merkle-core` crate (clean)
 
 Create `crates/merkle-core/` in `rust-zk-compliance-api`. Move the
 sorted-Poseidon tree, proof generation, and verification there.
@@ -45,7 +45,7 @@ keeps only its leaf-encoding / domain-tag logic.
 - **Con:** cross-crate refactor; API-break for in-workspace callers
   (mostly absorbed by the wrapping oracles); needs a migration sweep.
 
-### Option C — Leave as is, accept the duplication
+### Option C - Leave as is, accept the duplication
 
 Document the overlap, commit to keeping both implementations in sync
 by hand.

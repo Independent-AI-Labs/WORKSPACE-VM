@@ -4,7 +4,7 @@
 #
 # Replaces the hardcoded `ensure-ci` / `ensure-dataops` Makefile
 # targets with a single data-driven walker. Mandatory entries always
-# clone; optional entries opt-in via --include <id>,<id> or --all.
+# clone; optional entries opt-in via -include <id>,<id> or -all.
 # Optional `minTag` enforcement: abort if the cloned working tree's
 # nearest tag is older than the declared minimum.
 #
@@ -16,17 +16,17 @@
 #
 # Usage:
 #   bootstrap-repos                           # mandatory only
-#   bootstrap-repos --include ami-portal      # mandatory + portal
-#   bootstrap-repos --include ami-portal,ami-srp
-#   bootstrap-repos --all                     # mandatory + ALL optional
-#   bootstrap-repos --pull                    # also git-pull existing repos
-#   bootstrap-repos --include ami-portal --pull
+#   bootstrap-repos -include ami-portal      # mandatory + portal
+#   bootstrap-repos -include ami-portal,ami-srp
+#   bootstrap-repos -all                     # mandatory + ALL optional
+#   bootstrap-repos -pull                    # also git-pull existing repos
+#   bootstrap-repos -include ami-portal -pull
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 
-# Find AMI-AGENTS root by walking up to the dir containing pyproject.toml + moon.yml.
+# Find WORKSPACE-VM root by walking up to the dir containing pyproject.toml + moon.yml.
 AMI_ROOT="$SCRIPT_DIR"
 while [[ "$AMI_ROOT" != "/" ]]; do
     if [[ -f "$AMI_ROOT/pyproject.toml" && -f "$AMI_ROOT/moon.yml" ]]; then
@@ -35,7 +35,7 @@ while [[ "$AMI_ROOT" != "/" ]]; do
     AMI_ROOT="$(dirname "$AMI_ROOT")"
 done
 if [[ "$AMI_ROOT" == "/" ]]; then
-    echo "ERROR: could not locate AMI-AGENTS root (pyproject.toml + moon.yml) from $SCRIPT_DIR" >&2
+    echo "ERROR: could not locate WORKSPACE-VM root (pyproject.toml + moon.yml) from $SCRIPT_DIR" >&2
     exit 1
 fi
 
@@ -43,35 +43,38 @@ CLONES_YAML="$AMI_ROOT/workspace/config/workspace-clones.yaml"
 PYTHON="$AMI_ROOT/.boot-linux/bin/python"
 if [[ ! -x "$PYTHON" ]]; then
     # Fall back to system python3 if .boot-linux isn't there yet (very-cold-start).
-    PYTHON="$(command -v python3 || true)"
+    PYTHON="$(command -v python3)" || {
+        echo "[bootstrap-repos] system python3 not found in PATH" >&2
+        PYTHON=""
+    }
     if [[ -z "$PYTHON" ]]; then
         echo "ERROR: no python found (.boot-linux/bin/python missing AND system python3 missing)" >&2
         exit 1
     fi
 fi
 
-# --- argument parsing ---
+# -- argument parsing --
 INCLUDE_OPTIONAL=()
 PULL=0
 ALL_OPTIONAL=0
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --include)
+        -include)
             IFS=',' read -ra _splits <<<"$2"
             INCLUDE_OPTIONAL+=("${_splits[@]}")
             shift 2
             ;;
-        --all)
+        -all)
             ALL_OPTIONAL=1
             shift
             ;;
-        --pull)
+        -pull)
             PULL=1
             shift
             ;;
-        -h|--help)
-            head -22 "$0" | tail -21
+        -h|-help)
+            sed -n '2,22p' "$0"
             exit 0
             ;;
         *)
@@ -81,7 +84,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# --- read workspaceClones via python ---
+# -- read workspaceClones via python --
 # Output one line per entry: id|remote|path|mandatory|minTag
 ENTRIES=$("$PYTHON" - "$CLONES_YAML" <<'PY'
 import sys
@@ -132,7 +135,7 @@ if [[ -z "$ENTRIES" ]]; then
     exit 1
 fi
 
-# --- decide which entries to process ---
+# -- decide which entries to process --
 declare -A include_set
 for id in "${INCLUDE_OPTIONAL[@]}"; do
     include_set["$id"]=1
@@ -162,7 +165,7 @@ while IFS='|' read -r entry_id remote path mandatory min_tag; do
     else
         if [[ $PULL -eq 1 ]]; then
             echo "🔄 pulling $entry_id at $path"
-            if ! ( cd "$target" && git pull --ff-only ); then
+            if ! ( cd "$target" && git pull -ff-only ); then
                 echo "WARNING: $entry_id pull failed (offline, dirty tree, or non-ff)" >&2
             fi
         fi
@@ -172,15 +175,24 @@ while IFS='|' read -r entry_id remote path mandatory min_tag; do
     # minTag enforcement.
     if [[ -n "$min_tag" && -d "$target/.git" ]]; then
         # Get the nearest tag reachable from HEAD.
-        nearest_tag=$( cd "$target" && git describe --tags --abbrev=0 2>/dev/null || true)
+        _bs_tag_err="$(mktemp)"
+        nearest_tag="$( cd "$target" && git describe -tags -abbrev=0 2>"$_bs_tag_err" )" || {
+            [[ -s "$_bs_tag_err" ]] && echo "[bootstrap-repos] git describe failed for $entry_id: $(cat "$_bs_tag_err")" >&2
+        }
+        rm -f "$_bs_tag_err"
         if [[ -z "$nearest_tag" ]]; then
             echo "WARNING: $entry_id has no tags; cannot verify minTag=$min_tag" >&2
         else
             # Compare: minTag must be reachable from nearest_tag's history.
-            if ! ( cd "$target" && git merge-base --is-ancestor "$min_tag" HEAD 2>/dev/null ); then
-                echo "ERROR: $entry_id is at $nearest_tag, declared minTag is $min_tag — workspace too old" >&2
+            _bs_mb_err="$(mktemp)"
+            _bs_mb_rc=0
+            ( cd "$target" && git merge-base -is-ancestor "$min_tag" HEAD 2>"$_bs_mb_err" ) || _bs_mb_rc=$?
+            if [[ $_bs_mb_rc -ne 0 ]]; then
+                [[ -s "$_bs_mb_err" ]] && echo "[bootstrap-repos] merge-base check failed for $entry_id: $(cat "$_bs_mb_err")" >&2
+                echo "ERROR: $entry_id is at $nearest_tag, declared minTag is $min_tag - workspace too old" >&2
                 errors=$((errors + 1))
             fi
+            rm -f "$_bs_mb_err"
         fi
     fi
 done <<<"$ENTRIES"

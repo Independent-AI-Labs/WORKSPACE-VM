@@ -20,9 +20,9 @@ GUIDELINES:
 5. Reply in the user's language.
 
 Available tools and system context:
---- BEGIN BANNER ---
+-- BEGIN BANNER --
 {banner}
---- END BANNER ---
+-- END BANNER --
 
 Your Instruction:
 {instruction}

@@ -20,21 +20,38 @@ fi
 
 REAL_GIT="$(dirname "$0")/real-git"
 if [[ ! -x "$REAL_GIT" ]]; then
-    REAL_GIT="$(command -v git 2>/dev/null || true)"
+    _git_err="$(mktemp)"
+    if ! REAL_GIT="$(command -v git 2>"$_git_err")"; then
+        if [[ -s "$_git_err" ]]; then cat "$_git_err" >&2; fi
+    fi
+    rm -f "$_git_err"
 fi
 
 clean_count=0
 dirty_count=0
 total_count=0
 
+_branch_err="$(mktemp)"
+_status_err="$(mktemp)"
+_ab_err="$(mktemp)"
+_find_err="$(mktemp)"
+
 while IFS= read -r git_dir; do
     repo_dir="$(dirname "$git_dir")"
     repo_name="${repo_dir#"${PROJECT_ROOT}/"}"
     total_count=$((total_count + 1))
 
-    branch=$("$REAL_GIT" -C "$repo_dir" branch --show-current 2>/dev/null || echo "detached")
-    status=$("$REAL_GIT" -C "$repo_dir" status --porcelain 2>/dev/null)
-    ahead_behind=$("$REAL_GIT" -C "$repo_dir" rev-list --left-right --count HEAD...@{upstream} 2>/dev/null || echo "? ?")
+    if ! branch=$("$REAL_GIT" -C "$repo_dir" branch -show-current 2>"$_branch_err"); then
+        if [[ -s "$_branch_err" ]]; then cat "$_branch_err" >&2; fi
+        branch="detached"
+    fi
+    if ! status=$("$REAL_GIT" -C "$repo_dir" status -porcelain 2>"$_status_err"); then
+        if [[ -s "$_status_err" ]]; then cat "$_status_err" >&2; fi
+    fi
+    if ! ahead_behind=$("$REAL_GIT" -C "$repo_dir" rev-list -left-right -count HEAD...@{upstream} 2>"$_ab_err"); then
+        if [[ -s "$_ab_err" ]]; then cat "$_ab_err" >&2; fi
+        ahead_behind="? ?"
+    fi
     ahead=$(echo "$ahead_behind" | awk '{print $1}')
     behind=$(echo "$ahead_behind" | awk '{print $2}')
 
@@ -57,10 +74,10 @@ while IFS= read -r git_dir; do
         echo -e "${GREEN}✓${NC} ${BOLD}${repo_name}${NC}  ${CYAN}${branch}${NC}  ${sync}"
     else
         dirty_count=$((dirty_count + 1))
-        modified=$(echo "$status" | grep -c '^ M\|^M ' || true)
-        untracked=$(echo "$status" | grep -c '^??' || true)
-        deleted=$(echo "$status" | grep -c '^ D\|^D ' || true)
-        added=$(echo "$status" | grep -c '^A ' || true)
+        modified=$(echo "$status" | grep -c '^ M\|^M ') || modified=0
+        untracked=$(echo "$status" | grep -c '^??') || untracked=0
+        deleted=$(echo "$status" | grep -c '^ D\|^D ') || deleted=0
+        added=$(echo "$status" | grep -c '^A ') || added=0
 
         changes=""
         [[ "$modified" -gt 0 ]] && changes+="${YELLOW}~${modified}${NC} "
@@ -70,7 +87,9 @@ while IFS= read -r git_dir; do
 
         echo -e "${RED}✗${NC} ${BOLD}${repo_name}${NC}  ${CYAN}${branch}${NC}  ${sync}  ${changes}"
     fi
-done < <({ echo "$PROJECT_ROOT/.git"; find "$PROJECTS_DIR" -name .git \( -type d -o -type f \) 2>/dev/null; } | sort)
+done < <({ echo "$PROJECT_ROOT/.git"; find "$PROJECTS_DIR" -name .git \( -type d -o -type f \) 2>"$_find_err"; } | sort)
+if [[ -s "$_find_err" ]]; then cat "$_find_err" >&2; fi
+rm -f "$_branch_err" "$_status_err" "$_ab_err" "$_find_err"
 
 echo ""
 echo -e "${BOLD}${total_count}${NC} repos: ${GREEN}${clean_count} clean${NC}, ${RED}${dirty_count} dirty${NC}"

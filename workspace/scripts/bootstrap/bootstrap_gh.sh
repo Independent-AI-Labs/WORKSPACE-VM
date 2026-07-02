@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# GitHub CLI Bootstrap Script for AMI-AGENTS
+# GitHub CLI Bootstrap Script for WORKSPACE-VM
 # Downloads and installs gh in the .boot-linux environment
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -82,8 +82,8 @@ chmod +x "${GH_DIR}/bin/gh"
 ln -sf "../gh/bin/gh" "${BIN_DIR}/gh"
 
 # Verify
-if "${BIN_DIR}/gh" --version > /dev/null 2>&1; then
-    _ghver="$("${BIN_DIR}/gh" --version 2>&1)"
+if "${BIN_DIR}/gh" -version > /dev/null 2>&1; then
+    _ghver="$("${BIN_DIR}/gh" -version 2>&1)"
     _ghver="${_ghver%%$'\n'*}"
     log_info "gh installed successfully: ${_ghver}"
     log_info "Location: ${BIN_DIR}/gh -> ${GH_DIR}/bin/gh"

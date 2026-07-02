@@ -25,7 +25,7 @@ for tonight.
 
 ## Options
 
-### Option A — Extract a dedicated `@ami/portal-lib` repo
+### Option A - Extract a dedicated `@ami/portal-lib` repo
 
 Create a new repository `Independent-AI-Labs/AMI-PORTAL-LIB`
 containing shared primitives (auth helpers, session types, security
@@ -37,7 +37,7 @@ an npm-published package.
 - **Con:** npm publish pipeline required; version-bump ceremony for
   every change; cross-repo PR coordination.
 
-### Option B — Add a git-submodule `shared/` inside each portal
+### Option B - Add a git-submodule `shared/` inside each portal
 
 Both portals include the same submodule pointing at
 `AMI-PORTAL-LIB`. Simpler than npm publish but brings submodule
@@ -47,18 +47,18 @@ coordination costs.
 - **Con:** submodule updates need discipline; Next.js build tooling
   sometimes has edge cases with submodule source-maps.
 
-### Option C — Hoist to an AMI-AGENTS monorepo workspace
+### Option C - Hoist to an WORKSPACE-VM monorepo workspace
 
-Move both portals into AMI-AGENTS as workspace members, share a single
+Move both portals into WORKSPACE-VM as workspace members, share a single
 `package.json` workspaces root. `packages/portal-core` lives at the
 top level.
 
 - **Pro:** one repo, single source of truth, no publishing.
-- **Con:** AMI-AGENTS' gitignore currently excludes all of `projects/`;
+- **Con:** WORKSPACE-VM' gitignore currently excludes all of `projects/`;
   the portals are their own upstream repos with independent CI. Moving
   them would collapse two decoupled deploy pipelines into one.
 
-### Option D — Do nothing (status quo)
+### Option D - Do nothing (status quo)
 
 Accept the duplication; keep the portals independent; migrate later
 if the cost compounds.
@@ -68,7 +68,7 @@ if the cost compounds.
 **Option A** (`@ami/portal-lib` as its own repo). The current pain
 level (two maintainers of the same auth code, two security-header
 policies) justifies a shared package. Option C is tempting but fights
-the existing "projects/ is gitignored in AMI-AGENTS" arrangement,
+the existing "projects/ is gitignored in WORKSPACE-VM" arrangement,
 which was chosen deliberately. Option B adds submodule overhead with
 fewer of A's benefits.
 

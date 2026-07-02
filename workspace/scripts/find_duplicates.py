@@ -117,7 +117,7 @@ def main() -> None:
     parser.add_argument("dir_a", help="First directory to compare")
     parser.add_argument("dir_b", help="Second directory to compare")
     parser.add_argument(
-        "--trash",
+        "-trash",
         action="store_true",
         help="Move all identified duplicates into .trash",
     )

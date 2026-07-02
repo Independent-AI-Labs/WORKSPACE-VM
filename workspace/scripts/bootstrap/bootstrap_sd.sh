@@ -90,8 +90,8 @@ mv "${EXTRACTED_DIR}/sd" "${TARGET_PATH}"
 chmod +x "${TARGET_PATH}"
 
 # Verify
-if "${TARGET_PATH}" --version > /dev/null 2>&1; then
-    log_info "sd installed successfully: $(${TARGET_PATH} --version)"
+if "${TARGET_PATH}" -version > /dev/null 2>&1; then
+    log_info "sd installed successfully: $(${TARGET_PATH} -version)"
     log_info "Location: ${TARGET_PATH}"
 else
     log_error "sd installation failed or binary incompatible"

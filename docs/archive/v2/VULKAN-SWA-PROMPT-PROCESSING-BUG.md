@@ -4,7 +4,7 @@
 
 On the Vulkan backend with Qwen MoE models (SWA/Sliding Window Attention), the first
 `/v1/chat/completions` request is fast (~12ms/tok prompt eval), but **every subsequent
-request** falls into a slow re-processing path at ~0.6 tok/s (1664ms/tok) — ~100x slower.
+request** falls into a slow re-processing path at ~0.6 tok/s (1664ms/tok) - ~100x slower.
 
 The CPU backend handles the same scenario at normal speed (~35ms/tok prompt eval, ~88ms/tok gen)
 on every request.
@@ -12,7 +12,7 @@ on every request.
 ## Root Cause
 
 The chat completion endpoint re-uses the slot for multi-turn conversations. After the first
-request, the slot holds `n_past` stale KV tokens (the chat template prefix — typically 3 tokens).
+request, the slot holds `n_past` stale KV tokens (the chat template prefix - typically 3 tokens).
 
 On SWA models, `n_past > 0` triggers **full prompt re-processing** because the Vulkan backend
 cannot carry over the SWA memory state when `n_past` tokens already exist in the slot.
@@ -41,16 +41,16 @@ architecture is affected on the Vulkan backend.
 ## What Was Tried (None Fixed It)
 
 | Flag | Result |
-|------|--------|
-| `--cache-ram 0` | Disables prompt cache entirely — same behavior |
-| `--slot-prompt-similarity <0..1>` | Tried 0.0, 0.1, 0.5 — doesn't affect SWA re-proc |
-| `--swa-full` | Forces full SWA memory allocation — didn't help |
-| `--kv-unified` | Unified KV cache — no effect |
-| `--cache-idle-slots` | Prevents slot release — no effect |
-| `-np 2` | More parallel slots — still reprocesses in slot |
-| `--flash-attn off` / `-fa 0` | Disable flash attention — no improvement |
-| `--ctx-checkpoints 0` | Disable context checkpoints — no change |
-| `--checkpoint-every-n-tokens -1` | Disable checkpoint creation — same behavior |
+|---|----|
+| `-cache-ram 0` | Disables prompt cache entirely - same behavior |
+| `-slot-prompt-similarity <0..1>` | Tried 0.0, 0.1, 0.5 - doesn't affect SWA re-proc |
+| `-swa-full` | Forces full SWA memory allocation - didn't help |
+| `-kv-unified` | Unified KV cache - no effect |
+| `-cache-idle-slots` | Prevents slot release - no effect |
+| `-np 2` | More parallel slots - still reprocesses in slot |
+| `-flash-attn off` / `-fa 0` | Disable flash attention - no improvement |
+| `-ctx-checkpoints 0` | Disable context checkpoints - no change |
+| `-checkpoint-every-n-tokens -1` | Disable checkpoint creation - same behavior |
 
 ## Status
 
@@ -61,7 +61,7 @@ architecture is affected on the Vulkan backend.
 ## Relevant Upstream Issues
 
 | Issue | Status | Description |
-|-------|--------|-------------|
+|----|----|-------|
 | [#23322](https://github.com/ggml-org/llama.cpp/issues/23322) | Closed | Low MTP Draft Acceptance Rate with SWA/Hybrid Memory Models (Qwen3.6) |
 | [#23321](https://github.com/ggml-org/llama.cpp/issues/23321) | Open | Vulkan Backend `no-kv-offload` on Qwen3 produces gibberish |
 | [#21912](https://github.com/ggml-org/llama.cpp/issues/21912) | Closed | Gemma 4 & Qwen 3.5 full prompt reprocessing from system prompt |

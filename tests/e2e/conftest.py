@@ -78,7 +78,7 @@ class VMTracker:
         for uuid_val in self.uuids:
             try:
                 subprocess.run(
-                    ["podman", "rm", "-f", "--time", "1", uuid_val],
+                    ["podman", "rm", "-f", "-time", "1", uuid_val],
                     capture_output=True,
                     text=True,
                     timeout=30,
@@ -114,14 +114,14 @@ class VMTracker:
 def podman_available() -> None:
     """Skip e2e suite if podman is not available."""
     if not _podman_available():
-        pytest.skip("podman not available — skipping e2e tests")
+        pytest.skip("podman not available - skipping e2e tests")
 
 
 @pytest.fixture(scope="session")
 def vm_build_capable(podman_available) -> None:
     """Skip full-build tests if ubuntu:22.04 image is not cached."""
     if not _base_image_cached():
-        pytest.skip("ubuntu:22.04 image not cached — skipping build tests")
+        pytest.skip("ubuntu:22.04 image not cached - skipping build tests")
 
 
 @pytest.fixture
@@ -132,7 +132,7 @@ def vm_tracker(vm_build_capable) -> VMTracker:
     tracker.cleanup()
 
 
-# --- Lightweight test VM (no podman build, fast) ---
+# Lightweight test VM (no podman build, fast)
 
 
 def _fake_uuid() -> str:
@@ -163,13 +163,13 @@ def test_vm(podman_available, vm_tracker: VMTracker) -> str:
             "podman",
             "run",
             "-d",
-            "--name",
+            "-name",
             uuid_val,
-            "--label",
+            "-label",
             "ami.type=vm",
-            "--label",
+            "-label",
             f"ami.uuid={uuid_val}",
-            "--label",
+            "-label",
             f"ami.config={hashlib.sha256(b'fake').hexdigest()[:16]}",
             "-v",
             f"{uuid_val}-workspace:/workspace",
@@ -177,12 +177,12 @@ def test_vm(podman_available, vm_tracker: VMTracker) -> str:
             f"{uuid_val}-transcripts:/transcripts",
             "-v",
             f"{uuid_val}-cache:/cache",
-            "--userns=keep-id",
-            "--memory",
+            "-userns=keep-id",
+            "-memory",
             "1g",
-            "--cpus",
+            "-cpus",
             "1",
-            "--pids-limit",
+            "-pids-limit",
             "64",
             "ubuntu:22.04",
             "sleep",
@@ -218,7 +218,7 @@ def temp_config(tmp_path: Path) -> Path:
 def vm_cmd(*args: str, timeout: int = 120) -> subprocess.CompletedProcess[str]:
     """Run a vm subcommand and return the result.
 
-    Uses check=False because callers must inspect returncode —
+    Uses check=False because callers must inspect returncode -
     many tests assert non-zero exit for error cases.
     """
     return subprocess.run(

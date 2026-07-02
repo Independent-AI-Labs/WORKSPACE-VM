@@ -2,9 +2,9 @@
 """Verify .moon/workspace.yml::projects and workspace-clones.yaml agree.
 
 Both files list the workspace's repos but for different consumers:
-  - .moon/workspace.yml::projects — moon's project graph (drives `moon run
-    :update`, `moon ci --affected`, every cross-project task walk).
-  - workspace/config/workspace-clones.yaml::workspaceClones — the boot installer's
+  - .moon/workspace.yml::projects - moon's project graph (drives `moon run
+    :update`, `moon ci -affected`, every cross-project task walk).
+  - workspace/config/workspace-clones.yaml::workspaceClones - the boot installer's
     repo-selection step + the chicken-egg-safe clone walker
     (bootstrap-repos).
 
@@ -75,7 +75,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"ERROR: failed to load registries: {exc}", file=sys.stderr)
         return EXIT_INFRA
 
-    # Drop the umbrella entry — the umbrella IS the workspace root, it isn't
+    # Drop the umbrella entry - the umbrella IS the workspace root, it isn't
     # cloned by the bootstrap walker.
     moon_projects = {k: v for k, v in moon.projects.items() if v != "."}
     clone_paths = {eid: e.path for eid, e in clones.workspaceClones.items()}

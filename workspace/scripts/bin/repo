@@ -10,7 +10,7 @@ BOOT_DIR="$AMI_ROOT/.boot-linux"
 
 export PATH="$BOOT_DIR/bin:$PATH"
 
-if [[ "$#" -gt 0 && ("$1" == "-h" || "$1" == "--help") ]]; then
+if [[ "$#" -gt 0 && ("$1" == "-h" || "$1" == "-help") ]]; then
     echo "repo: Git repository and server management for AMI Orchestrator"
     echo ""
     echo "Usage: repo [subcommand] [args...]"
@@ -19,8 +19,13 @@ if [[ "$#" -gt 0 && ("$1" == "-h" || "$1" == "--help") ]]; then
     exit 0
 fi
 
-if [[ "$#" -gt 0 && "$1" == "--version" ]]; then
-    VERSION="$(git -C "$AMI_ROOT" describe --always --dirty 2>/dev/null || echo "unknown")"
+if [[ "$#" -gt 0 && "$1" == "-version" ]]; then
+    _err_tmp="$(mktemp)"
+    if ! VERSION="$(git -C "$AMI_ROOT" describe -always -dirty 2>"$_err_tmp")"; then
+        if [[ -s "$_err_tmp" ]]; then cat "$_err_tmp" >&2; fi
+        VERSION="unknown"
+    fi
+    rm -f "$_err_tmp"
     echo "repo (AMI Orchestrator) ${VERSION}"
     exit 0
 fi
@@ -62,13 +67,13 @@ case "$SUBCOMMAND" in
         GITD_CMD="${ARGS[0]:-status}"
         case "$GITD_CMD" in
             start)
-                exec systemctl --user start ami-git-daemon ami-git-sshd
+                exec systemctl -user start ami-git-daemon ami-git-sshd
                 ;;
             stop)
-                exec systemctl --user stop ami-git-daemon ami-git-sshd
+                exec systemctl -user stop ami-git-daemon ami-git-sshd
                 ;;
             status)
-                exec systemctl --user status ami-git-daemon ami-git-sshd
+                exec systemctl -user status ami-git-daemon ami-git-sshd
                 ;;
             *)
                 echo "Usage: repo gitd {start|stop|status}" >&2
@@ -80,17 +85,17 @@ case "$SUBCOMMAND" in
         SVC_CMD="${ARGS[0]:-status}"
         case "$SVC_CMD" in
             start)
-                exec systemctl --user start ami-git-daemon ami-git-sshd
+                exec systemctl -user start ami-git-daemon ami-git-sshd
                 ;;
             stop)
-                exec systemctl --user stop ami-git-daemon ami-git-sshd
+                exec systemctl -user stop ami-git-daemon ami-git-sshd
                 ;;
             status)
-                exec systemctl --user status ami-git-daemon ami-git-sshd
+                exec systemctl -user status ami-git-daemon ami-git-sshd
                 ;;
             restart)
-                systemctl --user stop ami-git-daemon ami-git-sshd
-                exec systemctl --user start ami-git-daemon ami-git-sshd
+                systemctl -user stop ami-git-daemon ami-git-sshd
+                exec systemctl -user start ami-git-daemon ami-git-sshd
                 ;;
             *)
                 echo "Usage: repo serve {start|stop|status|restart}" >&2

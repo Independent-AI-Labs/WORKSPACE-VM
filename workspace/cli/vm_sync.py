@@ -1,4 +1,4 @@
-"""VM file sync — rsync host directories into the VM workspace volume."""
+"""VM file sync - rsync host directories into the VM workspace volume."""
 
 from __future__ import annotations
 
@@ -45,10 +45,10 @@ def sync(uuid_str: str) -> None:
             continue
         exclude_args: list[str] = []
         for pattern in entry.exclude:
-            exclude_args.extend(["--exclude", pattern])
+            exclude_args.extend(["-exclude", pattern])
         rsync_cmd: list[str] = ["rsync", "-a", *exclude_args]
         if entry.strategy == "overwrite":
-            rsync_cmd.append("--delete")
+            rsync_cmd.append("-delete")
         subprocess.run(
             [*rsync_cmd, f"{src_dir}/", str(mountpoint)],
             check=True,

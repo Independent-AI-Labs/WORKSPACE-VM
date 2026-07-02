@@ -1,4 +1,4 @@
-# project_enforcement.yaml — workspace-level tier registry.
+# project_enforcement.yaml - workspace-level tier registry.
 #
 # This file is the PER-MACHINE COPY of the WORKSPACE-CI enforcement template. It
 # is gitignored at the workspace root; it gets autocreated from
@@ -11,14 +11,14 @@
 # tier unless a more-specific entry overrides it.
 #
 # Tiers:
-#   strict    — full contract: all mandatory hooks installed,
+#   strict    - full contract: all mandatory hooks installed,
 #               quality_exceptions.yaml required, lint+type-check+make-check
 #               required. Wrapper enforces all gates. (Default for any
 #               path not matched below.)
-#   poc       — safety subset only: gitleaks, sensitive-files, banned-words,
+#   poc       - safety subset only: gitleaks, sensitive-files, banned-words,
 #               blocked-history, commit-message format. No
 #               quality_exceptions.yaml required, no lint/type/check.
-#   vendored  — wrapper passthrough; no hooks installed at all. Use for
+#   vendored  - wrapper passthrough; no hooks installed at all. Use for
 #               git-subtree mirrors and frozen legacy code.
 
 version: 1
@@ -26,10 +26,10 @@ version: 1
 # Global enforcement mode. The git-guard wrapper consults this on every
 # commit/push in an in-scope project.
 #
-#   warn     — print a yellow advisory on contract violations, do NOT block.
+#   warn     - print a yellow advisory on contract violations, do NOT block.
 #              Used during rollout (Phase 1-2) so contributors see what's
 #              missing without breaking their workflow.
-#   enforce  — hard-block commit/push on any contract violation. Phase 3.
+#   enforce  - hard-block commit/push on any contract violation. Phase 3.
 #
 # Per-machine: this file is gitignored, so different boxes can sit at
 # different rollout phases of the same workspace. Flip to `enforce` only
@@ -43,23 +43,23 @@ defaults:
   tier: strict
 
 exemptions:
-  # POC / exploratory repo — path matches the on-disk directory name.
+  # POC / exploratory repo - path matches the on-disk directory name.
   - path: projects/polymarket-insider-tracker/
     tier: poc
     reason: "POC; insider-tracking reference implementation, not a production target"
 
-  # Pure-markdown / docs repo — no Makefile, no test surface.
+  # Pure-markdown / docs repo - no Makefile, no test surface.
   - path: projects/docs/
     tier: poc
     reason: "Pure-markdown documentation repo; no build/test/lint surface"
 
-  # Third-party research mirrors under AMI-SRP — git subtrees we don't
+  # Third-party research mirrors under AMI-SRP - git subtrees we don't
   # modify; treat as vendored so wrapper passes through.
   - path: projects/AMI-SRP/research/
     tier: vendored
     reason: "Third-party research code mirrors; not part of the AMI contract"
 
-  # pimalaya-core fork under AMI-STREAMS — tracks pimalaya/core upstream
+  # pimalaya-core fork under AMI-STREAMS - tracks pimalaya/core upstream
   # via a separate origin (Independent-AI-Labs/core); AMI-STREAMS does
   # not manage its hooks. Vendored here so the workspace wrapper passes
   # commits through to the fork's own development cadence.

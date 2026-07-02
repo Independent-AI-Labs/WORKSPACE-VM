@@ -20,7 +20,7 @@ if not exist "%ONEAPI_VARS%" (
 )
 
 echo Sourcing Intel environment...
-call "%ONEAPI_VARS%" intel64 --force >nul 2>&1
+call "%ONEAPI_VARS%" intel64 -force >nul 2>&1
 if errorlevel 1 (
     echo ERROR: Failed to source Intel oneAPI environment
     exit /b 1
@@ -54,7 +54,7 @@ if errorlevel 1 (
 )
 
 echo === Step 4: Building ===
-cmake --build "%BUILD_DIR%" --config Release -j %NUMBER_OF_PROCESSORS%
+cmake -build "%BUILD_DIR%" -config Release -j %NUMBER_OF_PROCESSORS%
 if errorlevel 1 (
     echo ERROR: Build failed
     exit /b 1

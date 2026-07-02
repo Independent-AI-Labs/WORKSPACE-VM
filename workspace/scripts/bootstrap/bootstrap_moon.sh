@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# moon Bootstrap Script for AMI-AGENTS
+# moon Bootstrap Script for WORKSPACE-VM
 # Downloads moon (moonrepo) binary and installs to .boot-linux/bin
 # moon is the workspace task runner / project-graph dep validator.
 
@@ -34,7 +34,7 @@ log_error() {
 # Idempotency: skip if moon is already installed
 if [ -x "${BIN_DIR}/moon" ]; then
     log_info "moon already installed at ${BIN_DIR}/moon"
-    "${BIN_DIR}/moon" --version
+    "${BIN_DIR}/moon" -version
     exit 0
 fi
 
@@ -129,4 +129,4 @@ if [ ! -x "${BIN_DIR}/moon" ]; then
 fi
 
 log_info "moon installed successfully to ${BIN_DIR}/moon"
-"${BIN_DIR}/moon" --version
+"${BIN_DIR}/moon" -version

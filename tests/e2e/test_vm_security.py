@@ -63,7 +63,7 @@ class TestVMSecurityDefaults:
         uuid_val = extract_uuid(result.stdout)
         vm_tracker.register(uuid_val)
 
-        user_result = vm_cmd("exec", uuid_val, "--", "whoami")
+        user_result = vm_cmd("exec", uuid_val, "-", "whoami")
         assert user_result.stdout.strip() != "root"
 
     def test_read_only_rootfs(
@@ -80,7 +80,7 @@ class TestVMSecurityDefaults:
         write_result = vm_cmd(
             "exec",
             uuid_val,
-            "--",
+            "-",
             "touch",
             "/should-fail.txt",
         )

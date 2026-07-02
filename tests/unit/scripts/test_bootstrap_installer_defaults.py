@@ -137,7 +137,7 @@ class TestRunFromDefaults:
             return resolver_table.get(name)
 
         # get_component_by_name() walks ALL_COMPONENTS, so register the fakes
-        # there too — patch the module-level list seen by the resolver.
+        # there too - patch the module-level list seen by the resolver.
         with (
             patch(
                 "workspace.scripts.bootstrap_installer._bootstrap_defs.WORKSPACE_REPOS",
@@ -168,7 +168,7 @@ class TestMainEntryDispatch:
     ) -> None:
         f = tmp_path / "defaults.yaml"
         f.write_text("components: [uv]\n")
-        monkeypatch.setattr("sys.argv", ["bootstrap_installer", "--defaults", str(f)])
+        monkeypatch.setattr("sys.argv", ["bootstrap_installer", "-defaults", str(f)])
 
         rc = main()
 

@@ -13,7 +13,7 @@ The hook validation pipeline replaces the original guard system with a configura
 ### Phase 1 (v4.0.0): COMPLETE
 
 | Requirement | Status | Implementation |
-|---|---|---|
+|--|--|--|
 | REQ-HOOK-001: Event interception at pipeline points | DONE | PRE_BASH, PRE_EDIT, POST_OUTPUT events |
 | REQ-HOOK-002: YAML-configurable validation rules | DONE | `hooks.yaml` + `manifest.yaml` + policy YAML files |
 | REQ-HOOK-004: Pattern-based regex validation | DONE | 4 validators using PolicyEngine patterns |
@@ -27,11 +27,11 @@ The hook validation pipeline replaces the original guard system with a configura
 ### Phase 2: NOT IMPLEMENTED
 
 | Requirement | Status | Notes |
-|---|---|---|
-| REQ-HOOK-050–057: LLM-in-the-loop validation | NOT STARTED | CLI-based LLM evaluation on any hook event |
-| REQ-HOOK-060–063: MODIFY action | NOT STARTED | Command/content rewriting with re-validation |
-| REQ-HOOK-070–074: Feedback injection | NOT STARTED | REQUEST_FEEDBACK prepends guidance to next LLM call |
-| REQ-HOOK-080–087: Security loadouts/profiles | NOT STARTED | Named YAML profiles bundling scope + validators |
+|--|--|--|
+| REQ-HOOK-050-057: LLM-in-the-loop validation | NOT STARTED | CLI-based LLM evaluation on any hook event |
+| REQ-HOOK-060-063: MODIFY action | NOT STARTED | Command/content rewriting with re-validation |
+| REQ-HOOK-070-074: Feedback injection | NOT STARTED | REQUEST_FEEDBACK prepends guidance to next LLM call |
+| REQ-HOOK-080-087: Security loadouts/profiles | NOT STARTED | Named YAML profiles bundling scope + validators |
 
 ## Architecture
 
@@ -53,17 +53,17 @@ flowchart LR
         TR[traversal check]
         CC[content check]
     end
-    Cfg --> HM --> V
-    CT --> TC
-    ES --> EC
-    PT --> TR
-    CS --> CC
+    Cfg -> HM -> V
+    CT -> TC
+    ES -> EC
+    PT -> TR
+    CS -> CC
 ```
 
 ### Validator Details
 
 | Validator | Event | What it does |
-|-----------|-------|-------------|
+|------|----|-------|
 | **CommandTierValidator** | PRE_BASH | Classifies commands into 4 tiers (observe/modify/execute/admin). Checks hard deny patterns (22 rules, no override). Resolves action from scope chain. Returns DENY, CONFIRM, or ALLOW. |
 | **PathTraversalValidator** | PRE_EDIT | Detects encoded traversal attacks: `../`, `%2e%2e`, `%252e`, null bytes, overlong UTF-8, absolute paths escaping project root. 9 pattern types. |
 | **EditSafetyValidator** | PRE_EDIT | Blocks edits to security-sensitive files. Loads patterns from `sensitive_files.yaml`. |
@@ -74,7 +74,7 @@ flowchart LR
 Commands are classified into 4 security tiers in `command_tiers.yaml`:
 
 | Tier | Default Action | Triggers Edit Hooks | Examples |
-|------|---------------|-------------------|---------|
+|---|--------|----------|-----|
 | **observe** | ALLOW | No | ls, cat, grep, git status/log/diff, find, head, tail, wc, stat |
 | **modify** | CONFIRM | Yes | touch, mkdir, sed, awk, tee, cp, mv, ln, echo, >, >> |
 | **execute** | CONFIRM | No | python, pytest, mypy, make, cargo, uv, curl, wget, ami-* |
@@ -140,7 +140,7 @@ Hook config path resolution (in `HookManager.create()`):
 ## File Map
 
 | File | Purpose |
-|---|---|
+|--|--|
 | `ami/hooks/types.py` | HookEvent, HookResult, HookContext, ValidatorProtocol |
 | `ami/hooks/validators.py` | 4 validator classes: CommandTier, EditSafety, PathTraversal, ContentSafety |
 | `ami/hooks/manager.py` | HookManager: registry (`_VALIDATOR_REGISTRY`), YAML loading, dispatch |
@@ -162,7 +162,7 @@ Hook config path resolution (in `HookManager.create()`):
 3. Add to the appropriate event in `ami/config/hooks.yaml`
 4. Add tests in `tests/unit/hooks/test_validators.py`
 
----
+--
 
 ## Phase 2 Design
 
@@ -230,7 +230,7 @@ Respond with EXACTLY one JSON object:
 ```
 LLMValidator.check(context):
   1. Load prompt_file, render with Jinja2 (context vars)
-  2. Invoke CLI: subprocess.run([backend, "--print", rendered_prompt], timeout=timeout)
+  2. Invoke CLI: subprocess.run([backend, "-print", rendered_prompt], timeout=timeout)
   3. Parse JSON response from stdout
   4. Map to HookResult:
      - "allow"    → HookResult(allowed=True, ...)
@@ -309,7 +309,7 @@ ami/config/loadouts/
 # ami/config/loadouts/research.yaml
 name: research
 extends: standard
-description: "Relaxed profile for research agents — allows execution, blocks admin"
+description: "Relaxed profile for research agents - allows execution, blocks admin"
 
 tier_overrides:
   observe: allow

@@ -27,7 +27,7 @@ WALKER = REPO_ROOT / "ami" / "scripts" / "bin" / "bootstrap-repos"
 
 
 def _make_fake_repo_root(tmp_path: Path, clones_yaml_text: str) -> Path:
-    """Create a fake AMI-AGENTS root with the minimum walker prerequisites.
+    """Create a fake WORKSPACE-VM root with the minimum walker prerequisites.
 
     The walker walks up looking for a directory containing both
     pyproject.toml and moon.yml. The yaml parser inside the walker reads
@@ -135,7 +135,7 @@ class TestMandatoryOnly:
 
 
 class TestIncludeSelection:
-    """--include opts in specific optional repos."""
+    """-include opts in specific optional repos."""
 
     def test_include_single_optional(self, tmp_path: Path) -> None:
         walker = _make_fake_repo_root(tmp_path, SAMPLE_YAML)
@@ -143,7 +143,7 @@ class TestIncludeSelection:
         stub = tmp_path / "stub-bin"
         _make_fake_git(stub, log_file)
 
-        result = _run_walker(walker, "--include", "ami-portal", stub_dir=stub)
+        result = _run_walker(walker, "-include", "ami-portal", stub_dir=stub)
 
         assert result.returncode == 0, result.stderr
         log = log_file.read_text() if log_file.exists() else ""
@@ -157,7 +157,7 @@ class TestIncludeSelection:
         stub = tmp_path / "stub-bin"
         _make_fake_git(stub, log_file)
 
-        result = _run_walker(walker, "--include", "ami-portal,ami-srp", stub_dir=stub)
+        result = _run_walker(walker, "-include", "ami-portal,ami-srp", stub_dir=stub)
 
         assert result.returncode == 0, result.stderr
         log = log_file.read_text() if log_file.exists() else ""
@@ -166,7 +166,7 @@ class TestIncludeSelection:
 
 
 class TestAllOptional:
-    """--all clones every optional entry too."""
+    """-all clones every optional entry too."""
 
     def test_all_clones_everything(self, tmp_path: Path) -> None:
         walker = _make_fake_repo_root(tmp_path, SAMPLE_YAML)
@@ -174,7 +174,7 @@ class TestAllOptional:
         stub = tmp_path / "stub-bin"
         _make_fake_git(stub, log_file)
 
-        result = _run_walker(walker, "--all", stub_dir=stub)
+        result = _run_walker(walker, "-all", stub_dir=stub)
 
         assert result.returncode == 0, result.stderr
         log = log_file.read_text() if log_file.exists() else ""
@@ -189,7 +189,7 @@ class TestAllOptional:
 
 
 class TestPullExisting:
-    """--pull updates already-cloned working trees."""
+    """-pull updates already-cloned working trees."""
 
     def test_pull_runs_pull_on_existing(self, tmp_path: Path) -> None:
         walker = _make_fake_repo_root(tmp_path, SAMPLE_YAML)
@@ -200,11 +200,11 @@ class TestPullExisting:
         stub = tmp_path / "stub-bin"
         _make_fake_git(stub, log_file)
 
-        result = _run_walker(walker, "--pull", stub_dir=stub)
+        result = _run_walker(walker, "-pull", stub_dir=stub)
 
         assert result.returncode == 0, result.stderr
         log = log_file.read_text() if log_file.exists() else ""
-        assert "pull --ff-only" in log
+        assert "pull -ff-only" in log
 
     def test_no_pull_without_flag(self, tmp_path: Path) -> None:
         walker = _make_fake_repo_root(tmp_path, SAMPLE_YAML)
@@ -219,9 +219,9 @@ class TestPullExisting:
         assert result.returncode == 0, result.stderr
         log = log_file.read_text() if log_file.exists() else ""
         # No `git pull` command should have been issued; substring match
-        # avoids the false positive of "DATAOPS" containing "pull" — match
-        # the exact `pull --ff-only` token the walker uses.
-        assert "pull --ff-only" not in log
+        # avoids the false positive of "DATAOPS" containing "pull" - match
+        # the exact `pull -ff-only` token the walker uses.
+        assert "pull -ff-only" not in log
 
 
 class TestErrorPaths:
@@ -231,7 +231,7 @@ class TestErrorPaths:
         walker = _make_fake_repo_root(tmp_path, SAMPLE_YAML)
         stub = tmp_path / "stub-bin"
         _make_fake_git(stub, tmp_path / "git-calls.log")
-        result = _run_walker(walker, "--bogus", stub_dir=stub)
+        result = _run_walker(walker, "-bogus", stub_dir=stub)
         assert result.returncode != 0
         assert "unknown argument" in result.stderr
 
@@ -239,7 +239,7 @@ class TestErrorPaths:
         walker = _make_fake_repo_root(tmp_path, SAMPLE_YAML)
         stub = tmp_path / "stub-bin"
         _make_fake_git(stub, tmp_path / "git-calls.log")
-        result = _run_walker(walker, "--help", stub_dir=stub)
+        result = _run_walker(walker, "-help", stub_dir=stub)
         assert result.returncode == 0
         assert "Usage" in result.stdout or "bootstrap-repos" in result.stdout
 

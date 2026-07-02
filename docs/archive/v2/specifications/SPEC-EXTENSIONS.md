@@ -5,13 +5,13 @@
 **Type:** Specification
 **Requirements:** [REQ-EXTENSIONS](../requirements/REQ-EXTENSIONS.md)
 
----
+--
 
 ## Implementation Status (2026-04-14)
 
 BUILT. This spec replaced the previous centralized `extensions.yaml` system; discovery is now via per-component `extension.manifest.yaml` files (see § 4 Discovery Algorithm).
 
----
+--
 
 ## 1. Manifest Format
 
@@ -34,7 +34,7 @@ extensions:
     installHint: "make build-himalaya"      # Optional. Shown when UNAVAILABLE.
 
     check:                                  # Optional. Combined health + version.
-      command: ["{binary}", "--version"]    # REQUIRED in check. List of args (no shell).
+      command: ["{binary}", "-version"]    # REQUIRED in check. List of args (no shell).
                                             # {binary} → resolved absolute path.
                                             # {python} → AMI_ROOT/.venv/bin/python
                                             # (fallback .boot-linux/python-env/bin/python).
@@ -65,7 +65,7 @@ categories:
 ### Required Fields
 
 | Field | Type | Description |
-|-------|------|-------------|
+|----|---|-------|
 | `name` | string | Unique command name |
 | `binary` | string | Path to executable, relative to AMI_ROOT |
 | `description` | string (≥5 chars) | Human-readable description |
@@ -74,7 +74,7 @@ categories:
 ### Optional Fields
 
 | Field | Type | Default | Description |
-|-------|------|---------|-------------|
+|----|---|-----|-------|
 | `features` | list[string] | `[]` | Feature list (joined with `", "` for banner display) |
 | `bannerPriority` | integer | `500` | Display order (lower = first) |
 | `hidden` | boolean | `false` | Hide from default banner |
@@ -111,7 +111,7 @@ def validate_entry(entry: dict, manifest_path: Path) -> list[str]:
     return errors
 ```
 
----
+--
 
 ### 1.1 File-mode rule
 
@@ -119,12 +119,12 @@ Tracked `.py` files in this repo must not have the exec bit set. `.py` modules a
 
 Enforced by the `ci_check_py_not_executable` pre-commit hook in AMI-CI.
 
----
+--
 
 ## 2. Dependency Types
 
 | Type | Check | Field |
-|------|-------|-------|
+|---|----|----|
 | `binary` | File exists and is executable at `AMI_ROOT/{path}` | `path` |
 | `submodule` | Directory exists and is non-empty at `AMI_ROOT/{path}` | `path` |
 | `container` | Container runtime finds the named container | `container` |
@@ -154,7 +154,7 @@ def check_container(name: str) -> bool:
         return False
     try:
         result = subprocess.run(
-            [runtime, 'ps', '-a', '--filter', f'name={name}', '--format', '{{.Names}}'],
+            [runtime, 'ps', '-a', '-filter', f'name={name}', '-format', '{{.Names}}'],
             capture_output=True, text=True, timeout=5,
         )
         return name in result.stdout
@@ -162,19 +162,19 @@ def check_container(name: str) -> bool:
         return False
 ```
 
----
+--
 
 ## 3. Extension Status Model
 
 | Status | Meaning | Banner | `ami extras` | `ami doctor` |
-|--------|---------|--------|--------------|--------------|
-| `READY` | Binary exists, all required deps present, health passes | Shown (name + desc + version) | — | — |
-| `DEGRADED` | Binary exists, optional dep missing OR health fails | Shown with ⚠ indicator | — | Listed with reason |
-| `VERSION_MISMATCH` | Binary exists but violates minVersion/maxVersion | Not shown (downgraded in doctor) | — | Listed with reason |
-| `UNAVAILABLE` | Binary missing OR required dep missing | Not shown | — | Listed with reason + installHint |
-| `HIDDEN` | Explicitly `hidden: true`, deps satisfied | Not shown | Listed | — |
+|----|-----|----|-------|-------|
+| `READY` | Binary exists, all required deps present, health passes | Shown (name + desc + version) | - | - |
+| `DEGRADED` | Binary exists, optional dep missing OR health fails | Shown with ⚠ indicator | - | Listed with reason |
+| `VERSION_MISMATCH` | Binary exists but violates minVersion/maxVersion | Not shown (downgraded in doctor) | - | Listed with reason |
+| `UNAVAILABLE` | Binary missing OR required dep missing | Not shown | - | Listed with reason + installHint |
+| `HIDDEN` | Explicitly `hidden: true`, deps satisfied | Not shown | Listed | - |
 
----
+--
 
 ## 4. Discovery Algorithm
 
@@ -195,7 +195,7 @@ def discover_manifests(root: Path) -> list[Path]:
     return sorted(manifests)
 ```
 
----
+--
 
 ## 5. Resolution Algorithm
 
@@ -205,7 +205,7 @@ def resolve_extensions(manifests: list[Path], root: Path) -> list[ResolvedExtens
     resolved = []
 
     for manifest_path in manifests:
-        # Parse YAML — skip malformed manifests
+        # Parse YAML - skip malformed manifests
         try:
             data = yaml.safe_load(manifest_path.read_text())
         except yaml.YAMLError as e:
@@ -218,7 +218,7 @@ def resolve_extensions(manifests: list[Path], root: Path) -> list[ResolvedExtens
         entries = data.get('extensions', [])
 
         for entry in entries:
-            # Validate schema — skip invalid entries
+            # Validate schema - skip invalid entries
             errors = validate_entry(entry, manifest_path)
             if errors:
                 for e in errors:
@@ -227,7 +227,7 @@ def resolve_extensions(manifests: list[Path], root: Path) -> list[ResolvedExtens
 
             name = entry['name']
 
-            # Duplicate check — skip later entry, don't crash
+            # Duplicate check - skip later entry, don't crash
             if name in seen_names:
                 print(
                     f"ERROR: duplicate extension '{name}' in {manifest_path} "
@@ -303,7 +303,7 @@ def check_dep(dep: dict, root: Path) -> bool:
     return False
 ```
 
----
+--
 
 ## 6. Check Execution (Health + Version, Single Call)
 
@@ -340,7 +340,7 @@ def run_check(entry: dict, root: Path) -> tuple[bool, str | None]:
     return health_ok, version
 ```
 
----
+--
 
 ## 7. Banner Architecture
 
@@ -348,12 +348,12 @@ def run_check(entry: dict, root: Path) -> tuple[bool, str | None]:
 
 Core logic shared between `register_extensions.py` and `banner_helper.py` (which backs both `ami-welcome` and the `ami extras` / `ami doctor` subcommands). Contains:
 
-- `find_ami_root()` — `AMI_ROOT` env var, fallback walk-up for `pyproject.toml`
-- `discover_manifests(root)` — recursive discovery
-- `validate_entry(entry, path)` — schema validation
-- `resolve_extensions(manifests, root)` — full resolution pipeline
-- `check_additional_deps(deps, root)` — dep checking
-- `run_check(entry, root)` — health + version in one call
+- `find_ami_root()` - `AMI_ROOT` env var, fallback walk-up for `pyproject.toml`
+- `discover_manifests(root)` - recursive discovery
+- `validate_entry(entry, path)` - schema validation
+- `resolve_extensions(manifests, root)` - full resolution pipeline
+- `check_additional_deps(deps, root)` - dep checking
+- `run_check(entry, root)` - health + version in one call
 - `Status` enum, `ResolvedExtension` dataclass
 
 ```python
@@ -372,7 +372,7 @@ def find_ami_root() -> Path:
 
 ### Banner Helper: `ami/scripts/shell/banner_helper.py`
 
-Imports from `extension_registry.py`. Accepts `--mode banner|extras|doctor` and `--quiet` flags.
+Imports from `extension_registry.py`. Accepts `-mode banner|extras|doctor` and `-quiet` flags.
 
 ```python
 from extension_registry import (
@@ -381,8 +381,8 @@ from extension_registry import (
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--mode', choices=['banner', 'extras', 'doctor'], default='banner')
-    parser.add_argument('--quiet', action='store_true',
+    parser.add_argument('-mode', choices=['banner', 'extras', 'doctor'], default='banner')
+    parser.add_argument('-quiet', action='store_true',
                         help='Skip health/version checks for faster output')
     args = parser.parse_args()
 
@@ -428,9 +428,9 @@ The banner displays extensions progressively. For each extension with a `check`,
 
 **Terminal detection**: Countdown animation only runs when `sys.stdout.isatty()` is True. When piped, checks run without animation and results print directly.
 
-**Quiet mode**: When `--quiet` or `AMI_QUIET_MODE=1`, health/version checks are skipped entirely. Extensions show with `✓` (binary exists) but no version number. Fast banner load.
+**Quiet mode**: When `-quiet` or `AMI_QUIET_MODE=1`, health/version checks are skipped entirely. Extensions show with `✓` (binary exists) but no version number. Fast banner load.
 
-**Skip redundant checks**: If an extension has a `container` dep that resolved to missing (DEGRADED), the health check is skipped — it would just confirm the same thing by timing out against the unavailable container.
+**Skip redundant checks**: If an extension has a `container` dep that resolved to missing (DEGRADED), the health check is skipped - it would just confirm the same thing by timing out against the unavailable container.
 
 ```python
 def output_banner(resolved: list[ResolvedExtension], root: Path, quiet: bool = False):
@@ -462,7 +462,7 @@ def output_banner(resolved: list[ResolvedExtension], root: Path, quiet: bool = F
                     ext.status = Status.DEGRADED
                 ext.version = version
             elif has_failed_container_dep:
-                ext.version = None  # Skip check — container is down
+                ext.version = None  # Skip check - container is down
             else:
                 ext.version = None
 
@@ -503,11 +503,11 @@ def run_check_with_countdown(entry: dict, root: Path) -> tuple[bool, str | None]
 
 ### Bash: `ami-banner.sh`
 
-Simplified — calls Python helper which handles all output including ANSI colors and countdown.
+Simplified - calls Python helper which handles all output including ANSI colors and countdown.
 
 ```bash
 _display_extensions() {
-    python3 "$AMI_ROOT/ami/scripts/shell/banner_helper.py" --mode banner
+    python3 "$AMI_ROOT/ami/scripts/shell/banner_helper.py" -mode banner
 }
 ```
 
@@ -516,8 +516,8 @@ _display_extensions() {
 Two subcommands of the unified `ami` CLI, both dispatching to the same helper with different modes:
 
 ```bash
-ami extras   # -> banner_helper.py --mode extras
-ami doctor   # -> banner_helper.py --mode doctor
+ami extras   # -> banner_helper.py -mode extras
+ami doctor   # -> banner_helper.py -mode doctor
 ```
 
 **`ami extras`** lists only hidden extensions (intentional extras):
@@ -548,12 +548,12 @@ Unavailable Extensions:
 
 Prints `No problems detected.` when everything is healthy.
 
----
+--
 
 ## 8. Default Category Properties
 
 | Category | Title | Icon | Color | Order |
-|----------|-------|------|-------|-------|
+|-----|----|---|----|----|
 | core | Core Execution & Management | 🟡 | gold | 1 |
 | enterprise | Enterprise Services | 🌐 | cyan | 2 |
 | dev | Development Tools | 🌸 | pink | 3 |
@@ -563,12 +563,12 @@ Prints `No problems detected.` when everything is healthy.
 
 Unknown categories: icon 🔹, color green, appended alphabetically after known categories.
 
----
+--
 
 ## 9. Default Banner Priorities
 
 | Extension | Category | bannerPriority |
-|-----------|----------|---------------|
+|------|-----|--------|
 | ami-agent | core | 10 |
 | ami | core | 20 |
 | ami-run | core | 30 |
@@ -594,15 +594,15 @@ Unknown categories: icon 🔹, color green, appended alphabetically after known 
 | ami-gemini | agents | 510 |
 | ami-qwen | agents | 520 |
 
----
+--
 
 ## 10. Manifest Locations
 
 Manifests live where the component's install chain originates:
 
 | Manifest Path | Extensions | Install Chain |
-|---------------|-----------|---------------|
-| `ami/scripts/bin/extension.manifest.yaml` | ami-agent, ami, ami-run, ami-repo, ami-transcripts, ami-welcome, ami-pwd | Direct scripts in AMI-AGENTS |
+|--------|------|--------|
+| `ami/scripts/bin/extension.manifest.yaml` | ami-agent, ami, ami-run, ami-repo, ami-transcripts, ami-welcome, ami-pwd | Direct scripts in WORKSPACE-VM |
 | `projects/AMI-DATAOPS/extension.manifest.yaml` | ami-backup, ami-restore | Python scripts (DATAOPS) |
 | `ami/scripts/bin/ami-cron/extension.manifest.yaml` | ami-cron | Python script |
 | `ami/scripts/bin/enterprise/extension.manifest.yaml` | ami-kcadm, ami-browser | Wrappers (kcadm=container, browser=pip) |
@@ -612,11 +612,11 @@ Manifests live where the component's install chain originates:
 | `projects/AMI-STREAMS/extension.manifest.yaml` | ami-mail, ami-chat, ami-synadm | himalaya fork + pip packages |
 | `ami/scripts/bootstrap/dev/extension.manifest.yaml` | ami-gcloud (hidden) | Bootstrapped external tools |
 
----
+--
 
 ## 11. Example: ami-kcadm (container-backed)
 
-Container-backed extensions use `deps` with `type: container` — no special binary logic:
+Container-backed extensions use `deps` with `type: container` - no special binary logic:
 
 ```yaml
 extensions:
@@ -633,7 +633,7 @@ extensions:
     bannerPriority: 130
     installHint: "make compose-deploy in AMI-DATAOPS"
     check:
-      command: ["{binary}", "--help"]
+      command: ["{binary}", "-help"]
       healthExpect: "kcadm"
       timeout: 5
     deps:
@@ -643,33 +643,33 @@ extensions:
         required: false    # Wrapper script works, but container must be up for actual use
 ```
 
-The wrapper script (`ami/scripts/bin/ami-kcadm`) always exists in the repo, so `binary` check passes. The container dep is `required: false` — extension shows as DEGRADED if container is down, not UNAVAILABLE.
+The wrapper script (`ami/scripts/bin/ami-kcadm`) always exists in the repo, so `binary` check passes. The container dep is `required: false` - extension shows as DEGRADED if container is down, not UNAVAILABLE.
 
----
+--
 
 ## 12. Files Modified
 
 | File | Change |
-|------|--------|
+|---|----|
 | `ami/scripts/shell/extension_registry.py` | NEW: shared library (discover, validate, resolve, check) |
 | `ami/scripts/register_extensions.py` | Rewrite: imports from extension_registry, creates symlinks/wrappers |
-| `ami/scripts/shell/banner_helper.py` | NEW: imports from extension_registry, --mode banner\|extras\|doctor, --quiet |
-| `ami/scripts/shell/ami-banner.sh` | Simplify: call banner_helper.py --mode banner |
+| `ami/scripts/shell/banner_helper.py` | NEW: imports from extension_registry, -mode banner\|extras\|doctor, -quiet |
+| `ami/scripts/shell/ami-banner.sh` | Simplify: call banner_helper.py -mode banner |
 | `ami/scripts/bin/ami-run` | Dispatches `ami extras` / `ami doctor` subcommands to banner_helper.py |
 | `ami/config/extensions.yaml`, `extensions.template.yaml` | DELETED (no longer present on disk) |
 | ~10 `extension.manifest.yaml` files | One per component group, discovered dynamically |
 | `tests/unit/test_register_extensions.py` | Rewrite for manifest discovery + validation |
 | `tests/integration/test_extensions_help.py` | Rewrite for manifest discovery |
 
----
+--
 
 ## 13. Migration Path
 
 1. Create `banner_helper.py` with discover/resolve/check/countdown pipeline
 2. Create all `extension.manifest.yaml` files with current data + bannerPriority + check + deps + installHint
 3. Rewrite `register_extensions.py` to use manifest discovery
-4. Simplify `ami-banner.sh` to call `banner_helper.py --mode banner`
+4. Simplify `ami-banner.sh` to call `banner_helper.py -mode banner`
 5. Wire `ami extras` and `ami doctor` subcommands into `ami-run`
-6. Delete `extensions.yaml` and `extensions.template.yaml` (done — files no longer exist)
+6. Delete `extensions.yaml` and `extensions.template.yaml` (done - files no longer exist)
 7. Update tests
 8. Diff test: verify banner output matches current output (minus countdown animation)

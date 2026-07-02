@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Bootstrap — Apt Probing & Installation
+# Bootstrap - Apt Probing & Installation
 # =============================================================================
-# Sourced by initial-setup.sh — not standalone
+# Sourced by initial-setup.sh - not standalone
 # =============================================================================
 
 declare -A RESOLVED_PACKAGES=()
@@ -63,7 +63,7 @@ probe_all_missing() {
 
 install_missing() {
     if [[ ${#MISSING_ENTRIES[@]} -eq 0 ]]; then
-        log_info "Nothing to install — all dependencies satisfied."
+        log_info "Nothing to install - all dependencies satisfied."
         return 0
     fi
 
@@ -71,9 +71,9 @@ install_missing() {
     # are now handled by the component installer in bootstrap_install.py).
     local apt_entries=("${MISSING_ENTRIES[@]}")
 
-    # ------------------------------------------------------------------
+    # ---------------------------------
     # Install apt packages
-    # ------------------------------------------------------------------
+    # ---------------------------------
     if [[ ${#apt_entries[@]} -gt 0 ]]; then
         local apt_installable=()
         local unavail=()

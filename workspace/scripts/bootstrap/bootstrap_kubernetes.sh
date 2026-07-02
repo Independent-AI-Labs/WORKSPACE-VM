@@ -29,6 +29,28 @@ log_warn() { echo -e "${YELLOW}[WARN]${NC} $*"; }
 log_error() { echo -e "${RED}[ERROR]${NC} $*"; }
 log_step() { echo -e "${GREEN}[>>>>]${NC} $*"; }
 
+_file_type() {
+    local _ft_err _ft_out
+    _ft_err="$(mktemp)"
+    _ft_out="$(file -b "$1" 2>"$_ft_err")" || {
+        echo "[bootstrap-k8s] file type check failed for $1: $(cat "$_ft_err")" >&2
+        _ft_out="missing"
+    }
+    rm -f "$_ft_err"
+    echo "$_ft_out"
+}
+
+_file_size() {
+    local _fs_err _fs_out
+    _fs_err="$(mktemp)"
+    _fs_out="$(stat -c%s "$1" 2>"$_fs_err")" || _fs_out="$(stat -f%z "$1" 2>"$_fs_err")" || {
+        echo "[bootstrap-k8s] stat size check failed for $1: $(cat "$_fs_err")" >&2
+        _fs_out=0
+    }
+    rm -f "$_fs_err"
+    echo "$_fs_out"
+}
+
 if [[ "$(uname -s)" != "Linux" ]]; then
     log_error "Linux only."
     exit 1
@@ -46,7 +68,7 @@ mkdir -p "${BIN_DIR}"
 # Clean any stale/corrupted binaries from previous runs
 for bin in kubectl helm; do
     if [[ -e "${BIN_DIR}/${bin}" ]] && ! file -b "${BIN_DIR}/${bin}" 2>&1 | grep -qi "ELF"; then
-        log_warn "Removing stale ${bin} ($(file -b "${BIN_DIR}/${bin}" 2>&1 || echo unknown))"
+        log_warn "Removing stale ${bin} ($(_file_type "${BIN_DIR}/${bin}"))"
         rm -f "${BIN_DIR}/${bin}"
     fi
 done
@@ -68,7 +90,7 @@ esac
 
 OS="linux"
 
-# Detect WSL — warn about known performance issues
+# Detect WSL - warn about known performance issues
 _IS_WSL=0
 if grep -qi microsoft /proc/version 2>&1; then
     _IS_WSL=1
@@ -88,9 +110,9 @@ log_debug "URL: ${KUBECTL_URL}"
 log_debug "Dest: ${KUBECTL_BIN}"
 _dl_start=$(date +%s)
 if command -v curl &> /dev/null; then
-    curl -fSL --connect-timeout 30 --max-time 120 -o "${KUBECTL_BIN}" "${KUBECTL_URL}"
+    curl -fSL -connect-timeout 30 -max-time 120 -o "${KUBECTL_BIN}" "${KUBECTL_URL}"
 elif command -v wget &> /dev/null; then
-    wget --timeout=30 -O "${KUBECTL_BIN}" "${KUBECTL_URL}"
+    wget -timeout=30 -O "${KUBECTL_BIN}" "${KUBECTL_URL}"
 else
     log_error "Neither curl nor wget found. Please install one of them."
     exit 1
@@ -102,7 +124,7 @@ log_debug "kubectl file type: $(file -b "${KUBECTL_BIN}")"
 # Validate kubectl is an actual binary, not an error page or wrapper script.
 # dl.k8s.io can return HTML behind proxies, and snap/system kubectl may be a wrapper.
 # Real kubectl is ~54M; a wrapper/error page is typically <1M.
-_kubectl_size=$(stat -c%s "${KUBECTL_BIN}" 2>&1 || stat -f%z "${KUBECTL_BIN}" 2>&1 || echo 0)
+_kubectl_size=$(_file_size "${KUBECTL_BIN}")
 if ! file -b "${KUBECTL_BIN}" | grep -qi "ELF"; then
     log_error "kubectl download is not a valid ELF binary: $(file -b "${KUBECTL_BIN}")"
     log_error "Size: ${_kubectl_size} bytes (expected ~54MB)"
@@ -112,7 +134,7 @@ if ! file -b "${KUBECTL_BIN}" | grep -qi "ELF"; then
     log_error "This usually means:"
     log_error "  1. A corporate proxy/firewall intercepted the download"
     log_error "  2. A snap/system kubectl script was picked up instead"
-    log_error "  3. DNS is broken (try: curl -v '${KUBECTL_URL}' 2>&1 | head -30)"
+    log_error "  3. DNS is broken (try: curl -v '${KUBECTL_URL}' 2>&1 | sed -n '1,30p')"
     log_error ""
     log_error "Workaround: download manually and place at ${BIN_DIR}/kubectl"
     log_error "  curl -fSL -o '${BIN_DIR}/kubectl' '${KUBECTL_URL}'"
@@ -131,9 +153,9 @@ log_debug "URL: ${HELM_URL}"
 log_debug "Dest: ${HELM_TARBALL}"
 _dl_start=$(date +%s)
 if command -v curl &> /dev/null; then
-    curl -fSL --connect-timeout 30 --max-time 120 -o "${HELM_TARBALL}" "${HELM_URL}"
+    curl -fSL -connect-timeout 30 -max-time 120 -o "${HELM_TARBALL}" "${HELM_URL}"
 elif command -v wget &> /dev/null; then
-    wget --timeout=30 -O "${HELM_TARBALL}" "${HELM_URL}"
+    wget -timeout=30 -O "${HELM_TARBALL}" "${HELM_URL}"
 else
     log_error "Neither curl nor wget found."
     exit 1
@@ -148,14 +170,14 @@ fi
 log_info "Helm tarball downloaded ($(du -h "${HELM_TARBALL}" | cut -f1)) in $((_dl_end - _dl_start))s"
 log_debug "Tarball type: $(file -b "${HELM_TARBALL}")"
 
-# Extract Helm — use /tmp (native Linux FS) to avoid WSL/DrvFS/Defender stalls.
-# Helm is the only bootstrap that uses --strip-components + member-path filtering,
-# which forces tar to scan entry-by-entry — extremely slow on NTFS-backed mounts.
+# Extract Helm - use /tmp (native Linux FS) to avoid WSL/DrvFS/Defender stalls.
+# Helm is the only bootstrap that uses -strip-components + member-path filtering,
+# which forces tar to scan entry-by-entry - extremely slow on NTFS-backed mounts.
 _HELM_TMP="$(mktemp -d)"
 log_step "Extracting Helm to ${_HELM_TMP} (bypassing project dir for speed)..."
-log_debug "tar -xzf ${HELM_TARBALL} -C ${_HELM_TMP} --no-same-owner --strip-components=1 ${OS}-${ARCH}/helm"
+log_debug "tar -xzf ${HELM_TARBALL} -C ${_HELM_TMP} -no-same-owner -strip-components=1 ${OS}-${ARCH}/helm"
 _ext_start=$(date +%s)
-tar -xzf "${HELM_TARBALL}" -C "${_HELM_TMP}" --no-same-owner --strip-components=1 "${OS}-${ARCH}/helm"
+tar -xzf "${HELM_TARBALL}" -C "${_HELM_TMP}" -no-same-owner -strip-components=1 "${OS}-${ARCH}/helm"
 _ext_end=$(date +%s)
 log_info "Helm extracted in $((_ext_end - _ext_start))s"
 
@@ -173,21 +195,21 @@ rm -rf "${_HELM_TMP}"
 # Move binaries to .boot-linux/bin
 log_step "Installing binaries to ${BIN_DIR}..."
 
-log_debug "Before mv: kubectl = $(file -b "${KUBECTL_BIN}" 2>&1 || echo missing), size=$(stat -c%s "${KUBECTL_BIN}" 2>&1 || echo 0)"
+log_debug "Before mv: kubectl = $(_file_type "${KUBECTL_BIN}"), size=$(_file_size "${KUBECTL_BIN}")"
 mv "${KUBECTL_BIN}" "${BIN_DIR}/kubectl"
-log_debug "After mv: kubectl = $(file -b "${BIN_DIR}/kubectl" 2>&1 || echo missing), size=$(stat -c%s "${BIN_DIR}/kubectl" 2>&1 || echo 0)"
+log_debug "After mv: kubectl = $(_file_type "${BIN_DIR}/kubectl"), size=$(_file_size "${BIN_DIR}/kubectl")"
 
 mv "${KUBERNETES_DIR}/helm" "${BIN_DIR}/helm"
-log_debug "After mv: helm = $(file -b "${BIN_DIR}/helm" 2>&1 || echo missing), size=$(stat -c%s "${BIN_DIR}/helm" 2>&1 || echo 0)"
+log_debug "After mv: helm = $(_file_type "${BIN_DIR}/helm"), size=$(_file_size "${BIN_DIR}/helm")"
 
-# Verification — use file(1) check + timeout to avoid Defender scan hangs on WSL.
+# Verification - use file(1) check + timeout to avoid Defender scan hangs on WSL.
 # First execution of a new binary on WSL triggers a full Defender scan that can
 # block for 30s+. We verify the binary is real via file(1) (instant), then run
 # the version check with a timeout as a best-effort.
 log_step "Verifying installations..."
 
-log_debug "kubectl: $(ls -lh "${BIN_DIR}/kubectl") — $(file -b "${BIN_DIR}/kubectl")"
-log_debug "helm:    $(ls -lh "${BIN_DIR}/helm") — $(file -b "${BIN_DIR}/helm")"
+log_debug "kubectl: $(ls -lh "${BIN_DIR}/kubectl") - $(file -b "${BIN_DIR}/kubectl")"
+log_debug "helm:    $(ls -lh "${BIN_DIR}/helm") - $(file -b "${BIN_DIR}/helm")"
 
 # Sanity check: are these actually ELF binaries?
 for bin in kubectl helm; do
@@ -200,20 +222,20 @@ log_info "✓ kubectl and helm are valid ELF binaries"
 
 # Best-effort version check with 15s timeout (Defender may delay first exec)
 log_debug "Running kubectl version (15s timeout)..."
-if timeout 15 "${BIN_DIR}/kubectl" version --client --output=json 2>&1 | grep -q "clientVersion"; then
-    _kubever="$(timeout 5 "${BIN_DIR}/kubectl" version --client 2>&1)"
+if timeout 15 "${BIN_DIR}/kubectl" version -client -output=json 2>&1 | grep -q "clientVersion"; then
+    _kubever="$(timeout 5 "${BIN_DIR}/kubectl" version -client 2>&1)"
     _kubever="${_kubever%%$'\n'*}"
     log_info "✓ kubectl ${_kubever:-v${KUBECTL_VERSION}}"
 else
-    log_warn "kubectl version check timed out or failed (binary is valid ELF — likely Defender delay on WSL)"
+    log_warn "kubectl version check timed out or failed (binary is valid ELF - likely Defender delay on WSL)"
 fi
 
 log_debug "Running helm version (15s timeout)..."
 if timeout 15 "${BIN_DIR}/helm" version 2>&1 | grep -q "version"; then
-    _helmver="$(timeout 5 "${BIN_DIR}/helm" version --short 2>&1)"
+    _helmver="$(timeout 5 "${BIN_DIR}/helm" version -short 2>&1)"
     log_info "✓ helm ${_helmver:-v${HELM_VERSION}}"
 else
-    log_warn "helm version check timed out or failed (binary is valid ELF — likely Defender delay on WSL)"
+    log_warn "helm version check timed out or failed (binary is valid ELF - likely Defender delay on WSL)"
 fi
 
 # Cleanup

@@ -1,10 +1,10 @@
 # yaml-language-server: $schema=https://moonrepo.dev/schemas/workspace.json
 #
-# AMI-AGENTS workspace — moon (moonrepo) configuration.
+# WORKSPACE-VM workspace: moon (moonrepo) configuration.
 #
 # moon is the task runner + project-graph dep validator for the federated
 # AMI workspace. Each project below is a separate sibling git repo under
-# /home/ami/AMI-AGENTS/projects/, except `workspace` which is the umbrella
+# $AMI_ROOT/projects/, except `workspace` which is the umbrella
 # repo at the workspace root.
 #
 # Per-project `moon.yml` files live inside each repo and declare:
@@ -39,6 +39,6 @@ vcs:
 pipeline:
   cacheLifetime: '7 days'
 
-# Disable telemetry — see CLAUDE.md guidance.
+# Disable telemetry: see CLAUDE.md guidance.
 telemetry: false
 

@@ -12,7 +12,7 @@ extensions:
     bannerPriority: 220
     minVersion: "500.0.0"
     check:
-      command: ["{binary}", "--version"]
+      command: ["{binary}", "-version"]
       versionPattern: "Google Cloud SDK\\s+(\\d+\\.\\d+\\.\\d+)"
       healthExpect: "Google Cloud SDK"
       timeout: 5

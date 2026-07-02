@@ -93,8 +93,8 @@ fi
 chmod +x "${TARGET_PATH}"
 
 # Verify
-if "${TARGET_PATH}" --version > /dev/null 2>&1; then
-    _cver="$("${TARGET_PATH}" --version 2>&1)"
+if "${TARGET_PATH}" -version > /dev/null 2>&1; then
+    _cver="$("${TARGET_PATH}" -version 2>&1)"
     _cver="${_cver%%$'\n'*}"
     log_info "cloudflared installed successfully: ${_cver}"
     log_info "Location: ${TARGET_PATH}"

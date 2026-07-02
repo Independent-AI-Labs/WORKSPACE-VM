@@ -1,0 +1,70 @@
+# Per-project banned-words exceptions for WORKSPACE-VM root repo.
+
+exceptions:
+  # Archived docs: historical records with banned words in prose
+  - pattern: '.*'
+    paths: ['docs/archive/']
+
+  # Ansible playbooks reference /home/ paths on target machines (containers, remote hosts)
+  - pattern: '/home/'
+    paths: ['ansible/']
+
+  # Docs may reference /home/ in examples and descriptions
+  - pattern: '/home/'
+    paths: ['docs/']
+
+  # Python language/binary references in docs and config
+  - pattern: '\bpython3?\b'
+    paths: ['docs/', 'workspace/config/', 'res/']
+
+  # "fallback" in docs describing fallback behavior
+  - pattern: '\bfallback\b'
+    paths: ['docs/', 'workspace/']
+
+  # Audit docs describe .suppress and #noqa bans (meta-references)
+  - pattern: '\.suppress'
+    paths: ['docs/']
+  - pattern: '#\s*noqa'
+    paths: ['docs/']
+  - pattern: '#\s*type:\s*ignore'
+    paths: ['docs/']
+
+  # Docs may reference .parent.parent in audit descriptions
+  - pattern: '\.parent\.parent'
+    paths: ['docs/']
+
+  # Spec docs with code examples
+  - pattern: '\blist\[dict\]'
+    paths: ['docs/']
+  - pattern: '\bdict\[[^]]+,\s*object\]'
+    paths: ['docs/']
+
+  # UUID references in docs
+  - pattern: 'uuid\.uuid[134568]\('
+    paths: ['docs/']
+  - pattern: '\buuid[134568]\(\)'
+    paths: ['docs/']
+
+  # getattr in docs
+  - pattern: '\bgetattr\('
+    paths: ['docs/']
+
+  # "maybe" in pattern README (describes regex patterns)
+  - pattern: '\bmaybe\b'
+    paths: ['workspace/config/']
+
+  # "silent" in docs describing the silent-swallow checker
+  - pattern: '\bsilent'
+    paths: ['docs/', 'workspace/']
+
+  # :latest in docs
+  - pattern: ':latest\b'
+    paths: ['docs/']
+
+  # File backup extensions in docs
+  - pattern: '\.(old|new|backup|bak|orig)$'
+    paths: ['docs/']
+
+  # Double hyphen with spaces in comments (not --flag style)
+  - pattern: ' -- '
+    paths: ['docs/']

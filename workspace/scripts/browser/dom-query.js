@@ -5,7 +5,7 @@
  * Navigates to a URL and evaluates a JS expression against the page DOM.
  *
  * Usage:
- *   node dom-query.js <url> <expression> [--timeout <ms>] [--wait <ms>]
+ *   node dom-query.js <url> <expression> [-timeout <ms>] [-wait <ms>]
  *
  * Examples:
  *   node dom-query.js http://localhost:8001 "document.title"
@@ -21,11 +21,11 @@ function parseArgs() {
   const positional = [];
 
   for (let i = 0; i < args.length; i++) {
-    if (args[i] === '--timeout' && args[i + 1]) {
+    if (args[i] === '-timeout' && args[i + 1]) {
       opts.timeout = parseInt(args[++i], 10);
-    } else if (args[i] === '--wait' && args[i + 1]) {
+    } else if (args[i] === '-wait' && args[i + 1]) {
       opts.wait = parseInt(args[++i], 10);
-    } else if (!args[i].startsWith('--')) {
+    } else if (!args[i].startsWith('-')) {
       positional.push(args[i]);
     }
   }
@@ -34,7 +34,7 @@ function parseArgs() {
   opts.expr = positional[1];
 
   if (!opts.url || !opts.expr) {
-    console.error('Usage: node dom-query.js <url> <expression> [--timeout <ms>] [--wait <ms>]');
+    console.error('Usage: node dom-query.js <url> <expression> [-timeout <ms>] [-wait <ms>]');
     process.exit(1);
   }
   return opts;

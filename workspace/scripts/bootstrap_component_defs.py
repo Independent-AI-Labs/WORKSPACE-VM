@@ -5,10 +5,10 @@ The component data lives in:
   - workspace/config/workspace-clones.yaml       (workspace repos to clone)
 
 This module loads both YAML files via Pydantic manifest models and exposes:
-  - ALL_COMPONENTS         — flat list, in load order (CORE_DEPS first)
-  - WORKSPACE_REPOS        — workspace-repo subset (used by the TUI's
+  - ALL_COMPONENTS         - flat list, in load order (CORE_DEPS first)
+  - WORKSPACE_REPOS        - workspace-repo subset (used by the TUI's
                              dedicated repo-selection step)
-  - GROUPS                 — display-order list of group names
+  - GROUPS                 - display-order list of group names
   - get_components_by_group()
   - get_component_by_name()
 
@@ -34,15 +34,15 @@ COMPONENTS_YAML = PROJECT_ROOT / "workspace" / "config" / "bootstrap-components.
 PACKAGE_JSON = PROJECT_ROOT / "workspace" / "scripts" / "package.json"
 
 
-# ---------------------------------------------------------------------------
-# Manifest schemas — Pydantic models for the two YAML config files. The
+# --------------------------------------
+# Manifest schemas - Pydantic models for the two YAML config files. The
 # Component class (in bootstrap_components.py) is the public output type;
 # these schemas describe the on-disk shape.
-# ---------------------------------------------------------------------------
+# --------------------------------------
 
 
 class RequiresEntry(BaseModel):
-    """One system dependency entry — checked by pre-req.sh."""
+    """One system dependency entry - checked by pre-req.sh."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -113,7 +113,7 @@ class WorkspaceCloneEntry(BaseModel):
     remote: str
     path: str
     mandatory: bool = False
-    # Optional minimum tag — bootstrap-repos refuses to proceed if the
+    # Optional minimum tag - bootstrap-repos refuses to proceed if the
     # cloned working tree is older than this. Format: 'vX.Y.Z'.
     minTag: str | None = None
 
@@ -126,9 +126,9 @@ class WorkspaceClonesManifest(BaseModel):
     workspaceClones: dict[str, WorkspaceCloneEntry] = Field(default_factory=dict)
 
 
-# ---------------------------------------------------------------------------
+# --------------------------------------
 # Loaders
-# ---------------------------------------------------------------------------
+# --------------------------------------
 
 
 def _load_package_versions() -> dict[str, str]:
@@ -165,7 +165,7 @@ def _load_workspace_repo_components() -> list[Component]:
     Mandatory entries are still rendered (locked-on by the TUI) so the user
     sees the full workspace topology. Optional entries opt-in via checkbox.
     install_component() routes WORKSPACE_REPO to
-    `bootstrap-repos --include <id>` instead of a bootstrap shell script.
+    `bootstrap-repos -include <id>` instead of a bootstrap shell script.
     """
     if not WORKSPACE_CLONES_YAML.exists():
         return []

@@ -51,14 +51,14 @@ def _print_help() -> None:
     print("  docs wkhtmltopdf report.html report.pdf")
     print("  docs pdflatex paper.tex")
     print("  docs xelatex paper.tex")
-    print("  docs pdfjam --nup 2x2 slides.pdf --outfile handout.pdf")
+    print("  docs pdfjam -nup 2x2 slides.pdf -outfile handout.pdf")
 
 
 _MIN_ARGS = 2
 
 
 def main() -> int:
-    if len(sys.argv) < _MIN_ARGS or sys.argv[1] in ("-h", "--help"):
+    if len(sys.argv) < _MIN_ARGS or sys.argv[1] in ("-h", "-help"):
         _print_help()
         return 0
 

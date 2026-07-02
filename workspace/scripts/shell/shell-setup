@@ -9,11 +9,11 @@
 #   . agents/ami/scripts/shell/shell-setup               # Alternative to 'source' command
 #
 # PERMANENT INSTALLATION:
-#   agents/ami/scripts/shell/shell-setup --install             # Install to ~/.bashrc
-#   agents/ami/scripts/shell/shell-setup --install --no-backup # Install without backup
+#   agents/ami/scripts/shell/shell-setup -install             # Install to ~/.bashrc
+#   agents/ami/scripts/shell/shell-setup -install -no-backup # Install without backup
 #
 # UNINSTALL:
-#   agents/ami/scripts/shell/shell-setup --uninstall          # Remove from ~/.bashrc
+#   agents/ami/scripts/shell/shell-setup -uninstall          # Remove from ~/.bashrc
 
 # ============================================================================
 # Path calculation helper
@@ -32,17 +32,35 @@ _get_agents_scripts() {
 BEGIN_MARKER="# >>> AMI Orchestrator >>>"
 END_MARKER="# <<< AMI Orchestrator <<<"
 
+_grep_rc() {
+    local err
+    err="$(mktemp)"
+    grep -qF "$1" "$2" 2>"$err"
+    local rc=$?
+    if [[ -s "$err" ]]; then
+        echo "[shell-setup] grep failed on $2: $(cat "$err")" >&2
+    fi
+    rm -f "$err"
+    return $rc
+}
+
 # ============================================================================
 # Install/Uninstall functions
 # ============================================================================
 _strip_legacy_markers() {
     local rc="$1"
-    local content
-    content=$(cat "$rc" 2>/dev/null) || return 0
+    local content cat_err
+    cat_err="$(mktemp)"
+    content="$(cat "$rc" 2>"$cat_err")" || {
+        [[ -s "$cat_err" ]] && echo "[shell-setup] failed to read $rc: $(cat "$cat_err")" >&2
+        rm -f "$cat_err"
+        return 0
+    }
+    rm -f "$cat_err"
 
     local changed=false
 
-    if grep -qF "$BEGIN_MARKER" "$rc" 2>/dev/null; then
+    if _grep_rc "$BEGIN_MARKER" "$rc"; then
         local tmp
         tmp=$(awk -v begin="$BEGIN_MARKER" -v end="$END_MARKER" '
             BEGIN { skip=0 }
@@ -57,37 +75,37 @@ _strip_legacy_markers() {
         fi
     fi
 
-    if grep -qF "# AMI Orchestrator Shell Setup" "$rc" 2>/dev/null; then
+    if _grep_rc "# AMI Orchestrator Shell Setup" "$rc"; then
         grep -vF "# AMI Orchestrator Shell Setup" "$rc" > "${rc}.tmp" && \
             mv "${rc}.tmp" "$rc"
         changed=true
     fi
 
-    if grep -qF "# AMI PATH" "$rc" 2>/dev/null; then
+    if _grep_rc "# AMI PATH" "$rc"; then
         grep -vF "# AMI PATH" "$rc" > "${rc}.tmp" && \
             mv "${rc}.tmp" "$rc"
         changed=true
     fi
 
-    if grep -qF "# AMI Orchestrator - auto-registered" "$rc" 2>/dev/null; then
+    if _grep_rc "# AMI Orchestrator - auto-registered" "$rc"; then
         grep -vF "# AMI Orchestrator - auto-registered" "$rc" > "${rc}.tmp" && \
             mv "${rc}.tmp" "$rc"
         changed=true
     fi
 
-    if grep -qF "# AMI Orchestrator - auto-installed" "$rc" 2>/dev/null; then
+    if _grep_rc "# AMI Orchestrator - auto-installed" "$rc"; then
         grep -vF "# AMI Orchestrator - auto-installed" "$rc" > "${rc}.tmp" && \
             mv "${rc}.tmp" "$rc"
         changed=true
     fi
 
-    if grep -qF "alias ami-run=" "$rc" 2>/dev/null; then
+    if _grep_rc "alias ami-run=" "$rc"; then
         grep -vF "alias ami-run=" "$rc" > "${rc}.tmp" && \
             mv "${rc}.tmp" "$rc"
         changed=true
     fi
 
-    if grep -qF "AMI AGENT EXTENSIONS START" "$rc" 2>/dev/null; then
+    if _grep_rc "AMI AGENT EXTENSIONS START" "$rc"; then
         local tmp
         tmp=$(awk '
             BEGIN { skip=0 }
@@ -99,8 +117,8 @@ _strip_legacy_markers() {
         changed=true
     fi
 
-    if grep -qF "shell-setup\" --welcome" "$rc" 2>/dev/null; then
-        grep -vF "shell-setup\" --welcome" "$rc" > "${rc}.tmp" && \
+    if _grep_rc "shell-setup\" -welcome" "$rc"; then
+        grep -vF "shell-setup\" -welcome" "$rc" > "${rc}.tmp" && \
             mv "${rc}.tmp" "$rc"
         changed=true
     fi
@@ -124,8 +142,8 @@ _install_to_bashrc() {
 
         _strip_legacy_markers "$bashrc"
 
-        if grep -qF "$BEGIN_MARKER" "$bashrc" 2>/dev/null; then
-            if grep -qF "$setup_script" "$bashrc" 2>/dev/null && [[ "$force" != "true" ]]; then
+        if _grep_rc "$BEGIN_MARKER" "$bashrc"; then
+            if _grep_rc "$setup_script" "$bashrc" && [[ "$force" != "true" ]]; then
                 echo -e "${YELLOW}⚠${NC} AMI shell setup already installed in ~/$(basename "$bashrc")"
                 continue
             fi
@@ -137,7 +155,7 @@ _install_to_bashrc() {
 # >>> AMI Orchestrator >>>
 AMISHELL
         echo "export PATH=\"${bin_dir}:\$PATH\"" >> "$bashrc"
-        echo "[ -f \"$setup_script\" ] && . \"$setup_script\" --welcome" >> "$bashrc"
+        echo "[ -f \"$setup_script\" ] && . \"$setup_script\" -welcome" >> "$bashrc"
         cat >> "$bashrc" <<'AMISHELL'
 # <<< AMI Orchestrator <<<
 AMISHELL
@@ -153,9 +171,9 @@ _uninstall_from_bashrc() {
     for bashrc in "${candidates[@]}"; do
         [[ -f "$bashrc" ]] || continue
 
-        if ! grep -qF "$BEGIN_MARKER" "$bashrc" 2>/dev/null && \
-           ! grep -qF "# AMI Orchestrator Shell Setup" "$bashrc" 2>/dev/null && \
-           ! grep -qF "# AMI PATH" "$bashrc" 2>/dev/null; then
+        if ! _grep_rc "$BEGIN_MARKER" "$bashrc" && \
+           ! _grep_rc "# AMI Orchestrator Shell Setup" "$bashrc" && \
+           ! _grep_rc "# AMI PATH" "$bashrc"; then
             echo -e "${YELLOW}⚠${NC} AMI shell setup not found in ~/$(basename "$bashrc")"
             continue
         fi
@@ -170,16 +188,22 @@ _uninstall_from_bashrc() {
 # ============================================================================
 # Verify extensions are available in PATH
 # ============================================================================
-# Delegates to the Python manifest registry — single source of truth for what
+# Delegates to the Python manifest registry - single source of truth for what
 # extensions exist (see ami/scripts/shell/extension_registry.py).
 _verify_extensions() {
     local helper="$AMI_ROOT/workspace/scripts/shell/banner_helper.py"
     [[ -f "$helper" ]] || return 0
-    # Use --mode doctor with --quiet: prints degraded/mismatched/unavailable
+    # Use -mode doctor with -quiet: prints degraded/mismatched/unavailable
     # lists without running per-extension health checks. Any output means the
     # user has something to look at.
-    local doctor
-    doctor=$(AMI_QUIET_MODE=1 python3 "$helper" --mode doctor 2>/dev/null) || return 0
+    local doctor py_err
+    py_err="$(mktemp)"
+    doctor="$(AMI_QUIET_MODE=1 python3 "$helper" -mode doctor 2>"$py_err")" || {
+        [[ -s "$py_err" ]] && echo "[shell-setup] extension doctor check failed: $(cat "$py_err")" >&2
+        rm -f "$py_err"
+        return 0
+    }
+    rm -f "$py_err"
     if grep -qE 'Unavailable|Version-Mismatched' <<<"$doctor"; then
         echo "  Run 'make register-extensions' to install/repair commands" >&2
     fi
@@ -191,64 +215,64 @@ _verify_extensions() {
 export AMI_SHOW_WELCOME=0
 export AMI_QUIET_MODE=0
 
-if [[ "${1:-}" == "--install" ]]; then
+if [[ "${1:-}" == "-install" ]]; then
     AMI_ROOT="$(_get_ami_root)"
     export AMI_ROOT
     AGENTS_SCRIPTS="$(_get_agents_scripts)"
     export AGENTS_SCRIPTS
-    source "$AGENTS_SCRIPTS/shell/ami-banner.sh"
+    if ! source "$AGENTS_SCRIPTS/shell/ami-banner.sh"; then echo "[shell-setup] failed to source $AGENTS_SCRIPTS/shell/ami-banner.sh" >&2; return 1; fi
 
     backup="true"
     force="false"
     shift
     while [[ $# -gt 0 ]]; do
         case "$1" in
-            --no-backup) backup="false" ;;
-            --force|-f) force="true" ;;
+            -no-backup) backup="false" ;;
+            -force|-f) force="true" ;;
         esac
         shift
     done
 
     _install_to_bashrc "$backup" "$force"
     exit 0
-elif [[ "${1:-}" == "--uninstall" ]]; then
+elif [[ "${1:-}" == "-uninstall" ]]; then
     AMI_ROOT="$(_get_ami_root)"
     export AMI_ROOT
     AGENTS_SCRIPTS="$(_get_agents_scripts)"
     export AGENTS_SCRIPTS
-    source "$AGENTS_SCRIPTS/shell/ami-banner.sh"
+    if ! source "$AGENTS_SCRIPTS/shell/ami-banner.sh"; then echo "[shell-setup] failed to source $AGENTS_SCRIPTS/shell/ami-banner.sh" >&2; return 1; fi
 
     _uninstall_from_bashrc
     exit 0
-elif [[ "${1:-}" == "--welcome" ]]; then
+elif [[ "${1:-}" == "-welcome" ]]; then
     AMI_ROOT="$(_get_ami_root)"
     export AMI_ROOT
     AGENTS_SCRIPTS="$(_get_agents_scripts)"
     export AGENTS_SCRIPTS
     export AMI_SHOW_WELCOME=1
-    source "$AGENTS_SCRIPTS/shell/ami-banner.sh"
+    if ! source "$AGENTS_SCRIPTS/shell/ami-banner.sh"; then echo "[shell-setup] failed to source $AGENTS_SCRIPTS/shell/ami-banner.sh" >&2; return 1; fi
     cd "$AMI_ROOT"
-elif [[ "${1:-}" == "--quiet" ]] || [[ "${1:-}" == "-q" ]]; then
+elif [[ "${1:-}" == "-quiet" ]] || [[ "${1:-}" == "-q" ]]; then
     AMI_ROOT="$(_get_ami_root)"
     export AMI_ROOT
     AGENTS_SCRIPTS="$(_get_agents_scripts)"
     export AGENTS_SCRIPTS
     export AMI_QUIET_MODE=1
-    source "$AGENTS_SCRIPTS/shell/ami-banner.sh"
+    if ! source "$AGENTS_SCRIPTS/shell/ami-banner.sh"; then echo "[shell-setup] failed to source $AGENTS_SCRIPTS/shell/ami-banner.sh" >&2; return 1; fi
     cd "$AMI_ROOT"
 else
     AMI_ROOT="$(_get_ami_root)"
     export AMI_ROOT
     AGENTS_SCRIPTS="$(_get_agents_scripts)"
     export AGENTS_SCRIPTS
-    source "$AGENTS_SCRIPTS/shell/ami-banner.sh"
+    if ! source "$AGENTS_SCRIPTS/shell/ami-banner.sh"; then echo "[shell-setup] failed to source $AGENTS_SCRIPTS/shell/ami-banner.sh" >&2; return 1; fi
     cd "$AMI_ROOT"
 fi
 
 # ============================================================================
 # Environment setup
 # ============================================================================
-source "$AGENTS_SCRIPTS/shell/ami-banner.sh"
+if ! source "$AGENTS_SCRIPTS/shell/ami-banner.sh"; then echo "[shell-setup] failed to source $AGENTS_SCRIPTS/shell/ami-banner.sh" >&2; return 1; fi
 
 AMI_QUIET_MODE=${AMI_QUIET_MODE:-0}
 
@@ -257,7 +281,7 @@ if [[ "$AMI_QUIET_MODE" != "1" ]]; then
 fi
 
 # Setup PATH and PYTHONPATH
-source "$AGENTS_SCRIPTS/utils/env_setup.sh"
+if ! source "$AGENTS_SCRIPTS/utils/env_setup.sh"; then echo "[shell-setup] failed to source $AGENTS_SCRIPTS/utils/env_setup.sh" >&2; return 1; fi
 setup_paths
 
 # Playwright browsers path (installed to .boot-linux/ instead of ~/.cache/)
@@ -266,7 +290,7 @@ export PLAYWRIGHT_BROWSERS_PATH="$AMI_ROOT/.boot-linux/playwright-browsers"
 # Headless X server for browser automation (Xvfb on display :99)
 export DISPLAY="${DISPLAY:-:99}"
 
-# AMI SSH keys — auto-add to ssh-agent if project .ssh/ keys exist
+# AMI SSH keys - auto-add to ssh-agent if project .ssh/ keys exist
 _ami_ssh_setup() {
     local ssh_dir="$AMI_ROOT/.ssh"
     [[ -d "$ssh_dir" ]] || return 0
@@ -276,15 +300,32 @@ _ami_ssh_setup() {
         [[ "$key" = *.pub ]] && continue
         [[ "$(basename "$key")" = known_hosts ]] && continue
         [[ "$(basename "$key")" = config ]] && continue
-        ssh-add -l &>/dev/null | grep -qF "$(ssh-keygen -lf "$key" 2>/dev/null | awk '{print $2}')" 2>/dev/null && continue
-        ssh-add "$key" 2>/dev/null || true
+        local fp keygen_err
+        keygen_err="$(mktemp)"
+        fp="$(ssh-keygen -lf "$key" 2>"$keygen_err" | awk '{print $2}')"
+        [[ -s "$keygen_err" ]] && echo "[shell-setup] ssh-keygen failed on $key: $(cat "$keygen_err")" >&2
+        rm -f "$keygen_err"
+        local ssh_list ssh_list_err
+        ssh_list_err="$(mktemp)"
+        ssh_list="$(ssh-add -l 2>"$ssh_list_err")"
+        [[ -s "$ssh_list_err" ]] && echo "[shell-setup] ssh-add -l failed: $(cat "$ssh_list_err")" >&2
+        rm -f "$ssh_list_err"
+        if [[ -n "$fp" ]] && grep -qF "$fp" <<<"$ssh_list"; then
+            continue
+        fi
+        local add_err
+        add_err="$(mktemp)"
+        ssh-add "$key" 2>"$add_err" || {
+            [[ -s "$add_err" ]] && echo "[shell-setup] ssh-add failed for $key: $(cat "$add_err")" >&2
+        }
+        rm -f "$add_err"
     done
 }
 _ami_ssh_setup
 unset _ami_ssh_setup
 
 # Import helper functions
-source "$AGENTS_SCRIPTS/utils/module_helpers.sh"
+if ! source "$AGENTS_SCRIPTS/utils/module_helpers.sh"; then echo "[shell-setup] failed to source $AGENTS_SCRIPTS/utils/module_helpers.sh" >&2; return 1; fi
 
 # Verify all extensions are available
 _verify_extensions

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Bootstrap cron symlink into .boot-linux — requires system cron package via make init
+# Bootstrap cron symlink into .boot-linux - requires system cron package via make init
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

@@ -178,7 +178,7 @@ class TestGetContainerInspectInfo:
         _get_container_inspect_info("mycontainer", "/usr/bin/podman")
 
         mock_run_cmd.assert_called_once_with(
-            "/usr/bin/podman inspect mycontainer --format json"
+            "/usr/bin/podman inspect mycontainer -format json"
         )
 
 

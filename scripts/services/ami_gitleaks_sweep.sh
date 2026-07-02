@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# ami_gitleaks_sweep.sh — weekly gitleaks history scan across every repo in
+# ami_gitleaks_sweep.sh - weekly gitleaks history scan across every repo in
 # the workspace. Emails the operator on any finding so re-leaks get caught
 # early, instead of waiting for the next pre-commit run on a touched repo.
 #
@@ -9,13 +9,14 @@
 # itself, so documented false positives stay quiet.
 #
 # Exit codes:
-#   0  — all repos clean
-#   1  — at least one finding (email sent if himalaya available)
-#   2  — bad invocation / setup error
-#   3  — himalaya unavailable but findings present (operator MUST see logs)
+#   0  - all repos clean
+#   1  - at least one finding (email sent if himalaya available)
+#   2  - bad invocation / setup error
+#   3  - himalaya unavailable but findings present (operator MUST see logs)
 #
 # Run via cron weekly:
-#   cron add "0 4 * * 1" "$(git -C "$HOME/WORKSPACE-VM" rev-parse --show-toplevel 2>/dev/null || echo "$HOME/WORKSPACE-VM")/scripts/services/ami_gitleaks_sweep.sh" --label gitleaks-sweep
+#   _ws_root="$(git -C "$HOME/WORKSPACE-VM" rev-parse -show-toplevel)"
+#   cron add "0 4 * * 1" "${_ws_root:-$HOME/WORKSPACE-VM}/scripts/services/ami_gitleaks_sweep.sh" -label gitleaks-sweep
 
 set -euo pipefail
 
@@ -27,12 +28,12 @@ readonly HIMALAYA_ACCOUNT="${WORKSPACE_FAILURE_NOTIFY_ACCOUNT:-polymarket}"
 readonly REPORT_DIR="${XDG_STATE_HOME:-${HOME}/.local/state}/workspace/gitleaks-sweep"
 readonly TIMESTAMP="$(date -u +%Y-%m-%dT%H%M%SZ)"
 
-# --dry-run: scan + report locally but never invoke himalaya. Useful for
-# manual `bash ami_gitleaks_sweep.sh --dry-run` after adding new
+# -dry-run: scan + report locally but never invoke himalaya. Useful for
+# manual `bash ami_gitleaks_sweep.sh -dry-run` after adding new
 # .gitleaksignore entries to confirm zero findings before unleashing the
 # weekly cron's mail.
 DRY_RUN=0
-if [[ "${1:-}" == "--dry-run" || "${WORKSPACE_GITLEAKS_SWEEP_DRY_RUN:-}" == "1" ]]; then
+if [[ "${1:-}" == "-dry-run" || "${WORKSPACE_GITLEAKS_SWEEP_DRY_RUN:-}" == "1" ]]; then
     DRY_RUN=1
 fi
 
@@ -53,7 +54,7 @@ mkdir -p "$REPORT_DIR"
 readonly RUN_DIR="${REPORT_DIR}/${TIMESTAMP}"
 mkdir -p "$RUN_DIR"
 
-# Enumerate repos: AMI-AGENTS root + every projects/* that has its own .git.
+# Enumerate repos: WORKSPACE-VM root + every projects/* that has its own .git.
 # Sub-submodules (rust-ta inside RUST-TRADING) are scanned by their parent's
 # detect run because gitleaks walks the working tree; no special handling.
 repos=( "$WORKSPACE" )
@@ -71,22 +72,22 @@ for repo in "${repos[@]}"; do
     log "  scanning $repo_name"
     rc=0
     "$GITLEAKS_BIN" detect \
-        --source "$repo" \
-        --no-banner \
-        --redact \
-        --report-path "$out_json" \
-        --exit-code 1 \
+        -source "$repo" \
+        -no-banner \
+        -redact \
+        -report-path "$out_json" \
+        -exit-code 1 \
         > "${RUN_DIR}/${repo_name}.log" 2>&1 || rc=$?
     if [[ $rc -eq 0 ]]; then
         report_summary+="  ${repo_name}: clean"$'\n'
     elif [[ $rc -eq 1 ]]; then
         # gitleaks exits 1 on findings (after .gitleaksignore filter)
-        finding_count="$(uv run python -c "import json,sys; print(len(json.load(open('$out_json'))))" || echo "?")"
-        report_summary+="  ${repo_name}: ${finding_count} finding(s) — see ${out_json}"$'\n'
+        finding_count="$(uv run python -c "import json,sys; print(len(json.load(open('$out_json'))))" 2>&1 || { echo "[gitleaks-sweep] json parse failed for $out_json" >&2; echo "?"; })"
+        report_summary+="  ${repo_name}: ${finding_count} finding(s) - see ${out_json}"$'\n'
         total_findings=$((total_findings + 1))
     else
-        # Runtime error — gitleaks itself crashed, not a finding signal.
-        report_summary+="  ${repo_name}: SCAN ERROR (rc=$rc) — see ${RUN_DIR}/${repo_name}.log"$'\n'
+        # Runtime error - gitleaks itself crashed, not a finding signal.
+        report_summary+="  ${repo_name}: SCAN ERROR (rc=$rc) - see ${RUN_DIR}/${repo_name}.log"$'\n'
         total_findings=$((total_findings + 1))
     fi
 done

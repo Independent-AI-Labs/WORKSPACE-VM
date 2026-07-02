@@ -7,11 +7,18 @@
 
 set -euo pipefail
 
+_GG_ERR="$(mktemp)"
+trap 'rm -f "$_GG_ERR"' EXIT
+_gg_log_err() {
+    [[ -s "$1" ]] && echo "[git-guard] $2: $(cat "$1")" >&2
+    : > "$1"
+}
+
 # Resolve system git: try cached path first, then search known locations
 GIT_REAL="${GIT_GUARD_REAL_GIT:-}"
 
 if [[ -z "$GIT_REAL" || ! -x "$GIT_REAL" ]]; then
-    # Check git.original first — system guard may have renamed real git
+    # Check git.original first - system guard may have renamed real git
     for candidate in /usr/bin/git.original /usr/local/bin/git.original /usr/bin/git /usr/local/bin/git /snap/bin/git; do
         if [[ -x "$candidate" ]]; then
             GIT_REAL="$candidate"
@@ -23,19 +30,25 @@ fi
 # Ensure real git exists
 if [[ -z "${GIT_REAL:-}" || ! -x "$GIT_REAL" ]]; then
     echo "ERROR: System git not found in known locations"
-    echo "Git is a system dependency — run: sudo make pre-req"
+    echo "Git is a system dependency - run: sudo make pre-req"
     exit 1
 fi
 
 block() {
     local msg="❌ BLOCKED: $1 ($(date -Is))"
-    # Write to terminal directly — bypasses all stdout/stderr redirection.
+    # Write to terminal directly - bypasses all stdout/stderr redirection.
     # Cannot be silenced by "> /dev/null 2>&1".
-    echo "$msg" > /dev/tty 2>/dev/null || true
+    echo "$msg" > /dev/tty 2>"$_GG_ERR" || {
+        _gg_log_err "$_GG_ERR" "tty write"
+        true
+    }
     # Also write to stderr for logs/CI where /dev/tty may not exist
     echo "$msg" >&2
     # Permanent audit trail
-    echo "$msg | cwd=$(pwd) | cmd=$1" >> "${HOME}/.ami-git-guard.log" 2>/dev/null || true
+    echo "$msg | cwd=$(pwd) | cmd=$1" >> "${HOME}/.ami-git-guard.log" 2>"$_GG_ERR" || {
+        _gg_log_err "$_GG_ERR" "audit log write"
+        true
+    }
     exit 1
 }
 
@@ -74,25 +87,26 @@ fi
 
 if [[ "$cmd" == "push" ]]; then
     for arg in "$@"; do
-        [[ "$arg" == "--force" || "$arg" == "-f" ]] && block "git push --force"
-        [[ "$arg" == "--force-with-lease" ]] && block "git push --force-with-lease"
+        [[ "$arg" == "-force" || "$arg" == "-f" ]] && block "git push -force"
+        [[ "$arg" == "-force-with-lease" ]] && block "git push -force-with-lease"
     done
-    # Block background pushes — pre-push hooks don't run reliably in background.
+    # Block background pushes - pre-push hooks don't run reliably in background.
     # /proc/self/stat field 5 = pgrp (process group), field 8 = tpgid (terminal foreground group).
     # When a terminal exists (tpgid > 0) but pgrp != tpgid, the process is backgrounded.
-    # tpgid == -1 means no controlling terminal (e.g. piped/scripted) — hooks still run, so allow.
-    if ! read -r _ _ _ _ _pgrp _ _ _tpgid _ < /proc/self/stat 2>/dev/null; then
-        echo "WARNING: Cannot read /proc/self/stat — background push detection unavailable" >&2
+    # tpgid == -1 means no controlling terminal (e.g. piped/scripted) - hooks still run, so allow.
+    if ! read -r _ _ _ _ _pgrp _ _ _tpgid _ < /proc/self/stat 2>"$_GG_ERR"; then
+        _gg_log_err "$_GG_ERR" "read /proc/self/stat"
+        echo "WARNING: Cannot read /proc/self/stat - background push detection unavailable" >&2
     fi
     if [[ -n "${_tpgid:-}" && "$_tpgid" != "-1" && "$_pgrp" != "$_tpgid" ]]; then
-        block "git push from background process (hooks would be bypassed — run in foreground)"
+        block "git push from background process (hooks would be bypassed - run in foreground)"
     fi
 fi
 
 # 3. Block destructive flags globally
 for arg in "$@"; do
-    [[ "$arg" == "--hard" ]] && block "--hard flag"
-    [[ "$arg" == "--no-verify" ]] && block "--no-verify flag"
+    [[ "$arg" == "-hard" ]] && block "-hard flag"
+    [[ "$arg" == "-no-verify" ]] && block "-no-verify flag"
 done
 
 # 4. Block hook-bypass environment variables
@@ -102,9 +116,12 @@ fi
 
 # Helpers for P0-P2 (history-safety blocks). Each returns empty output and
 # a non-zero exit code when the query cannot be answered (no repo, no remote,
-# detached HEAD) — in that case the check is skipped rather than blocking.
+# detached HEAD) - in that case the check is skipped rather than blocking.
 _current_branch() {
-    "$GIT_REAL" rev-parse --abbrev-ref HEAD 2>/dev/null
+    "$GIT_REAL" rev-parse -abbrev-ref HEAD 2>"$_GG_ERR" || {
+        _gg_log_err "$_GG_ERR" "git rev-parse -abbrev-ref HEAD"
+        return 1
+    }
 }
 
 _is_on_remote() {
@@ -113,7 +130,10 @@ _is_on_remote() {
     local branch
     branch="$(_current_branch)"
     [[ -z "$branch" || "$branch" == "HEAD" ]] && return 1
-    "$GIT_REAL" merge-base --is-ancestor "$target" "origin/$branch" 2>/dev/null
+    "$GIT_REAL" merge-base -is-ancestor "$target" "origin/$branch" 2>"$_GG_ERR" || {
+        _gg_log_err "$_GG_ERR" "git merge-base -is-ancestor"
+        return 1
+    }
 }
 
 _is_protected_branch() {
@@ -122,20 +142,20 @@ _is_protected_branch() {
     [[ "$branch" == "main" || "$branch" == "master" ]]
 }
 
-# 5. P0 — Block `git commit --amend` when HEAD is already on origin.
+# 5. P0 - Block `git commit -amend` when HEAD is already on origin.
 # Amending a pushed commit rewrites its SHA and diverges local from remote,
 # forcing a force-push or a revert+merge unwind. Make a new commit instead.
 if [[ "$cmd" == "commit" ]]; then
     for arg in "$@"; do
-        if [[ "$arg" == "--amend" ]]; then
+        if [[ "$arg" == "-amend" ]]; then
             if _is_on_remote HEAD; then
-                block "git commit --amend on a commit already on origin/$(_current_branch) (would rewrite pushed history — make a new commit instead)"
+                block "git commit -amend on a commit already on origin/$(_current_branch) (would rewrite pushed history - make a new commit instead)"
             fi
         fi
     done
 fi
 
-# 6. P1 — Block `git revert` on a commit not yet on origin.
+# 6. P1 - Block `git revert` on a commit not yet on origin.
 # Reverting un-pushed work creates a noisy revert commit for something that
 # should just be edited forward. Revert is for pushed history only.
 if [[ "$cmd" == "revert" ]]; then
@@ -150,39 +170,39 @@ if [[ "$cmd" == "revert" ]]; then
     if ! _is_on_remote "$revert_target"; then
         # Only block when we can verify the commit exists locally. If
         # rev-parse fails, fall through so real git emits its own error.
-        if "$GIT_REAL" rev-parse --verify "$revert_target^{commit}" >/dev/null 2>&1; then
+        if "$GIT_REAL" rev-parse -verify "$revert_target^{commit}" >/dev/null 2>&1; then
             block "git revert on $revert_target which is not on origin/$(_current_branch) (edit forward with a new commit instead)"
         fi
     fi
 fi
 
-# 7. P2 — Block `git pull` on a protected branch without --ff-only/--rebase.
+# 7. P2 - Block `git pull` on a protected branch without -ff-only/-rebase.
 # A default pull creates a merge commit on main when local has diverged,
 # polluting the protected-branch history. Require explicit intent.
 if [[ "$cmd" == "pull" ]] && _is_protected_branch; then
     has_safe_flag=0
     for arg in "$@"; do
         case "$arg" in
-            --ff-only|--rebase|--rebase=true|--rebase=interactive|--rebase=merges)
+            -ff-only|-rebase|-rebase=true|-rebase=interactive|-rebase=merges)
                 has_safe_flag=1 ;;
         esac
     done
     if [[ $has_safe_flag -eq 0 ]]; then
-        block "git pull on $(_current_branch) requires --ff-only or --rebase (default pull can create merge commits on protected branch)"
+        block "git pull on $(_current_branch) requires -ff-only or -rebase (default pull can create merge commits on protected branch)"
     fi
 fi
 
-# 8. P3 — Block `git merge` on a protected branch without --ff-only.
+# 8. P3 - Block `git merge` on a protected branch without -ff-only.
 # Belt-and-suspenders for the `pull` rule: catches explicit `git merge
 # origin/main` on main from a divergent state, which would create the same
 # unwanted merge commit.
 if [[ "$cmd" == "merge" ]] && _is_protected_branch; then
     has_ff_only=0
     for arg in "$@"; do
-        [[ "$arg" == "--ff-only" ]] && has_ff_only=1
+        [[ "$arg" == "-ff-only" ]] && has_ff_only=1
     done
     if [[ $has_ff_only -eq 0 ]]; then
-        block "git merge on $(_current_branch) requires --ff-only (merge commits on protected branch forbidden)"
+        block "git merge on $(_current_branch) requires -ff-only (merge commits on protected branch forbidden)"
     fi
 fi
 
@@ -207,7 +227,10 @@ fi
 # =============================================================================
 if [[ "$cmd" == "commit" || "$cmd" == "push" ]]; then
     _wsroot=""
-    _toplevel="$("$GIT_REAL" rev-parse --show-toplevel 2>/dev/null || true)"
+    _toplevel="$("$GIT_REAL" rev-parse -show-toplevel 2>"$_GG_ERR" || {
+        _gg_log_err "$_GG_ERR" "git rev-parse -show-toplevel"
+        true
+    })"
     if [[ -n "$_toplevel" ]]; then
         _cur="$_toplevel"
         while [[ "$_cur" != "/" ]]; do
@@ -223,15 +246,24 @@ if [[ "$cmd" == "commit" || "$cmd" == "push" ]]; then
         _ci_lib="$_wsroot/projects/CI/lib/checks_quality.sh"
         if [[ -f "$_ci_lib" ]]; then
             # shellcheck source=/dev/null
-            source "$_ci_lib"
+            if ! source "$_ci_lib"; then
+                echo "[git-guard] failed to source $_ci_lib" >&2
+                exit 1
+            fi
 
             _registry="$_wsroot/ami/config/project_enforcement.yaml"
             [[ ! -f "$_registry" ]] && _registry=""
 
             _rel="${_toplevel#"$_wsroot"/}"
             [[ "$_rel" == "$_toplevel" ]] && _rel="."
-            _tier="$(ci_resolve_tier "$_rel" "$_registry" 2>/dev/null || echo strict)"
-            _mode="$(ci_resolve_enforcement_mode "$_registry" 2>/dev/null || echo warn)"
+            _tier="$(ci_resolve_tier "$_rel" "$_registry" 2>"$_GG_ERR" || {
+                _gg_log_err "$_GG_ERR" "ci_resolve_tier"
+                echo strict
+            })"
+            _mode="$(ci_resolve_enforcement_mode "$_registry" 2>"$_GG_ERR" || {
+                _gg_log_err "$_GG_ERR" "ci_resolve_enforcement_mode"
+                echo warn
+            })"
 
             # vendored = passthrough; nothing to enforce.
             if [[ "$_tier" != "vendored" ]]; then
@@ -239,45 +271,51 @@ if [[ "$cmd" == "commit" || "$cmd" == "push" ]]; then
                 # Resolve hooks dir (handles worktree gitdir-pointer).
                 _gd="$_toplevel/.git"
                 if [[ -f "$_gd" ]]; then
-                    _gd="$(sed -n 's/^gitdir:[[:space:]]*//p' "$_gd" 2>/dev/null || true)"
+                    _gd="$(sed -n 's/^gitdir:[[:space:]]*//p' "$_gd" 2>"$_GG_ERR" || {
+                        _gg_log_err "$_GG_ERR" "sed gitdir parse"
+                        true
+                    })"
                     [[ -n "$_gd" && "$_gd" != /* ]] && _gd="$_toplevel/$_gd"
                 fi
                 _hooks_dir="$_gd/hooks"
 
                 # G1: .pre-commit-config.yaml at repo root
                 if [[ ! -f "$_toplevel/.pre-commit-config.yaml" ]]; then
-                    _violations+=(".pre-commit-config.yaml missing at repo root — copy from projects/CI/.pre-commit-config.yaml or run: make install-hooks")
+                    _violations+=(".pre-commit-config.yaml missing at repo root - copy from projects/CI/.pre-commit-config.yaml or run: make install-hooks")
                 fi
 
                 # G2: pre-commit hook installed + AMI-CI generated
-                if [[ ! -x "$_hooks_dir/pre-commit" ]] || \
-                   ! head -5 "$_hooks_dir/pre-commit" 2>/dev/null | grep -q 'AUTO-GENERATED.*generate-hooks'; then
-                    _violations+=("pre-commit hook missing or not WORKSPACE-CI generated — run: make install-hooks")
+                : > "$_GG_ERR"
+                if [[ ! -x "$_hooks_dir/pre-commit" ]] || ! sed -n '1,5p' "$_hooks_dir/pre-commit" 2>"$_GG_ERR" | grep -q 'AUTO-GENERATED.*generate-hooks'; then
+                    _gg_log_err "$_GG_ERR" "pre-commit hook check"
+                    _violations+=("pre-commit hook missing or not WORKSPACE-CI generated - run: make install-hooks")
                 fi
 
                 # G3: commit-msg hook (only enforced for commit, not push)
                 if [[ "$cmd" == "commit" ]]; then
-                    if [[ ! -x "$_hooks_dir/commit-msg" ]] || \
-                       ! head -5 "$_hooks_dir/commit-msg" 2>/dev/null | grep -q 'AUTO-GENERATED.*generate-hooks'; then
-                        _violations+=("commit-msg hook missing or not WORKSPACE-CI generated — run: make install-hooks")
+                    : > "$_GG_ERR"
+                    if [[ ! -x "$_hooks_dir/commit-msg" ]] || ! sed -n '1,5p' "$_hooks_dir/commit-msg" 2>"$_GG_ERR" | grep -q 'AUTO-GENERATED.*generate-hooks'; then
+                        _gg_log_err "$_GG_ERR" "commit-msg hook check"
+                        _violations+=("commit-msg hook missing or not WORKSPACE-CI generated - run: make install-hooks")
                     fi
                 fi
 
                 # G4: WORKSPACE-CI reachable in workspace
                 if [[ ! -f "$_wsroot/projects/CI/lib/checks.sh" ]]; then
-                    _violations+=("WORKSPACE-CI not present at $_wsroot/projects/CI — re-run: make install")
+                    _violations+=("WORKSPACE-CI not present at $_wsroot/projects/CI - re-run: make install")
                 fi
 
                 # G5: quality_exceptions.yaml at repo root (strict only)
                 if [[ "$_tier" == "strict" && ! -f "$_toplevel/quality_exceptions.yaml" ]]; then
-                    _violations+=("quality_exceptions.yaml missing at repo root — copy projects/CI/templates/quality_exceptions.template.yaml")
+                    _violations+=("quality_exceptions.yaml missing at repo root - copy projects/CI/templates/quality_exceptions.template.yaml")
                 fi
 
                 # G6: Makefile includes the WORKSPACE-CI contract (strict only)
                 if [[ "$_tier" == "strict" ]]; then
-                    if [[ ! -f "$_toplevel/Makefile" ]] || \
-                       ! grep -q 'lib/makefile_contract.mk\|CI/scripts' "$_toplevel/Makefile" 2>/dev/null; then
-                        _violations+=("Makefile not using WORKSPACE-CI contract — include projects/CI/lib/makefile_contract.mk")
+                    : > "$_GG_ERR"
+                    if [[ ! -f "$_toplevel/Makefile" ]] || ! grep -q 'lib/makefile_contract.mk\|CI/scripts' "$_toplevel/Makefile" 2>"$_GG_ERR"; then
+                        _gg_log_err "$_GG_ERR" "Makefile contract check"
+                        _violations+=("Makefile not using WORKSPACE-CI contract - include projects/CI/lib/makefile_contract.mk")
                     fi
                 fi
 
@@ -288,12 +326,14 @@ if [[ "$cmd" == "commit" || "$cmd" == "push" ]]; then
                     _skip_p3=0
                     for _arg in "$@"; do
                         case "$_arg" in
-                            --delete|:*|*:) _skip_p3=1 ;;
+                            -delete|:*|*:) _skip_p3=1 ;;
                         esac
                     done
+                    : > "$_GG_ERR"
                     if [[ $_skip_p3 -eq 0 ]] && \
-                       ! "$GIT_REAL" cat-file -e HEAD:.pre-commit-config.yaml 2>/dev/null; then
-                        _violations+=("push tip's tree is missing .pre-commit-config.yaml — fix the deletion before pushing")
+                       ! "$GIT_REAL" cat-file -e HEAD:.pre-commit-config.yaml 2>"$_GG_ERR"; then
+                        _gg_log_err "$_GG_ERR" "git cat-file check"
+                        _violations+=("push tip's tree is missing .pre-commit-config.yaml - fix the deletion before pushing")
                     fi
                 fi
 
@@ -306,7 +346,10 @@ if [[ "$cmd" == "commit" || "$cmd" == "push" ]]; then
                             echo "  • $_v" >&2
                         done
                         echo "$_summary | cwd=$(pwd) | cmd=$cmd | violations=${#_violations[@]}" \
-                            >> "${HOME}/.ami-git-guard.log" 2>/dev/null || true
+                            >> "${HOME}/.ami-git-guard.log" 2>"$_GG_ERR" || {
+                            _gg_log_err "$_GG_ERR" "audit log write"
+                            true
+                        }
                         exit 1
                     else
                         # warn mode: yellow advisory. Prefer /dev/tty so it
@@ -315,8 +358,10 @@ if [[ "$cmd" == "commit" || "$cmd" == "push" ]]; then
                         # `[[ -w ]]` lies on `/dev/tty` (returns true but
                         # opening fails), so probe by actually opening fd9.
                         _warn_fd=/dev/stderr
-                        if (exec 9>/dev/tty) 2>/dev/null; then
+                        if (exec 9>/dev/tty) 2>"$_GG_ERR"; then
                             _warn_fd=/dev/tty
+                        else
+                            _gg_log_err "$_GG_ERR" "tty probe"
                         fi
                         {
                             printf "\n\033[33m⚠ WORKSPACE-CI contract advisory (mode=warn, will block at enforce):\033[0m\n"
@@ -325,7 +370,10 @@ if [[ "$cmd" == "commit" || "$cmd" == "push" ]]; then
                                 printf "\033[33m    • %s\033[0m\n" "$_v"
                             done
                             printf "\n"
-                        } > "$_warn_fd" 2>/dev/null || true
+                        } > "$_warn_fd" 2>"$_GG_ERR" || {
+                            _gg_log_err "$_GG_ERR" "warn output"
+                            true
+                        }
                     fi
                 fi
             fi
@@ -334,4 +382,5 @@ if [[ "$cmd" == "commit" || "$cmd" == "push" ]]; then
 fi
 
 # Safe - pass through to real git
+rm -f "$_GG_ERR"
 exec "$GIT_REAL" "$@"

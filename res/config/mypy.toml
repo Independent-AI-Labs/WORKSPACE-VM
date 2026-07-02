@@ -100,12 +100,12 @@ disallow_untyped_calls = false
 module = ["ami.scripts.backup.common.auth", "dataops.backup.common.auth"]
 disallow_untyped_calls = false
 
-# AMI cli_components/ami.types — namespace packages in AMI-DATAOPS
+# AMI cli_components/ami.types - namespace packages in AMI-DATAOPS
 # Resolved via mypy_path, no ignore_missing_imports needed
 
 # NO CHEATING FOR OUR OWN CODE. Fix the types.
 
-# rust-ta PyO3 bindings — compiled .so with no py.typed marker
+# rust-ta PyO3 bindings - compiled .so with no py.typed marker
 [[tool.mypy.overrides]]
 module = ["rust_ta", "rust_ta.*"]
 ignore_missing_imports = true

@@ -1,9 +1,9 @@
-# Workspace clone manifest — read by workspace/scripts/bin/bootstrap-repos.
+# Workspace clone manifest - read by workspace/scripts/bin/bootstrap-repos.
 #
 # Single source of truth for "what repos belong to the AMI workspace."
 # Mandatory entries always clone; optional entries opt-in via
-# `bootstrap-repos --include <id>,<id>` or `--all`.
-# minTag (optional) — abort if the cloned working tree's nearest tag
+# `bootstrap-repos -include <id>,<id>` or `-all`.
+# minTag (optional) - abort if the cloned working tree's nearest tag
 # is older than this (forwards-compat protection).
 
 workspaceClones:

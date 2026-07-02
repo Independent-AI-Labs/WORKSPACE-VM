@@ -131,7 +131,7 @@ def _diagnose_version_failure(
 
     Returns None when the version was extracted (no diagnostic needed)
     or when no versionPattern was declared (nothing to diagnose).
-    Otherwise produces a string callers can pass through to operators —
+    Otherwise produces a string callers can pass through to operators -
     e.g. "TimeoutExpired(5s): ..." or "exit 127, output 'not found'"
     or "output 'hello' did not match (\\d+\\.\\d+\\.\\d+)".
     """
@@ -158,7 +158,7 @@ def run_check(
     """Run health + version check. ``{python}`` -> hermetic interpreter. Max 5 s."""
     check = entry.get("check")
     if not check:
-        # No check block — but minVersion/maxVersion can still be declared,
+        # No check block - but minVersion/maxVersion can still be declared,
         # in which case we can't validate and must flag as such.
         v_ok, v_reason = _check_version_constraint(entry, None)
         healthy = v_ok is not False

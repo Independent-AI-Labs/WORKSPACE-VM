@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# GitLab CLI Bootstrap Script for AMI-AGENTS
+# GitLab CLI Bootstrap Script for WORKSPACE-VM
 # Downloads and installs glab in the .boot-linux environment
 set -euo pipefail
 
@@ -75,8 +75,8 @@ chmod +x "${GLAB_DIR}/bin/glab"
 
 ln -sf "../glab/bin/glab" "${BIN_DIR}/glab"
 
-if "${BIN_DIR}/glab" --version > /dev/null 2>&1; then
-    GLAB_VER="$("${BIN_DIR}/glab" --version 2>&1)"
+if "${BIN_DIR}/glab" -version > /dev/null 2>&1; then
+    GLAB_VER="$("${BIN_DIR}/glab" -version 2>&1)"
     GLAB_VER="${GLAB_VER%%$'\n'*}"
     log_info "glab installed successfully: $GLAB_VER"
     log_info "Location: ${BIN_DIR}/glab -> ${GLAB_DIR}/bin/glab"

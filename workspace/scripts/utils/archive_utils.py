@@ -128,14 +128,14 @@ async def create_archive(
 
     exclude_args = []
     for pattern in exclusion_patterns:
-        exclude_args.extend(["--exclude", pattern])
+        exclude_args.extend(["-exclude", pattern])
 
     cmd = [
         "tar",
         "-cf",
         "-",
-        "--ignore-failed-read",
-        "--warning=no-file-changed",
+        "-ignore-failed-read",
+        "-warning=no-file-changed",
         *exclude_args,
         "-C",
         str(root_dir.parent),
@@ -163,7 +163,7 @@ async def create_archive(
     await proc.wait()
 
     # tar exit codes: 0=success, 1=some files differ (warnings), 2=fatal error
-    # With --ignore-failed-read, permission errors become warnings (exit 1)
+    # With -ignore-failed-read, permission errors become warnings (exit 1)
     if proc.returncode == TAR_FATAL_ERROR:
         msg = f"tar failed: {stderr_data.decode()}"
         raise ArchiveError(msg)

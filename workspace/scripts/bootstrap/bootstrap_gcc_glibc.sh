@@ -26,15 +26,15 @@ log_error() { echo -e "${RED}[ERROR]${NC} $*"; }
 
 # Toolchain details
 TOOLCHAIN_VERSION="2025.08-1"
-TOOLCHAIN_TARBALL="x86-64--glibc--stable-${TOOLCHAIN_VERSION}.tar.xz"
+TOOLCHAIN_TARBALL="x86-64-glibc-stable-${TOOLCHAIN_VERSION}.tar.xz"
 TOOLCHAIN_URL="https://toolchains.bootlin.com/downloads/releases/toolchains/x86-64/tarballs/${TOOLCHAIN_TARBALL}"
-TOOLCHAIN_DIR_NAME="x86-64--glibc--stable-${TOOLCHAIN_VERSION}"
-# Use .br_real directly — Buildroot's toolchain-wrapper hangs outside its build environment
+TOOLCHAIN_DIR_NAME="x86-64-glibc-stable-${TOOLCHAIN_VERSION}"
+# Use .br_real directly - Buildroot's toolchain-wrapper hangs outside its build environment
 GCC_BIN_NAME="x86_64-buildroot-linux-gnu-gcc.br_real"
 
 # Check if already installed
 if [[ -x "${GCC_GLIBC_DIR}/${TOOLCHAIN_DIR_NAME}/bin/${GCC_BIN_NAME}" ]]; then
-    VERSION=$("${GCC_GLIBC_DIR}/${TOOLCHAIN_DIR_NAME}/bin/${GCC_BIN_NAME}" --version 2>&1)
+    VERSION=$("${GCC_GLIBC_DIR}/${TOOLCHAIN_DIR_NAME}/bin/${GCC_BIN_NAME}" -version 2>&1)
     VERSION="${VERSION%%$'\n'*}"
     log_info "GCC/glibc already installed: $VERSION"
     exit 0
@@ -63,31 +63,31 @@ rm -f "${TARBALL_PATH}"
 
 # Verify gcc works
 GCC_BIN="${GCC_GLIBC_DIR}/${TOOLCHAIN_DIR_NAME}/bin/${GCC_BIN_NAME}"
-if ! "${GCC_BIN}" --version &> /dev/null; then
+if ! "${GCC_BIN}" -version &> /dev/null; then
     log_error "Extracted gcc failed to execute"
     exit 1
 fi
 
-VERSION=$("${GCC_BIN}" --version 2>&1)
+VERSION=$("${GCC_BIN}" -version 2>&1)
 VERSION="${VERSION%%$'\n'*}"
 log_info "GCC extracted successfully: $VERSION"
 
-# Create wrapper script in .boot-linux/bin/ — do NOT overwrite gcc/cc (those are musl)
+# Create wrapper script in .boot-linux/bin/ - do NOT overwrite gcc/cc (those are musl)
 # Cannot use a symlink because Bootlin's toolchain-wrapper resolves paths relative to itself
-# Wrapper resolves path relative to itself at runtime — no hardcoded absolute paths
+# Wrapper resolves path relative to itself at runtime - no hardcoded absolute paths
 mkdir -p "${BIN_DIR}"
 cat > "${BIN_DIR}/gcc-glibc" << 'WRAPPER'
 #!/usr/bin/env bash
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BOOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-exec "$BOOT_DIR/gcc-glibc/x86-64--glibc--stable-2025.08-1/bin/x86_64-buildroot-linux-gnu-gcc.br_real" "$@"
+exec "$BOOT_DIR/gcc-glibc/x86-64-glibc-stable-2025.08-1/bin/x86_64-buildroot-linux-gnu-gcc.br_real" "$@"
 WRAPPER
 chmod +x "${BIN_DIR}/gcc-glibc"
 log_info "  Created gcc-glibc wrapper (musl gcc/cc unchanged)"
 
 # Verify
-if "${BIN_DIR}/gcc-glibc" --version &> /dev/null; then
-    _glibcver="$("${BIN_DIR}/gcc-glibc" --version 2>&1)"
+if "${BIN_DIR}/gcc-glibc" -version &> /dev/null; then
+    _glibcver="$("${BIN_DIR}/gcc-glibc" -version 2>&1)"
     _glibcver="${_glibcver%%$'\n'*}"
     log_info "✓ GCC/glibc bootstrapped: ${_glibcver}"
 else

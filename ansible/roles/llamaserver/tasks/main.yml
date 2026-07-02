@@ -1,4 +1,4 @@
----
+--
 - name: Validate llama_server_path exists
   ansible.builtin.stat:
     path: "{{ playbook_dir }}/../projects/llama.cpp/build-{{ llama_flavor }}/bin/llama-server"
@@ -42,9 +42,9 @@
     backup: false
 
 - name: Daemon-reload systemd user instance
-  ansible.builtin.command: systemctl --user daemon-reload
+  ansible.builtin.command: systemctl -user daemon-reload
   changed_when: true
 
 - name: Enable and start llamaserver@{{ llama_flavor }}.service
-  ansible.builtin.command: systemctl --user enable --now llamaserver@{{ llama_flavor }}.service
+  ansible.builtin.command: systemctl -user enable -now llamaserver@{{ llama_flavor }}.service
   changed_when: true

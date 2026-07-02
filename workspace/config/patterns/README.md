@@ -38,7 +38,7 @@ Defines Python code patterns checked by `validate_python_patterns()` in `agents/
 patterns:
   - name: "pattern_name"
     check_type: "content_pattern"  # or "file_content"
-    pattern: '.parent.parent'       # String pattern to match
+    pattern: 'eval\('               # String pattern to match
     allow_removal: true             # Only block ADDITIONS (allow cleanup)
     error_template: |
       ❌ ERROR MESSAGE HERE
@@ -46,12 +46,12 @@ patterns:
       - path_patterns:
           - "**/module_setup.py"
         allowed_patterns:
-          - '# noqa: E402'
+          - 'E402'
 ```
 
 **Check Types**:
 - `file_content`: Match file path + check condition (e.g., non-empty __init__.py)
-- `content_pattern`: Match pattern strings in content (e.g., .parent.parent, suppressions)
+- `content_pattern`: Match pattern strings in content (e.g., path traversal, suppressions)
 
 **Key Feature - allow_removal**:
 When `allow_removal: true`, only **ADDITIONS** of the pattern are blocked:
@@ -70,11 +70,11 @@ This enables zero-tolerance for new violations while allowing cleanup of existin
      condition: "not_empty"
    ```
 
-2. Forbidden path pattern (allow removals):
+2. Forbidden code pattern (allow removals):
    ```yaml
-   - name: "parent_parent"
+   - name: "dangerous_eval"
      check_type: "content_pattern"
-     pattern: '.parent.parent'
+     pattern: 'eval\('
      allow_removal: true  # Only block ADDITIONS
    ```
 
@@ -83,15 +83,15 @@ This enables zero-tolerance for new violations while allowing cleanup of existin
    - name: "code_suppression"
      check_type: "content_pattern"
      patterns:
-       - '# noqa'
-       - '# type: ignore'
+       - 'E402'
+       - 'F401'
      allow_removal: true  # Allow cleanup
      exemptions:
        - path_patterns:
            - "**/module_setup.py"
            - "scripts/**/*.py"
          allowed_patterns:
-           - '# noqa: E402'  # E402 = import not at top (path discovery)
+           - 'E402'  # import not at top (path discovery)
    ```
 
 ### exemptions.yaml

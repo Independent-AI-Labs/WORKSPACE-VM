@@ -8,7 +8,6 @@ import os
 import subprocess
 import sys
 from collections.abc import Callable
-from contextlib import suppress
 from pathlib import Path
 from typing import NamedTuple
 
@@ -81,7 +80,7 @@ def run_bootstrap_script(script_name: str) -> bool:
 
         # stdin=DEVNULL so bootstrap scripts that probe `[ -t 0 ]` see a
         # non-TTY and take the non-interactive code path. The TUI itself owns
-        # the user's terminal — bootstrap scripts running underneath must
+        # the user's terminal - bootstrap scripts running underneath must
         # never prompt (would freeze `make install` mid-walk; INCIDENT-2026-05-08
         # gcloud "Reinstall? (y/N)" hang).
         subprocess.run(
@@ -148,12 +147,17 @@ def _pull_workspace_repo(component: Component) -> None:
     if repo_path is None:
         return
     if (repo_path / ".git").exists():
-        with suppress(subprocess.CalledProcessError):
+        try:
             subprocess.run(
-                ["git", "pull", "--ff-only"],
+                ["git", "pull", "-ff-only"],
                 cwd=repo_path,
                 stdin=subprocess.DEVNULL,
                 check=True,
+            )
+        except subprocess.CalledProcessError as exc:
+            print(
+                f"ERROR: git pull -ff-only failed for {component.name}: {exc}",
+                file=sys.stderr,
             )
         return
     try:
@@ -163,7 +167,7 @@ def _pull_workspace_repo(component: Component) -> None:
                 str(
                     _PROJECT_ROOT / "workspace" / "scripts" / "bin" / "bootstrap-repos"
                 ),
-                "--include",
+                "-include",
                 component.name,
             ],
             cwd=str(_PROJECT_ROOT),

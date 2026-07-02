@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# HuggingFace CLI Bootstrap Script for AMI-AGENTS
+# HuggingFace CLI Bootstrap Script for WORKSPACE-VM
 # Installs huggingface-cli into the .boot-linux python environment
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -40,7 +40,7 @@ if [ ! -d "$PYTHON_ENV" ]; then
 fi
 
 # Install huggingface_hub into the boot-linux python env (CLI is included by default)
-"$UV_CMD" pip install --python "$PYTHON_ENV" huggingface_hub
+"$UV_CMD" pip install -python "$PYTHON_ENV" huggingface_hub
 
 # The CLI binary is installed as 'hf' in the python-env bin/
 # Create symlink in boot-linux bin/ if not already there

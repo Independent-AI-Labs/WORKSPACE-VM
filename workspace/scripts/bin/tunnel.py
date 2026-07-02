@@ -42,7 +42,7 @@ def _find_config() -> str | None:
 
 
 def main() -> int:
-    """Main entry point — pass through to cloudflared with AMI defaults."""
+    """Main entry point - pass through to cloudflared with AMI defaults."""
     binary = _find_cloudflared()
     if not binary:
         print(
@@ -54,11 +54,11 @@ def main() -> int:
     args = list(sys.argv[1:])
 
     # Inject config if user hasn't specified one and we have an AMI config
-    has_config = any(a in ("--config", "-c") for a in args)
+    has_config = any(a in ("-config", "-c") for a in args)
     if not has_config:
         config = _find_config()
         if config:
-            args = ["--config", config, *args]
+            args = ["-config", config, *args]
 
     cmd = [binary, *args]
     return subprocess.run(cmd, check=True).returncode

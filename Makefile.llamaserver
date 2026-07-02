@@ -16,12 +16,12 @@
 #   make list-llamaserver                  # all running llamaserver@ units
 
 # ==============================================================================
-# Flavor Registry — edit this list to add new build flavors
+# Flavor Registry - edit this list to add new build flavors
 # ==============================================================================
 LLAMA_FLAVORS := cpu sycl vulkan
 
 # ==============================================================================
-# Build Targets — delegate to persisted scripts in scripts/setup/
+# Build Targets - delegate to persisted scripts in scripts/setup/
 # ==============================================================================
 
 .PHONY: build-llama
@@ -61,7 +61,7 @@ clean-llama-all: ## Clean all llama.cpp builds
 	@echo "✅ All builds cleaned"
 
 # ==============================================================================
-# Pre-Requisite Targets — one per dependency, separate sudo invocations
+# Pre-Requisite Targets - one per dependency, separate sudo invocations
 # ==============================================================================
 
 .PHONY: pre-req-intel
@@ -77,7 +77,7 @@ pre-req-oneapi: ## Install Intel oneAPI DPC++ compiler + MKL (sudo)
 	@sudo bash scripts/setup/install-oneapi-dev.sh
 
 # ==============================================================================
-# Service Targets — systemd template unit llamaserver@FLAVOR
+# Service Targets - systemd template unit llamaserver@FLAVOR
 # ==============================================================================
 
 .PHONY: install-llamaserver
@@ -88,7 +88,7 @@ endif
 	@cd ansible && \
 		export $$(grep -v '^\s*#' "$(CURDIR)/.env" 2>/dev/null | xargs) && \
 		ansible-playbook \
-			--diff \
+			-diff \
 			-e "llama_flavor=$(FLAVOR)" \
 			llamaserver.yml
 	@echo "✅ llamaserver@$(FLAVOR) deployed"
@@ -98,11 +98,11 @@ uninstall-llamaserver: ## Stop and disable llamaserver@FLAVOR
 ifeq ($(FLAVOR),)
 	$(error FLAVOR is required. Usage: make uninstall-llamaserver FLAVOR=vulkan)
 endif
-	@systemctl --user stop llamaserver@$(FLAVOR).service 2>/dev/null || true
-	@systemctl --user disable llamaserver@$(FLAVOR).service 2>/dev/null || true
+	@systemctl -user stop llamaserver@$(FLAVOR).service 2>/dev/null || true
+	@systemctl -user disable llamaserver@$(FLAVOR).service 2>/dev/null || true
 	@rm -f "$(HOME)/.config/systemd/user/llamaserver@$(FLAVOR).service"
 	@rm -f "$(HOME)/.config/llamaserver/llamaserver-$(FLAVOR).env"
-	@systemctl --user daemon-reload
+	@systemctl -user daemon-reload
 	@echo "✅ llamaserver@$(FLAVOR) removed"
 
 .PHONY: reinstall-llamaserver
@@ -119,7 +119,7 @@ restart-llamaserver: ## Restart llamaserver@FLAVOR (no rebuild)
 ifeq ($(FLAVOR),)
 	$(error FLAVOR is required. Usage: make restart-llamaserver FLAVOR=vulkan)
 endif
-	@systemctl --user restart llamaserver@$(FLAVOR).service
+	@systemctl -user restart llamaserver@$(FLAVOR).service
 	@echo "✅ llamaserver@$(FLAVOR) restarted"
 
 .PHONY: status-llamaserver
@@ -127,15 +127,15 @@ status-llamaserver: ## Show status of llamaserver@FLAVOR
 ifeq ($(FLAVOR),)
 	$(error FLAVOR is required. Usage: make status-llamaserver FLAVOR=vulkan)
 endif
-	@systemctl --user status llamaserver@$(FLAVOR).service --no-pager
+	@systemctl -user status llamaserver@$(FLAVOR).service -no-pager
 
 .PHONY: logs-llamaserver
 logs-llamaserver: ## Tail logs for llamaserver@FLAVOR (default 50 lines)
 ifeq ($(FLAVOR),)
 	$(error FLAVOR is required. Usage: make logs-llamaserver FLAVOR=vulkan)
 endif
-	@journalctl --user -u llamaserver@$(FLAVOR).service -n $(or $(LINES),50) -f
+	@journalctl -user -u llamaserver@$(FLAVOR).service -n $(or $(LINES),50) -f
 
 .PHONY: list-llamaserver
 list-llamaserver: ## List all installed llamaserver@ units
-	@systemctl --user --no-pager list-units 'llamaserver@*.service'
+	@systemctl -user -no-pager list-units 'llamaserver@*.service'

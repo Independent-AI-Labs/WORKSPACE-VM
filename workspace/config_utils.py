@@ -1,7 +1,7 @@
 """Configuration utilities for ami-agents package.
 
 This module provides utilities for accessing shared configuration files
-and project root discovery — moved here from ami/core/env.py during the
+and project root discovery - moved here from ami/core/env.py during the
 V3 migration to avoid deleting infrastructure used by staying scripts.
 """
 

@@ -25,7 +25,7 @@ const BLOCK_PATTERNS: Array<{ regex: RegExp; instruction: string }> = [
   {
     regex: /\b(likely|may[bB][eE]|possibly|probably|perhaps|unclear|unsure|i think|i believe|might be|could be)\b/i,
     instruction:
-      "## STOP — your last response used speculation words. VERIFY EVERY CLAIM WITH ACTUAL EVIDENCE BEFORE ANSWERING. NEVER GUESS.",
+      "## STOP - your last response used speculation words. VERIFY EVERY CLAIM WITH ACTUAL EVIDENCE BEFORE ANSWERING. NEVER GUESS.",
   },
 ]
 

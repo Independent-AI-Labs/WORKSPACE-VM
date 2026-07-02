@@ -122,7 +122,7 @@ class VMSecurityConfig(BaseModel):
 
 
 class VMConfig(BaseModel):
-    """Complete VM configuration — passed to make vm <config.yaml>.
+    """Complete VM configuration - passed to make vm <config.yaml>.
 
     Only 'components' is required. All other fields have sensible defaults.
     """

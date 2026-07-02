@@ -89,13 +89,13 @@ if (Test-Path $PidFile) {
 
 $args = @(
     "-m", $Model
-    "--port", "$Port"
-    "--spec-type", "draft-mtp"
-    "--spec-draft-n-max", "$SpecDraftNMax"
+    "-port", "$Port"
+    "-spec-type", "draft-mtp"
+    "-spec-draft-n-max", "$SpecDraftNMax"
     "-t", "$Threads"
     "-ngl", "$Ngl"
     "-c", "$CtxSize"
-    "--log-disable"
+    "-log-disable"
 )
 
 if ($Ngld -ge 0) {
@@ -115,7 +115,7 @@ if ($AutoFit) {
     $argStr += " -fit on"
 }
 if ($BuildDir -eq "sycl") {
-    $batContent = "@echo off`ncall `"C:\Program Files (x86)\Intel\oneAPI\setvars.bat`" intel64 --force >nul 2>&1`n`"$ServerExe`" $argStr 2>>`"$LogFile`""
+    $batContent = "@echo off`ncall `"C:\Program Files (x86)\Intel\oneAPI\setvars.bat`" intel64 -force >nul 2>&1`n`"$ServerExe`" $argStr 2>>`"$LogFile`""
 } else {
     $batContent = "@echo off`n`"$ServerExe`" $argStr 2>>`"$LogFile`""
 }
@@ -144,7 +144,7 @@ Write-Host "Waiting for server..."
 for ($i = 0; $i -lt 90; $i++) {
     Start-Sleep 2
     try {
-        $r = curl.exe -s --max-time 2 "http://localhost:$Port/health" 2>$null
+        $r = curl.exe -s -max-time 2 "http://localhost:$Port/health" 2>$null
         if ($r -match '"ok"') {
             Write-Host "Server ready after $(($i + 1) * 2)s (PID: $($proc.Id))" -ForegroundColor Green
             exit 0

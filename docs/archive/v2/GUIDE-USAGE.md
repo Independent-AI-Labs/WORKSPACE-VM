@@ -1,4 +1,4 @@
-# Guide: Getting Started with AMI-AGENTS
+# Guide: Getting Started with WORKSPACE-VM
 
 **Date:** 2026-04-05
 **Status:** ACTIVE
@@ -8,7 +8,7 @@
 
 ```bash
 # Clone and install
-git clone <repo-url> AMI-AGENTS && cd AMI-AGENTS
+git clone <repo-url> WORKSPACE-VM && cd WORKSPACE-VM
 make install
 
 # Development mode (includes AMI-CI tooling)
@@ -46,18 +46,18 @@ ruff_config = get_config_path("ruff.toml")
 ## CI/CD Scripts
 
 Pre-commit hooks run automatically. Key checks:
-- `check_banned_words.py` — prohibited patterns (bare `tuple[]`, `.parent.parent`, etc.)
-- `check_dependency_versions.py` — dependency validation
-- `check_init_files.py` — ensures `__init__.py` files don't contain logic
-- `block_coauthored.py` — prevents co-authored commit lines
-- `verify_coverage.py` — enforces test coverage thresholds
+- `check_banned_words.py` - prohibited patterns (bare `tuple[]`, `.parent.parent`, etc.)
+- `check_dependency_versions.py` - dependency validation
+- `check_init_files.py` - ensures `__init__.py` files don't contain logic
+- `block_coauthored.py` - prevents co-authored commit lines
+- `verify_coverage.py` - enforces test coverage thresholds
 
 Run all checks manually: `make check`
 
 ## Key Configuration Files
 
 | File | Purpose |
-|------|---------|
+|---|-----|
 | `*/extension.manifest.yaml` | Per-component extension manifests (discovered dynamically) |
 | `ami/config/automation.yaml` | Agent CLI settings, logging, hooks |
 | `ami/config/hooks.yaml` | Hook validation pipeline (v4.0.0) |

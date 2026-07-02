@@ -1,4 +1,4 @@
-"""VM lifecycle — CLI entry point for create/rebuild/sync subcommands."""
+"""VM lifecycle - CLI entry point for create/rebuild/sync subcommands."""
 
 from __future__ import annotations
 

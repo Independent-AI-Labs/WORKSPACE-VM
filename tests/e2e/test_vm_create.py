@@ -1,4 +1,4 @@
-"""E2E tests for vm create — requires full build pipeline."""
+"""E2E tests for vm create - requires full build pipeline."""
 
 from __future__ import annotations
 

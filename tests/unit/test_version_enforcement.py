@@ -92,7 +92,7 @@ class TestEnforceVersions:
         entry = {
             "name": "foo",
             "binary": "bin/foo",
-            "check": {"command": ["{binary}", "--version"]},
+            "check": {"command": ["{binary}", "-version"]},
             **entry_overrides,
         }
         return ResolvedExtension(

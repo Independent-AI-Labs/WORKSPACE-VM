@@ -37,8 +37,8 @@ function Stop-Server { Get-Process llama-server -ErrorAction SilentlyContinue | 
 
 function Start-Server {
     param([string]$Exe, [string]$Model, [int]$Ngl, [string]$SpecType, [int]$SpecNmax, [int]$Port)
-    $args = @("-m", $Model, "--port", "$Port", "-t", "$Threads", "-ngl", "$Ngl", "-c", "4096", "--log-disable")
-    if ($SpecType -ne "none") { $args += @("--spec-type", $SpecType, "--spec-draft-n-max", "$SpecNmax") }
+    $args = @("-m", $Model, "-port", "$Port", "-t", "$Threads", "-ngl", "$Ngl", "-c", "4096", "-log-disable")
+    if ($SpecType -ne "none") { $args += @("-spec-type", $SpecType, "-spec-draft-n-max", "$SpecNmax") }
     Start-Process $Exe -ArgumentList $args -NoNewWindow -RedirectStandardError "$env:TEMP\llama-srv-$Port.log"
     for ($i = 0; $i -lt 90; $i++) {
         try { $r = Invoke-WebRequest "http://localhost:$Port/health" -TimeoutSec 2 -UseBasicParsing; if ($r.StatusCode -eq 200) { return $true } } catch {}

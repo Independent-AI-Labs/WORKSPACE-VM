@@ -4,9 +4,9 @@
 #
 # Usage:
 #   pwd              # Print current AMI_ROOT
-#   pwd --set PATH   # Set AMI_ROOT persistently
-#   pwd --reset      # Reset to default (agents/ directory)
-#   pwd --env        # Output export statement for eval
+#   pwd -set PATH   # Set AMI_ROOT persistently
+#   pwd -reset      # Reset to default (agents/ directory)
+#   pwd -env        # Output export statement for eval
 #
 # The root is stored in ~/.config/ami/root and exported as AMI_ROOT
 set -euo pipefail
@@ -26,8 +26,14 @@ get_default_root() {
         fi
         curr="$(dirname "$curr")"
     done
-    # Final fallback — resolve from git root
-    git rev-parse --show-toplevel 2>/dev/null || echo "$HOME/WORKSPACE-VM"
+    # Final fallback - resolve from git root
+    local _err_tmp
+    _err_tmp="$(mktemp)"
+    if ! git rev-parse -show-toplevel 2>"$_err_tmp"; then
+        if [[ -s "$_err_tmp" ]]; then cat "$_err_tmp" >&2; fi
+        echo "$HOME/WORKSPACE-VM"
+    fi
+    rm -f "$_err_tmp"
 }
 
 # Get current root (from file, env, or default)
@@ -68,24 +74,24 @@ reset_root() {
 
 # Main
 case "${1:-}" in
-    --set)
-        [[ -z "${2:-}" ]] && echo "Usage: pwd --set PATH" >&2 && exit 1
+    -set)
+        [[ -z "${2:-}" ]] && echo "Usage: pwd -set PATH" >&2 && exit 1
         set_root "$2"
         ;;
-    --reset)
+    -reset)
         reset_root
         ;;
-    --env)
+    -env)
         echo "export AMI_ROOT=\"$(get_root)\""
         ;;
-    --help|-h)
+    -help|-h)
         echo "pwd: AMI root directory management"
         echo ""
         echo "Usage:"
         echo "  pwd              Print current AMI_ROOT"
-        echo "  pwd --set PATH   Set AMI_ROOT persistently"
-        echo "  pwd --reset      Reset to default (agents/)"
-        echo "  pwd --env        Output export statement for eval"
+        echo "  pwd -set PATH   Set AMI_ROOT persistently"
+        echo "  pwd -reset      Reset to default (agents/)"
+        echo "  pwd -env        Output export statement for eval"
         echo ""
         echo "Current: $(get_root)"
         ;;

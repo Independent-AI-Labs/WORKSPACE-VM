@@ -158,7 +158,7 @@ class TestRunCheck:
             "name": "welcome",
             "binary": "workspace/scripts/bin/welcome",
             "check": {
-                "command": ["{binary}", "--help"],
+                "command": ["{binary}", "-help"],
                 "healthExpect": "welcome",
                 "timeout": 5,
             },
@@ -171,7 +171,7 @@ class TestRunCheck:
             "name": "nonexistent",
             "binary": "nonexistent/binary",
             "check": {
-                "command": ["{binary}", "--help"],
+                "command": ["{binary}", "-help"],
                 "healthExpect": "nope",
                 "timeout": 2,
             },

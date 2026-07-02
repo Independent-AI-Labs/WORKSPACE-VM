@@ -12,8 +12,8 @@ ExecStart={{ llama_server_path }} \
     -ngl {{ llama_gpu_layers }} \
     -sm layer \
     -ts 1/2 \
-    --host {{ llama_server_host }} \
-    --port {{ llama_server_port }} \
+    -host {{ llama_server_host }} \
+    -port {{ llama_server_port }} \
     -t 4
 Environment=LD_LIBRARY_PATH={{ vulkan_build_lib }}:{{ ansible_env.LD_LIBRARY_PATH | default('') }}
 StandardOutput=journal

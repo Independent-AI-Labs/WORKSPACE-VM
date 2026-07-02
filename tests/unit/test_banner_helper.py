@@ -290,7 +290,7 @@ class TestMain:
                 return_value=[],
             ),
             patch("workspace.scripts.shell.banner_helper.output_banner") as mock_banner,
-            patch("sys.argv", ["banner_helper.py", "--mode", "banner", "--quiet"]),
+            patch("sys.argv", ["banner_helper.py", "-mode", "banner", "-quiet"]),
         ):
             main()
             mock_banner.assert_called_once()
@@ -310,7 +310,7 @@ class TestMain:
                 return_value=[],
             ),
             patch("workspace.scripts.shell.banner_helper.output_extras") as mock_extras,
-            patch("sys.argv", ["banner_helper.py", "--mode", "extras"]),
+            patch("sys.argv", ["banner_helper.py", "-mode", "extras"]),
         ):
             main()
             mock_extras.assert_called_once()
@@ -334,7 +334,7 @@ class TestMain:
                 side_effect=lambda exts, _root: exts,
             ) as mock_enforce,
             patch("workspace.scripts.shell.banner_helper.output_doctor") as mock_doctor,
-            patch("sys.argv", ["banner_helper.py", "--mode", "doctor"]),
+            patch("sys.argv", ["banner_helper.py", "-mode", "doctor"]),
         ):
             main()
             mock_doctor.assert_called_once()

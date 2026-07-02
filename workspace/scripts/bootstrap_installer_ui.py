@@ -24,7 +24,7 @@ RESET = Colors.RESET
 
 _ART = generate_banner_lines()
 
-# Box inner width (between ║ characters) — sized to fit the art
+# Box inner width (between ║ characters) - sized to fit the art
 _BOX_WIDTH = max(64, max(len(line) for line in _ART) + 4)
 
 

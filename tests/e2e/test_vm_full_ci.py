@@ -67,7 +67,7 @@ class TestVMCreateFullCI:
             f"=== STDOUT ===\n{result.stdout}\n=== STDERR ===\n{result.stderr}"
         )
         assert result.returncode == 0, (
-            f"full CI build failed — logs saved to {log_file}\n"
+            f"full CI build failed - logs saved to {log_file}\n"
             f"STDERR (last 3000):\n{result.stderr[-3000:]}\n"
             f"STDOUT (last 3000):\n{result.stdout[-3000:]}"
         )
@@ -76,7 +76,7 @@ class TestVMCreateFullCI:
         vm_tracker.register(uuid_val)
 
         # Verify the image was built successfully with healthcheck intact.
-        # The container may not stay running — systemd in rootless podman
+        # The container may not stay running - systemd in rootless podman
         # can exit immediately. The key assertion is that the image built
         # with all 13 CI components.
         image_ok = subprocess.run(

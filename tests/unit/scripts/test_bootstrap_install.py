@@ -392,7 +392,7 @@ class TestPullWorkspaceRepo:
 
     @patch("workspace.scripts.bootstrap_install.subprocess.run")
     def test_clones_missing_repo_via_bootstrap(self, mock_run) -> None:
-        """Missing repo (no .git) calls bootstrap-repos --include."""
+        """Missing repo (no .git) calls bootstrap-repos -include."""
         comp = Component(
             name="ami-portal",
             label="T",
@@ -406,7 +406,7 @@ class TestPullWorkspaceRepo:
         mock_run.assert_called_once()
         call_args = mock_run.call_args[0][0]
         assert call_args[0] == "bash"
-        assert "--include" in call_args
+        assert "-include" in call_args
         assert call_args[-1] == "ami-portal"
 
     @patch("workspace.scripts.bootstrap_install.subprocess.run")

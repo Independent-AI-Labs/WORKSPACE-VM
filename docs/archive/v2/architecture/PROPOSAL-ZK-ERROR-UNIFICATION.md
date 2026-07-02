@@ -15,7 +15,7 @@ hand, or bail on `anyhow::Error` at the boundary which erases structure.
 
 ## Options
 
-### Option A — Top-level `ZkError` enum
+### Option A - Top-level `ZkError` enum
 
 Add `ZkError` in `zk-core` with variants that wrap each downstream
 crate's error:
@@ -37,7 +37,7 @@ Callers at crate boundaries use `Result<T, ZkError>`.
 - **Con:** `zk-core` must depend on every crate whose errors it wraps;
   inverts the normal dependency direction.
 
-### Option B — Shared `ZkError` trait in `zk-core`
+### Option B - Shared `ZkError` trait in `zk-core`
 
 `zk-core` declares a trait `trait ZkError: std::error::Error +
 std::fmt::Debug + Send + Sync`. Each downstream error implements it.
@@ -48,7 +48,7 @@ Boundary code uses `Box<dyn ZkError>`.
 - **Con:** `Box<dyn>` forces allocation and erases downcasts in the
   common case; match-on-kind at boundary requires `downcast_ref`.
 
-### Option C — Use `thiserror` conventions without a top-level type
+### Option C - Use `thiserror` conventions without a top-level type
 
 Adopt the discipline: every crate's error enum follows the same
 template (variants prefixed `Io`, `Protocol`, `Validation`, etc.),
@@ -60,7 +60,7 @@ error type their caller expects.
 - **Con:** doesn't actually unify anything; boundaries still type-
   juggle; the "same template" rule is aspirational and not enforced.
 
-### Option D — Leave as is
+### Option D - Leave as is
 
 The decentralised errors work; crate boundaries that need unification
 fall back to `anyhow` where they already are.
@@ -76,7 +76,7 @@ Accepting the reverse-dependency is the standard workspace pattern
 for Rust projects that want one unified error at the public API
 surface. The alternative (Option B, `Box<dyn>`) loses match
 ergonomics, which matters for code that actually branches on error
-kind — and that's the code we care about.
+kind - and that's the code we care about.
 
 ## First-draft scope for A
 

@@ -8,9 +8,9 @@ BLUE='\033[0;34m'
 RED='\033[38;5;203m'
 NC='\033[0m'
 
-# Unset colors when --plain is active
+# Unset colors when -plain is active
 for arg in "$@"; do
-    if [[ "$arg" == "--plain" ]]; then
+    if [[ "$arg" == "-plain" ]]; then
         GREEN=''
         BLUE=''
         RED=''
@@ -27,11 +27,11 @@ _ami_echo() {
 
 # Function to display the banner
 display_banner() {
-    # Ignore any --exclude-categories args (rendering is now done in
+    # Ignore any -exclude-categories args (rendering is now done in
     # Python via banner_helper.py which inspects manifests directly).
     while [[ $# -gt 0 ]]; do
         case "$1" in
-            --exclude-categories) shift ;;
+            -exclude-categories) shift ;;
         esac
         shift
     done
@@ -39,7 +39,7 @@ display_banner() {
     _ami_echo "${GREEN}✓${NC} AMI Orchestrator shell environment configured successfully!"
     _ami_echo ""
     local banner_output
-    banner_output=$(uv run python "$AMI_ROOT/workspace/utils/banner.py" --project-root "$AMI_ROOT")
+    banner_output=$(uv run python "$AMI_ROOT/workspace/utils/banner.py" -project-root "$AMI_ROOT")
     if [[ -n "$banner_output" ]]; then
         while IFS= read -r line; do
             _ami_echo " $line"
@@ -54,9 +54,9 @@ display_banner() {
     if [[ -f "$_banner_helper" ]]; then
         local _quiet_flag=""
         local _plain_flag=""
-        [[ "$AMI_QUIET_MODE" == "1" ]] && _quiet_flag="--quiet"
-        [[ -z "$GREEN" ]] && _plain_flag="--plain"
-        uv run python "$_banner_helper" --mode banner $_quiet_flag $_plain_flag
+        [[ "$AMI_QUIET_MODE" == "1" ]] && _quiet_flag="-quiet"
+        [[ -z "$GREEN" ]] && _plain_flag="-plain"
+        uv run python "$_banner_helper" -mode banner $_quiet_flag $_plain_flag
     fi
 }
 

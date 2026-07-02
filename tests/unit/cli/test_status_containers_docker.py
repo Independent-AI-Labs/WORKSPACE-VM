@@ -1,4 +1,4 @@
-"""Unit tests for workspace.cli.status_containers — system docker section."""
+"""Unit tests for workspace.cli.status_containers - system docker section."""
 
 from unittest.mock import DEFAULT, patch
 

@@ -21,11 +21,11 @@ NC='\033[0m'
 log_info() { echo -e "${GREEN}[INFO]${NC} $*"; }
 
 log_info "Installing Ansible and dependencies..."
-"$UV_CMD" pip install --reinstall --python "$PYTHON_ENV" ansible passlib
+"$UV_CMD" pip install -reinstall -python "$PYTHON_ENV" ansible passlib
 
 # Verify installation
- if "$PYTHON_ENV/bin/ansible" --version > /dev/null 2>&1; then
-    VERSION=$("$PYTHON_ENV/bin/ansible" --version 2>&1)
+ if "$PYTHON_ENV/bin/ansible" -version > /dev/null 2>&1; then
+    VERSION=$("$PYTHON_ENV/bin/ansible" -version 2>&1)
     VERSION="${VERSION%%$'\n'*}"
     log_info "Ansible installed: $VERSION"
 else

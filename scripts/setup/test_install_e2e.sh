@@ -8,7 +8,7 @@ IMAGE_DELETED=false
 
 abort_cleanup() {
     if [[ -n "$VM_UUID" ]]; then
-        echo "Aborting — cleaning up VM $VM_UUID..."
+        echo "Aborting - cleaning up VM $VM_UUID..."
         if ! bash workspace/scripts/bin/vm delete "$VM_UUID" 2>&1; then
             echo "WARNING: cleanup failed for VM $VM_UUID" >&2
         fi
@@ -50,7 +50,7 @@ echo "=========================================="
 echo "PHASE 3: Filesystem verification"
 echo "=========================================="
 
-podman run --rm --entrypoint bash --network none "ami-vm:$VM_UUID" -c '
+podman run -rm -entrypoint bash -network none "ami-vm:$VM_UUID" -c '
 set -euo pipefail
 cd /opt/ami-agents
 echo "=== venv ==="
@@ -76,10 +76,10 @@ echo "=========================================="
 echo "PHASE 4: Git hooks"
 echo "=========================================="
 
-podman run --rm --entrypoint bash --network none "ami-vm:$VM_UUID" -c '
+podman run -rm -entrypoint bash -network none "ami-vm:$VM_UUID" -c '
 cd /opt/ami-agents
-test -f .git/hooks/pre-commit && echo "[PASS] pre-commit hook installed" || echo "[WARN] pre-commit hook missing"
-test -f .git/hooks/pre-push && echo "[PASS] pre-push hook installed" || echo "[WARN] pre-push hook missing"
+if test -f .git/hooks/pre-commit; then echo "[PASS] pre-commit hook installed"; else echo "[WARN] pre-commit hook missing"; fi
+if test -f .git/hooks/pre-push; then echo "[PASS] pre-push hook installed"; else echo "[WARN] pre-push hook missing"; fi
 '
 echo "[PASS] Hook verification complete"
 
@@ -89,11 +89,11 @@ echo "=========================================="
 echo "PHASE 5: Bootstrap environment"
 echo "=========================================="
 
-podman run --rm --entrypoint bash --network none "ami-vm:$VM_UUID" -c '
+podman run -rm -entrypoint bash -network none "ami-vm:$VM_UUID" -c '
 cd /opt/ami-agents
 test -d .boot-linux && echo "[PASS] .boot-linux directory exists" || { echo "[FAIL] .boot-linux missing"; exit 1; }
 test -d .boot-linux/bin && echo "[PASS] .boot-linux/bin exists"
-command -v .boot-linux/bin/uv >/dev/null 2>&1 && echo "[PASS] uv bootstrapped" || echo "[WARN] uv not found in boot-linux"
+if command -v .boot-linux/bin/uv >/dev/null 2>&1; then echo "[PASS] uv bootstrapped"; else echo "[WARN] uv not found in boot-linux"; fi
 '
 echo "[PASS] Bootstrap environment verified"
 

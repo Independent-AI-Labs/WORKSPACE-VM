@@ -1,18 +1,18 @@
-# AGENTS.md — Universal Agent Rules for Enterprise Delivery
+# AGENTS.md - Universal Agent Rules for Enterprise Delivery
 
-## 作弊就是死刑 — Cheating Is The Death Penalty
+## 作弊就是死刑 - Cheating Is The Death Penalty
 
 Every rule below is absolute. Violation means you are sabotaging the project.
 
 **There is no such thing as pre-existing errors. Every error is yours to fix.**
 
----
+--
 
 ## Rule 1: Never Circumvent Quality Gates
 
 - NEVER use `#[allow(...)]`, `# type: ignore`, `# noqa` to suppress linters. Fix the code.
 - NEVER use `unsafe { }` blocks without documented, reviewed justification.
-- NEVER commit with `--no-verify`. Respect every hook.
+- NEVER commit with `-no-verify`. Respect every hook.
 - NEVER amend pushed commits. Make a new commit.
 - NEVER flip-flop config values to cheat past pre-push gates.
 - NEVER add exceptions to banned-words or lint configs as a workaround.
@@ -24,8 +24,8 @@ Every rule below is absolute. Violation means you are sabotaging the project.
 - No print-only tests. No tests that always pass regardless of code.
 - Tests must compile before commit. Never commit broken tests.
 - Always run the full workspace test suite before committing.
-- Coverage thresholds are earned, not configured — raise them only when actual coverage reaches that level.
-- NEVER add `--ignore-filename-regex` to exclude testable code.
+- Coverage thresholds are earned, not configured - raise them only when actual coverage reaches that level.
+- NEVER add `-ignore-filename-regex` to exclude testable code.
 
 ## Rule 3: One Commit Per Logical Change
 
@@ -36,12 +36,12 @@ Every rule below is absolute. Violation means you are sabotaging the project.
 - No auto-generated messages (merge, fixup, squash) unless whitelisted.
 - No agent self-attribution lines (Co-authored-by, Claude, Anthropic email).
 
-## Rule 3.5: No Going Back — Only Forward
+## Rule 3.5: No Going Back - Only Forward
 
-- NEVER run `git reset`, `git checkout --hard`, `git rebase`, or `git commit --amend`.
-- EXCEPTION: `git pull --rebase` IS allowed — the guard treats it as `pull` with a flag,
+- NEVER run `git reset`, `git checkout -hard`, `git rebase`, or `git commit -amend`.
+- EXCEPTION: `git pull -rebase` IS allowed - the guard treats it as `pull` with a flag,
   not as standalone `git rebase`. Use it to sync a diverged branch: rebase local commits
-  on top of upstream, resolve conflicts, `git add` + `git rebase --continue`.
+  on top of upstream, resolve conflicts, `git add` + `git rebase -continue`.
 - History is immutable. What is committed stays committed.
 - If the working tree is dirty, commit it. If it's not ready, stash it (full or partial).
 - The only valid moves are: commit, stash, push. Everything else is forbidden.
@@ -54,23 +54,23 @@ Before every commit, run ALL of these that apply to the project:
 ```
 cargo test                                                # Rust (in projects/WORKSPACE-GUARD/)
 python -m pytest                                           # Python
-cargo fmt --check                                          # Rust format (in projects/WORKSPACE-GUARD/)
-ruff format --check                                       # Python format
-cargo clippy -- -D warnings                                # Rust lint (in projects/WORKSPACE-GUARD/)
+cargo fmt -check                                          # Rust format (in projects/WORKSPACE-GUARD/)
+ruff format -check                                       # Python format
+cargo clippy - -D warnings                                # Rust lint (in projects/WORKSPACE-GUARD/)
 ruff check                                                # Python lint
 All files under 512 lines                                  # Length
 
 The WORKSPACE-GUARD repo (projects/WORKSPACE-GUARD/) has its own pre-commit hooks
 (cargo-fmt, cargo-build, cargo-clippy) and pre-push hook (cargo-test).
-Run those from within the WORKSPACE-GUARD directory. Do NOT skip them with `--no-verify`.
+Run those from within the WORKSPACE-GUARD directory. Do NOT skip them with `-no-verify`.
 If the project has a Makefile with a `check` or `preflight` target, run that too.
 
 ## Rule 5: Shell-First, Framework-Never for CI Hooks
 
 - If grep/awk/git can do it, it stays in shell. No Python VMs for pattern matching.
-- Generate native git hooks from config — never depend on the `pre-commit` Python framework runtime.
+- Generate native git hooks from config - never depend on the `pre-commit` Python framework runtime.
 - Auto-stage unstaged changes instead of stashing them (files should never vanish from disk).
-- Scan only the staged diff for silent-error-swallow patterns — pre-existing violations don't block new commits.
+- Scan only the staged diff for silent-error-swallow patterns - pre-existing violations don't block new commits.
 
 ## Rule 6: File Manipulation
 
@@ -93,23 +93,23 @@ If the project has a Makefile with a `check` or `preflight` target, run that too
 - Test only the `_at` variants of functions that accept explicit paths.
 - If a function requires env vars, restructure it to accept explicit parameters.
 
-## Rule 9: Banned Patterns — Zero Exceptions Per Project
+## Rule 9: Banned Patterns - Zero Exceptions Per Project
 
 These are banned in ALL production code:
-- `#[allow(`, `# type: ignore`, `# noqa` — never suppress tools
-- `unsafe {` — never without documented justification
-- `fallback` — no silent failure fallbacks
-- `mock`, `stub` — no mocks in production
-- `Any` type — use concrete types
-- `silent` — no silent error swallowing
-- `self.get(` — no dict-like access patterns
+- `#[allow(`, `# type: ignore`, `# noqa` - never suppress tools
+- `unsafe {` - never without documented justification
+- `fallback` - no silent failure fallbacks
+- `mock`, `stub` - no mocks in production
+- `Any` type - use concrete types
+- `silent` - no silent error swallowing
+- `self.get(` - no dict-like access patterns
 
 The ONLY exception file is the shared `banned_words.yaml`. Per-project exception files stay empty.
 
 ## Rule 10: Schema Source of Truth
 
 Production schemas (GraphQL SDL) are the source of truth. Never edit generated code.
-Schema files are loaded at runtime from disk — edits take effect immediately.
+Schema files are loaded at runtime from disk - edits take effect immediately.
 Proposal schemas live alongside client data and serve as reference for future changes.
 
 ## Rule 12: Double, Triple, Quadruple Check
@@ -130,7 +130,7 @@ Before pushing, verify:
 - Match arms must be exhaustive. No wildcard fallthroughs that hide logic errors.
 - Network operations (pull, push, fetch) must fail the operation, not degrade silently.
 
-## Rule 14: Shell Strict Mode — Never Mask Exit Codes with Pipelines
+## Rule 14: Shell Strict Mode - Never Mask Exit Codes with Pipelines
 
 All shell scripts in this project use `#!/bin/bash` (bash, not sh).
 
@@ -146,7 +146,7 @@ set -euo pipefail
 `head` and `tail` close stdin early after reading N lines/elements. The upstream
 command receives SIGPIPE (exit 141), which `set -o pipefail` correctly surfaces
 as a failure. A genuinely-failing upstream command also produces a non-zero exit.
-Piping to head/tail makes both cases indistinguishable — it flat-out swallows errors.
+Piping to head/tail makes both cases indistinguishable - it flat-out swallows errors.
 
 **Banned pattern:**
 ```bash
@@ -155,7 +155,7 @@ command 2>&1 | tee log | tail -N # same problem, plus tee gets killed too
 command | head -10               # same
 ```
 
-**Correct pattern — decouple capture from display:**
+**Correct pattern - decouple capture from display:**
 ```bash
 # Option A: redirect to file, check exit, then tail the file
 command 2>&1 | tee output.log
@@ -188,11 +188,11 @@ source "$SCRIPT_PATH"              # banned: sh-bare-source (no exit check)
 
 ### PIPESTATUS Is Ephemeral
 
-`PIPESTATUS` is overwritten by the **very next command** — even `echo` or an
+`PIPESTATUS` is overwritten by the **very next command** - even `echo` or an
 assignment. Capture it immediately after the pipeline:
 ```bash
 command | tee output.log
 ret=${PIPESTATUS[0]}       # must be first line after pipeline
 ```
 
-## 作弊就是死刑 — REMEMBER THIS
+## 作弊就是死刑 - REMEMBER THIS

@@ -29,7 +29,7 @@ class TestLoadWorkspaceRepoComponents:
             assert defs._load_workspace_repo_components() == []
 
     def test_invalid_entry_raises_validation_error(self, tmp_path: Path) -> None:
-        """A non-dict entry under workspaceClones is a manifest bug — fail
+        """A non-dict entry under workspaceClones is a manifest bug - fail
         loudly so the user can fix their YAML rather than silently dropping
         a repo from the workspace topology."""
         f = tmp_path / "clones.yaml"

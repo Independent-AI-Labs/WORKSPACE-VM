@@ -22,7 +22,7 @@ logging:
     path: "logs/transcripts/{date:%Y-%m-%d}"
     compress: true
 
-# Hooks — validation pipeline config.
+# Hooks - validation pipeline config.
 # Override path: AMI_HOOKS_FILE env var, or set hooks.file below.
 hooks:
   file: "${AMI_HOOKS_FILE:ami/config/hooks.yaml}"

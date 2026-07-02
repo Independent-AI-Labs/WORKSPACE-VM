@@ -40,10 +40,10 @@ groups:
   - 'Browser & Device Automation'
   - 'Matrix & Communication'
 
-# ---------------------------------------------------------------------------
+# --------------------------------------
 # System dependencies - checked by initial-setup.sh on every make install.
 # Union of requires (top-level) + all components[].requires = full check list.
-# ---------------------------------------------------------------------------
+# --------------------------------------
 requires:
   - check_cmd: make
     apt_package: make
@@ -115,7 +115,7 @@ components:
     group: 'Core Dependencies'
     script: 'bootstrap_uv.sh'
     detect_path: '.boot-linux/bin/uv'
-    version_cmd: ['.boot-linux/bin/uv', '--version']
+    version_cmd: ['.boot-linux/bin/uv', '-version']
     version_pattern: 'uv (\d+\.\d+\.\d+)'
 
   - name: python
@@ -125,7 +125,7 @@ components:
     group: 'Core Dependencies'
     script: 'bootstrap_python.sh'
     detect_path: '.boot-linux/python-env/bin/python'
-    version_cmd: ['.boot-linux/bin/python', '--version']
+    version_cmd: ['.boot-linux/bin/python', '-version']
     version_pattern: 'Python (\d+\.\d+\.\d+)'
 
   - name: gcc
@@ -135,7 +135,7 @@ components:
     group: 'Core Dependencies'
     script: 'bootstrap_gcc.sh'
     detect_path: '.boot-linux/bin/gcc'
-    version_cmd: ['.boot-linux/bin/gcc', '--version']
+    version_cmd: ['.boot-linux/bin/gcc', '-version']
     version_pattern: 'gcc.*?(\d+\.\d+\.\d+)'
 
   - name: git_xet
@@ -145,7 +145,7 @@ components:
     group: 'Core Dependencies'
     script: 'bootstrap_git_xet.sh'
     detect_path: '.boot-linux/bin/git-lfs'
-    version_cmd: ['.boot-linux/bin/git-lfs', '--version']
+    version_cmd: ['.boot-linux/bin/git-lfs', '-version']
     version_pattern: 'git-lfs/(\d+\.\d+\.\d+)'
 
   - name: moon
@@ -155,7 +155,7 @@ components:
     group: 'Core Dependencies'
     script: 'bootstrap_moon.sh'
     detect_path: '.boot-linux/bin/moon'
-    version_cmd: ['.boot-linux/bin/moon', '--version']
+    version_cmd: ['.boot-linux/bin/moon', '-version']
     version_pattern: 'moon (\d+\.\d+\.\d+)'
 
   - name: node
@@ -165,7 +165,7 @@ components:
     group: 'Core Dependencies'
     script: 'bootstrap_node.sh'
     detect_path: '.boot-linux/bin/node'
-    version_cmd: ['.boot-linux/bin/node', '--version']
+    version_cmd: ['.boot-linux/bin/node', '-version']
     version_pattern: 'v(\d+\.\d+\.\d+)'
 
   - name: gitleaks
@@ -209,7 +209,7 @@ components:
     group: 'Languages & Compilers'
     script: 'bootstrap_rust.sh'
     detect_path: '.boot-linux/rust/bin/cargo'
-    version_cmd: ['.boot-linux/rust/bin/rustc', '--version']
+    version_cmd: ['.boot-linux/rust/bin/rustc', '-version']
     version_pattern: 'rustc (\d+\.\d+\.\d+)'
 
   # =========================================================================
@@ -222,7 +222,7 @@ components:
     group: 'AI Coding Assistants'
     script: 'bootstrap_opencode.sh'
     detect_path: '.boot-linux/bin/opencode'
-    version_cmd: ['.boot-linux/bin/opencode', '--version']
+    version_cmd: ['.boot-linux/bin/opencode', '-version']
     version_pattern: '(\d+\.\d+\.\d+)'
 
   # =========================================================================
@@ -248,7 +248,7 @@ components:
     group: 'Infrastructure & Orchestration'
     script: 'bootstrap_podman.sh'
     detect_path: '.boot-linux/bin/podman'
-    version_cmd: ['.boot-linux/bin/podman', '--version']
+    version_cmd: ['.boot-linux/bin/podman', '-version']
     version_pattern: 'podman version (\d+\.\d+\.\d+)'
 
   - name: traefik
@@ -268,7 +268,7 @@ components:
     group: 'Infrastructure & Orchestration'
     script: 'bootstrap_kubernetes.sh'
     detect_path: '.boot-linux/bin/kubectl'
-    version_cmd: ['.boot-linux/bin/kubectl', 'version', '--client', '-o', 'json']
+    version_cmd: ['.boot-linux/bin/kubectl', 'version', '-client', '-o', 'json']
     version_pattern: '"gitVersion":\s*"v?(\d+\.\d+\.\d+)"'
 
   - name: ansible
@@ -278,7 +278,7 @@ components:
     group: 'Infrastructure & Orchestration'
     script: 'bootstrap_ansible.sh'
     detect_path: '.boot-linux/python-env/bin/ansible'
-    version_cmd: ['.boot-linux/python-env/bin/ansible', '--version']
+    version_cmd: ['.boot-linux/python-env/bin/ansible', '-version']
     version_pattern: 'ansible.*?(\d+\.\d+\.\d+)'
 
   - name: cron
@@ -303,7 +303,7 @@ components:
     group: 'Infrastructure & Orchestration'
     script: 'bootstrap_llama_cpu.sh'
     detect_path: 'projects/llama.cpp/build-cpu/bin/llama-server'
-    version_cmd: ['projects/llama.cpp/build-cpu/bin/llama-server', '--version']
+    version_cmd: ['projects/llama.cpp/build-cpu/bin/llama-server', '-version']
     version_pattern: '(\d+\.\d+)'
 
   - name: llama_sycl
@@ -313,7 +313,7 @@ components:
     group: 'Infrastructure & Orchestration'
     script: 'bootstrap_llama_sycl.sh'
     detect_path: 'projects/llama.cpp/build-sycl/bin/llama-server'
-    version_cmd: ['projects/llama.cpp/build-sycl/bin/llama-server', '--version']
+    version_cmd: ['projects/llama.cpp/build-sycl/bin/llama-server', '-version']
     version_pattern: '(\d+\.\d+)'
 
   - name: llama_vulkan
@@ -323,7 +323,7 @@ components:
     group: 'Infrastructure & Orchestration'
     script: 'bootstrap_llama_vulkan.sh'
     detect_path: 'projects/llama.cpp/build-vulkan/bin/llama-server'
-    version_cmd: ['projects/llama.cpp/build-vulkan/bin/llama-server', '--version']
+    version_cmd: ['projects/llama.cpp/build-vulkan/bin/llama-server', '-version']
     version_pattern: '(\d+\.\d+)'
 
   # =========================================================================
@@ -336,7 +336,7 @@ components:
     group: 'Cloud & Service CLIs'
     script: 'bootstrap_gcloud.sh'
     detect_path: '.boot-linux/bin/gcloud'
-    version_cmd: ['.gcloud/google-cloud-sdk/bin/gcloud', 'version', '--format=json']
+    version_cmd: ['.gcloud/google-cloud-sdk/bin/gcloud', 'version', '-format=json']
     version_pattern: '"Google Cloud SDK":\s*"(\d+\.\d+\.\d+)"'
 
   - name: gh
@@ -346,7 +346,7 @@ components:
     group: 'Cloud & Service CLIs'
     script: 'bootstrap_gh.sh'
     detect_path: '.boot-linux/bin/gh'
-    version_cmd: ['.boot-linux/bin/gh', '--version']
+    version_cmd: ['.boot-linux/bin/gh', '-version']
     version_pattern: 'gh version (\d+\.\d+\.\d+)'
 
   - name: huggingface
@@ -366,7 +366,7 @@ components:
     group: 'Cloud & Service CLIs'
     script: 'bootstrap_gitlab.sh'
     detect_path: '.boot-linux/bin/glab'
-    version_cmd: ['.boot-linux/bin/glab', '--version']
+    version_cmd: ['.boot-linux/bin/glab', '-version']
     version_pattern: 'glab version (\d+\.\d+\.\d+)'
 
   # =========================================================================
@@ -379,7 +379,7 @@ components:
     group: 'Networking'
     script: 'bootstrap_cloudflared.sh'
     detect_path: '.boot-linux/bin/cloudflared'
-    version_cmd: ['.boot-linux/bin/cloudflared', '--version']
+    version_cmd: ['.boot-linux/bin/cloudflared', '-version']
     version_pattern: '(\d+\.\d+\.\d+)'
 
   # =========================================================================
@@ -392,7 +392,7 @@ components:
     group: 'Shell Utilities'
     script: 'bootstrap_sd.sh'
     detect_path: '.boot-linux/bin/sd'
-    version_cmd: ['.boot-linux/bin/sd', '--version']
+    version_cmd: ['.boot-linux/bin/sd', '-version']
     version_pattern: 'sd (\d+\.\d+\.\d+)'
 
   - name: cloc
@@ -402,7 +402,7 @@ components:
     group: 'Shell Utilities'
     script: 'bootstrap_cloc.sh'
     detect_path: '.boot-linux/bin/cloc'
-    version_cmd: ['.boot-linux/bin/cloc', '--version']
+    version_cmd: ['.boot-linux/bin/cloc', '-version']
     version_pattern: '(\d+\.\d+)'
 
   # =========================================================================
@@ -415,7 +415,7 @@ components:
     group: 'Document Processing'
     script: 'bootstrap_pandoc.sh'
     detect_path: '.boot-linux/bin/pandoc'
-    version_cmd: ['.boot-linux/bin/pandoc', '--version']
+    version_cmd: ['.boot-linux/bin/pandoc', '-version']
     version_pattern: 'pandoc (\d+\.\d+\.\d+)'
 
   - name: texlive
@@ -425,7 +425,7 @@ components:
     group: 'Document Processing'
     script: 'bootstrap_texlive.sh'
     detect_path: '.boot-linux/texlive'
-    detect_cmd: ['.boot-linux/bin/pdflatex', '--version']
+    detect_cmd: ['.boot-linux/bin/pdflatex', '-version']
     version_pattern: 'pdfTeX (\d+\.\d+)'
 
   - name: pdfjam
@@ -435,7 +435,7 @@ components:
     group: 'Document Processing'
     script: 'bootstrap_pdfjam.sh'
     detect_path: '.boot-linux/bin/pdfjam'
-    version_cmd: ['.boot-linux/bin/pdfjam', '--version']
+    version_cmd: ['.boot-linux/bin/pdfjam', '-version']
     version_pattern: 'pdfjam (\d+\.\d+)'
 
   - name: wkhtmltopdf
@@ -445,7 +445,7 @@ components:
     group: 'Document Processing'
     script: 'bootstrap_wkhtmltopdf.sh'
     detect_path: '.boot-linux/bin/wkhtmltopdf'
-    version_cmd: ['.boot-linux/bin/wkhtmltopdf', '--version']
+    version_cmd: ['.boot-linux/bin/wkhtmltopdf', '-version']
     version_pattern: 'wkhtmltopdf (\d+\.\d+\.\d+)'
 
   # =========================================================================
@@ -458,7 +458,7 @@ components:
     group: 'Browser & Device Automation'
     script: 'bootstrap_playwright.sh'
     detect_path: '.boot-linux/playwright-browsers'
-    version_cmd: ['.venv/bin/playwright', '--version']
+    version_cmd: ['.venv/bin/playwright', '-version']
     version_pattern: '(\d+\.\d+\.\d+)'
     requires:
       - check_type: playwright-libs
@@ -471,7 +471,7 @@ components:
     group: 'Browser & Device Automation'
     script: 'bootstrap_adb.sh'
     detect_path: '.boot-linux/bin/adb'
-    version_cmd: ['.boot-linux/bin/adb', '--version']
+    version_cmd: ['.boot-linux/bin/adb', '-version']
     version_pattern: 'Android Debug Bridge version (\d+\.\d+\.\d+)'
 
   # =========================================================================
@@ -484,7 +484,7 @@ components:
     group: 'Matrix & Communication'
     script: 'bootstrap_matrix_commander.sh'
     detect_path: '.boot-linux/python-env/bin/matrix-commander'
-    version_cmd: ['.boot-linux/python-env/bin/matrix-commander', '--version']
+    version_cmd: ['.boot-linux/python-env/bin/matrix-commander', '-version']
     version_pattern: 'matrix-commander: (\d+\.\d+\.\d+)'
 
   - name: synadm
@@ -494,5 +494,5 @@ components:
     group: 'Matrix & Communication'
     script: 'bootstrap_synadm.sh'
     detect_path: '.boot-linux/bin/synadm'
-    version_cmd: ['.boot-linux/bin/synadm', '--version']
+    version_cmd: ['.boot-linux/bin/synadm', '-version']
     version_pattern: '(\d+\.\d+\.\d+)'

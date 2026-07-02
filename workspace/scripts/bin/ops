@@ -24,7 +24,7 @@ if [[ -d "$AMI_ROOT/projects" ]]; then
 fi
 export PYTHONPATH="$AMI_ROOT:${PROJECT_PATHS}${PYTHONPATH:-}"
 
-if [[ "$#" -gt 0 && ("$1" == "-h" || "$1" == "--help") ]]; then
+if [[ "$#" -gt 0 && ("$1" == "-h" || "$1" == "-help") ]]; then
     echo "ops: System orchestration and container management for AMI Orchestrator"
     echo ""
     echo "Usage: ops [subcommand] [args...]"
@@ -33,8 +33,8 @@ if [[ "$#" -gt 0 && ("$1" == "-h" || "$1" == "--help") ]]; then
     exit 0
 fi
 
-if [[ "$#" -gt 0 && "$1" == "--version" ]]; then
-    if VERSION="$(git -C "$AMI_ROOT" describe --always --dirty 2>&1)"; then
+if [[ "$#" -gt 0 && "$1" == "-version" ]]; then
+    if VERSION="$(git -C "$AMI_ROOT" describe -always -dirty 2>&1)"; then
         :
     else
         VERSION="unknown"
@@ -65,7 +65,7 @@ case "$SUBCOMMAND" in
         exec "$BOOT_DIR/bin/podman" "${ARGS[@]}"
         ;;
     systemd)
-        exec systemctl --user "${ARGS[@]}"
+        exec systemctl -user "${ARGS[@]}"
         ;;
     ansible|ansible-playbook|ansible-galaxy)
         exec "$BOOT_DIR/bin/$SUBCOMMAND" "${ARGS[@]}"

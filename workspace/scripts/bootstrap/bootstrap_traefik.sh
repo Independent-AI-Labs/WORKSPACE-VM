@@ -35,12 +35,12 @@ URL="https://github.com/traefik/traefik/releases/download/v${TRAEFIK_VERSION}/${
 
 echo "[${OP}] Downloading traefik v${TRAEFIK_VERSION} (${TRAEFIK_ARCH})..."
 if ! HTTP_CODE=$(curl -sLo "${TMPDIR}/${TARBALL}" -w "%{http_code}" "$URL"); then
-    echo "[${OP}] curl failed — check network connectivity"
+    echo "[${OP}] curl failed - check network connectivity"
     exit 1
 fi
 
 if [[ "$HTTP_CODE" != "200" ]]; then
-    echo "[${OP}] download failed (HTTP ${HTTP_CODE}) — check network or try later"
+    echo "[${OP}] download failed (HTTP ${HTTP_CODE}) - check network or try later"
     exit 1
 fi
 
