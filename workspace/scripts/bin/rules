@@ -123,7 +123,7 @@ _count_blocks() {
     echo "$n"
 }
 
-# -- RULES commands --
+# --- RULES commands ---
 
 cmd_list() {
     _init_userfile; _deploy
@@ -168,7 +168,7 @@ cmd_update() {
     cmd_list
 }
 
-# -- HOOKS commands --
+# --- HOOKS commands ---
 
 cmd_hooks() {
     _init_userfile; _deploy
@@ -213,7 +213,7 @@ cmd_hooks_update() {
     cmd_hooks
 }
 
-# -- block-level helpers --
+# --- block-level helpers ---
 
 # Insert a { regex, instruction } block before the closing ] of $section
 _insert_block() {
@@ -269,7 +269,7 @@ _delete_block() {
     mv "$tmp" "$file"
 }
 
-# -- main --
+# --- main ---
 case "${1:-list}" in
     hooks)
         shift
@@ -285,7 +285,7 @@ case "${1:-list}" in
     add)         shift; cmd_add "$@" ;;
     delete)      shift; cmd_delete "${1:-}" ;;
     update)      shift; cmd_update "$@" ;;
-    -help|-h)
+    --help|-h)
         echo "Usage: rules [COMMAND]"
         echo ""
         echo "  rules                                  Show rules, redeploy"

@@ -14,7 +14,7 @@ extensions:
       - status
     bannerPriority: 25
     check:
-      command: ["{binary}", "-help"]
+      command: ["{binary}", "--help"]
       healthExpect: "usage"
       timeout: 5
 
@@ -27,7 +27,7 @@ extensions:
       - session
     bannerPriority: 10
     check:
-      command: ["{binary}", "-version"]
+      command: ["{binary}", "--version"]
       versionPattern: "(\\d+\\.\\d+\\.\\d+)"
       healthExpect: "."
       timeout: 5
@@ -52,7 +52,7 @@ extensions:
       - doctor
     bannerPriority: 30
     check:
-      command: ["{binary}", "-help"]
+      command: ["{binary}", "--help"]
       healthExpect: "run"
       timeout: 5
 
@@ -66,7 +66,7 @@ extensions:
       - delete
     bannerPriority: 20
     check:
-      command: ["{binary}", "-help"]
+      command: ["{binary}", "--help"]
       healthExpect: "Usage"
       timeout: 5
 
@@ -87,7 +87,7 @@ extensions:
       - cron
     bannerPriority: 35
     check:
-      command: ["{binary}", "-help"]
+      command: ["{binary}", "--help"]
       healthExpect: "ops"
       timeout: 5
 
@@ -105,7 +105,7 @@ extensions:
       - serve
     bannerPriority: 40
     check:
-      command: ["{binary}", "-help"]
+      command: ["{binary}", "--help"]
       healthExpect: "repo"
       timeout: 5
 
@@ -122,7 +122,7 @@ extensions:
     hidden: true
     bannerPriority: 60
     check:
-      command: ["{binary}", "-help"]
+      command: ["{binary}", "--help"]
       healthExpect: "welcome"
       timeout: 5
 
@@ -136,6 +136,6 @@ extensions:
     hidden: true
     bannerPriority: 70
     check:
-      command: ["{binary}", "-help"]
+      command: ["{binary}", "--help"]
       healthExpect: "pwd"
       timeout: 5

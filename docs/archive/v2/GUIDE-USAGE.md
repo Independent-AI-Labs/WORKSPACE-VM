@@ -57,7 +57,7 @@ Run all checks manually: `make check`
 ## Key Configuration Files
 
 | File | Purpose |
-|---|-----|
+|------|---------|
 | `*/extension.manifest.yaml` | Per-component extension manifests (discovered dynamically) |
 | `ami/config/automation.yaml` | Agent CLI settings, logging, hooks |
 | `ami/config/hooks.yaml` | Hook validation pipeline (v4.0.0) |

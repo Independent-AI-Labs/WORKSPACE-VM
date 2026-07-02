@@ -28,9 +28,9 @@ fi
 export PLAYWRIGHT_BROWSERS_PATH="$BROWSERS_DIR"
 
 # Check if already installed with correct version
-# playwright install -dry-run shows "Install location: ...chromium-NNN" only when
+# playwright install --dry-run shows "Install location: ...chromium-NNN" only when
 # the expected version is missing or outdated. If no such line, we're up to date.
-if [[ -d "$BROWSERS_DIR" ]] && ! "$PLAYWRIGHT" install -dry-run chromium chrome 2>&1 | grep -q 'Install location:.*chromium-[0-9]'; then
+if [[ -d "$BROWSERS_DIR" ]] && ! "$PLAYWRIGHT" install --dry-run chromium chrome 2>&1 | grep -q 'Install location:.*chromium-[0-9]'; then
     _pw_err="$(mktemp)"
     EXISTING=$("$PLAYWRIGHT" -version 2>"$_pw_err") || {
         echo "[bootstrap-playwright] playwright version check failed: $(cat "$_pw_err")" >&2
@@ -64,7 +64,7 @@ if [[ ${#MISSING_LIBS[@]} -gt 0 ]]; then
     echo "" >&2
 fi
 
-# Download browsers (no -with-deps - never trigger sudo)
+# Download browsers (no --with-deps - never trigger sudo)
 log_info "Downloading Playwright browsers to $BROWSERS_DIR..."
 mkdir -p "$BROWSERS_DIR"
 
@@ -79,7 +79,7 @@ fi
 if [[ ${#MISSING_LIBS[@]} -eq 0 ]]; then
     log_info "Verifying chromium..."
     VERIFY_IMG="/tmp/playwright-verify-$$.png"
-    if timeout 30 "$PLAYWRIGHT" screenshot -browser chromium "data:text/html,<h1>AMI</h1>" "$VERIFY_IMG" 2>&1; then
+    if timeout 30 "$PLAYWRIGHT" screenshot --browser chromium "data:text/html,<h1>AMI</h1>" "$VERIFY_IMG" 2>&1; then
         rm -f "$VERIFY_IMG"
         log_success "Chromium operational"
     else

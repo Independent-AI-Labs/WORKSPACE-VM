@@ -58,7 +58,7 @@ xfail_strict = true
 # C tracer plus the YAML-loading test
 # tests/integration/test_hooks_integration.py::TestHookIntegration::test_tier_scope_override_elevates
 # segfault when run in the same process. Costs one fork; restores
-# deterministic test runs under `-cov`.
+# deterministic test runs under `--cov`.
 addopts = "-n 1"
 asyncio_mode = "strict"
 asyncio_default_fixture_loop_scope = "function"

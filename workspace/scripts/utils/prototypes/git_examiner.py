@@ -22,7 +22,7 @@ class GitCommitInfo(NamedTuple):
 class GitManager:
     @staticmethod
     def get_commits(limit: int = 30) -> list[GitCommitInfo]:
-        cmd = ["git", "log", "-n", str(limit), "-pretty=format:%h|%an|%ar|%s"]
+        cmd = ["git", "log", "-n", str(limit), "--pretty=format:%h|%an|%ar|%s"]
         try:
             result = subprocess.check_output(cmd, encoding="utf-8")
         except Exception as e:
@@ -53,10 +53,10 @@ class GitManager:
     def reword_commit(commit_hash: str, new_message: str) -> bool:
         try:
             head_hash = subprocess.check_output(
-                ["git", "rev-parse", "-short", "HEAD"], encoding="utf-8"
+                ["git", "rev-parse", "--short", "HEAD"], encoding="utf-8"
             ).strip()
             if commit_hash == head_hash:
-                subprocess.check_call(["git", "commit", "-amend", "-m", new_message])
+                subprocess.check_call(["git", "commit", "--amend", "-m", new_message])
                 return True
         except Exception as e:
             console.print(f"[red]Failed to reword: {e}[/red]")

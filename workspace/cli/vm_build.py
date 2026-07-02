@@ -44,35 +44,35 @@ def _derive_network_flags(config: VMConfig) -> list[str]:
     flags: list[str] = []
     mode = config.network.mode
     if mode == "none":
-        flags.extend(["-network", "none"])
+        flags.extend(["--network", "none"])
     elif mode == "bridge":
-        flags.extend(["-network", config.network.network_name])
+        flags.extend(["--network", config.network.network_name])
     elif mode == "host":
-        flags.extend(["-network", "host"])
+        flags.extend(["--network", "host"])
     elif mode == "openvpn":
         if config.network.vpn_type == "netns":
-            flags.extend(["-network", f"ns:/run/netns/{config.network.vpn_netns}"])
+            flags.extend(["--network", f"ns:/run/netns/{config.network.vpn_netns}"])
         else:
-            flags.extend(["-network", config.network.network_name])
-            flags.extend(["-device", "/dev/net/tun"])
+            flags.extend(["--network", config.network.network_name])
+            flags.extend(["--device", "/dev/net/tun"])
     return flags
 
 
 def _derive_cap_flags(config: VMConfig) -> list[str]:
     flags: list[str] = []
     for cap in config.security.cap_drop:
-        flags.extend(["-cap-drop", cap])
+        flags.extend(["--cap-drop", cap])
     if not config.security.cap_add:
         if config.network.mode == "bridge" and config.network.policy in (
             "internet",
             "proxy",
         ):
-            flags.extend(["-cap-add", "NET_ADMIN"])
+            flags.extend(["--cap-add", "NET_ADMIN"])
         if config.network.mode == "openvpn" and config.network.vpn_type == "container":
-            flags.extend(["-cap-add", "NET_ADMIN"])
+            flags.extend(["--cap-add", "NET_ADMIN"])
     else:
         for cap in config.security.cap_add:
-            flags.extend(["-cap-add", cap])
+            flags.extend(["--cap-add", cap])
     return flags
 
 
@@ -116,14 +116,14 @@ def _build_run_args(config: VMConfig, uuid_str: str) -> list[str]:
         "podman",
         "run",
         "-d",
-        "-systemd=always",
-        "-name",
+        "--systemd=always",
+        "--name",
         uuid_str,
-        "-label",
+        "--label",
         "ami.type=vm",
-        "-label",
+        "--label",
         f"ami.uuid={uuid_str}",
-        "-label",
+        "--label",
         f"ami.config={_config_sha256(config)}",
         "-v",
         f"{uuid_str}-workspace:/workspace",
@@ -131,33 +131,33 @@ def _build_run_args(config: VMConfig, uuid_str: str) -> list[str]:
         f"{uuid_str}-transcripts:/transcripts",
         "-v",
         f"{uuid_str}-cache:/cache",
-        "-userns=keep-id",
-        "-memory",
+        "--userns=keep-id",
+        "--memory",
         config.resources.memory,
-        "-cpus",
+        "--cpus",
         str(config.resources.cpus),
-        "-pids-limit",
+        "--pids-limit",
         str(config.resources.pids_limit),
-        "-health-on-failure=stop",
+        "--health-on-failure=stop",
         *(_derive_network_flags(config)),
         *(_derive_cap_flags(config)),
     ]
     if config.security.no_new_privileges:
-        run_args.extend(["-security-opt", "no-new-privileges"])
+        run_args.extend(["--security-opt", "no-new-privileges"])
     if config.security.read_only_rootfs:
         run_args.extend(
             [
-                "-read-only",
-                "-tmpfs",
+                "--read-only",
+                "--tmpfs",
                 "/tmp:rw,noexec,nosuid",
-                "-tmpfs",
+                "--tmpfs",
                 "/run:rw,noexec,nosuid",
             ]
         )
     for env_key, env_val in config.env.items():
         run_args.extend(["-e", f"{env_key}={env_val}"])
     for mount_entry in config.mounts:
-        run_args.extend(["-mount", f"type=bind,src={mount_entry},ro"])
+        run_args.extend(["--mount", f"type=bind,src={mount_entry},ro"])
     run_args.append(f"ami-vm:{uuid_str}")
     return run_args
 
@@ -236,15 +236,15 @@ def _render_and_build(
     _generate_dockerignore(vm_dir)
     _podman(
         "build",
-        "-format",
+        "--format",
         "docker",
-        "-ssh",
+        "--ssh",
         "default",
         "-t",
         f"ami-vm:{uuid_str}",
-        "-build-arg",
+        "--build-arg",
         f"AGENT_UID={_get_uid()}",
-        "-build-arg",
+        "--build-arg",
         f"OPENCODE_SERVER_PASSWORD={password}",
         "-f",
         str(vm_dir / "Dockerfile"),

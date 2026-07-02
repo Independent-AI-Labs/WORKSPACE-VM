@@ -156,7 +156,7 @@ if [[ ! -x "${VENV_DIR}/bin/wkhtmltopdf" ]]; then
     exit 1
 fi
 
-if ! "${VENV_DIR}/bin/wkhtmltopdf" -version 2>&1; then
+if ! "${VENV_DIR}/bin/wkhtmltopdf" --version 2>&1; then
     log_error "wkhtmltopdf binary failed to execute"
     log_error "Checking for missing libraries..."
     ldd "${WKHTMLTOPDF_DIR}/bin/wkhtmltopdf" 2>&1 | grep -i "not found" || log_error "ldd diagnostic unavailable"
@@ -166,7 +166,7 @@ if ! "${VENV_DIR}/bin/wkhtmltopdf" -version 2>&1; then
 fi
 
 log_info "wkhtmltopdf installed and verified:"
-"${VENV_DIR}/bin/wkhtmltopdf" -version
+"${VENV_DIR}/bin/wkhtmltopdf" --version
 
 log_info "wkhtmltopdf bootstrap complete!"
 log_info "Installed components:"

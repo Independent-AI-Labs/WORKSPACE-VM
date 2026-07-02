@@ -52,8 +52,8 @@ def mock_env(tmp_path: Path) -> MockEnv:
     git_real.write_text(
         "#!/usr/bin/env bash\n"
         'case "$*" in\n'
-        '  "rev-parse -show-toplevel") echo "/";;\n'
-        '  "rev-parse -abbrev-ref HEAD") echo "HEAD";;\n'
+        '  "rev-parse --show-toplevel") echo "/";;\n'
+        '  "rev-parse --abbrev-ref HEAD") echo "HEAD";;\n'
         '  *) echo "PASSTHROUGH: $*";;\n'
         "esac\n"
     )
@@ -98,7 +98,7 @@ def test_guard_exists() -> None:
 def test_guard_blocks_destructive_commands(mock_env: MockEnv) -> None:
     """Verify destructive commands are blocked."""
     destructive_cmds = [
-        "git reset -hard HEAD",
+        "git reset --hard HEAD",
         "git checkout main",
         "git clean -fd",
         "git restore .",
@@ -118,10 +118,10 @@ def test_guard_blocks_destructive_commands(mock_env: MockEnv) -> None:
 def test_guard_blocks_destructive_flags(mock_env: MockEnv) -> None:
     """Verify destructive flags are blocked."""
     blocked_flag_cmds = [
-        "git commit -m 'msg' -no-verify",
-        "git push origin main -force",
+        "git commit -m 'msg' --no-verify",
+        "git push origin main --force",
         "git push origin main -f",
-        "git anycommand -hard",
+        "git anycommand --hard",
     ]
 
     for cmd in blocked_flag_cmds:
@@ -156,13 +156,13 @@ def test_guard_allows_safe_commands(mock_env: MockEnv) -> None:
     """
     safe_cmds = [
         "git status",
-        "git log -oneline -1",
+        "git log --oneline -1",
         "git diff",
         "git add .",
         "git commit -m 'msg'",
         "git push origin main",
-        "git pull -ff-only",
-        "git pull -rebase",
+        "git pull --ff-only",
+        "git pull --rebase",
         "git fetch",
         "git branch -d feature",
         "git stash",
@@ -204,9 +204,9 @@ def test_guard_fails_without_git_real(mock_env: MockEnv) -> None:
     assert "not found" in combined.lower()
 
 
-# --------------------------------------
+# ---------------------------------------------------------------------------
 # P0/P1/P2/P3 history-safety fixtures + tests
-# --------------------------------------
+# ---------------------------------------------------------------------------
 
 
 _HARDENED = False
@@ -278,7 +278,7 @@ def history_env(tmp_path: Path) -> HistoryEnv:
         )
 
     subprocess.run(
-        [str(real_git), "init", "-bare", "-b", "main", str(origin_dir)],
+        [str(real_git), "init", "--bare", "-b", "main", str(origin_dir)],
         env=base_env,
         check=True,
         capture_output=True,
@@ -318,7 +318,7 @@ def _run_in(env: HistoryEnv, cmd: str) -> subprocess.CompletedProcess[str]:
 )
 class TestCommitAmendOnPushedHead:
     def test_amend_on_pushed_head_blocked(self, history_env: HistoryEnv) -> None:
-        res = _run_in(history_env, "git commit -amend -no-edit -allow-empty")
+        res = _run_in(history_env, "git commit --amend --no-edit --allow-empty")
         combined = res.stdout + res.stderr
         assert res.returncode == 1, f"amend should block; got: {combined}"
         assert "BLOCKED" in combined
@@ -327,7 +327,7 @@ class TestCommitAmendOnPushedHead:
     def test_amend_on_local_only_commit_allowed(self, history_env: HistoryEnv) -> None:
         (history_env.work_dir / "note.txt").write_text("local-only\n")
         _run_in(history_env, "git add note.txt && git commit -m 'local'")
-        res = _run_in(history_env, "git commit -amend -no-edit")
+        res = _run_in(history_env, "git commit --amend --no-edit")
         combined = res.stdout + res.stderr
         assert "BLOCKED" not in combined, combined
         assert res.returncode == 0
@@ -340,14 +340,14 @@ class TestRevertSafety:
     def test_revert_unpushed_commit_blocked(self, history_env: HistoryEnv) -> None:
         (history_env.work_dir / "local.txt").write_text("x\n")
         _run_in(history_env, "git add local.txt && git commit -m 'local only'")
-        res = _run_in(history_env, "git revert -no-edit HEAD")
+        res = _run_in(history_env, "git revert --no-edit HEAD")
         combined = res.stdout + res.stderr
         assert res.returncode == 1, f"revert should block; got: {combined}"
         assert "BLOCKED" in combined
         assert "not on origin" in combined
 
     def test_revert_pushed_commit_allowed(self, history_env: HistoryEnv) -> None:
-        res = _run_in(history_env, f"git revert -no-edit {history_env.pushed_sha}")
+        res = _run_in(history_env, f"git revert --no-edit {history_env.pushed_sha}")
         combined = res.stdout + res.stderr
         assert "BLOCKED" not in combined, combined
         assert res.returncode == 0
@@ -362,15 +362,15 @@ class TestPullOnProtectedBranch:
         combined = res.stdout + res.stderr
         assert res.returncode == 1, combined
         assert "BLOCKED" in combined
-        assert "-ff-only or -rebase" in combined
+        assert "--ff-only or --rebase" in combined
 
     def test_pull_ff_only_allowed(self, history_env: HistoryEnv) -> None:
-        res = _run_in(history_env, "git pull -ff-only")
+        res = _run_in(history_env, "git pull --ff-only")
         combined = res.stdout + res.stderr
         assert "BLOCKED" not in combined, combined
 
     def test_pull_rebase_allowed(self, history_env: HistoryEnv) -> None:
-        res = _run_in(history_env, "git pull -rebase")
+        res = _run_in(history_env, "git pull --rebase")
         combined = res.stdout + res.stderr
         assert "BLOCKED" not in combined, combined
 
@@ -394,9 +394,9 @@ class TestMergeOnProtectedBranch:
         combined = res.stdout + res.stderr
         assert res.returncode == 1, combined
         assert "BLOCKED" in combined
-        assert "-ff-only" in combined
+        assert "--ff-only" in combined
 
     def test_merge_ff_only_allowed(self, history_env: HistoryEnv) -> None:
-        res = _run_in(history_env, "git merge -ff-only origin/main")
+        res = _run_in(history_env, "git merge --ff-only origin/main")
         combined = res.stdout + res.stderr
         assert "BLOCKED" not in combined, combined

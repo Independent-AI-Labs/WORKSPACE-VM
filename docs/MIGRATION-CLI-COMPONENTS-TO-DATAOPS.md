@@ -5,7 +5,7 @@
 **Date:** 2026-06-01
 **Author:** AMI-Agents Engineering
 
---
+---
 
 ## Table of Contents
 
@@ -24,7 +24,7 @@
 13. [Risk Register](#13-risk-register)
 14. [Shell & Wrapper Migration to opencode](#14-shell-wrapper-migration-to-opencode)
 
---
+---
 
 ## 1. Problem Statement
 
@@ -47,7 +47,7 @@ ami-agents = { path = "../..", editable = true }
 Four source files in AMI-DATAOPS import from `ami.cli_components`:
 
 | File | Imports |
-|---|-----|
+|------|---------|
 | `ami/dataops/report/operator.py` | `dialogs`, `selection_dialog` |
 | `ami/dataops/backup/restore/wizard.py` | `dialogs`, `format_utils`, `menu_selector`, `selector`, `text_input_utils`, `tui` |
 | `ami/dataops/backup/restore/revision_display.py` | `format_utils`, `text_input_utils` |
@@ -60,13 +60,13 @@ Four source files in AMI-DATAOPS import from `ami.cli_components`:
 Staying scripts in `ami/scripts/` also import from the modules being deleted:
 
 | Staying Script | Imports From | Will Resolve From |
-|--------|-------|----------|
+|--------|-------|-------------|
 | `ami/scripts/bootstrap_installer.py` | `ami.cli_components.dialogs`, `ami.cli_components.menu_selector`, `ami.cli_components.selection_dialog`, `ami.types.results.NamedComponentStatus` | AMI-DATAOPS (namespace) |
 | `ami/scripts/bootstrap_installer_ui.py` | `ami.cli_components.text_input_utils` | AMI-DATAOPS (namespace) |
 | `ami/scripts/bootstrap_install.py` | `ami.types.common.InstallationResult` | **import path must change** |
 | `ami/scripts/utils/sys_info.py` | `ami.types.results.ColorPair` | AMI-DATAOPS (namespace) |
 
---
+---
 
 ## 2. Dependency Analysis
 
@@ -139,7 +139,7 @@ The V3 plan deletes ALL of `ami/types/`. Two categories of types must survive:
 **Category A - TUI types (used by moving cli_components):**
 
 | Type | Used By | Fields |
-|---|-----|----|
+|---|-----|---------|
 | `GroupRange` | `selection_dialog.py` | `header_idx: int, start: int, end: int` |
 | `KeyHandleResult` | `selection_dialog.py` | `should_continue: bool, result: object` |
 | `CharWithOrdinal` | `text_input_utils.py` | `char: str, ordinal: int` |
@@ -148,7 +148,7 @@ The V3 plan deletes ALL of `ami/types/`. Two categories of types must survive:
 **Category B - Bootstrap types (used by staying scripts in `ami/scripts/`):**
 
 | Type | Currently In | Used By | Fields |
-|---|-------|-----|----|
+|------|-------------|-----|----|
 | `NamedComponentStatus` | `ami.types.results` | `bootstrap_installer.py` | `name, installed, version, path` |
 | `ColorPair` | `ami.types.results` | `sys_info.py` | `fg: int, bg: int` |
 | `InstallationResult` | `ami.types.common` | `bootstrap_install.py` | `component_name, success, error` |
@@ -161,7 +161,7 @@ Python namespace packages cannot merge two modules at the same import path. If b
 
 **Therefore ALL surviving types must move to AMI-DATAOPS, and `ami/types/` must be fully deleted from the main package.** There can be no split.
 
---
+---
 
 ## 3. Migration Strategy
 
@@ -174,7 +174,7 @@ Python namespace packages cannot merge two modules at the same import path. If b
 Both `ami-agents` (root `ami/`) and `AMI-DATAOPS` (`projects/AMI-DATAOPS/ami/`) use `setuptools` namespace packages. Python resolves `ami.cli_components.*` and `ami.types.*` by scanning all `sys.path` entries. After the move:
 
 | Namespace | Provided By | After Migration |
-|------|-------|---------|
+|------|-------|-------------|
 | `ami.cli_components` | ~~ami-agents~~ → **AMI-DATAOPS** | AMI-DATAOPS |
 | `ami.types` | ~~ami-agents~~ → **AMI-DATAOPS** | AMI-DATAOPS |
 | `ami.dataops` | **AMI-DATAOPS** | AMI-DATAOPS |
@@ -185,7 +185,7 @@ Both `ami-agents` (root `ami/`) and `AMI-DATAOPS` (`projects/AMI-DATAOPS/ami/`) 
 
 No overlap → no namespace conflict.
 
---
+---
 
 ## 4. Files to Move - CLI Components
 
@@ -218,7 +218,7 @@ The following `ami/cli_components/` files are NOT moved to AMI-DATAOPS. They sta
 **Kept - active extension entry points and their dependencies:**
 
 | File | Status |
-|---|----|
+|------|--------|
 | `status.py` | KEPT - entry point for `ops status` (imported by ops via `ami/scripts/bin/ops:75`) |
 | `storage.py` | KEPT - entry point for `ops storage` (imported by ops via `ami/scripts/bin/ops:78`) |
 | `legend.py` | KEPT - imported by status.py for legend display |
@@ -230,7 +230,7 @@ The following `ami/cli_components/` files are NOT moved to AMI-DATAOPS. They sta
 **Files that were agent-only and are deleted:**
 
 | File | Why Not Needed |
-|---|--------|
+|------|----------------|
 | `confirmation_dialog.py` | `ConfirmationDialog` lives in `dialogs.py` itself; external consumers (`ami/tools/`) were deleted |
 | `cursor_manager.py` | Agent TUI only |
 | `editor_display.py` | Agent text editor |
@@ -241,7 +241,7 @@ The following `ami/cli_components/` files are NOT moved to AMI-DATAOPS. They sta
 | `text_editor.py` | Agent text editor |
 | `text_input_cli.py` | Agent CLI text input |
 
---
+---
 
 ## 5. Files to Move - Types
 
@@ -332,7 +332,7 @@ class InstallationResult(TypedDict):
 The `ami/types/` directory stays in the main package. The surviving cli_components files (status, storage, legend, status_containers, status_systemd, status_utils - see §4.2) depend on types that the slim consolidated DATAOPS `results.py` does not provide:
 
 | Type Needed | In Main `types/` | In DATAOPS `results.py` |
-|-------|---------|------------|
+|-------|---------|-----------------|
 | `LegendRender` | `results.py` | No |
 | `ContainerStatusDisplay` | `results.py` | No |
 | `ContainerInspectInfo` | `results.py` | No |
@@ -347,7 +347,7 @@ The `ami/types/` directory stays in the main package. The surviving cli_componen
 
 **Therefore `ami/types/` stays in its entirety.** The DATAOPS consolidated `results.py` is a minimal subset useful for DATAOPS's namespace package independence; it is shadowed at runtime by the main package's full types/ (which appears first on PYTHONPATH via `$AMI_ROOT:${PROJECT_PATHS}`) but serves as a fallback reference.
 
---
+---
 
 ## 6. AMI-DATAOPS Config Changes
 
@@ -427,7 +427,7 @@ ami-ci = { path = "projects/AMI-CI", editable = true }
 ami-dataops = { path = "projects/AMI-DATAOPS", editable = true }
 ```
 
---
+---
 
 ## 7. Import Path Analysis
 
@@ -438,7 +438,7 @@ Every import in AMI-DATAOPS source files uses `ami.cli_components.*` or `ami.typ
 Verified imports:
 
 | Source File | Import | Status |
-|-------|----|----|
+|-------------|----|----|
 | `operator.py:25` | `from ami.cli_components import dialogs` | ✅ |
 | `operator.py:26` | `from ami.cli_components.selection_dialog import ...` | ✅ |
 | `revision_display.py:9` | `from ami.cli_components.format_utils import format_file_size` | ✅ |
@@ -456,7 +456,7 @@ Verified imports:
 The moved `.py` files reference each other using the same `ami.cli_components.*` paths. These also resolve via namespace package lookup:
 
 | File | Imports | Resolves To |
-|---|-----|-------|
+|---|-----|---------|
 | `dialogs.py` | `ami.cli_components.keys` | `projects/AMI-DATAOPS/ami/cli_components/keys.py` |
 | `dialogs.py` | `ami.cli_components.terminal.ansi` | `projects/AMI-DATAOPS/ami/cli_components/terminal/ansi.py` |
 | `selection_dialog.py` | `ami.cli_components.tui` | `projects/AMI-DATAOPS/ami/cli_components/tui.py` |
@@ -464,7 +464,7 @@ The moved `.py` files reference each other using the same `ami.cli_components.*`
 | `text_input_utils.py` | `ami.types.results` | `projects/AMI-DATAOPS/ami/types/results.py` |
 | etc. | | All resolve within AMI-DATAOPS |
 
---
+---
 
 ## 8. Import Changes Required
 
@@ -495,7 +495,7 @@ This is the **only import change required** anywhere in the codebase.
 | `bootstrap_installer_ui.py:12` | `from ami.cli_components.text_input_utils import Colors` | AMI-DATAOPS ✅ |
 | `sys_info.py:8` | `from ami.types.results import ColorPair` | AMI-DATAOPS ✅ |
 
---
+---
 
 ## 9. Install Order & Dependency Chain
 
@@ -531,7 +531,7 @@ Current `sync-package` target:
 
 ```makefile
 sync-package: bootstrap-core ensure-ci ensure-dataops
-    .boot-linux/bin/uv sync -extra dev
+    .boot-linux/bin/uv sync --extra dev
 ```
 
 - `ensure-ci` clones AMI-CI from moon config
@@ -664,7 +664,7 @@ rm -f scripts/setup/node.sh         # (already deleted)
 
 # ── Phase 7: Rebuild and verify ──
 
-uv sync -extra dev
+uv sync --extra dev
 
 # Verify imports resolve from AMI-DATAOPS
 python -c "import ami.cli_components.keys; print(ami.cli_components.keys.__file__)"
@@ -679,7 +679,7 @@ python -m pytest projects/AMI-DATAOPS/tests/ -q
 python -m pytest tests/ -q
 ```
 
---
+---
 
 ## 10. Files to Delete from WORKSPACE-VM
 
@@ -726,7 +726,7 @@ ami/scripts/bootstrap/bootstrap_agents.sh
 
 **NOT deleted from `ami/types/`:** entire directory kept - surviving extension chain requires types not in DATAOPS consolidated results.py (see §5.4).
 
---
+---
 
 ## 11. Known Issues Outside Scope
 
@@ -737,7 +737,7 @@ The following issues are NOT addressed by this migration document because they i
 **Problem:** `ami/core/env.py` is scheduled for deletion, but three staying files import from it:
 
 | File | Import | Breaks When |
-|---|----|-------|
+|---|----|--------|
 | `ami/config_utils.py:9` | `from ami.core.env import get_project_root` | `ami/core/` deleted |
 | `ami/scripts/bootstrap_component_defs.py:24` | `from ami.core.env import PROJECT_ROOT` | `ami/core/` deleted |
 | `ami/scripts/bootstrap_components.py:10` | `from ami.core.env import PROJECT_ROOT` | `ami/core/` deleted |
@@ -899,14 +899,14 @@ No cyclic imports: `config_utils` depends only on stdlib (`os`, `pathlib`). Boot
 
 `ami/cli_components/confirmation_dialog.py` is imported by two files in `ami/tools/` which are being deleted per V3 plan (`update_cli_versions.py`, `clean_temp_files.py`). No action needed - the file is deleted with the rest of the agent code.
 
---
+---
 
 ## 12. Verification
 
 ### 12.1 Acceptance Criteria
 
 | ID | Criterion | How to Verify |
-|--|------|--------|
+|----|-----------|---------------|
 | AC-CLI-1 | AMI-DATAOPS imports resolve standalone | `pip install -e projects/AMI-DATAOPS && python -c "from ami.cli_components.dialogs import confirm; print('OK')"` |
 | AC-CLI-2 | Consolidated types all resolve | `python -c "from ami.types.results import GroupRange, KeyHandleResult, CharWithOrdinal, FormattedPrefix, NamedComponentStatus, ColorPair, InstallationResult; print('OK')"` |
 | AC-CLI-3 | All AMI-DATAOPS tests pass | `cd projects/AMI-DATAOPS && python -m pytest tests/` → 1080+ pass |
@@ -937,7 +937,7 @@ No cyclic imports: `config_utils` depends only on stdlib (`os`, `pathlib`). Boot
 └──────────────────────────────────────────┴───────────┴───────────┘
 ```
 
---
+---
 
 ## 13. Risk Register
 
@@ -953,7 +953,7 @@ No cyclic imports: `config_utils` depends only on stdlib (`os`, `pathlib`). Boot
 | Tests in main package import moved modules | ~~Medium~~ **Handled** | ~~Medium~~ **Low** | 336 cli_components tests migrated to AMI-DATAOPS; 14 test files copied, all pass |
 | Root test suite has 61 import errors from deleted agent modules | **Expected** | Low | Errors are from test files for deleted agent code (`ami/cli/`, `ami/core/`, `ami/hooks/`); to be cleaned up in V3 test file purge |
 
---
+---
 
 ## 14. Shell & Wrapper Migration to opencode
 
@@ -990,7 +990,7 @@ if [[ $# -gt 0 ]]; then
     # Headless mode - pass welcome + task as context
     exec npx opencode run "$WELCOME
 
-Task: $*" -dir "$AMI_ROOT"
+Task: $*" --dir "$AMI_ROOT"
 else
     # Interactive mode - print welcome, start TUI
     printf '%b\n' "$WELCOME"
@@ -1002,15 +1002,15 @@ fi
 ### 14.3 Command Mapping (Old → Nuked)
 
 | Old Command | Fate |
-|-------|---|
+|-------------|------|
 | `ami-agent` (interactive) | **DELETE** - replaced by `ami-oc` |
-| `ami-agent -query "..."` | **DELETE** - replaced by `ami-oc "..."` |
-| `ami-agent -print FILE` | **DELETE** - replaced by `ami-oc "$(cat FILE)"` |
-| `ami-agent -sessions` | **DELETE** - use `opencode session list` directly |
-| `ami-agent -continue` | **DELETE** - use `opencode -c` directly |
-| `ami-agent -prune` | **DELETE** - use `opencode session delete` directly |
+| `ami-agent --query "..."` | **DELETE** - replaced by `ami-oc "..."` |
+| `ami-agent --print FILE` | **DELETE** - replaced by `ami-oc "$(cat FILE)"` |
+| `ami-agent --sessions` | **DELETE** - use `opencode session list` directly |
+| `ami-agent --continue` | **DELETE** - use `opencode -c` directly |
+| `ami-agent --prune` | **DELETE** - use `opencode session delete` directly |
 | `ami-transcripts *` | **DELETE** - use `opencode session list\|export\|delete` |
-| `ami-claude` / `ami-gemini` / `ami-qwen` | **DELETE** - use `opencode -model <provider/model>` |
+| `ami-claude` / `ami-gemini` / `ami-qwen` | **DELETE** - use `opencode --model <provider/model>` |
 | `@` and `msg` aliases | **DELETE** - replaced by `ami-oc` |
 
 ### 14.4 Shell Aliases Update
@@ -1051,7 +1051,7 @@ extensions:
 ### 14.6 Files to NUKE (Deletion List)
 
 | File | Reason |
-|---|----|
+|------|--------|
 | `ami/scripts/bin/ami-agent` | Calls deleted `ami.cli.main` |
 | `ami/scripts/bin/ami_transcripts.py` | Imports deleted `ami.cli.transcript_store`, `ami.core.conversation` |
 | `tests/unit/test_edge_cases_basic.py` | Tests deleted agent code |
@@ -1069,7 +1069,7 @@ extensions:
 ### 14.7 Test File to Update
 
 | File | Action |
-|---|----|
+|------|--------|
 | `tests/integration/test_setup_shell_aliases.py` | Remove `ami-agent`, `ami-claude`, `ami-gemini`, `ami-qwen` from expected functions; add `ami-oc` |
 
 ### 14.8 Migration Sequence

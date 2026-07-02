@@ -77,7 +77,7 @@ fi
 
 # Extract Pandoc
 log_info "Extracting Pandoc to ${PANDOC_DIR}"
-tar -xzf "${PANDOC_TARBALL}" -C "${PANDOC_DIR}" -strip-components=1
+tar -xzf "${PANDOC_TARBALL}" -C "${PANDOC_DIR}" --strip-components=1
 
 # Create symlink in venv/bin
 log_info "Creating symlink in ${VENV_DIR}/bin"
@@ -98,8 +98,8 @@ rm -f "${PANDOC_TARBALL}"
 
 # Verify installation
 log_info "Verifying Pandoc installation"
-if "${VENV_DIR}/bin/pandoc" -version; then
-    log_info "Pandoc installed successfully: $(${VENV_DIR}/bin/pandoc -version)"
+if "${VENV_DIR}/bin/pandoc" --version; then
+    log_info "Pandoc installed successfully: $(${VENV_DIR}/bin/pandoc --version)"
 else
     log_error "Pandoc installation verification failed"
     exit 1

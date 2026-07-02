@@ -54,7 +54,7 @@ cd "$TEMP_DIR"
 
 log_info "Downloading $URL..."
 if command -v curl >/dev/null 2>&1; then
-    curl -L -fail -retry 3 -o "$TARBALL" "$URL"
+    curl -L --fail --retry 3 -o "$TARBALL" "$URL"
 elif command -v wget >/dev/null 2>&1; then
     wget -q -O "$TARBALL" "$URL"
 else

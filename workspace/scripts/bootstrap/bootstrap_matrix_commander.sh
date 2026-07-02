@@ -21,7 +21,7 @@ if [ ! -f "$UV_CMD" ]; then
 fi
 
 # Install matrix-commander using uv pip into the boot-linux python env
-"$UV_CMD" pip install -python "$PYTHON_ENV" matrix-commander
+"$UV_CMD" pip install --python "$PYTHON_ENV" matrix-commander
 
 # Create symlink in .boot-linux/bin/
 BIN_DIR="$BOOT_LINUX_DIR/bin"

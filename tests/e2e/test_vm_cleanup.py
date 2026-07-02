@@ -14,7 +14,7 @@ pytestmark = pytest.mark.e2e
 class TestVMCleanup:
     def test_delete_removes_container(self, test_vm: str) -> None:
         vm_cmd("stop", test_vm)
-        vm_cmd("delete", test_vm, "-purge")
+        vm_cmd("delete", test_vm, "--purge")
         with pytest.raises(subprocess.CalledProcessError):
             subprocess.run(
                 ["podman", "inspect", test_vm],
@@ -25,7 +25,7 @@ class TestVMCleanup:
 
     def test_volume_cleanup_after_purge(self, test_vm: str) -> None:
         vm_cmd("stop", test_vm)
-        vm_cmd("delete", test_vm, "-purge")
+        vm_cmd("delete", test_vm, "--purge")
         for suffix in ("workspace", "transcripts", "cache"):
             with pytest.raises(subprocess.CalledProcessError):
                 subprocess.run(

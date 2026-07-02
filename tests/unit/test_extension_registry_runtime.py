@@ -25,9 +25,9 @@ from workspace.scripts.shell.extension_registry import (
     run_check,
 )
 
-# --------------------------------------
+# ---------------------------------------------------------------------------
 # Helpers
-# --------------------------------------
+# ---------------------------------------------------------------------------
 
 _EXPECTED_CATEGORIES = [
     "core",
@@ -78,7 +78,7 @@ class TestRunCheck:
     def test_healthy_with_version(self, tmp_path: Path) -> None:
         entry = _valid_entry(
             check={
-                "command": ["{binary}", "-version"],
+                "command": ["{binary}", "--version"],
                 "healthExpect": "myapp",
                 "versionPattern": r"v(\d+\.\d+\.\d+)",
             }
@@ -161,7 +161,7 @@ class TestRunCheck:
     def test_binary_placeholder_replaced(self, tmp_path: Path) -> None:
         entry = _valid_entry(
             binary="bin/tool",
-            check={"command": ["{binary}", "-help"]},
+            check={"command": ["{binary}", "--help"]},
         )
         with patch(_RUN_PATH) as mock_run:
             mock_run.return_value = subprocess.CompletedProcess(
@@ -185,9 +185,9 @@ class TestRunCheck:
         assert mock_run.call_args[1]["timeout"] == max_timeout
 
 
-# --------------------------------------
+# ---------------------------------------------------------------------------
 # resolve_extensions
-# --------------------------------------
+# ---------------------------------------------------------------------------
 
 
 class TestResolveExtensions:
@@ -329,9 +329,9 @@ class TestResolveExtensions:
         assert result[0].status == Status.DEGRADED
 
 
-# --------------------------------------
+# ---------------------------------------------------------------------------
 # get_container_runtime
-# --------------------------------------
+# ---------------------------------------------------------------------------
 
 
 class TestGetContainerRuntime:
@@ -365,9 +365,9 @@ class TestGetContainerRuntime:
         assert get_container_runtime() == "cached-runtime"
 
 
-# --------------------------------------
+# ---------------------------------------------------------------------------
 # group_by_category
-# --------------------------------------
+# ---------------------------------------------------------------------------
 
 
 class TestGroupByCategory:
@@ -457,9 +457,9 @@ class TestGroupByCategory:
         assert len(result[0][1]) == len(exts)
 
 
-# --------------------------------------
+# ---------------------------------------------------------------------------
 # Constants
-# --------------------------------------
+# ---------------------------------------------------------------------------
 
 
 class TestConstants:

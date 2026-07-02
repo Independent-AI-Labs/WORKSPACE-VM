@@ -5,7 +5,7 @@
   <a href="https://github.com/Independent-AI-Labs/WORKSPACE-VM/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-green?style=flat-square" /></a>
 </p>
 
---
+---
 
 ### Architecture
 
@@ -36,6 +36,6 @@ For requirements docs (`requirements/REQ-*.md`) and full specifications (`specif
 
 Drop new docs in the right folder: `architecture/` for proposals, `requirements/` for `REQ-*` docs, `specifications/` for `SPEC-*` docs, `archive/` once a doc is superseded. Top-level slots are reserved for cross-cutting indices, postmortems, and guides. Add the new file to this README under the matching section so you do not strand it. Each doc starts with a header declaring **Date**, **Status** (`DRAFT` / `ACTIVE` / `DEPRECATED`), and **Type**.
 
---
+---
 
 **License** MIT

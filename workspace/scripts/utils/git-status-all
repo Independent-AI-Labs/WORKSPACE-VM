@@ -41,7 +41,7 @@ while IFS= read -r git_dir; do
     repo_name="${repo_dir#"${PROJECT_ROOT}/"}"
     total_count=$((total_count + 1))
 
-    if ! branch=$("$REAL_GIT" -C "$repo_dir" branch -show-current 2>"$_branch_err"); then
+    if ! branch=$("$REAL_GIT" -C "$repo_dir" branch --show-current 2>"$_branch_err"); then
         if [[ -s "$_branch_err" ]]; then cat "$_branch_err" >&2; fi
         branch="detached"
     fi

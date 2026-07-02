@@ -3,7 +3,7 @@
 > **Part of the Agentic Guardrails, Compliance, Standardisation & Security research programme**
 > Status: **IN PROGRESS** | Last updated: 2026-05-25
 
---
+---
 
 ## 1. Research Scope & Questions
 
@@ -66,7 +66,7 @@
 - API safety controls for multi-step agent operations
 - Trusted layer / MCP security architecture
 
---
+---
 
 ## 2. Findings
 
@@ -438,12 +438,12 @@ Released at LlamaCon 2025 - Meta's most significant agent security contribution:
 - Monitoring: Threat Intelligence team for ongoing malicious behavior assessment
 - Claude's Constitution includes "Being broadly safe: Claude should not undermine humans' ability to oversee and correct its values"
 
---
+---
 
 ## 3. Comparative Analysis
 
 | Dimension | Google/DeepMind | Microsoft | AWS | Meta | Apple | OpenAI | Anthropic |
-|--|--|--|--|--|--|--|--|--|
+|---|---|---|---|---|---|---|---|---|
 | **Content filters** | 5-layer stack + Model Armor; Gemini-as-Filter; configurable thresholds (4 levels) | Azure AI Content Safety (4 categories, 4 severity levels); Copilot Studio default XPIA/UPIA blocking; Purview DLP for AI | Bedrock Guardrails content filters (6 categories); per-category strength sliders; Standard tier 60+ languages; code-domain filtering | Llama Guard 4 (MLCommons taxonomy, multimodal); Prompt Guard 2; Code Shield; LlamaFirewall unified policy engine | On-device I/O filters; PCC-level safety; Foundation Models framework; differential privacy | Moderation API (free); Safety Reasoner (CoT); gpt-oss-safeguard; safe-completions | Constitutional Classifiers (two-stage cascade); 0.05% over-refusal; constitution-based screening |
 | **Tool-use restrictions** | Agent Identity (IAM/agent); Agent Gateway; read-only vs read-writable origin sets | AutoGen DockerCommandLineCodeExecutor (default); Copilot Studio data policies limiting connectors; handoff-based HITL | Bedrock Agents action groups (scope definitions); guardrail per-agent; ApplyGuardrail API middleware | AlignmentCheck (CoT auditor); Code Shield static analysis; sandboxed execution; Llama 4 Agent fine-tuned for safe tool use | App Intents framework (schema-declared actions, no code gen); entitlement system for sensitive capabilities | Tool guardrails (pre/post); `needsApproval` flag; `tool_choice`/`parallel_tool_calls` control; strict mode for schemas | Permission policies per tool (`always_allow`/`always_ask`/block); programmatic tool calling in sandbox; Plan Mode; read-only defaults |
 | **Human-in-the-loop** | User Alignment Critic (separate model vets actions); user confirmations for sensitive operations | AutoGen HandoffTermination/UserProxyAgent; Copilot Studio approval gates; Power Platform admin governance | Detect mode for pre-validation; manual approval via Lambda callbacks; trace investigation | No built-in HITL (automated classifiers); relies on app-layer via Llama Stack shield API | On-device routing decision (local vs PCC); user consent modals; App Store agent compliance pre-review | Tool-level approval interruptions; Auto-review (Codex) - separate agent grades boundary-crossing | `always_ask` per tool; Claude Code auto mode (classifier substitutes approvals); multi-agent handoff checks |
@@ -453,7 +453,7 @@ Released at LlamaCon 2025 - Meta's most significant agent security contribution:
 | **Open-source approach** | Google ADK (open-source); Gemma open models; Model Armor REST API works with any LLM; SAIF framework | AutoGen (MIT, full open-source); Copilot Studio security proprietary; RAI toolchain partially open | Bedrock Guardrails fully proprietary (API only); SageMaker Clarify proprietary; open SDKs/samples on GitHub | Fully open-source: Purple Llama, Llama Guard, Prompt Guard, Code Shield, LlamaFirewall (Apache 2), Llama 4 Agent Framework (Apache 2) | Foundation Models framework (proprietary Swift API); PCC (proprietary but verifiable); Core ML (open) | Agents SDK (open-source Python); gpt-oss-safeguard (open-weight); Model Spec Evals (open-source); Swarm (experimental) | MCP (open standard, Linux Foundation); Constitutional AI (open research); Claude's Constitution (published); hooks (open-source) |
 | **Anti-prompt-injection** | Model Armor (jailbreak detection); Gemini-as-Filter (multi-modal); instruction hierarchy; User Alignment Critic | Copilot Studio default UPIA/XPIA (real-time); Azure AI Prompt Shields; Defender for Agents integration | Prompt Attack filter (Standard tier distinguishes jailbreak vs injection vs leakage); detect mode for tuning | Prompt Guard 2 (86M + 22M); AlignmentCheck (first open-source CoT audit); LlamaFirewall unified injection defense | Instruction hierarchy (system > user prompt); I/O filters on local model; Unicode/RLO attack patched in iOS 26.4 | Instruction hierarchy (system > developer > user); Moderation API classifiers; GPT-5 safe-completions; Gray Swan SOTA | Constitutional Classifiers++ (cascade, 95%+ jailbreak blocked); two-stage probe-classifier; prompt injection training in RL |
 
---
+---
 
 ## 4. Sources Consulted
 
@@ -582,7 +582,7 @@ Released at LlamaCon 2025 - Meta's most significant agent security contribution:
 14. "Meta Llama Guard 2 Model" - Hugging Face. https://huggingface.co/meta-llama/Meta-Llama-Guard-2-8B
 15. "AutoGen Safety Configuration" - Authensor. https://www.authensor.com/learn/autogen-safety-configuration
 
---
+---
 
 ## 5. Key Takeaways
 

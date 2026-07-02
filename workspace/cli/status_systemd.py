@@ -173,7 +173,7 @@ def _extract_compose_info(exec_start: str) -> ComposeInfo:
         file_match = re.search(r"-f ([^\s]+)", exec_start)
         if file_match:
             compose_file = file_match.group(1)
-        profile_matches = re.findall(r"-profile ([a-zA-Z0-9_-]+)", exec_start)
+        profile_matches = re.findall(r"--profile ([a-zA-Z0-9_-]+)", exec_start)
         if profile_matches:
             compose_profiles = profile_matches
 
@@ -188,9 +188,9 @@ def get_systemd_services() -> list[SystemdService]:
     commands = [
         (
             "user",
-            "systemctl -user list-units -type=service -all -no-legend -no-pager",
+            "systemctl --user list-units --type=service --all --no-legend --no-pager",
         ),
-        ("system", "systemctl list-units -type=service -all -no-legend -no-pager"),
+        ("system", "systemctl list-units --type=service --all --no-legend --no-pager"),
     ]
 
     for scope, cmd in commands:
@@ -208,13 +208,13 @@ def get_systemd_services() -> list[SystemdService]:
                 continue
             seen_names.add(name)
 
-            scope_flag = "-user" if scope == "user" else ""
+            scope_flag = "--user" if scope == "user" else ""
             props = (
                 "Id,ActiveState,SubState,FragmentPath,"
                 "MainPID,ExecStart,Restart,UnitFileState"
             )
             details_raw = run_cmd(
-                f"systemctl {scope_flag} show {name} -property={props}"
+                f"systemctl {scope_flag} show {name} --property={props}"
             )
             details = _parse_systemd_details(details_raw)
             exec_start = details.get("ExecStart", "")

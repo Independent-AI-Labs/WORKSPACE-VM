@@ -16,7 +16,7 @@ from workspace.types.status import (
 )
 
 _PF = (
-    "-property=Id,ActiveState,SubState,FragmentPath,"
+    "--property=Id,ActiveState,SubState,FragmentPath,"
     "MainPID,ExecStart,Restart,UnitFileState"
 )
 
@@ -131,7 +131,7 @@ def test_extract_compose_info_extracts_profiles_from_profile_flags() -> None:
 
 
 def test_extract_compose_info_returns_none_when_no_compose_info() -> None:
-    result = _extract_compose_info("/usr/bin/myapp -flag value")
+    result = _extract_compose_info("/usr/bin/myapp --flag value")
     assert result.managed_container is None
     assert result.compose_file is None
     assert result.compose_profiles == []
@@ -148,7 +148,7 @@ def test_extract_compose_info_empty_profiles_when_none_found() -> None:
 
 def _list_units(cmd: str) -> str:
     """systemctl list-units command template (scope=user or empty)."""
-    return f"systemctl {cmd}list-units -type=service -all -no-legend -no-pager"
+    return f"systemctl {cmd}list-units --type=service --all --no-legend --no-pager"
 
 
 def _show(scope: str, name: str) -> str:
@@ -167,8 +167,8 @@ def _make_show_output(name: str, exec_start: str = "/usr/bin/app") -> str:
 
 def test_get_systemd_services_user_scope() -> None:
     outputs = {
-        _list_units("-user "): "ami-web.service loaded active running\n",
-        _show("-user ", "ami-web.service"): _make_show_output("ami-web.service"),
+        _list_units("--user "): "ami-web.service loaded active running\n",
+        _show("--user ", "ami-web.service"): _make_show_output("ami-web.service"),
         _list_units(""): "",
     }
     with patch(
@@ -182,7 +182,7 @@ def test_get_systemd_services_user_scope() -> None:
 
 def test_get_systemd_services_system_scope() -> None:
     outputs = {
-        _list_units("-user "): "",
+        _list_units("--user "): "",
         _list_units(""): "matrix-synapse.service loaded active running\n",
         _show("", "matrix-synapse.service"): _make_show_output(
             "matrix-synapse.service"
@@ -199,13 +199,13 @@ def test_get_systemd_services_system_scope() -> None:
 
 def test_get_systemd_services_filters_by_prefixes() -> None:
     outputs = {
-        _list_units("-user "): (
+        _list_units("--user "): (
             "random.service loaded active running\n"
             "ami-keep.service loaded active running\n"
             "git-daemon.service loaded active running\n"
         ),
-        _show("-user ", "ami-keep.service"): _make_show_output("ami-keep.service"),
-        _show("-user ", "git-daemon.service"): _make_show_output("git-daemon.service"),
+        _show("--user ", "ami-keep.service"): _make_show_output("ami-keep.service"),
+        _show("--user ", "git-daemon.service"): _make_show_output("git-daemon.service"),
         _list_units(""): "",
     }
     with patch(
@@ -220,8 +220,8 @@ def test_get_systemd_services_filters_by_prefixes() -> None:
 
 def test_get_systemd_services_deduplicates_preferring_user_scope() -> None:
     outputs = {
-        _list_units("-user "): "ami-web.service loaded active running\n",
-        _show("-user ", "ami-web.service"): _make_show_output(
+        _list_units("--user "): "ami-web.service loaded active running\n",
+        _show("--user ", "ami-web.service"): _make_show_output(
             "ami-web.service", exec_start="/usr/bin/user-scope"
         ),
         _list_units(""): "ami-web.service loaded active running\n",
@@ -245,8 +245,8 @@ def test_get_systemd_services_empty_when_no_services() -> None:
 
 def test_get_systemd_services_handles_malformed_lines() -> None:
     outputs = {
-        _list_units("-user "): ("\n   \nami-web.service loaded active running\n"),
-        _show("-user ", "ami-web.service"): _make_show_output("ami-web.service"),
+        _list_units("--user "): ("\n   \nami-web.service loaded active running\n"),
+        _show("--user ", "ami-web.service"): _make_show_output("ami-web.service"),
         _list_units(""): "",
     }
     with patch(

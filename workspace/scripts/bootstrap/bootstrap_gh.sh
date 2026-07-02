@@ -82,8 +82,8 @@ chmod +x "${GH_DIR}/bin/gh"
 ln -sf "../gh/bin/gh" "${BIN_DIR}/gh"
 
 # Verify
-if "${BIN_DIR}/gh" -version > /dev/null 2>&1; then
-    _ghver="$("${BIN_DIR}/gh" -version 2>&1)"
+if "${BIN_DIR}/gh" --version > /dev/null 2>&1; then
+    _ghver="$("${BIN_DIR}/gh" --version 2>&1)"
     _ghver="${_ghver%%$'\n'*}"
     log_info "gh installed successfully: ${_ghver}"
     log_info "Location: ${BIN_DIR}/gh -> ${GH_DIR}/bin/gh"

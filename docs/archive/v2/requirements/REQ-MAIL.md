@@ -5,7 +5,7 @@
 
 ami-mail is now built as a himalaya fork in the AMI-STREAMS project. Requirements and specifications live there.
 
---
+---
 
 ## Background
 
@@ -13,7 +13,7 @@ The current `ami-mail` CLI supports basic SMTP send, IMAP fetch, and send-block 
 
 **Architecture decision:** ami-mail wraps himalaya (Rust CLI) as backend, same pattern as ami-docs wrapping pandoc.
 
---
+---
 
 ## Core Requirements
 
@@ -51,7 +51,7 @@ The current `ami-mail` CLI supports basic SMTP send, IMAP fetch, and send-block 
 - **REQ-MAIL-104**: System shall report batch progress (sent/total, failures) during execution
 - **REQ-MAIL-105**: System shall log each send result (recipient, status, error) for audit
 - **REQ-MAIL-106**: Failed sends in a batch shall not abort the remaining batch - failures are logged and reported at the end
-- **REQ-MAIL-107**: System shall support `-dry-run` for batch sends - render all messages, report what would be sent, send nothing
+- **REQ-MAIL-107**: System shall support `--dry-run` for batch sends - render all messages, report what would be sent, send nothing
 - **REQ-MAIL-108**: Batch sends shall support BCC mode (single message to all recipients) or individual mode (one message per recipient with personalization)
 
 ### 4. Email Reading
@@ -104,7 +104,7 @@ This is a core agent automation capability: an agent sends an email asking a hum
 - **REQ-MAIL-090**: System shall validate SPF and DMARC DNS records for a given domain
 - **REQ-MAIL-091**: Validation results shall indicate pass/fail with details
 
---
+---
 
 ## Constraints
 

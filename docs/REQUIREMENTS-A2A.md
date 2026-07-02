@@ -15,7 +15,7 @@
 - DORA (Digital Operational Resilience Act), NIS2 Directive
 - WS-1 through WS-7 research programme (docs/research/)
 
---
+---
 
 ## 1. Scope
 
@@ -26,12 +26,12 @@ This document specifies the hard functional, non-functional, and regulatory requ
 - Hosting an A2A Server endpoint (exposing AMI-Agents as a remote agent).
 - MCP (Model Context Protocol) integration, except where A2A and MCP interact at a requirement level.
 
---
+---
 
 ## 2. Terminology
 
 | Term | Definition |
-|---|------|
+|------|------------|
 | A2A Client | An application or agent that initiates requests to an A2A Server on behalf of a user or another system. |
 | A2A Server (Remote Agent) | An agent or agentic system that exposes an A2A-compliant endpoint, processing tasks and providing responses. |
 | Agent Card | A JSON metadata document published by an A2A Server, describing its identity, capabilities, skills, service endpoint, and authentication requirements. |
@@ -43,7 +43,7 @@ This document specifies the hard functional, non-functional, and regulatory requ
 | Session Trust | A runtime-scoped approval that permits A2A communication with a specific domain for the duration of a session. |
 | Deployer | The enterprise or individual deploying and operating the A2A Client (as defined per EU AI Act Art. 26). |
 
---
+---
 
 ## 3. Functional Requirements
 
@@ -190,7 +190,7 @@ The system SHOULD participate in distributed tracing systems, propagating trace 
 **FR-6.3 - Agent Invocation Metadata:**
 The system SHALL capture and persist metadata for every remote agent invocation, including: remote domain, agent name from Agent Card, task start/end timestamps, task status on completion, total tokens or cost (if available), and the user who authorized the invocation.
 
---
+---
 
 ## 4. Non-Functional Requirements
 
@@ -251,7 +251,7 @@ Per the A2A principle, the system SHALL NOT expose its internal state, memory, t
 
 > "Agents collaborate based on declared capabilities and exchanged information, without needing to share their internal thoughts, plans, or tool implementations." - A2A Specification §1.2 (Guiding Principles)
 
---
+---
 
 ## 5. Regulatory Requirements
 
@@ -328,7 +328,7 @@ The A2A integration SHALL support alignment with ISO/IEC 42001:2023 (AI Manageme
 The following OWASP entries are directly relevant to A2A remote agent integration:
 
 | OWASP Entry | Relevance | Requirement |
-|-------|------|-------|
+|-------------|-----------|-------------|
 | LLM01: Prompt Injection | **CRITICAL** - remote agent responses may contain injected instructions | All remote agent output SHALL be treated as untrusted input. Output SHALL be validated before further local processing. |
 | LLM06: Excessive Agency | **CRITICAL** - remote agents may attempt operations beyond intended scope | Remote agent scope SHALL be bounded by the task description. The system SHALL NOT forward all local capabilities to remote agents. |
 | LLM07: Insecure Plugin Design | Remote agent tool/plugin access | The system SHALL treat remote agents as opaque systems per the A2A specification principle - no internal state, memory, or tools are shared. |
@@ -351,12 +351,12 @@ The system SHALL respect data residency requirements:
 
 > Per WS-4 §3.5.3 and WS-7 §4: EU data sovereignty is the single dimension where AMI currently leads the competitive landscape. This advantage MUST be preserved in A2A design.
 
---
+---
 
 ## 6. Constraints
 
 | ID | Constraint | Source |
-|--|------|----|
+|----|------------|--------|
 | C-1 | The system MUST NOT expose local agent internal state, memory, or tools to remote agents (opaque execution per A2A §1.2). | A2A Specification |
 | C-2 | The system MUST NOT send data to remote agents in jurisdictions without adequate data protection unless explicitly configured by the deployer. | GDPR Art. 44-49 |
 | C-3 | The A2A protocol version used MUST be declared in `A2A-Version` header (or equivalent). Clients MUST send this with every request to maintain compatibility. | A2A Specification §3.6.1 |
@@ -364,12 +364,12 @@ The system SHALL respect data residency requirements:
 | C-5 | OAuth 2.0 PKCE (RFC 7636) is the REQUIRED authentication flow for agents declaring OAuth2 security schemes. | RFC 7636, A2A Implementation |
 | C-6 | No remote agent SHALL be invoked without first establishing a non-default trust state (allow or ask). | REG-1.2 (Art. 14) |
 
---
+---
 
 ## 7. Assumptions
 
 | ID | Assumption |
-|--|------|
+|----|------------|
 | A-1 | Remote agents implement the A2A protocol correctly per the specification v1.0. Non-compliant behaviour will be surfaced as errors. |
 | A-2 | Remote agent domains are reachable over HTTPS from the local network. |
 | A-3 | The A2A specification's versioning guarantees (Major.Minor compatibility) will be maintained by implementers. |
@@ -377,12 +377,12 @@ The system SHALL respect data residency requirements:
 | A-5 | The EU AI Act Article 6(5) guidelines (due 2 February 2026) will provide further clarity on high-risk classification for agent invocations, and the system should be adaptable to those guidelines. |
 | A-6 | A2A protocol version 0.3 clients will be assumed if the `A2A-Version` header is empty (per §3.6.2), but the implementation targets v1.0. |
 
---
+---
 
 ## 8. Traceability Matrix
 
 | Requirement ID | A2A Spec Section | Regulatory Source | Priority |
-|:--------|:---------|:---------|:-----|
+|:---------------|:-----------------|:------------------|:---------|
 | FR-1.1 | Discovery §1 | - | HIGH |
 | FR-1.2 | §4.4.1 AgentCard | - | HIGH |
 | FR-1.3 | Discovery §6 + §8.6 | - | MEDIUM |
@@ -413,7 +413,7 @@ The system SHALL respect data residency requirements:
 | REG-2 | - | GDPR Art. 22 | HIGH |
 | REG-4 | - | OWASP LLM06, LLM01, LLM07 | HIGH |
 
---
+---
 
 ## 9. Glossary of Regulatory Sources (Excerpts)
 
@@ -427,6 +427,6 @@ The system SHALL respect data residency requirements:
 
 > **Agents and the EU AI Act:** "Any agent making decisions in employment, credit, education, or essential services (Annex III categories 3-5) is automatically high-risk unless it passes the narrow procedural task derogation. Document the decision." - WS-4 §7
 
---
+---
 
 *This requirements specification incorporates material from the A2A Protocol Specification v1.0 (a2aproject/A2A, Linux Foundation), the EU AI Act (Regulation (EU) 2024/1689), GDPR, ISO/IEC standards, OWASP guidance, and the AMI-Agents research programme (docs/research/). All quotations from the A2A specification are reproduced verbatim from the official source document. Regulatory quotations are excerpted from WS-4 Regulatory Deep Dive, which references the primary legal sources.*

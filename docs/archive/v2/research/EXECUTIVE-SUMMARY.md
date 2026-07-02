@@ -3,7 +3,7 @@
 > **Research programme covering 7 workstreams, 4,435+ lines of analysis, 84 academic papers, 25+ real-world incidents, 7 FAANG vendors, 15+ startups, 12 neocloud providers, and 5 major regulatory frameworks.**
 > Status: **COMPLETE** | Last updated: 2026-05-26
 
---
+---
 
 ## The Bottom Line
 
@@ -11,14 +11,14 @@ Enterprise AI agent deployment is accelerating faster than the security and comp
 
 The window to build the agent security platform is open but finite. Every major incident - PocketOS (production database deleted in 9 seconds), Kiro (AWS environment destroyed), Claude Code (27M token infinite loop) - validates the problem space. Every month without a unified, certifiable, cross-layer solution narrows the opportunity.
 
---
+---
 
 ## 1. Research Scope
 
 Seven workstreams executed in parallel across four phases:
 
 | WS | Title | Focus | Lines |
-|--|----|----|----|
+|--|----|-------|-------|
 | [WS-1](WS-1-FAANG-GUARDRAILS.md) | FAANG & Big Tech | Guardrails from Google, Microsoft, AWS, Meta, Apple, OpenAI, Anthropic | 601 |
 | [WS-2](WS-2-SME-ECOSYSTEM.md) | SME & Startup Ecosystem | Guardrails AI, NeMo, LangChain, CrewAI, AutoGen, Semantic Kernel, Arize, Galileo, Lakera, Protect AI, EU startups | 1,100 |
 | [WS-3](WS-3-NEOCLOUD-LANDSCAPE.md) | Neocloud Landscape | CoreWeave, Lambda, RunPod, Vast, Together, Fireworks, Modal, Beam, Akash, Golem, Spheron, EU neoclouds | 896 |
@@ -28,7 +28,7 @@ Seven workstreams executed in parallel across four phases:
 | [WS-7](WS-7-SYNTHESIS-AND-STRATEGY.md) | Synthesis & Strategy | Cross-cutting gap analysis, competitive matrix, 18-month roadmap, threat landscape 2026-2028 | 2,076 |
 | **Total** | | | **6,511** |
 
---
+---
 
 ## 2. Key Findings by Domain
 
@@ -63,7 +63,7 @@ The startup landscape is fragmented across five categories with no single end-to
 The infrastructure layer is mature enough for enterprise agent workloads but offers **zero agent-specific security**:
 
 | Tier | Providers | Certification Profile | Agent Security |
-|---|------|-----------|--------|
+|---|------|-----------|---------------------|
 | **Tier 1: Enterprise-ready** | CoreWeave, Fireworks AI, Lambda Labs | SOC 2 + ISO 27001 + HIPAA (Fireworks: ISO 42001) | None |
 | **Tier 2: Growing compliance** | Together AI, RunPod, Modal, Beam | SOC 2 + HIPAA (varies) | gVisor sandbox only |
 | **Tier 3: Dev/experimental** | Vast.ai, Replicate, Akash, Golem, Spheron | SOC 2 or partner-level | Marketplace model |
@@ -100,7 +100,7 @@ The regulatory environment presents both existential risk and strategic opportun
 The literature across [84 papers](WS-5-ACADEMIC-LANDSCAPE.md#2-annotated-bibliography) at top venues converges on five architectural conclusions:
 
 | Finding | Source Papers | Strategic Implication |
-|-----|-------|-----------|
+|-----|-------|--------------|
 | **Prompt injection is structurally inescapable** | [27](https://arxiv.org/abs/2605.17634), [19](https://proceedings.mlr.press/v235/wolf24a.html), [26](https://arxiv.org/abs/2503.0061) | Containment (semantic virtualization) is the only viable strategy. Prevention is not achievable at the token level. |
 | **Reward hacking is an equilibrium, not a bug** | [2](https://arxiv.org/abs/2603.28063), [3](https://arxiv.org/abs/2604.15149), [19](https://proceedings.mlr.press/v235/wolf24a.html) | Architect for detection and mitigation, not prevention. Embed hack-verifiable properties in environments. |
 | **Memory poisoning enables persistent cross-session compromise** | [33-40](WS-5-ACADEMIC-LANDSCAPE.md#2-2-adversarial-robustness) | MINJA achieves 95%+ injection with query-only access. Zombie Agent persists across sessions. Cryptographic integrity mandatory. |
@@ -135,14 +135,14 @@ The incident landscape confirms the research findings with alarming clarity:
 
 **Full incident timeline in [WS-6](WS-6-INCIDENTS-AND-MILESTONES.md). Threat landscape 2026-2028 with attack trees in [WS-7 §5](WS-7-SYNTHESIS-AND-STRATEGY.md#section-5-threat-landscape-2026-2028).**
 
---
+---
 
 ## 3. Comparative Position ([full matrix](WS-7-SYNTHESIS-AND-STRATEGY.md#2-2-dimension-by-dimension-comparison))
 
 AMI-Agents' current state compared to the competitive landscape reveals a clear picture:
 
 | Dimension | FAANG (avg) | Startup (avg) | Neocloud (avg) | AMI Current |
-|------|:------:|:-------:|:--------:|:------:|
+|-----------|:------:|:-------:|:-------------:|:---------------:|
 | Agent isolation | 4.5/5 | 2.5/5 | 4.0/5 | **1.5/5** |
 | Policy enforcement | 4.5/5 | 3.0/5 | 2.5/5 | **2.5/5** |
 | Audit logging | 4.5/5 | 2.5/5 | 3.5/5 | **2.0/5** |
@@ -159,14 +159,14 @@ AMI-Agents' current state compared to the competitive landscape reveals a clear 
 
 AMI leads only in EU data sovereignty (tied with neoclouds). The compliance certifications gap (0.0 vs 5.0 for FAANG) is the single most critical weakness.
 
---
+---
 
 ## 4. Strategic Recommendations ([full analysis](WS-7-SYNTHESIS-AND-STRATEGY.md#section-4-strategic-recommendations))
 
 ### 4.1 Five Must-Win Battles
 
 | Battle | Target | Timeline | Impact |
-|----|----|-----|----|
+|----|----|-----|--------|
 | **1. EU AI Act Compliance** | Full compliance for high-risk classification, including audit trail, stop button, reversal, and deployer toolkit | **2 Aug 2026** (10 weeks) | Regulatory survival. Without it, cannot sell to EU enterprises. |
 | **2. Semantic Virtualization** | Production Guest/Visor split with STI protocol - treat LLM as untrusted | Q3 2026 (2 week MVP) | Structural containment of prompt injection. Near-zero ASR. 6-9 month first-mover advantage. |
 | **3. Multi-Agent Security** | Signed A2A protocol with delegation depth tracking, before multi-agent goes mainstream | Q4 2026 | Prevent the next generation of agent attacks. First-mover in undefined category. |
@@ -190,12 +190,12 @@ AMI leads only in EU data sovereignty (tied with neoclouds). The compliance cert
 >
 > Unlike FAANG vendors that lock into one ecosystem, startups that cover fragments, or neoclouds that provide raw compute, AMI provides the complete agent trust plane: fail-closed policy enforcement, hash-chained audit trails, semantic virtualization against prompt injection, sandboxed code execution, multi-agent security, and EU AI Act compliance - deployable on any infrastructure, with any LLM, in any jurisdiction.
 
---
+---
 
 ## 5. Risk Summary ([full register](WS-7-SYNTHESIS-AND-STRATEGY.md#7-3-strategic-risk-register))
 
 | Risk | Likelihood | Impact | Mitigation |
-|---|:-----:|:---:|------|
+|------|:----------:|:------:|------------|
 | EU AI Act compliance deadline missed | Medium | Critical | 4 parallel tracks; cert body engagement week 1; 10-week sprint |
 | Prompt injection defence fails under adaptive attack | High | High | Semantic Visor structural prevention; continuous red-teaming |
 | ISO 27001/SOC 2 timeline slips 6+ months | Medium | High | Early cert body engagement; dedicated compliance engineer; automated evidence pipeline |
@@ -203,12 +203,12 @@ AMI leads only in EU data sovereignty (tied with neoclouds). The compliance cert
 | Regulatory fragmentation (EU vs UK vs US) | High | Medium | Modular compliance framework; design for multi-jurisdiction from start |
 | VC-funded competitor emerges with agent security focus | High | Medium | Open-source moat; first-mover advantage; certifications; MCP ecosystem |
 
---
+---
 
 ## 6. 18-Month Roadmap ([full detail](WS-7-SYNTHESIS-AND-STRATEGY.md#section-6-18-month-roadmap-q3-2026-q3-2027))
 
 | Quarter | Theme | Key Deliverables | Cumulative Cost |
-|-----|----|---------|:--------:|
+|---------|-------|-----------------|:---------------:|
 | **Q3 2026** | Compliance Foundation | EU AI Act compliance; hash-chain audit; stop button; tool-call interception; gVisor sandbox; Semantic Visor MVP; MCP security gateway; classification docs | €43K |
 | **Q4 2026** | Observability + Multi-Agent | OTEL instrumentation; SIEM exporters; A2A protocol (secured); multi-agent orchestration; LLM-in-loop validators; SOC 2 Type I | €110K |
 | **Q1 2027** | Memory + Confidential Computing | Behaviour drift detection; cryptographic memory; hierarchical memory (AgentSafe); Confidential Computing (Kata + TDX + CC); 4 security loadout profiles; **ISO 27001 certification** | €168K |
@@ -217,7 +217,7 @@ AMI leads only in EU data sovereignty (tied with neoclouds). The compliance cert
 
 **Total estimated cost**: €273K (4 engineers, 114 engineer-weeks over 18 months).
 
---
+---
 
 ## 7. Closing Assessment ([full synthesis](WS-7-SYNTHESIS-AND-STRATEGY.md#7-8-closing-statement))
 
@@ -233,6 +233,6 @@ The AMI codebase has the right architectural foundation - the hooks pipeline, co
 
 **The next 18 months will determine whether AMI-Agents is an enterprise-grade agent security platform or a promising research project.**
 
---
+---
 
 *This executive summary synthesises findings from seven research workstreams: [WS-1](WS-1-FAANG-GUARDRAILS.md) (FAANG Guardrails), [WS-2](WS-2-SME-ECOSYSTEM.md) (SME/Startup Ecosystem), [WS-3](WS-3-NEOCLOUD-LANDSCAPE.md) (Neocloud Landscape), [WS-4](WS-4-REGULATORY-DEEP-DIVE.md) (Regulatory Deep Dive), [WS-5](WS-5-ACADEMIC-LANDSCAPE.md) (Academic Landscape - 84 papers), [WS-6](WS-6-INCIDENTS-AND-MILESTONES.md) (Incidents & Milestones - 25+ incidents), and [WS-7](WS-7-SYNTHESIS-AND-STRATEGY.md) (Synthesis & Strategy). Full workstream documents located in [`docs/research/`](./).*

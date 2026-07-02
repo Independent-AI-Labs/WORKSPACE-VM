@@ -15,7 +15,7 @@
 #   3  - himalaya unavailable but findings present (operator MUST see logs)
 #
 # Run via cron weekly:
-#   _ws_root="$(git -C "$HOME/WORKSPACE-VM" rev-parse -show-toplevel)"
+#   _ws_root="$(git -C "$HOME/WORKSPACE-VM" rev-parse --show-toplevel)"
 #   cron add "0 4 * * 1" "${_ws_root:-$HOME/WORKSPACE-VM}/scripts/services/ami_gitleaks_sweep.sh" -label gitleaks-sweep
 
 set -euo pipefail
@@ -28,12 +28,12 @@ readonly HIMALAYA_ACCOUNT="${WORKSPACE_FAILURE_NOTIFY_ACCOUNT:-polymarket}"
 readonly REPORT_DIR="${XDG_STATE_HOME:-${HOME}/.local/state}/workspace/gitleaks-sweep"
 readonly TIMESTAMP="$(date -u +%Y-%m-%dT%H%M%SZ)"
 
-# -dry-run: scan + report locally but never invoke himalaya. Useful for
-# manual `bash ami_gitleaks_sweep.sh -dry-run` after adding new
+# --dry-run: scan + report locally but never invoke himalaya. Useful for
+# manual `bash ami_gitleaks_sweep.sh --dry-run` after adding new
 # .gitleaksignore entries to confirm zero findings before unleashing the
 # weekly cron's mail.
 DRY_RUN=0
-if [[ "${1:-}" == "-dry-run" || "${WORKSPACE_GITLEAKS_SWEEP_DRY_RUN:-}" == "1" ]]; then
+if [[ "${1:-}" == "--dry-run" || "${WORKSPACE_GITLEAKS_SWEEP_DRY_RUN:-}" == "1" ]]; then
     DRY_RUN=1
 fi
 
@@ -72,11 +72,11 @@ for repo in "${repos[@]}"; do
     log "  scanning $repo_name"
     rc=0
     "$GITLEAKS_BIN" detect \
-        -source "$repo" \
-        -no-banner \
-        -redact \
-        -report-path "$out_json" \
-        -exit-code 1 \
+        --source "$repo" \
+        --no-banner \
+        --redact \
+        --report-path "$out_json" \
+        --exit-code 1 \
         > "${RUN_DIR}/${repo_name}.log" 2>&1 || rc=$?
     if [[ $rc -eq 0 ]]; then
         report_summary+="  ${repo_name}: clean"$'\n'

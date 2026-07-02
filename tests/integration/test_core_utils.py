@@ -140,7 +140,7 @@ class TestVersionEnforcer:
             "binary": "workspace/scripts/bin/welcome",
             "maxVersion": "0.0.1",
             "check": {
-                "command": ["{binary}", "-help"],
+                "command": ["{binary}", "--help"],
                 "healthExpect": "welcome",
                 "timeout": 5,
             },
@@ -161,7 +161,7 @@ class TestVersionEnforcer:
             "binary": "workspace/scripts/bin/welcome",
             "minVersion": "0.0.0",
             "check": {
-                "command": ["{binary}", "-help"],
+                "command": ["{binary}", "--help"],
                 "healthExpect": "welcome",
                 "timeout": 5,
             },

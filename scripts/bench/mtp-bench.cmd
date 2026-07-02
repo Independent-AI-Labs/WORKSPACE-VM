@@ -39,9 +39,9 @@ rem Header
 echo backend,model,pp,tg,pp_t/s,tg_t/s,spec_type,spec_n_max,threads,ngl,timestamp >> "%CSV_FILE%"
 
 for %%M in (%MODELS%) do (
-    echo ------------------------
+    echo ------------------------------------------------
     echo Model: %%M
-    echo ------------------------
+    echo ------------------------------------------------
 
     for %%S in (%SIZES%) do (
         for /f "tokens=1,2 delims=," %%A in ("%%S") do (
@@ -54,7 +54,7 @@ for %%M in (%MODELS%) do (
                     set "SPEC_LABEL=none"
                     set "SPEC_NMAX=0"
                 ) else (
-                    set "SPEC_ARGS=-spec-type draft-mtp -spec-draft-n-max %%C"
+                    set "SPEC_ARGS=--spec-type draft-mtp --spec-draft-n-max %%C"
                     set "SPEC_LABEL=draft-mtp"
                     set "SPEC_NMAX=%%C"
                 )

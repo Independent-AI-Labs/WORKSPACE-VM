@@ -41,16 +41,16 @@ architecture is affected on the Vulkan backend.
 ## What Was Tried (None Fixed It)
 
 | Flag | Result |
-|---|----|
-| `-cache-ram 0` | Disables prompt cache entirely - same behavior |
-| `-slot-prompt-similarity <0..1>` | Tried 0.0, 0.1, 0.5 - doesn't affect SWA re-proc |
-| `-swa-full` | Forces full SWA memory allocation - didn't help |
-| `-kv-unified` | Unified KV cache - no effect |
-| `-cache-idle-slots` | Prevents slot release - no effect |
+|------|--------|
+| `--cache-ram 0` | Disables prompt cache entirely - same behavior |
+| `--slot-prompt-similarity <0..1>` | Tried 0.0, 0.1, 0.5 - doesn't affect SWA re-proc |
+| `--swa-full` | Forces full SWA memory allocation - didn't help |
+| `--kv-unified` | Unified KV cache - no effect |
+| `--cache-idle-slots` | Prevents slot release - no effect |
 | `-np 2` | More parallel slots - still reprocesses in slot |
-| `-flash-attn off` / `-fa 0` | Disable flash attention - no improvement |
-| `-ctx-checkpoints 0` | Disable context checkpoints - no change |
-| `-checkpoint-every-n-tokens -1` | Disable checkpoint creation - same behavior |
+| `--flash-attn off` / `-fa 0` | Disable flash attention - no improvement |
+| `--ctx-checkpoints 0` | Disable context checkpoints - no change |
+| `--checkpoint-every-n-tokens -1` | Disable checkpoint creation - same behavior |
 
 ## Status
 
@@ -61,7 +61,7 @@ architecture is affected on the Vulkan backend.
 ## Relevant Upstream Issues
 
 | Issue | Status | Description |
-|----|----|-------|
+|----|----|--------|
 | [#23322](https://github.com/ggml-org/llama.cpp/issues/23322) | Closed | Low MTP Draft Acceptance Rate with SWA/Hybrid Memory Models (Qwen3.6) |
 | [#23321](https://github.com/ggml-org/llama.cpp/issues/23321) | Open | Vulkan Backend `no-kv-offload` on Qwen3 produces gibberish |
 | [#21912](https://github.com/ggml-org/llama.cpp/issues/21912) | Closed | Gemma 4 & Qwen 3.5 full prompt reprocessing from system prompt |

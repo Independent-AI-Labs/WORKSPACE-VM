@@ -4,7 +4,7 @@
 **Status:** CRITICAL
 **Scope:** All AMI projects (Orchestrator, Portal, Trading, Streams, Auth, Base, Rust-Trading)
 
---
+---
 
 ## Executive Summary
 
@@ -14,7 +14,7 @@ A user logging into the Portal cannot access the Trading API. A Trading API user
 
 This document catalogues every auth implementation found.
 
---
+---
 
 ## 1. AMI-AUTH (@ami/auth): TypeScript Library
 
@@ -37,7 +37,7 @@ AMI-AUTH is a **shared library** that wraps NextAuth.js conventions. It is NOT a
 ### Source Files
 
 | File | Lines | Purpose |
-|---|----|-----|
+|---|----|-------|
 | `src/index.ts` | 8 | Barrel re-export |
 | `src/config.ts` | 607 | Provider loading, NextAuth config generation |
 | `src/server.ts` | 214 | auth(), handlers, signIn(), signOut() exports |
@@ -53,7 +53,7 @@ AMI-AUTH is a **shared library** that wraps NextAuth.js conventions. It is NOT a
 ### Providers Supported
 
 | Provider | Type | Config Source |
-|-----|---|--------|
+|----------|------|---------------|
 | Google | OAuth 2.0 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` or DataOps catalog |
 | GitHub | OAuth 2.0 | `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` or DataOps catalog |
 | Azure AD (Entra) | OAuth 2.0 | `AZURE_AD_CLIENT_ID` / `AZURE_AD_CLIENT_SECRET` or DataOps catalog |
@@ -114,7 +114,7 @@ When a request passes auth, middleware injects:
 ### Environment Variables
 
 | Variable | Required | Purpose |
-|-----|-----|-----|
+|----------|-----|-----|
 | `AUTH_SECRET` | Yes | JWT encryption key (>= 32 chars) |
 | `AUTH_TRUST_HOST` | No | Trust X-Forwarded headers |
 | `DATAOPS_AUTH_URL` | No | DataOps service URL |
@@ -127,7 +127,7 @@ When a request passes auth, middleware injects:
 | `GITHUB_CLIENT_ID` | No | Direct GitHub OAuth |
 | `AZURE_AD_CLIENT_ID` | No | Direct Azure AD OAuth |
 
---
+---
 
 ## 2. AMI-PORTAL: TypeScript/Next.js Application
 
@@ -138,7 +138,7 @@ When a request passes auth, middleware injects:
 ### Auth Integration Points
 
 | File | Purpose |
-|---|-----|
+|------|---------|
 | `app/api/auth/[...nextauth]/route.ts` | NextAuth route handler (3 lines, delegates to @ami/auth) |
 | `app/auth/signin/page.tsx` | Sign-in page (55 lines) |
 | `app/auth/signin/SignInForm.tsx` | Sign-in form component (275 lines) |
@@ -185,7 +185,7 @@ AUTH_SECRET=2ymapwnELNzQCvZiAU6xNOMhR6kaPMILVhfg/rdYrkc=
 NEXTAUTH_URL=https://p9q3fjcwcla0.uk
 ```
 
---
+---
 
 ## 3. AMI-TRADING: Python/FastAPI Application
 
@@ -209,7 +209,7 @@ FastAPI app
 ### Source Files
 
 | File | Lines | Purpose |
-|---|----|-----|
+|---|----|-------|
 | `src/core/security.py` | 46 | JWT + bcrypt functions |
 | `src/delivery/api/auth.py` | 195 | Auth REST endpoints |
 | `src/delivery/api/deps.py` | 209 | Auth dependencies & rate limiter |
@@ -290,7 +290,7 @@ bcrypt==5.0.0    # Password hashing
 fastapi==0.128.0 # Web framework with security utilities
 ```
 
---
+---
 
 ## 4. AMI-STREAMS: Matrix Synapse Homeserver
 
@@ -339,7 +339,7 @@ rc_login:
   failed_attempts: { per_second: 5, burst_count: 20 }
 ```
 
---
+---
 
 ## 5. Orchestrator Auth (Backup/Infrastructure)
 
@@ -349,7 +349,7 @@ rc_login:
 ### Three Authentication Methods
 
 | Method | Config | Storage |
-|----|----|-----|
+|----|----|--------|
 | Impersonation | `GDRIVE_SERVICE_ACCOUNT_EMAIL` | gcloud ADC |
 | Service Account Key | `GDRIVE_CREDENTIALS_FILE` | JSON key file on disk |
 | OAuth 2.0 | `credentials.json` | `token.pickle` (refresh token) |
@@ -357,7 +357,7 @@ rc_login:
 ### Other Infrastructure Auth
 
 | System | Method | Location |
-|----|----|-----|
+|----|----|--------|
 | OpenVPN | Certificate + optional user/pass | `bootstrap_openvpn.sh` |
 | Cloudflare | API token | `.env:69` |
 | SSH | Password | `.env:30` |
@@ -379,7 +379,7 @@ CLOUDFLARE_ZONE_ID="825774e3..."
 GDRIVE_SERVICE_ACCOUNT_EMAIL=ami-orchestrator-backup@system-service-475913.iam.gserviceaccount.com
 ```
 
---
+---
 
 ## 6. RUST-TRADING: ZK Credentials
 
@@ -395,7 +395,7 @@ GDRIVE_SERVICE_ACCOUNT_EMAIL=ami-orchestrator-backup@system-service-475913.iam.g
 - VASP endpoint configuration
 - Not related to user authentication (this is regulatory compliance)
 
---
+---
 
 ## 7. BASE MODULE: Enterprise Auth Framework (UNUSED)
 
@@ -408,7 +408,7 @@ This is the most critical finding. The `base/` submodule contains a fully archit
 ### 7.1 Auth Service (`backend/opsec/auth/`)
 
 | File | Lines | Purpose |
-|---|----|-----|
+|---|----|-------|
 | `auth_service.py` | 269 | Core auth service: authenticate, create/revoke providers, token refresh |
 | `provider_registry.py` | 78 | Adapter registry: Google, GitHub, Azure, OpenAI, Anthropic, API Key, SSH |
 | `provider_adapters.py` | 319 | OAuth, API key, SSH adapter implementations with ProviderBootstrap model |
@@ -435,7 +435,7 @@ This is the most critical finding. The `base/` submodule contains a fully archit
 ### 7.2 OAuth2 Framework (`backend/opsec/oauth/`)
 
 | File | Lines | Purpose |
-|---|----|-----|
+|---|----|-------|
 | `oauth_manager.py` | 533 | Full OAuth2 managers: Google, GitHub, Azure AD |
 | `oauth_config.py` | 154 | Predefined OAuth configs with PKCE + state support |
 | `browser/callback_server.py` | 343 | aiohttp callback server for OAuth redirects |
@@ -457,7 +457,7 @@ This is the most critical finding. The `base/` submodule contains a fully archit
 ### 7.3 JWT & Session Management (`backend/opsec/crypto/`)
 
 | File | Lines | Purpose |
-|---|----|-----|
+|---|----|-------|
 | `jwt_utils.py` | 401 | JWT creation/verification (HS256 + RS256) + SessionManager |
 | `encryption.py` | 205 | Fernet AES-256 token encryption + PBKDF2 key derivation |
 
@@ -477,7 +477,7 @@ This is the most critical finding. The `base/` submodule contains a fully archit
 ### 7.4 Password Management (`backend/opsec/password/`)
 
 | File | Lines | Purpose |
-|---|----|-----|
+|---|----|-------|
 | `password_facade.py` | 428 | Password hashing (Argon2), validation, policy enforcement |
 
 **PasswordFacade**:
@@ -491,7 +491,7 @@ This is the most critical finding. The `base/` submodule contains a fully archit
 ### 7.5 Multi-Factor Authentication (`backend/opsec/mfa/`)
 
 | File | Lines | Purpose |
-|---|----|-----|
+|---|----|-------|
 | `mfa_facade.py` | 197 | TOTP registration/verification, backup codes |
 
 **MFA Types Supported:**
@@ -562,7 +562,7 @@ apply_bootstrap()      # Apply ProviderBootstrap data
 ### 7.7 Enterprise Security (`backend/dataops/security/`)
 
 | File | Lines | Purpose |
-|---|----|-----|
+|---|----|-------|
 | `multi_tenancy.py` | 412 | Row-level, dedicated, or isolated tenant separation |
 | `rate_limiter.py` | 289 | Token bucket + Redis distributed + adaptive (CPU/mem) |
 | `audit_trail.py` | 367 | Blockchain-based immutable audit with PoW |
@@ -582,7 +582,7 @@ apply_bootstrap()      # Apply ProviderBootstrap data
 ### 7.8 Secrets Broker (`backend/services/secrets_broker/`)
 
 | File | Lines | Purpose |
-|---|----|-----|
+|---|----|-------|
 | `app.py` | 142 | FastAPI service for secrets management |
 | `store.py` | ~200 | Secret storage with OpenBao/Vault backend |
 | `config.py` | ~50 | Broker configuration |
@@ -621,12 +621,12 @@ The `base/` module has **everything** needed for a unified auth system:
 
 **Yet AMI-TRADING uses raw `pyjwt` + `bcrypt` and AMI-AUTH reimplements OAuth in TypeScript.**
 
---
+---
 
 ## FRAGMENTATION MATRIX
 
 | Dimension | AMI-AUTH / Portal | AMI-TRADING | AMI-STREAMS | Base (unused) | Orchestrator |
-|------|----------|-------|-------|--------|-------|
+|------|----------|-------|-------|--------|-------------|
 | **Language** | TypeScript | Python | Ansible/YAML | Python | Python |
 | **Framework** | NextAuth.js v5 | FastAPI | Matrix Synapse | FastAPI | Custom |
 | **JWT Library** | next-auth (JWE) | pyjwt (HS256) | Synapse built-in | pyjwt + python-jose (HS256/RS256) | N/A |
@@ -646,7 +646,7 @@ The `base/` module has **everything** needed for a unified auth system:
 | **Shared Identity** | No | No | No | No | No |
 | **In Production** | Yes | Yes | Yes | **NO** | Yes |
 
---
+---
 
 ## CRITICAL PROBLEMS
 
@@ -732,12 +732,12 @@ The `base/` module has full MFA support (TOTP, WebAuthn, backup codes) that coul
 - Trading: No MFA
 - Streams: No MFA (Matrix can do it but not configured)
 
---
+---
 
 ## SERVICE COUNT
 
 | Category | Count | Services |
-|-----|----|-----|
+|----------|-------|----------|
 | TypeScript auth systems | 2 | @ami/auth library, AMI-PORTAL consumer |
 | Python auth systems | 3 | AMI-TRADING FastAPI, Base opsec (unused), Orchestrator backup |
 | Infrastructure auth | 2 | Matrix Synapse, OpenVPN |
@@ -748,7 +748,7 @@ The `base/` module has full MFA support (TOTP, WebAuthn, backup codes) that coul
 | Total rate limiter implementations | 3 | Trading in-memory, Synapse built-in, Base token-bucket+Redis (unused) |
 | Total secrets management | 2 | .env files (used), OpenBao broker (unused) |
 
---
+---
 
 ## FILE REFERENCE INDEX
 

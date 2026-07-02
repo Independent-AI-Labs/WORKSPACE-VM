@@ -6,7 +6,7 @@
 **Domain:** Authentication & Identity: Migration
 **Prerequisite:** [SPEC-AUTH-OIDC-PROVIDER.md](SPEC-AUTH-OIDC-PROVIDER.md)
 
---
+---
 
 ## Table of Contents
 
@@ -18,7 +18,7 @@
 6. [Rollback Strategy](#6-rollback-strategy)
 7. [Testing Strategy](#7-testing-strategy)
 
---
+---
 
 ## 1. Overview
 
@@ -27,7 +27,7 @@ Once the OIDC provider (SPEC-AUTH-OIDC-PROVIDER Phase 1 + Phase 2) is operationa
 ### 1.1. Current State
 
 | Consumer | Current Auth | Token Format | User Store |
-|--|--|--|--|
+|---|---|---|---|
 | AMI-PORTAL | NextAuth.js via `@ami/auth` TS library | Session cookie (NextAuth) | Local JSON / DataOps API |
 | AMI-TRADING | Custom FastAPI JWT auth | HS256 JWT + httpOnly cookie | PostgreSQL (local users table) |
 | Matrix/MAS | Matrix Authentication Service | MAS OAuth2 tokens | MAS internal store |
@@ -35,12 +35,12 @@ Once the OIDC provider (SPEC-AUTH-OIDC-PROVIDER Phase 1 + Phase 2) is operationa
 ### 1.2. Target State
 
 | Consumer | Target Auth | Token Format | User Store |
-|--|--|--|--|
+|---|---|---|---|
 | AMI-PORTAL | OIDC via wellKnown discovery | RS256 JWT (from OIDC provider) | OIDC provider `/auth/users/*` |
 | AMI-TRADING | OIDC token validation via JWKS | RS256 JWT (from OIDC provider) | OIDC provider (via token claims) |
 | Matrix/MAS | Upstream OIDC delegation | RS256 JWT (from OIDC provider) | OIDC provider (via userinfo) |
 
---
+---
 
 ## 2. Migration Order
 
@@ -53,18 +53,18 @@ flowchart LR
     Trading["3b. Trading<br/>(code changes)"]
     Matrix["3c. Matrix<br/>(Ansible config)"]
 
-    P0 -> P1
-    P1 -> Portal
-    P1 -> P2
-    P2 -> Trading
-    P2 -> Matrix
+    P0 --> P1
+    P1 --> Portal
+    P1 --> P2
+    P2 --> Trading
+    P2 --> Matrix
 ```
 
 **SPEC-MIG-001**: AMI-PORTAL shall be migrated first because it requires zero code changes (environment variables only) and validates the DataOps API contract.
 
 **SPEC-MIG-002**: AMI-TRADING and Matrix/MAS migrations require OIDC endpoints (Phase 2) and can proceed in parallel after Phase 2 is complete.
 
---
+---
 
 ## 3. AMI-PORTAL Migration
 
@@ -126,7 +126,7 @@ And `providerType: "oauth2"` maps to a generic OAuth provider at `config.ts:244-
 Register `ami-portal` as an OIDC client in the provider's `oauth_clients` table:
 
 | Field | Value |
-|--|--|
+|---|---|
 | `id` | `ami-portal` |
 | `client_secret_hash` | bcrypt hash of client secret |
 | `client_name` | AMI Portal |
@@ -144,7 +144,7 @@ Register `ami-portal` as an OIDC client in the provider's `oauth_clients` table:
 5. Verify NextAuth login flow works via the `ami-oidc` provider
 6. Verify existing local-store fallback still works when `DATAOPS_AUTH_URL` is unset
 
---
+---
 
 ## 4. AMI-TRADING Migration
 
@@ -153,7 +153,7 @@ Register `ami-portal` as an OIDC client in the provider's `oauth_clients` table:
 AMI-TRADING currently implements its own JWT authentication:
 
 | File | Current Function | Lines |
-|--|--|--|
+|---|---|---|
 | `src/core/security.py` | `decode_token(token, secret)` | HS256 verification with shared secret |
 | `src/delivery/api/deps.py` | `get_current_user()` | Extract JWT from Bearer/cookie, validate, return `UserPayload` |
 | `src/delivery/api/deps.py` | `RateLimiter` | Sliding window rate limiting |
@@ -298,7 +298,7 @@ Currently AMI-TRADING handles login and registration directly:
 Register `ami-trading` as an OIDC client:
 
 | Field | Value |
-|--|--|
+|---|---|
 | `id` | `ami-trading` |
 | `client_secret_hash` | bcrypt hash of client secret |
 | `client_name` | AMI Trading Platform |
@@ -316,7 +316,7 @@ Register `ami-trading` as an OIDC client:
 6. Verify existing httpOnly cookie mechanism still works with new tokens
 7. Verify rate limiters unaffected
 
---
+---
 
 ## 5. Matrix/MAS Migration
 
@@ -354,7 +354,7 @@ matrix_authentication_service_config_upstream_oauth2_providers:
 Register `matrix-synapse` as an OIDC client:
 
 | Field | Value |
-|--|--|
+|---|---|
 | `id` | `matrix-synapse` |
 | `client_secret_hash` | bcrypt hash of client secret |
 | `client_name` | Matrix Synapse |
@@ -369,7 +369,7 @@ Register `matrix-synapse` as an OIDC client:
 MAS maps OIDC claims to Matrix user attributes:
 
 | OIDC Claim | Matrix Attribute | MAS Action |
-|--|--|--|
+|---|---|---|
 | `email` (localpart) | `@localpart:matrix.example.com` | `require` (must be present) |
 | `name` | Display name | `suggest` (user can override) |
 | `email` | Email (verified) | `force` (always set from OIDC) |
@@ -389,7 +389,7 @@ The OIDC provider's `/oauth/userinfo` endpoint returns these claims as specified
 5. Verify the Matrix user's display name and email match OIDC claims
 6. Verify existing password logins still work
 
---
+---
 
 ## 6. Rollback Strategy
 
@@ -432,14 +432,14 @@ Remove the `ami-auth` entry from `upstream_oauth2_providers` in the Ansible vars
 
 **Rollback time**: Ansible playbook run (~5 minutes).
 
---
+---
 
 ## 7. Testing Strategy
 
 ### 7.1. Per-Consumer Tests
 
 | Consumer | Test Type | Description |
-|--|--|--|
+|---|---|---|
 | Portal | Contract test | Verify `DataOpsClient` methods against running Python service |
 | Portal | E2E test | NextAuth login via OIDC provider in dev environment |
 | Trading | Unit test | `decode_oidc_token()` with mock JWKS |
@@ -484,7 +484,7 @@ sequenceDiagram
 ### 7.3. Migration Acceptance Criteria
 
 | # | Criterion | Validation Method |
-|--|--|--|
+|---|---|---|
 | 1 | Portal DataOps API calls succeed against Python service | Contract test |
 | 2 | Portal OIDC login works via wellKnown discovery | E2E test |
 | 3 | Trading validates RS256 JWTs from OIDC provider | Unit + integration test |

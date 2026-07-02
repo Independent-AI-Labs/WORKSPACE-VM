@@ -6,12 +6,12 @@
  * using headless Chromium via Playwright.
  *
  * Usage:
- *   node console.js <url> [-timeout <ms>] [-wait <ms>] [-no-network]
+ *   node console.js <url> [--timeout <ms>] [--wait <ms>] [--no-network]
  *
  * Examples:
  *   node console.js http://localhost:8001
- *   node console.js http://localhost:8001 -timeout 30000 -wait 10000
- *   node console.js http://localhost:8001 -no-network
+ *   node console.js http://localhost:8001 --timeout 30000 --wait 10000
+ *   node console.js http://localhost:8001 --no-network
  */
 
 const { chromium } = require('playwright');
@@ -21,19 +21,19 @@ function parseArgs() {
   const opts = { url: null, timeout: 20000, wait: 5000, network: true };
 
   for (let i = 0; i < args.length; i++) {
-    if (args[i] === '-timeout' && args[i + 1]) {
+    if (args[i] === '--timeout' && args[i + 1]) {
       opts.timeout = parseInt(args[++i], 10);
-    } else if (args[i] === '-wait' && args[i + 1]) {
+    } else if (args[i] === '--wait' && args[i + 1]) {
       opts.wait = parseInt(args[++i], 10);
-    } else if (args[i] === '-no-network') {
+    } else if (args[i] === '--no-network') {
       opts.network = false;
-    } else if (!args[i].startsWith('-')) {
+    } else if (!args[i].startsWith('--')) {
       opts.url = args[i];
     }
   }
 
   if (!opts.url) {
-    console.error('Usage: node console.js <url> [-timeout <ms>] [-wait <ms>] [-no-network]');
+    console.error('Usage: node console.js <url> [--timeout <ms>] [--wait <ms>] [--no-network]');
     process.exit(1);
   }
   return opts;

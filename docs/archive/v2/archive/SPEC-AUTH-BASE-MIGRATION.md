@@ -6,7 +6,7 @@
 **Domain:** Authentication & Identity: Code Migration
 **Prerequisite:** [SPEC-AUTH-OIDC-PROVIDER.md](SPEC-AUTH-OIDC-PROVIDER.md)
 
---
+---
 
 ## Table of Contents
 
@@ -18,7 +18,7 @@
 6. [File-by-File Migration Guide](#6-file-by-file-migration-guide)
 7. [Post-Migration Cleanup](#7-post-migration-cleanup)
 
---
+---
 
 ## 1. Overview
 
@@ -34,13 +34,13 @@ The `base/backend/opsec/` directory contains ~4,700 lines of enterprise-grade Py
 ### 1.2. Migration Summary
 
 | Category | Lines | Action |
-|--|--|--|
+|---|---|---|
 | Migrated (copy or adapt) | ~530 | Exceptions, JWTManager, TokenEncryption, ProviderRegistry |
 | Rewritten (same semantics, new persistence) | ~850 | AuthService, Repository, PasswordFacade |
 | Skipped (not needed) | ~2,580 | OAuth client, browser flows, SecureStorage, SessionManager, GDPR, retention |
 | Deferred (Phase 4) | ~740 | MFA (TOTP, WebAuthn, backup codes) |
 
---
+---
 
 ## 2. Source Inventory
 
@@ -49,7 +49,7 @@ Complete file listing of `base/backend/opsec/` with line counts and external dep
 ### 2.1. Auth Module
 
 | File | Lines | External Imports |
-|--|--|--|
+|---|---|---|
 | `auth/__init__.py` | ~0 | None |
 | `auth/exceptions.py` | 55 | None (stdlib only) |
 | `auth/auth_service.py` | 268 | `dataops.models.security.SecurityContext`, `dataops.models.user.AuthProvider/User/AuthProviderType`, `auth.repository`, `auth.provider_registry` |
@@ -60,21 +60,21 @@ Complete file listing of `base/backend/opsec/` with line counts and external dep
 ### 2.2. Crypto Module
 
 | File | Lines | External Imports |
-|--|--|--|
+|---|---|---|
 | `crypto/jwt_utils.py` | 401 | `cryptography` (rsa, serialization), `pyjwt`, `loguru`, `base.backend.utils.uuid_utils.uuid7` |
 | `crypto/encryption.py` | 207 | `cryptography` (Fernet, PBKDF2), `loguru` |
 
 ### 2.3. Password Module
 
 | File | Lines | External Imports |
-|--|--|--|
+|---|---|---|
 | `password/__init__.py` | ~0 | None |
 | `password/password_facade.py` | 428 | `dataops.core.unified_crud.UnifiedCRUD`, `dataops.models.password.*`, `dataops.models.user.User`, `loguru` |
 
 ### 2.4. OAuth Module (Client-Side)
 
 | File | Lines | External Imports |
-|--|--|--|
+|---|---|---|
 | `oauth/oauth_manager.py` | 533 | `aiohttp`, `loguru`, `oauth.oauth_config`, `auth.exceptions` |
 | `oauth/oauth_config.py` | 154 | None (stdlib + pydantic) |
 | `oauth/browser/callback_server.py` | ~180 | `aiohttp.web` |
@@ -83,20 +83,20 @@ Complete file listing of `base/backend/opsec/` with line counts and external dep
 ### 2.5. MFA Module
 
 | File | Lines | External Imports |
-|--|--|--|
+|---|---|---|
 | `mfa/__init__.py` | ~0 | None |
 | `mfa/mfa_facade.py` | 197 | `dataops.core.unified_crud.UnifiedCRUD`, `dataops.models.mfa.MFADevice/MFAType`, `dataops.models.security.SecurityContext`, `pydantic.SecretStr`, `pyotp` (lazy import) |
 
 ### 2.6. GDPR / Retention Modules
 
 | File | Lines | External Imports |
-|--|--|--|
+|---|---|---|
 | `gdpr/__init__.py` | ~0 | None |
 | `gdpr/gdpr_utils.py` | ~150 | `dataops.models.*`, `UnifiedCRUD` |
 | `retention/__init__.py` | ~0 | None |
 | `retention/retention_facade.py` | ~250 | `dataops.models.*`, `UnifiedCRUD` |
 
---
+---
 
 ## 3. Migration Disposition
 
@@ -118,7 +118,7 @@ Complete file listing of `base/backend/opsec/` with line counts and external dep
 - `ProviderRateLimitError`: `error_code = "rate_limited"`
 - `ProviderConsentError`: `error_code = "consent_required"`
 
---
+---
 
 ### 3.2. MIGRATE: Adapt with Modifications
 
@@ -129,7 +129,7 @@ Complete file listing of `base/backend/opsec/` with line counts and external dep
 **Changes required**:
 
 | # | Change | Reason |
-|--|--|--|
+|---|---|---|
 | 1 | Remove `from base.backend.utils.uuid_utils import uuid7` | Replace with `from uuid import uuid4`. **Behavioral change**: uuid7 is time-sortable, uuid4 is random. No existing code depends on ID ordering, but document this change in migration notes. |
 | 2 | Add `kid: str \| None` parameter to `__init__` and `create_token` | JWKS requires key ID in JWT header |
 | 3 | Add `headers={"kid": self.kid}` to `jwt.encode()` calls | JWKS key matching |
@@ -149,7 +149,7 @@ Complete file listing of `base/backend/opsec/` with line counts and external dep
 **Changes required**:
 
 | # | Change | Reason |
-|--|--|--|
+|---|---|---|
 | 1 | Drop `hash_password()` static method (lines 98-126) | Password hashing is in `auth/password.py` using bcrypt |
 | 2 | Drop `verify_password()` static method (lines 128-145) | Same reason |
 | 3 | Drop `SecureStorage` class (lines 148-205) | In-memory dict wrapper, not useful for production service |
@@ -168,7 +168,7 @@ Complete file listing of `base/backend/opsec/` with line counts and external dep
 **Changes required**:
 
 | # | Change | Reason |
-|--|--|--|
+|---|---|---|
 | 1 | Replace `from base.backend.dataops.models.types import AuthProviderType` | Define a local `AuthProviderType` enum in `backend/auth/types.py` |
 | 2 | Replace `from base.backend.opsec.auth.provider_adapters import ...` | Import from local `backend/auth/provider_adapters` |
 | 3 | Remove `SSH` adapter registration | SSH key auth not relevant for OIDC |
@@ -178,7 +178,7 @@ Complete file listing of `base/backend/opsec/` with line counts and external dep
 - Registry pattern (`_ADAPTERS` dict, `get_adapter()`, `register_adapter()`)
 - `authenticate()`, `refresh()`, `revoke()`, `headers()` dispatch functions
 
---
+---
 
 ### 3.3. REWRITE: Same Semantics, New Persistence
 
@@ -283,7 +283,7 @@ def validate_password_strength(password: str, email: str = "") -> list[str]:
     return errors
 ```
 
---
+---
 
 ### 3.4. PARTIAL: Selective Migration
 
@@ -305,12 +305,12 @@ def validate_password_strength(password: str, email: str = "") -> list[str]:
 - `SshProviderAdapter` (~60 lines): SSH auth irrelevant for OIDC
 - `ApiKeyProviderAdapter` (~50 lines): API key auth not needed
 
---
+---
 
 ### 3.5. SKIP: Not Migrated
 
 | Module | Lines | Reason |
-|--|--|--|
+|---|---|---|
 | `oauth/oauth_manager.py` | 533 | OAuth **client** code (browser flow, device flow, callback server). The OIDC provider is the **server** side. Fundamentally different purpose. |
 | `oauth/oauth_config.py` | 154 | Client-side OAuth configs for Google/GitHub/Azure. Not needed for provider. |
 | `oauth/browser/callback_server.py` | ~180 | Desktop CLI callback server for receiving OAuth redirects. Not relevant to web service. |
@@ -321,7 +321,7 @@ def validate_password_strength(password: str, email: str = "") -> list[str]:
 | `gdpr/gdpr_utils.py` | ~150 | GDPR data export/anonymization. Out of scope for auth service. |
 | `retention/retention_facade.py` | ~250 | Data retention policies. Out of scope for auth service. |
 
---
+---
 
 ## 4. Dependency Simplification
 
@@ -345,7 +345,7 @@ _USER_CRUD = get_crud(User)
 ### 4.2. Replacement Strategy
 
 | base/ Pattern | AMI-AUTH Replacement |
-|--|--|
+|---|---|
 | `get_crud(Model)` singleton | `AsyncSession` dependency injection via FastAPI `Depends` |
 | `await _crud.find(filters, context)` | `await session.execute(select(Model).where(...))` |
 | `await _crud.create(payload, context)` | `session.add(Model(**payload)); await session.flush()` |
@@ -357,7 +357,7 @@ _USER_CRUD = get_crud(User)
 ### 4.3. Model Mapping
 
 | base/dataops Model | AMI-AUTH SQLAlchemy Model |
-|--|--|
+|---|---|
 | `User` (Pydantic, ~200 lines) | `User` ORM (~30 lines, see SPEC-AUTH-OIDC-PROVIDER Section 7.1) |
 | `AuthProvider` (Pydantic, ~150 lines) | Split into `OAuthClient` + provider catalog data |
 | `AuthProviderType` (enum, ~10 lines) | Local `AuthProviderType` enum in `backend/auth/types.py` |
@@ -369,7 +369,7 @@ _USER_CRUD = get_crud(User)
 ### 4.4. Third-Party Package Changes
 
 | base/ Package | AMI-AUTH Package | Change |
-|--|--|--|
+|---|---|---|
 | `aiohttp` 3.13.2 | `httpx` 0.28.1 | Replace async HTTP client |
 | `pyjwt` 2.10.1 | `pyjwt` 2.11.0 | Version bump |
 | `cryptography` 46.0.3 | `cryptography` >=44.0.0 | Same library, flexible version |
@@ -381,7 +381,7 @@ _USER_CRUD = get_crud(User)
 | N/A | `bcrypt` 5.0.0 | New: replaces PBKDF2 password hashing |
 | N/A | `argon2-cffi` 23.1.0 | New: optional modern password hashing |
 
---
+---
 
 ## 5. Deferred: MFA Module
 
@@ -419,7 +419,7 @@ When ready:
 ### 5.4. Dependencies from base/
 
 | base/ Module | Action for Phase 4 |
-|--|--|
+|---|---|
 | `dataops.models.mfa.MFADevice` | Redefine as SQLAlchemy model |
 | `dataops.models.mfa.MFAType` | Redefine as local enum |
 | `dataops.core.unified_crud.UnifiedCRUD` | Replace with SQLAlchemy queries |
@@ -427,7 +427,7 @@ When ready:
 | `pydantic.SecretStr` | Use encrypted column or vault |
 | `pyotp` (lazy import) | Direct dependency |
 
---
+---
 
 ## 6. File-by-File Migration Guide
 
@@ -438,7 +438,7 @@ Step-by-step order for implementing the migration.
 Execute in this order (each step depends on the previous):
 
 | Step | Target File | Source File | Action |
-|--|--|--|--|
+|---|---|---|---|
 | 1 | `backend/auth/exceptions.py` | `opsec/auth/exceptions.py` | Copy verbatim (55 lines) |
 | 2 | `backend/db/models.py` | New | Define `User` SQLAlchemy model (see SPEC-OIDC-PROVIDER Section 7.1) |
 | 3 | `backend/db/engine.py` | New | Async engine + sessionmaker (pattern from AMI-TRADING) |
@@ -454,7 +454,7 @@ Execute in this order (each step depends on the previous):
 ### 6.2. Phase 2 Files (OIDC Endpoints)
 
 | Step | Target File | Source File | Action |
-|--|--|--|--|
+|---|---|---|---|
 | 12 | `backend/crypto/jwt_manager.py` | `opsec/crypto/jwt_utils.py` | Migrate JWTManager (lines 18-253), add kid support |
 | 13 | `backend/crypto/encryption.py` | `opsec/crypto/encryption.py` | Migrate TokenEncryption (lines 15-96) |
 | 14 | `backend/crypto/keys.py` | New | RSA key management, JWKS document builder |
@@ -468,7 +468,7 @@ Execute in this order (each step depends on the previous):
 | 22 | `backend/oidc/userinfo.py` | New | /oauth/userinfo |
 | 23 | `backend/oidc/revoke.py` | New | /oauth/revoke |
 
---
+---
 
 ## 7. Post-Migration Cleanup
 

@@ -4,13 +4,13 @@ extensions:
     description: OpenVPN client with AMI config
     category: infra
     features:
-      - -ovpn-file
-      - -action start/health
-      - -daemon
+      - --ovpn-file
+      - --action start/health
+      - --daemon
     hidden: true
     bannerPriority: 310
     check:
-      command: ["{python}", "{binary}", "-help"]
+      command: ["{python}", "{binary}", "--help"]
       healthExpect: "openvpn"
       timeout: 5
 
@@ -26,7 +26,7 @@ extensions:
     hidden: true
     bannerPriority: 320
     check:
-      command: ["{python}", "{binary}", "-help"]
+      command: ["{python}", "{binary}", "--help"]
       healthExpect: "tunnel"
       timeout: 5
 
@@ -43,6 +43,6 @@ extensions:
     hidden: true
     bannerPriority: 330
     check:
-      command: ["{python}", "{binary}", "-help"]
+      command: ["{python}", "{binary}", "--help"]
       healthExpect: "ssl"
       timeout: 5

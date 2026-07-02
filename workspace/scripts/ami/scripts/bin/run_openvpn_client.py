@@ -41,9 +41,9 @@ def run_openvpn_client(
     auth_user_pass: str | None = None,
     additional_args: list[str] | None = None,
 ) -> subprocess.Popen[str]:
-    cmd = ["openvpn", "-config", ovpn_file]
+    cmd = ["openvpn", "--config", ovpn_file]
     if auth_user_pass:
-        cmd.extend(["-auth-user-pass", auth_user_pass])
+        cmd.extend(["--auth-user-pass", auth_user_pass])
     if additional_args:
         cmd.extend(additional_args)
     print(f"Starting OpenVPN client: {' '.join(cmd)}")
@@ -92,10 +92,10 @@ async def health_check() -> HealthCheckResult:
 
 async def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("-ovpn-file")
-    parser.add_argument("-auth-file")
-    parser.add_argument("-action", default="start")
-    parser.add_argument("-daemon", action="store_true")
+    parser.add_argument("--ovpn-file")
+    parser.add_argument("--auth-file")
+    parser.add_argument("--action", default="start")
+    parser.add_argument("--daemon", action="store_true")
     args = parser.parse_args()
     if args.action == "health":
         print(json.dumps(await health_check()))

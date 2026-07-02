@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# -- Resolve AMI_ROOT --
+# --- Resolve AMI_ROOT ---
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 AMI_ROOT="$SCRIPT_DIR"
 while [[ "$AMI_ROOT" != "/" && ! -f "$AMI_ROOT/pyproject.toml" ]]; do
@@ -14,7 +14,7 @@ _PYTHON="$AMI_ROOT/.venv/bin/python"
 _CERTS_SCRIPT="workspace/scripts/bootstrap/bootstrap_certs.sh"
 _VM_MANAGER="workspace.cli.vm_main"
 
-# -- Helpers --
+# --- Helpers ---
 die() { echo "vm: ERROR: $*" >&2; exit 1; }
 
 _require_vm() {
@@ -54,7 +54,7 @@ _remove_hosts_entry() {
     fi
 }
 
-# -- Usage --
+# --- Usage ---
 usage() {
     cat <<'EOF'
 usage: vm <subcommand> [<args>]
@@ -64,11 +64,11 @@ subcommands:
   start   <uuid>             Start a stopped VM
   stop    <uuid>             Stop a running VM
   resume  <uuid>             Resume a stopped VM (alias for start)
-  delete  <uuid> [-purge]   Remove a VM (-purge also removes volumes)
+  delete  <uuid> [--purge]   Remove a VM (--purge also removes volumes)
   kill    <uuid>             SIGKILL via PID file (bypasses podman)
   shell   <uuid>             Open interactive bash shell in VM
-  exec    <uuid> - <cmd>    Run one-off command in VM
-  logs    <uuid> [-follow] [-tail N]  Show container logs
+  exec    <uuid> -- <cmd>    Run one-off command in VM
+  logs    <uuid> [--follow] [--tail N]  Show container logs
   list                       List all VMs
   status  <uuid>             Show VM inspect info and resource stats
   rebuild <uuid>             Rebuild VM from stored vm.yaml
@@ -77,12 +77,12 @@ subcommands:
   cert    <uuid>             Generate or print client cert
 
 Flags:
-  -help, -h                 Show this help
+  --help, -h                 Show this help
 EOF
     exit 0
 }
 
-# -- Subcommands --
+# --- Subcommands ---
 
 cmd_create() {
     local config_file="${1:-}"
@@ -121,7 +121,7 @@ cmd_delete() {
     [[ -n "$uuid" ]] || die "delete: missing uuid argument"
     shift
     for arg in "$@"; do
-        [[ "$arg" == "-purge" ]] && purge=true
+        [[ "$arg" == "--purge" ]] && purge=true
     done
     _require_vm "$uuid"
     if _running "$uuid"; then
@@ -177,7 +177,7 @@ cmd_exec() {
     [[ -n "$uuid" ]] || die "exec: missing uuid argument"
     _running "$uuid" || die "exec: VM '$uuid' is not running"
     shift
-    if [[ "${1:-}" == "-" ]]; then
+    if [[ "${1:-}" == "--" ]]; then
         shift
     fi
     exec podman exec "$uuid" "$@"
@@ -192,8 +192,8 @@ cmd_logs() {
 }
 
 cmd_list() {
-    podman ps -a -filter "label=ami.type=vm" \
-        -format "table {{.Names}}\t{{.State}}\t{{.Status}}\t{{.Image}}"
+    podman ps -a --filter "label=ami.type=vm" \
+        --format "table {{.Names}}\t{{.State}}\t{{.Status}}\t{{.Image}}"
 }
 
 cmd_status() {
@@ -204,7 +204,7 @@ cmd_status() {
     podman inspect "$uuid"
     echo ""
     echo "=== Stats ==="
-    podman stats -no-stream "$uuid"
+    podman stats --no-stream "$uuid"
 }
 
 cmd_rebuild() {
@@ -238,13 +238,13 @@ cmd_cert() {
     echo "Client key:  $_VMS_DIR/$uuid/certs/client.key"
 }
 
-# -- Dispatch --
+# --- Dispatch ---
 if [[ $# -eq 0 ]]; then
     usage
 fi
 
 case "${1:-}" in
-    -h|-help)  usage ;;
+    -h|--help)  usage ;;
     create)     shift; cmd_create "$@" ;;
     start)      shift; cmd_start "$@" ;;
     stop)       shift; cmd_stop "$@" ;;
@@ -260,5 +260,5 @@ case "${1:-}" in
     sync)       shift; cmd_sync "$@" ;;
     config)     shift; cmd_config "$@" ;;
     cert)       shift; cmd_cert "$@" ;;
-    *)          die "unknown subcommand '${1:-}'. Try -help." ;;
+    *)          die "unknown subcommand '${1:-}'. Try --help." ;;
 esac

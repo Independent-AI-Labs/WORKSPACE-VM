@@ -5,7 +5,7 @@ Bootstrap Installer TUI for AMI Orchestrator.
 Provides an interactive multi-select interface for installing optional
 bootstrap components with status detection.
 
-Supports non-interactive mode via -defaults flag for CI environments.
+Supports non-interactive mode via --defaults flag for CI environments.
 """
 
 from __future__ import annotations
@@ -423,7 +423,7 @@ def _main_impl() -> int:
         description="Bootstrap Installer for AMI Orchestrator"
     )
     parser.add_argument(
-        "-defaults",
+        "--defaults",
         type=Path,
         metavar="FILE",
         help="Run non-interactively using component list from YAML file",
@@ -438,7 +438,7 @@ def _main_impl() -> int:
     if not sys.stdin.isatty():
         print(f"{RED}Error:{RESET} This script requires an interactive terminal.")
         print("Run it directly, not through a pipe.")
-        print(f"\n{CYAN}Tip:{RESET} Use -defaults FILE for non-interactive CI mode.")
+        print(f"\n{CYAN}Tip:{RESET} Use --defaults FILE for non-interactive CI mode.")
         return 1
 
     print(BANNER)

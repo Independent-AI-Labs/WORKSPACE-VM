@@ -121,7 +121,7 @@ create_bootstrap_environment() {
     # Use the downloaded binary to bootstrap
     log_info "Installing Python 3.12 and creating bootstrap environment with portable uv..."
     "./$UV_BINARY_NAME" python install 3.12
-    "./$UV_BINARY_NAME" venv -python 3.12 -seed "$BOOT_DIR"
+    "./$UV_BINARY_NAME" venv --python 3.12 --seed "$BOOT_DIR"
 
     # Install uv itself in the bootstrap environment
     log_info "Installing uv into the bootstrap environment..."

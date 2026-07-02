@@ -19,7 +19,7 @@ log_error() { echo -e "${RED}[ERROR]${NC} $*"; }
 
 if [ -x "${NODE_ENV}/bin/node" ]; then
     log_info "Node.js already installed at ${NODE_ENV}"
-    "${NODE_ENV}/bin/node" -version
+    "${NODE_ENV}/bin/node" --version
     mkdir -p "${BIN_DIR}"
     ln -sf "${NODE_ENV}/bin/node" "${BIN_DIR}/node"
     ln -sf "${NODE_ENV}/bin/npm" "${BIN_DIR}/npm"
@@ -36,7 +36,7 @@ fi
 
 if [ ! -x "${NODEENV_BIN}" ]; then
     log_info "nodeenv not found, installing into boot python env..."
-    "${UV_CMD}" pip install -python "${PYTHON_ENV_BIN}/python" nodeenv -quiet || {
+    "${UV_CMD}" pip install --python "${PYTHON_ENV_BIN}/python" nodeenv --quiet || {
         log_error "Failed to install nodeenv"
         exit 1
     }
@@ -50,7 +50,7 @@ if [ -d "${NODE_ENV}" ]; then
     rm -rf "${NODE_ENV}"
 fi
 
-"${NODEENV_BIN}" -node=24.11.1 "${NODE_ENV}" || {
+"${NODEENV_BIN}" --node=24.11.1 "${NODE_ENV}" || {
     log_error "Failed to create Node.js environment"
     exit 1
 }
@@ -63,7 +63,7 @@ if [ -x "${BIN_DIR}/node" ]; then
     log_info "Node.js installed successfully"
     log_info "  Node env: ${NODE_ENV}"
     log_info "  Symlinks: ${BIN_DIR}/node, ${BIN_DIR}/npm, ${BIN_DIR}/npx"
-    "${BIN_DIR}/node" -version
+    "${BIN_DIR}/node" --version
 else
     log_error "Node.js installation failed"
     exit 1

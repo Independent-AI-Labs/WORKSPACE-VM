@@ -3,7 +3,7 @@
 ## Categorization & Ownership
 
 | Extension | Category | Project | Status |
-| :-- | :-- | :-- | :-- |
+| :--- | :--- | :--- | :--- |
 | ami-mail | Enterprise | AMI-STREAMS | Ready |
 | ami-chat | Enterprise | AMI-STREAMS | Ready |
 | ami-backup | Dev | AMI-DATAOPS | Ready |

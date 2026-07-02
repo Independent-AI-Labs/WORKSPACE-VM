@@ -35,7 +35,7 @@ Configurable validation pipeline intercepting agent actions at key points. YAML-
 - **REQ-HOOK-012**: Hard deny patterns shall block unconditionally with no scope override:
   - Command chaining: `&&`, `;`, `||`, background `&`
   - Nested shells: bash, sh, zsh, ksh, csh, dash, node
-  - Dangerous invocations: `-no-verify`, inline python (`python -c`, pipe to python), pip (use uv), cd (use absolute paths), `git rm -cached`, dd, shred, wipe
+  - Dangerous invocations: `--no-verify`, inline python (`python -c`, pipe to python), pip (use uv), cd (use absolute paths), `git rm --cached`, dd, shred, wipe
 - **REQ-HOOK-013**: Tier definitions and hard deny patterns shall be in a YAML config file, editable without code changes
 
 ## 4. Scope Overrides
@@ -96,7 +96,7 @@ Configurable validation pipeline intercepting agent actions at key points. YAML-
   - Additional pattern files to load or suppress
   - LLM validator prompt files (if any)
   - Allowed tool list for containerized agents
-- **REQ-HOOK-083**: Loadout shall be selectable at agent startup via `-loadout <name>` flag or `AMI_LOADOUT` env var
+- **REQ-HOOK-083**: Loadout shall be selectable at agent startup via `--loadout <name>` flag or `AMI_LOADOUT` env var
 - **REQ-HOOK-084**: Default loadout (`standard`) shall match current v4.0.0 behavior
 - **REQ-HOOK-085**: Loadouts shall be composable - a loadout can extend another (e.g., `deployment` extends `standard` with stricter admin rules)
 - **REQ-HOOK-086**: Containerized agents (REQ-AGENT-CONTAINERS) shall have their loadout set at container creation, not changeable at runtime

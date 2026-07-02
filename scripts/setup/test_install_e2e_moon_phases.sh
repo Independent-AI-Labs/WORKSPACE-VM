@@ -7,7 +7,7 @@
 # migration workflow that the bare install test predates:
 #
 #   Phase 9:  moon project-graph integrity + mandatory tier 0+1 present
-#   Phase 10: tag filtering - -tags python returns >0 projects
+#   Phase 10: tag filtering - --tags python returns >0 projects
 #   Phase 11: bootstrap-repos data-driven walk (no-op against
 #             already-cloned workspace; catches script regressions)
 #   Phase 12: cacheable check task - cold ci:lint vs cached run
@@ -26,7 +26,7 @@ else
     MOON=""
 fi
 
-# -- Phase 9: moon graph integrity --
+# --- Phase 9: moon graph integrity ---
 echo ""
 echo "=========================================="
 echo "PHASE 9: Moon graph integrity"
@@ -35,9 +35,9 @@ echo "=========================================="
 if [ -z "$MOON" ]; then
     echo "[SKIP] moon binary not on PATH and not in .boot-linux/bin"
 else
-    "$MOON" project-graph -json > moon_graph.json 2>&1
+    "$MOON" project-graph --json > moon_graph.json 2>&1
     if [ $? -ne 0 ]; then
-        echo "[FAIL] moon project-graph -json failed"
+        echo "[FAIL] moon project-graph --json failed"
         head -20 moon_graph.json
         exit 1
     fi
@@ -52,16 +52,16 @@ else
     echo "[PASS] mandatory projects present in graph"
 fi
 
-# -- Phase 10: tag filter sanity --
+# --- Phase 10: tag filter sanity ---
 echo ""
 echo "=========================================="
 echo "PHASE 10: Tag filter sanity"
 echo "=========================================="
 
 if [ -n "$MOON" ]; then
-    "$MOON" query projects -tags python > tagged_python.json 2>&1
+    "$MOON" query projects --tags python > tagged_python.json 2>&1
     if [ $? -ne 0 ]; then
-        echo "[FAIL] moon query projects -tags python failed"
+        echo "[FAIL] moon query projects --tags python failed"
         head tagged_python.json
         exit 1
     fi
@@ -71,10 +71,10 @@ if [ -n "$MOON" ]; then
         echo "[FAIL] python-tagged project count is 0 - tags missing or query broken"
         exit 1
     fi
-    echo "[PASS] tags resolve: -tags python returns $PYTHON_COUNT projects"
+    echo "[PASS] tags resolve: --tags python returns $PYTHON_COUNT projects"
 fi
 
-# -- Phase 11: bootstrap-repos data-driven walk --
+# --- Phase 11: bootstrap-repos data-driven walk ---
 echo ""
 echo "=========================================="
 echo "PHASE 11: bootstrap-repos data-driven clone walk"
@@ -103,7 +103,7 @@ if ! grep -q "bootstrap-repos:" bootstrap_repos.log; then
 fi
 echo "[PASS] bootstrap-repos walk succeeded"
 
-# -- Phase 12: cacheable check task --
+# --- Phase 12: cacheable check task ---
 echo ""
 echo "=========================================="
 echo "PHASE 12: Cacheable check task - cold + cached"
@@ -136,14 +136,14 @@ if [ -n "$MOON" ]; then
     echo "[PASS] moon caching works (cold ${cold_ms}ms → cached ${cached_ms}ms)"
 fi
 
-# -- Phase 13: update-walk topology --
+# --- Phase 13: update-walk topology ---
 echo ""
 echo "=========================================="
 echo "PHASE 13: update-walk ordering (^:update walks tier 0 → 1 → 2)"
 echo "=========================================="
 
 if [ -n "$MOON" ]; then
-    "$MOON" action-graph "workspace:update" -dot > update_graph.dot 2>&1
+    "$MOON" action-graph "workspace:update" --dot > update_graph.dot 2>&1
     if [ $? -ne 0 ]; then
         echo "[FAIL] moon action-graph workspace:update failed"
         head update_graph.dot

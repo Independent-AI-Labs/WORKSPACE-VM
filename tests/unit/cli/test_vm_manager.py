@@ -76,14 +76,14 @@ class TestDeriveNetworkFlags:
     def test_none_mode(self) -> None:
         cfg = VMConfig.model_validate({"components": ["opencode"]})
         flags = _derive_network_flags(cfg)
-        assert flags == ["-network", "none"]
+        assert flags == ["--network", "none"]
 
     def test_bridge_mode(self) -> None:
         cfg = VMConfig.model_validate(
             {"components": ["opencode"], "network": {"mode": "bridge"}}
         )
         flags = _derive_network_flags(cfg)
-        assert "-network" in flags
+        assert "--network" in flags
         assert "ami-vm-net" in flags
 
     def test_host_mode(self) -> None:
@@ -91,7 +91,7 @@ class TestDeriveNetworkFlags:
             {"components": ["opencode"], "network": {"mode": "host"}}
         )
         flags = _derive_network_flags(cfg)
-        assert flags == ["-network", "host"]
+        assert flags == ["--network", "host"]
 
     def test_openvpn_netns(self) -> None:
         cfg = VMConfig.model_validate(
@@ -105,7 +105,7 @@ class TestDeriveNetworkFlags:
             }
         )
         flags = _derive_network_flags(cfg)
-        assert "-network" in flags
+        assert "--network" in flags
         assert "ns:/run/netns/myvpn" in flags
 
 
@@ -113,9 +113,9 @@ class TestDeriveCapFlags:
     def test_default_no_caps(self) -> None:
         cfg = VMConfig.model_validate({"components": ["opencode"]})
         flags = _derive_cap_flags(cfg)
-        assert "-cap-drop" in flags
+        assert "--cap-drop" in flags
         assert "ALL" in flags
-        assert "-cap-add" not in flags
+        assert "--cap-add" not in flags
 
     def test_internet_policy_adds_net_admin(self) -> None:
         cfg = VMConfig.model_validate(
@@ -125,7 +125,7 @@ class TestDeriveCapFlags:
             }
         )
         flags = _derive_cap_flags(cfg)
-        assert "-cap-add" in flags
+        assert "--cap-add" in flags
         assert "NET_ADMIN" in flags
 
     def test_user_override(self) -> None:
@@ -162,13 +162,13 @@ class TestDeriveCapFlags:
         )
         flags = _derive_cap_flags(cfg)
         assert "NET_ADMIN" not in flags
-        assert "-cap-add" not in flags
+        assert "--cap-add" not in flags
 
 
 class TestCLIDispatch:
     def test_help_flag(self) -> None:
         result = subprocess.run(
-            ["bash", "workspace/scripts/bin/vm", "-help"],
+            ["bash", "workspace/scripts/bin/vm", "--help"],
             capture_output=True,
             text=True,
             timeout=10,
@@ -249,27 +249,27 @@ class TestBuildRunArgs:
         assert "ami.type=vm" in args
         assert "ami.uuid=test-uuid" in args
         assert "ami.config=" in " ".join(args)
-        assert "-network" in args
+        assert "--network" in args
         assert "none" in args
-        assert "-userns=keep-id" in args
-        assert "-memory" in args
+        assert "--userns=keep-id" in args
+        assert "--memory" in args
         assert "4g" in args
-        assert "-cpus" in args
-        assert "-pids-limit" in args
-        assert "-health-on-failure=stop" in args
+        assert "--cpus" in args
+        assert "--pids-limit" in args
+        assert "--health-on-failure=stop" in args
 
     def test_read_only_args(self) -> None:
         cfg = VMConfig.model_validate({"components": ["opencode"]})
         args = _build_run_args(cfg, "test-uuid")
-        assert "-read-only" in args
-        assert "-tmpfs" in args
+        assert "--read-only" in args
+        assert "--tmpfs" in args
         assert "/tmp:rw,noexec,nosuid" in args
         assert "/run:rw,noexec,nosuid" in args
 
     def test_no_new_privileges(self) -> None:
         cfg = VMConfig.model_validate({"components": ["opencode"]})
         args = _build_run_args(cfg, "test-uuid")
-        assert "-security-opt" in args
+        assert "--security-opt" in args
         assert "no-new-privileges" in args
 
     def test_env_vars_injected(self) -> None:
@@ -285,7 +285,7 @@ class TestBuildRunArgs:
             {"components": ["opencode"], "network": {"mode": "bridge"}}
         )
         args = _build_run_args(cfg, "test-uuid")
-        assert "-network" in args
+        assert "--network" in args
         assert "ami-vm-net" in args
 
     def test_permissive_security_skips_flags(self) -> None:
@@ -297,7 +297,7 @@ class TestBuildRunArgs:
         )
         args = _build_run_args(cfg, "test-uuid")
         assert "no-new-privileges" not in args
-        assert "-read-only" not in args
+        assert "--read-only" not in args
 
 
 class TestRemoveHostsEntry:

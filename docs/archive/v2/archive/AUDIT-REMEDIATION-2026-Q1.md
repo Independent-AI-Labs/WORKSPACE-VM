@@ -6,7 +6,7 @@
 
 This document consolidates the Q1 2026 architectural debt audit cycle: problem identification, remediation planning, execution tracking, and final report. Retained as historical reference.
 
---
+---
 
 ## 1. Technical Debt Audit
 
@@ -36,7 +36,7 @@ Scripts relied on `sys.path.insert` hacks instead of standard Python packaging.
 ### 1.8 Disk-Bound Process I/O
 `ami/utils/process.py` forced all subprocess output through `tempfile.TemporaryFile` instead of memory pipes.
 
---
+---
 
 ## 2. Remediation Plan
 
@@ -51,12 +51,12 @@ For each issue, the following approach was taken:
 7. **UUIDv7** - Added verification test suite against RFC 9562 properties.
 8. **Process I/O** - Rewrote `ProcessExecutor` to use `subprocess.PIPE` with `selectors` event loop.
 
---
+---
 
 ## 3. Execution Tracking
 
 | Phase | Status |
-|----|----|
+|-------|--------|
 | Phase 1: Dead code and config cleanup | Partially complete (ghost paths in patterns remain) |
 | Phase 2: Architectural fixes | Complete |
 | Phase 3: Component refactoring | Complete |
@@ -66,7 +66,7 @@ Unchecked items from Phase 1:
 - Purge ghost paths from `banned_words.yaml` and `code_check.yaml`
 - Move utility functions from `helpers.py` to proper locations
 
---
+---
 
 ## 4. Final Report
 

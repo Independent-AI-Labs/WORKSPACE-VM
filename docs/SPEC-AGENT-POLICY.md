@@ -12,7 +12,7 @@
 - [SPEC-HOOKS](../docs/archive/v2/specifications/SPEC-HOOKS.md) (V2 Hook Validation Pipeline)
 - [SPEC-EXTENSIONS](../docs/archive/v2/specifications/SPEC-EXTENSIONS.md) (Extension Registry)
 
---
+---
 
 ## Overview
 
@@ -27,7 +27,7 @@ The Agent Policy Engine is a declarative, YAML-driven governance system for open
 
 **Implementation stack:** Bash (CLIs + shared library) + `yq` (YAML → JSON conversion) + static JavaScript (runtime plugin). Zero Python VMs, zero code generation.
 
---
+---
 
 ## Artifact Persistence
 
@@ -66,7 +66,7 @@ workspace/config/opencode/plugins/
 
 **Gitignore boundary:** `*.yaml` directly in `policies/`, `profiles/*.yaml` (user profiles), and `plugins/policies.json` are all gitignored. Only `template/` and `add-user-message-context.js` are tracked.
 
---
+---
 
 ## Architecture
 
@@ -137,7 +137,7 @@ workspace/config/opencode/plugins/
 └─────────────────────────────────────────────────────────────┘
 ```
 
---
+---
 
 ## 1. YAML Policy DSL Schema
 
@@ -191,7 +191,7 @@ policies:                                  # array of policy objects
 ### 1.2 Policy Object Fields
 
 | Field | Type | Required | Default | Description |
-|----|---|-----|-----|-------|
+|----|---|------|----------|---------|
 | `name` | string (kebab-case) | **Yes** | - | Unique policy identifier within the domain file. Pattern: `[a-z][a-z0-9._-]+`. |
 | `description` | string | No | `""` | Human-readable purpose. Included in audit logs and `policy show`. |
 | `enabled` | boolean | No | `true` | `false` → skipped during rendering. |
@@ -242,7 +242,7 @@ match:
 ```
 
 | Operator | Semantics | Example |
-|-----|------|-----|
+|-----|------|-----------|
 | `regex` | POSIX ERE match | `value: "rm\\s+-rf\\s+/"` |
 | `equals` | Exact string equality | `value: "Bash"` |
 | `contains` | Substring match | `value: "sudo"` |
@@ -254,7 +254,7 @@ match:
 **Common field paths** (by event). For the complete authoritative schema, see `@opencode-ai/plugin` Hooks interface types at `packages/plugin/src/index.ts`:
 
 | Event | Available Fields |
-|----|---------|
+|-------|-----------------|
 | `chat.messages.transform` | `text` (message content), `role` (user/assistant/system), `msg.info.role`, `part.type`, `part.text` |
 | `chat.system.transform` | `system[]` (system prompt array), `sessionID`, `model` |
 | `chat.message` | `message` (content), `parts[]`, `sessionID`, `agent`, `model`, `messageID`, `variant` |
@@ -310,7 +310,7 @@ action:
 ```
 
 | Action | Compatible Events | Effect |
-|----|----------|----|
+|--------|----------|----|
 | `inject` | `chat.messages.transform`, `chat.system.transform`, `experimental.session.compacting` | Add `system_prompt` text to system context |
 | `block` | `tool.execute.before`, `command.execute.before`, `permission.ask` | Block the operation; show `reason` |
 | `allow` | `permission.ask`, `tool.execute.before` | Explicitly permit (override lower-priority policies) |
@@ -323,7 +323,7 @@ action:
 **Event-Action Compatibility Matrix:**
 
 | Event | inject | block | allow | warn | ask | modify | env | run |
-|----|----|----|----|---|---|----|---|---|
+|-------|----|----|----|---|---|----|---|------|
 | `chat.messages.transform` | ✓ | - | - | ✓ | - | ✓ | - | - |
 | `chat.system.transform` | ✓ | - | - | - | - | ✓ | - | - |
 | `tool.execute.before` | - | ✓ | ✓ | ✓ | ✓ | ✓ | - | ✓ |
@@ -347,7 +347,7 @@ action:
 
 [^1]: **`permission.ask` is defined in the opencode Hooks interface but not yet dispatched.** As of opencode v1.16, `plugin.trigger("permission.ask", ...)` has zero call sites. Policies targeting this event will not fire. Route `ask`-type tool policies through `tool.execute.before` until the upstream dispatch is added. See opencode issue #5894 (subagent hook propagation) and #4066 (permission bypass) for related upstream discussion.
 
---
+---
 
 ### 1.6 Run Action Protocol
 
@@ -430,14 +430,14 @@ The script MUST write a single JSON object to stdout. No other output channels a
 { "action": "warn", "reason": "Operating outside workspace boundary" }
 ```
 ```json
-{ "action": "modify", "fields": { "command": "npm run test - -changed", "workdir": "/safe/path" } }
+{ "action": "modify", "fields": { "command": "npm run test -- --changed", "workdir": "/safe/path" } }
 ```
 ```json
 { "action": "inject", "system_prompt": "## ARCHITECTURE CONTEXT\nThis PR touches files across 4 packages: ..." }
 ```
 
 | Decision | Effect | Plugin Behavior |
-|-----|----|---------|
+|----------|--------|-----------------|
 | `block` | Tool execution KILLED | Plugin `throw`s `Error(reason)`. The reason is surfaced to the user and logged to audit. |
 | `allow` | Tool proceeds normally | Plugin returns, tool executes as originally specified. |
 | `warn` | Tool proceeds but warning injected | Plugin injects `reason` into system prompt and logs to audit. Tool still executes. |
@@ -454,7 +454,7 @@ The `modify` action is event-dependent:
 Every non-success outcome is treated as `block`:
 
 | Condition | Result |
-|------|----|
+|-----------|--------|
 | Non-zero exit code | `block` - reason: "Script exited with code N" |
 | Timeout exceeded | `block` - reason: "Script timed out after Nms" |
 | stdout is empty or not valid JSON | `block` - reason: "Script returned invalid output: <truncated stdout>" |
@@ -488,7 +488,7 @@ Every `run` action decision is logged to the audit trail with:
 
 **Sandboxing (Phase 3):** Run scripts currently execute with full user filesystem permissions. A malicious or buggy script can read, write, or delete any file the user can access. Per WS-7 research recommendations, a gVisor-based sandbox with workspace read-only + explicit write grants is planned for Phase 3. Until then, only trusted scripts from the controlled `policies/scripts/` directory should be referenced.
 
---
+---
 
 ### 1.7 Prompt Injection and Defense Posture
 
@@ -508,12 +508,12 @@ The existing V2 HookManager (v4.0.0, `hook_manager.py`, `guards.py`) operates at
 
 **Migration path:**
 1. **Phase 1:** Policy engine deploys alongside HookManager. The `tool.execute.before`/`after` hooks provide tool-call-level enforcement that the V2 system cannot offer. HookManager's 21 hard-deny patterns are migrated to `template/tool-guards.template.yaml` as policy rules.
-2. **Phase 2:** HookManager is disabled by default. A `-legacy-hooks` flag enables it for backward compatibility. All new deployments use the policy engine exclusively.
+2. **Phase 2:** HookManager is disabled by default. A `--legacy-hooks` flag enables it for backward compatibility. All new deployments use the policy engine exclusively.
 3. **Phase 3:** HookManager code is archived to `docs/archive/v2/`. All enforcement flows through the policy engine and opencode plugin hooks.
 
 The V2 HookManager's command-tier architecture (observe/modify/execute/admin) maps directly to the policy engine's `block`/`allow`/`warn`/`ask` action types. The 21 hard-deny patterns are expressible as `match` conditions with `action: block`.
 
---
+---
 
 ## 2. Static Plugin + JSON Rendering
 
@@ -774,7 +774,7 @@ export const amiContext = async () => {
 The static plugin maps policy `event` field values to opencode hook function names. This mapping is coded once in the static plugin, not generated:
 
 | Policy `event` | opencode Hook Function | Handler Present? |
-|--------|------------|---------|
+|--------|------------|------------------------|
 | `chat.messages.transform` | `experimental.chat.messages.transform` | Always (core) |
 | `chat.system.transform` | `experimental.chat.system.transform` | Always (core) |
 | `tool.execute.before` | `tool.execute.before` | Always (core) |
@@ -819,7 +819,7 @@ The static plugin maps policy `event` field values to opencode hook function nam
 
 No changes to the rendering pipeline, CLI scripts, or profile system.
 
---
+---
 
 ## 3. CLI Script Architecture
 
@@ -914,7 +914,7 @@ case "${1:-list}" in
     update)      shift; _update_policy "$DOMAIN" "$@" ;;
     enable)      shift; _toggle_policy "$DOMAIN" "${1:-}" true ;;
     disable)     shift; _toggle_policy "$DOMAIN" "${1:-}" false ;;
-    -help|-h)   _usage "$DOMAIN" ;;
+    --help|-h)   _usage "$DOMAIN" ;;
     *)           _err "Unknown command: $1" ;;
 esac
 ```
@@ -950,7 +950,7 @@ COMMANDS:
   install SOURCE    Install profile from file/git/URL
 ```
 
---
+---
 
 ## 4. Profile System
 
@@ -1002,12 +1002,12 @@ profile apply strict
   └── 7. policy apply (deploy static JS + policies.json)
 ```
 
---
+---
 
 ## 5. File Map
 
 | File | Purpose | Tracked? |
-|---|-----|-----|
+|---|-----|---------|
 | `workspace/scripts/bin/rules` | Domain CLI: rules editing (~30 lines) | Git |
 | `workspace/scripts/bin/guards` | Domain CLI: guards editing (~30 lines) | Git |
 | `workspace/scripts/bin/policy` | Policy lifecycle CLI (~120 lines) | Git |
@@ -1022,7 +1022,7 @@ profile apply strict
 | `~/.config/opencode/plugins/` | Deployed runtime copies | _Not in repo_ |
 | `~/.config/opencode/logs/policy-decisions.jsonl` | Audit trail | _Not in repo_ |
 
---
+---
 
 ## 6. Migration Path
 
@@ -1087,7 +1087,7 @@ Before cutting over:
 - [ ] Userfiles and `policies.json` are gitignored
 - [ ] All scripts pass shellcheck and remain under 512 lines
 
---
+---
 
 ## 7. Extension Manifest Registration
 
@@ -1107,7 +1107,7 @@ Before cutting over:
       - disable
     bannerPriority: 20
     check:
-      command: ["{binary}", "-help"]
+      command: ["{binary}", "--help"]
       healthExpect: "Usage"
       timeout: 5
 
@@ -1124,7 +1124,7 @@ Before cutting over:
       - disable
     bannerPriority: 21
     check:
-      command: ["{binary}", "-help"]
+      command: ["{binary}", "--help"]
       healthExpect: "Usage"
       timeout: 5
 
@@ -1142,7 +1142,7 @@ Before cutting over:
       - audit
     bannerPriority: 22
     check:
-      command: ["{binary}", "-help"]
+      command: ["{binary}", "--help"]
       healthExpect: "Usage"
       timeout: 5
 
@@ -1159,12 +1159,12 @@ Before cutting over:
       - install
     bannerPriority: 23
     check:
-      command: ["{binary}", "-help"]
+      command: ["{binary}", "--help"]
       healthExpect: "Usage"
       timeout: 5
 ```
 
---
+---
 
 ## 8. Makefile Target Additions
 
@@ -1242,14 +1242,14 @@ profile-delete: ## Delete a profile: make profile-delete NAME=my-profile
 	@bash workspace/scripts/bin/profile delete "$$NAME"
 ```
 
---
+---
 
 ## 9. Implementation Phases
 
 ### Phase 1: Core Migration (Week 1-2)
 
 | Deliverable | Status |
-|-------|----|
+|-------------|--------|
 | `lib/context.sh` shared library with bash + yq functions (incl. _init_userfile) | NOT STARTED |
 | `template/rules.template.yaml` + `template/guards.template.yaml` from existing template.js | NOT STARTED |
 | Static plugin JS (`add-user-message-context.js`) written + tested | NOT STARTED |
@@ -1266,7 +1266,7 @@ profile-delete: ## Delete a profile: make profile-delete NAME=my-profile
 ### Phase 2: Profiles + Audit (Week 3-4)
 
 | Deliverable | Status |
-|-------|----|
+|-------------|--------|
 | `profile` CLI: list, save, load, apply, delete | NOT STARTED |
 | Built-in profiles: standard, strict, lenient, code-review | NOT STARTED |
 | Audit trail generation in plugin (JSONL hash chain) | NOT STARTED |
@@ -1277,7 +1277,7 @@ profile-delete: ## Delete a profile: make profile-delete NAME=my-profile
 ### Phase 3: Advanced Governance (Week 5-6)
 
 | Deliverable | Status |
-|-------|----|
+|-------------|--------|
 | Additional domain CLIs: `tool-guards`, `shell-guards`, `system-rules` | NOT STARTED |
 | Agent-scoped policies (`agent: "explore"`) functional | NOT STARTED |
 | Compound conditions (`match_groups`) functional | NOT STARTED |
@@ -1285,6 +1285,6 @@ profile-delete: ## Delete a profile: make profile-delete NAME=my-profile
 | `profile install` from git sources | NOT STARTED |
 | Full schema validation for all 24 hook events | NOT STARTED |
 
---
+---
 
 *This specification implements the requirements defined in [REQ-AGENT-POLICY](REQ-AGENT-POLICY.md). Architecture: bash + yq for YAML processing and CLI management; static JavaScript for the opencode runtime plugin (loaded once, not generated). Zero Python VMs in the rendering pipeline. Industry standards referenced: A2A Protocol v1.0, opencode Plugin Hooks Interface (@opencode-ai/plugin), EU AI Act (Regulation (EU) 2024/1689), ISO/IEC 42001:2023, NIST AI RMF 1.0, OWASP Top 10 for LLM Applications (2025), and design patterns observed across 10+ AI agent policy engines.*

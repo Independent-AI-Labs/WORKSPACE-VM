@@ -13,7 +13,7 @@ if ! command -v cmake &>/dev/null; then
     echo "ERROR: cmake not found. Install with: sudo apt-get install -y cmake"
     exit 1
 fi
-cmake_ver="$(cmake -version 2>&1)"
+cmake_ver="$(cmake --version 2>&1)"
 cmake_ver="${cmake_ver%%$'\n'*}"
 echo "  cmake: $cmake_ver"
 
@@ -53,7 +53,7 @@ cmake -B "$BUILD_DIR" \
     -DCMAKE_BUILD_TYPE=Release
 
 echo "=== Step 4: Building ==="
-cmake -build "$BUILD_DIR" -config Release -j"$(nproc)"
+cmake --build "$BUILD_DIR" --config Release -j"$(nproc)"
 
 echo "================================================================"
 echo " BUILD SUCCESSFUL! "

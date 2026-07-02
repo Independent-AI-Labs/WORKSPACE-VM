@@ -7,7 +7,7 @@
 
 > **Current state (2026-06-06):** Phase 1 (code deletions) complete. Phase 2 ~80% done - `oc` wrapper exists, opencode installed, bootstrap_opencode.sh present, shell aliases active, extension manifest updated, agent tests nuked. Remaining Phase 2: Makefile targets (install-opencode/update-opencode), test_setup_shell_aliases.py update. Phase 3 redesigned (multi-VM `make vm` system replacing single docker-compose). Phases 3-6 not started.
 
---
+---
 
 ## Table of Contents
 
@@ -24,7 +24,7 @@
 11. [Risk Register](#11-risk-register)
 12. [Appendix: File Inventory](#12-appendix-file-inventory)
 
---
+---
 
 ## 1. Scope & Context
 
@@ -43,7 +43,7 @@ WORKSPACE-VM is a federated AI-agent workspace with:
 ### 1.2 What Changes
 
 | Component | Current State | Target State |
-|------|-------|-------|
+|------|-------|--------------|
 | Agent CLI runtime | Claude Code + Gemini + Qwen (npm) | **opencode-ai only** (npm) |
 | Python agent orchestration | `ami/cli/`, `ami/core/`, `ami/cli_components/`, `ami/types/`, `ami/tools/` | **Archived** - all agent orchestration delegated to opencode |
 | Agent CLI wrappers | `claude_cli.py`, `gemini_cli.py`, `qwen_cli.py` | **Deleted** |
@@ -58,7 +58,7 @@ WORKSPACE-VM is a federated AI-agent workspace with:
 ### 1.3 What Stays
 
 | Component | Reason |
-|------|----|
+|-----------|--------|
 | `projects/opencode/` | **Source clone** - continues as the development branch for opencode itself |
 | `projects/AMI-DATAOPS/` | Data infrastructure (postgres, keycloak, etc.) - independent of agent choice |
 | `projects/AMI-CI/` | CI enforcement - independent of agent choice |
@@ -73,7 +73,7 @@ WORKSPACE-VM is a federated AI-agent workspace with:
 | `.pre-commit-config.yaml` | Quality gates - unchanged |
 | `pyproject.toml` | Python package - `workspace` package tree stays for CI/config scripts |
 
---
+---
 
 ## 2. Archive Strategy
 
@@ -102,7 +102,7 @@ docs/archive/v2/
 ### 2.2 What Moves vs Deletes
 
 | Action | Items |
-|----|----|
+|--------|-------|
 | **Archive** (move to `docs/archive/v2/`) | All doc files in `docs/` except `REQUIREMENTS-A2A.md`, `GAP-ANALYSIS-A2A.md`, and this plan |
 | **Delete** | All Python agent orchestration code: `ami/cli/`, `ami/core/`, `ami/tools/` |
 | **Keep** | `ami/cli_components/` - status/storage/legend files (ops extension entry points) |
@@ -115,7 +115,7 @@ docs/archive/v2/
 | **Rewrite** | `README.md` - point to opencode-ai as primary agent |
 | **Rewrite** | `AGENTS.md` - V3 rules (opencode-focused, no claude/gemini/qwen) |
 
---
+---
 
 ## 3. Code Deletions
 
@@ -227,7 +227,7 @@ update-opencode: ## Update opencode-ai to latest
 
 All files moved to `docs/archive/v2/` (see §2.1).
 
---
+---
 
 ## 4. Replacement Architecture
 
@@ -304,7 +304,7 @@ export AMI_ROOT && cd "$AMI_ROOT"
 BOOT_DIR="${BOOT_LINUX_DIR:-${AMI_ROOT}/.boot-linux}"
 NPX="${BOOT_DIR}/bin/npx"
 
-WELCOME=$("$AMI_ROOT/workspace/scripts/bin/welcome" -plain 2>/dev/null || echo "WORKSPACE-VM workspace")
+WELCOME=$("$AMI_ROOT/workspace/scripts/bin/welcome" --plain 2>/dev/null || echo "WORKSPACE-VM workspace")
 printf '%b\n' "$WELCOME" && echo ""
 printf '%b\n' "$WELCOME" > "${HOME}/.config/opencode/ami-environment.md"
 OC_SRC="$AMI_ROOT/workspace/config/opencode"
@@ -314,7 +314,7 @@ mkdir -p "$OC_DIR/plugins"
 [ ! -f "$OC_DIR/plugins/ami-context.ts" ] && cp "$OC_SRC/plugins/ami-context.ts" "$OC_DIR/plugins/ami-context.ts"
 export OPENCODE_ENABLE_EXA=1
 if [[ $# -gt 0 ]]; then
-    exec "$NPX" opencode run -dir "$ORIG_PWD" "$*"
+    exec "$NPX" opencode run --dir "$ORIG_PWD" "$*"
 else
     exec "$NPX" opencode "$ORIG_PWD"
 fi
@@ -325,7 +325,7 @@ Full details in `docs/MIGRATION-CLI-COMPONENTS-TO-DATAOPS.md` §14.
 ### 4.3 Makefile Changes
 
 | Target | Change |
-|----|----|
+|--------|--------|
 | `install-node-agents` | **Deleted** - replaced by `install-opencode` |
 | `update-node-agents` | **Deleted** - replaced by `update-opencode` |
 | `install-opencode` | **New** - `npm install -g opencode-ai` via `bootstrap_opencode.sh`, added to `make install` chain |
@@ -340,7 +340,7 @@ Full details in `docs/MIGRATION-CLI-COMPONENTS-TO-DATAOPS.md` §14.
 
 The `opencode` terminal UI runs inside the agent VM container (see §5). For host-side management, the `oc` wrapper prints the welcome banner as context and delegates to `opencode`.
 
---
+---
 
 ## 5. Docker Virtualisation Stack
 
@@ -353,21 +353,21 @@ graph TD
         subgraph VM1["VM &lt;uuid1&gt;"]
             T1["traefik (per-VM)<br/>HTTPS :443, mTLS"]
             OC1["opencode web UI<br/>127.0.0.1:4096"]
-            T1 -> OC1
+            T1 --> OC1
         end
         subgraph VM2["VM &lt;uuid2&gt;"]
             T2["traefik (per-VM)<br/>HTTPS :443, mTLS"]
             OC2["opencode web UI<br/>127.0.0.1:4096"]
-            T2 -> OC2
+            T2 --> OC2
         end
         NET["Podman Network: ami-vm-net<br/>(optional, only if network.mode != none)"]
         VM1 -.-> NET
         VM2 -.-> NET
     end
-    CLIENT["Client<br/>.crt + .key + Basic Auth"] ->|"https://&lt;bridge-ip&gt;:443"| VM1
-    CLIENT ->|"https://&lt;bridge-ip&gt;:443"| VM2
-    VM1 ->|"provider baseURL<br/>(bridge or IP)"| LS
-    VM2 ->|"provider baseURL<br/>(bridge or IP)"| LS
+    CLIENT["Client<br/>.crt + .key + Basic Auth"] -->|"https://&lt;bridge-ip&gt;:443"| VM1
+    CLIENT -->|"https://&lt;bridge-ip&gt;:443"| VM2
+    VM1 -->|"provider baseURL<br/>(bridge or IP)"| LS
+    VM2 -->|"provider baseURL<br/>(bridge or IP)"| LS
 ```
 
 Each VM is a Podman container built from a config file (see Phase 3).
@@ -449,7 +449,7 @@ After=network.target ami-network.service opencode.service
 [Service]
 Type=simple
 User=ami
-ExecStart=/opt/ami-agents/.boot-linux/bin/traefik -configfile=/etc/traefik/traefik.yml
+ExecStart=/opt/ami-agents/.boot-linux/bin/traefik --configfile=/etc/traefik/traefik.yml
 Restart=on-failure
 RestartSec=5
 StandardOutput=journal
@@ -473,7 +473,7 @@ Per-VM certificates live at `.vms/<uuid>/certs/`. The `make vm cert
 <id>` command generates:
 
 | File | Purpose |
-|---|-----|
+|------|---------|
 | `ca.crt` / `ca.key` | Per-VM CA (4096-bit RSA, SHA-512, 3650 days) |
 | `server.crt` / `server.key` | Traefik server cert (CN=`<uuid>.vm.local`) |
 | `client.crt` / `client.key` | Client cert for browser import (CN=ami-admin) |
@@ -490,14 +490,14 @@ The existing AMI-DATAOPS `docker-compose.yml` remains independent. VMs
 with `network.mode: bridge` on the same named Podman network can reach
 DATAOPS services (postgres, keycloak, etc.) at their host ports.
 
---
+---
 
 ## 6. Traefik HTTPS with Client Certificate Authentication
 
 ### 6.1 Requirements
 
 | Requirement | Detail |
-|-------|----|
+|-------------|--------|
 | T-1 | Each VM runs its own Traefik instance as a systemd service |
 | T-2 | Traefik MUST terminate TLS 1.3 with per-VM server certificate |
 | T-3 | Client certificate authentication MUST be required (mTLS) |
@@ -524,14 +524,14 @@ VM's Traefik (:443, inside container)
 opencode web UI → Basic Auth challenge (OPENCODE_SERVER_PASSWORD)
 ```
 
---
+---
 
 ## 7. Ansible Orchestration
 
 ### 7.1 New Playbooks
 
 | Playbook | Purpose |
-|-----|-----|
+|----------|---------|
 | `site.yml` | Top-level playbook - orchestrates full stack deployment |
 | `opencode.yml` | Deploy/update opencode-ai globally |
 | `vm-host.yml` | Provision VM host (podman, bootstrap tools, cert infrastructure) |
@@ -544,7 +544,7 @@ other component.
 ### 7.2 `site.yml`
 
 ```yaml
---
+---
 - name: AMI-Agents V3 - Full Stack Deployment
   hosts: localhost
   gather_facts: true
@@ -568,7 +568,7 @@ other component.
 
 **`ansible/roles/opencode/tasks/main.yml`:**
 ```yaml
---
+---
 - name: Install opencode-ai globally
   npm:
     name: opencode-ai
@@ -589,13 +589,13 @@ other component.
     mode: "0600"
 
 - name: Verify opencode installation
-  command: opencode -version
+  command: opencode --version
   register: opencode_version_result
   changed_when: false
   failed_when: opencode_version_result.rc != 0
 ```
 
---
+---
 
 ## 8. Bootstrapping & Installation
 
@@ -617,9 +617,9 @@ init-check → sync-package → build-guard → bootstrap_installer.py → regis
 ```
 
 | Target | Action |
-|----|----|
+|--------|--------|
 | `core` | Bootstrap uv, python, node, git-xet, moon, podman (prerequisite for install-ci) |
-| `install-ci` | Non-interactive: `bootstrap_installer.py -defaults install-defaults.yaml` |
+| `install-ci` | Non-interactive: `bootstrap_installer.py --defaults install-defaults.yaml` |
 | `install` | Interactive: `bootstrap_installer.py` (TUI component selection) |
 | `install-shell` | Register `oc` alias + extensions in `~/.bashrc` |
 | `install-hooks` | Pre-commit hooks (unchanged from V2) |
@@ -636,14 +636,14 @@ Each VM gets its own CA + server cert + client cert under
 `.vms/<uuid>/certs/`. No shared certificate infrastructure - each VM is
 an independent security domain.
 
---
+---
 
 ## 9. Migration Phases
 
 ### Phase 1: Documentation & Preparation (Days 1-2)
 
 | Action | Detail |
-|----|----|
+|--------|--------|
 | 1.1 | Archive all V2 docs to `docs/archive/v2/` |
 | 1.2 | Delete Python agent orchestration code (§3.1): `workspace/cli/`, `workspace/core/`, `workspace/tools/`, duplicated `workspace/cli_components/text_input_utils.py`. Keep status/storage/legend (ops extensions) and `workspace/types/` (surviving cli_components dependency chain). |
 | 1.3 | Delete agent CLI scripts (§3.2) |
@@ -655,7 +655,7 @@ an independent security domain.
 ### Phase 2: Base opencode Integration (Days 3-4) - ~80% DONE
 
 | Action | Detail | Status |
-|----|----|----|
+|--------|----|----|
 | 2.1 | `npx opencode` available (v1.15.13 installed at `~/.local/npm-global/bin/opencode`) | **DONE** ✓ |
 | 2.2 | Draft `opencode.docker.json` with llama.cpp + web UI config | **DONE** ✓ |
 | 2.3 | **Replace** `install-node-agents` + `update-node-agents` with `install-opencode` + `update-opencode` in Makefile | **NOT DONE** |
@@ -695,7 +695,7 @@ to `make install-ci` inside the container.
 # VM configuration - passed to `make vm <config.yaml>`
 # Only `components` is required. Everything else has defaults.
 
-# -- Install layer --
+# --- Install layer ---
 # Same format as install-defaults.yaml. Passed to make install-ci.
 components:
   - uv
@@ -708,22 +708,22 @@ extra_apt:                     # system packages beyond what make init covers
   - "htop"
   - "vim"
 
-# -- Resources --
+# --- Resources ---
 resources:
   memory: "4g"
   cpus: 2
   pids_limit: 256
 
-# -- Provider --
+# --- Provider ---
 # Baked into the container's generated opencode.json so the web UI
 # and CLI can discover the provider. Models are NOT baked in - the
-# caller supplies model at connection time (via web UI or -model flag).
+# caller supplies model at connection time (via web UI or --model flag).
 provider:
   name: llama.cpp              # provider key in opencode.json
   options:
     base_url: "http://llamaserver:8080/v1"
 
-# -- Credentials --
+# --- Credentials ---
 # How API keys get into the container.
 credentials:
   mode: none                   # none | clone | api (default: none)
@@ -733,7 +733,7 @@ credentials:
   # api   - future: provision from OpenBAO vault or user API at
   #         connection time. Keys never touch the host filesystem.
 
-# -- SSH & Host Configs --
+# --- SSH & Host Configs ---
 # SSH keys and host dotfiles provisioned at build time into /home/ami/.
 ssh:
   mode: none                    # none | inherit | custom (default: none)
@@ -748,7 +748,7 @@ ssh:
   #     - "~/.gitconfig"
   #     - "/path/to/custom-ssh-config:/home/ami/.ssh/config"
 
-# -- Filesystem --
+# --- Filesystem ---
 files:                         # pre-copied into /workspace volume before first start
   - src: "workspace/"
     dst: "/workspace/"
@@ -768,18 +768,18 @@ sync:                          # directory-based file sync, user-invoked via mak
 mounts:                        # read-only bind mounts (absolute paths; ${HOME} expanded)
   - "${HOME}/.ssh:/home/ami/.ssh:ro"
 
-# -- Network --
+# --- Network ---
 # DEFAULT: none - container has zero network interfaces (fully air-gapped).
 # User opts in to each connectivity tier.
 network:
   mode: none                    # none | bridge | host | openvpn
 
-  # -- mode: bridge --
+  # --- mode: bridge ---
   # Container joins a named Podman bridge network.
   # mode: bridge
   #   network_name: "ami-vm-net"         # podman network (created if missing)
   #   policy: unrestricted                # none | internet | proxy | unrestricted
-  #     none         - -internal flag: containers communicate, no external access
+  #     none         - --internal flag: containers communicate, no external access
   #     internet     - MASQUERADE to internet, iptables blocks host gateway
   #     proxy        - only proxy host reachable, HTTP_PROXY env injected
   #     unrestricted - full access, no iptables blocks
@@ -788,11 +788,11 @@ network:
   #     - "llamaserver:8080"
   #     - "1.2.3.4:443"
 
-  # -- mode: host --
-  # -network host. Shares host's network namespace. ZERO isolation.
+  # --- mode: host ---
+  # --network host. Shares host's network namespace. ZERO isolation.
   # mode: host
 
-  # -- mode: openvpn --
+  # --- mode: openvpn ---
   # Container traffic routed through OpenVPN tunnel.
   # mode: openvpn
   #   vpn_type: container               # container runs its own OpenVPN
@@ -800,17 +800,17 @@ network:
   #   vpn_type: netns                   # joins existing host netns
   #     vpn_netns: "vpn-ns"             # netns name at /run/netns/<name>
 
-# -- Runtime --
+# --- Runtime ---
 web_ui: true                   # start opencode web via systemd service (PID 1)
 env:                           # env vars injected into container
   OPENCODE_ENABLE_EXA: "1"
 
-# -- Security --
+# --- Security ---
 security:
   purge_sudo: true              # apt purge sudo + rm -rf /etc/sudoers.d/* (default: true)
-  no_new_privileges: true       # -security-opt=no-new-privileges (default: true)
-  read_only_rootfs: true        # -read-only with tmpfs on /tmp and /run (default: true)
-  cap_drop:                     # -cap-drop flags (default: ALL)
+  no_new_privileges: true       # --security-opt=no-new-privileges (default: true)
+  read_only_rootfs: true        # --read-only with tmpfs on /tmp and /run (default: true)
+  cap_drop:                     # --cap-drop flags (default: ALL)
     - "ALL"
   cap_add: []                    # auto-derived from network.mode (empty for mode:none)
   # For a debug/dev VM that needs full access:
@@ -844,13 +844,13 @@ make vm <config.yaml>           - build + create + start a VM (idempotent: rebui
 make vm start <id>              - podman start <id> + write PID to .vms/<id>/pid
 make vm stop <id>               - podman stop <id> + remove PID file
 make vm resume <id>             - alias for start (restores from stopped state)
-make vm delete <id> [-purge]   - podman rm + optional volume rm
+make vm delete <id> [--purge]   - podman rm + optional volume rm
 make vm kill <id>               - read .vms/<id>/pid, send SIGKILL directly (bypasses podman)
 make vm shell <id>              - podman exec -it -u ami <id> /bin/bash
-make vm exec <id> - <cmd>      - podman exec <id> <cmd> (one-off, no TTY)
-make vm logs <id> [-f]          - podman logs [-follow] <id>
-make vm list                    - podman ps -a -filter label=ami.type=vm
-make vm status <id>             - podman inspect + podman stats -no-stream
+make vm exec <id> -- <cmd>      - podman exec <id> <cmd> (one-off, no TTY)
+make vm logs <id> [-f]          - podman logs [--follow] <id>
+make vm list                    - podman ps -a --filter label=ami.type=vm
+make vm status <id>             - podman inspect + podman stats --no-stream
 make vm rebuild <id>            - re-run init + install-ci inside container, restart
 make vm sync <id>               - file sync per config.sync rules
 make vm config <id>             - print the YAML config used to create this VM
@@ -868,9 +868,9 @@ graph TD
     INIT["FROM base AS init<br/>make init → make core<br/>revoke sudo from ami"]
     INSTALL["FROM init AS installer<br/>make ensure-repos<br/>make sync-package<br/>make install-ci"]
     RUNTIME["FROM installer AS runtime<br/>ARG OPENCODE_SERVER_PASSWORD<br/>ARG AGENT_UID<br/>── if purge_sudo: apt purge sudo<br/>── generate opencode.json<br/>── if ssh.mode == inherit: COPY ~/.ssh/ ~/.gitconfig ~/.aws/<br/>── if ssh.mode == custom: COPY explicit files<br/>── if credentials.mode == clone: COPY ~/.config/opencode/<br/>── COPY certs/ → /etc/ssl/ami/<br/>── generate systemd units<br/>── HEALTHCHECK curl :4096<br/>── ENTRYPOINT /sbin/init"]
-    BASE -> INIT
-    INIT -> INSTALL
-    INSTALL -> RUNTIME
+    BASE --> INIT
+    INIT --> INSTALL
+    INSTALL --> RUNTIME
 
 The generated `opencode.json` inside the container:
 
@@ -892,12 +892,12 @@ The generated `opencode.json` inside the container:
 ```
 
 No model is baked in. Models are selected by the caller at connection
-time (web UI model picker, or `opencode run -model <provider/model>`).
+time (web UI model picker, or `opencode run --model <provider/model>`).
 
 **SSH & host configs** (copied at build time into `/home/ami/`):
 
 | `ssh.mode` | Files copied | Source |
-|------|-------|----|
+|------------|-------|----|
 | `none` (default) | Nothing | - |
 | `inherit` | `~/.ssh/id_*`, `~/.ssh/config`, `~/.ssh/known_hosts`, `~/.gitconfig`, `~/.aws/*`, `~/.npmrc` | Host user's home |
 | `custom` | User-specified list (`ssh.files:`) | Per-file host paths |
@@ -921,7 +921,7 @@ ssh:
 **Credentials provisioning** (copied at build time):
 
 | `credentials.mode` | Effect |
-|----------|----|
+|-------------------|--------|
 | `none` (default) | Container has no API keys. User configures after connecting. |
 | `clone` | Copy host `~/.config/opencode/` → `/home/ami/.config/opencode/` |
 | `api` | Future: provision from OpenBAO vault or user API at connection time. |
@@ -932,7 +932,7 @@ gitignored (Dockerfile references paths outside the build context).
 **Systemd services** (generated conditionally based on config):
 
 | Service | When generated | Purpose |
-|-----|--------|-----|
+|-----|--------|---------------|
 | `opencode.service` | Always (if `web_ui: true`) | opencode web on `127.0.0.1:4096` |
 | `traefik.service` | `network.mode != none` AND `web_ui: true` | mTLS proxy `:443 → :4096` |
 | `ami-network.service` | `network.mode: bridge` + `network.policy: internet\|proxy` | iptables rules |
@@ -953,7 +953,7 @@ Group=ami
 WorkingDirectory=/workspace
 Environment=OPENCODE_ENABLE_EXA=1
 Environment=OPENCODE_SERVER_PASSWORD=<generated password>
-ExecStart=/opt/ami-agents/.boot-linux/bin/opencode web -port 4096
+ExecStart=/opt/ami-agents/.boot-linux/bin/opencode web --port 4096
 Restart=on-failure
 RestartSec=5
 StandardOutput=journal
@@ -981,7 +981,7 @@ ExecStart=/usr/local/sbin/ami-network-setup
 
 `ami-network-setup` applies mode-specific iptables rules (see §3.7).
 
-The build requires `-privileged` during the init stage (apt + iptables).
+The build requires `--privileged` during the init stage (apt + iptables).
 At runtime, security flags are driven by `config.security` (see §3.1).
 `cap_add` is auto-derived from `network.mode` (see §3.7), user overrides
 in `security.cap_add` take precedence.
@@ -1026,15 +1026,15 @@ proxy starts after opencode is ready.
 Three named volumes per VM, created by `make vm`:
 
 | Volume | Mount point | Purpose |
-|----|-------|-----|
+|----|-------|-------------|
 | `<uuid>-workspace` | `/workspace` | rsynced source files |
 | `<uuid>-transcripts` | `/transcripts` | opencode session logs |
 | `<uuid>-cache` | `/cache` | `.boot-linux`, `.venv`, `node_modules` |
 
 Host bind mounts:
-- Each entry in `config.mounts` is passed as `-mount type=bind,src=<host-path>,dst=<container-path>,ro`
+- Each entry in `config.mounts` is passed as `--mount type=bind,src=<host-path>,dst=<container-path>,ro`
 
-`make vm delete -purge` removes all three volumes.
+`make vm delete --purge` removes all three volumes.
 
 #### 3.7 Network Isolation
 
@@ -1044,9 +1044,9 @@ Network isolation is driven by `config.network.mode` and
 rules. `NET_ADMIN` capability is auto-derived from the mode:
 
 | Mode + Policy | cap_add | iptables? | Systemd service |
-|--|--|--|--|
+|---|---|---|---|
 | `none` | `[]` | No | None needed |
-| `bridge: none` | `[]` | No (`-internal`) | None |
+| `bridge: none` | `[]` | No (`--internal`) | None |
 | `bridge: internet` | `["NET_ADMIN"]` | Yes | `ami-network.service` |
 | `bridge: proxy` | `["NET_ADMIN"]` | Yes | `ami-network.service` |
 | `bridge: unrestricted` | `[]` | No | None |
@@ -1062,8 +1062,8 @@ _Policy `internet`:_
 
 ```bash
 # Allow DNS to bridge gateway (aardvark-dns)
-iptables -A FORWARD -s $CONTAINER_IP -d $GATEWAY -p udp -dport 53 -j ACCEPT
-iptables -A FORWARD -s $CONTAINER_IP -d $GATEWAY -p tcp -dport 53 -j ACCEPT
+iptables -A FORWARD -s $CONTAINER_IP -d $GATEWAY -p udp --dport 53 -j ACCEPT
+iptables -A FORWARD -s $CONTAINER_IP -d $GATEWAY -p tcp --dport 53 -j ACCEPT
 # Block all other host access
 iptables -A FORWARD -s $CONTAINER_IP -d $GATEWAY -j DROP
 # Internet flows through MASQUERADE normally
@@ -1074,20 +1074,20 @@ _Policy `proxy`:_
 
 ```bash
 # Allow ONLY the proxy host
-iptables -I NETAVARK_FORWARD 1 -s $CONTAINER_IP -d $PROXY_IP -p tcp -dport $PROXY_PORT -j ACCEPT
+iptables -I NETAVARK_FORWARD 1 -s $CONTAINER_IP -d $PROXY_IP -p tcp --dport $PROXY_PORT -j ACCEPT
 iptables -A FORWARD -s $CONTAINER_IP -j DROP
 # HTTP_PROXY/HTTPS_PROXY env vars injected into container
 ```
 
 **OpenVPN (mode: `openvpn`):**
 
-For `vpn_type: container`, the container needs `-device /dev/net/tun` +
+For `vpn_type: container`, the container needs `--device /dev/net/tun` +
 `NET_ADMIN`. The `openvpn.service` unit starts the VPN client at boot,
 routing all container traffic through the tunnel. The VPN config file
 is copied into the image at build time.
 
 For `vpn_type: netns`, the container joins an existing host network
-namespace via `-network ns:/run/netns/<name>`. The namespace must
+namespace via `--network ns:/run/netns/<name>`. The namespace must
 already have the VPN tunnel configured. No additional iptables or
 capabilities needed - the container inherits the existing setup.
 
@@ -1104,34 +1104,34 @@ capabilities needed - the container inherits the existing setup.
 8.  If network.mode == bridge:
       Create podman network <network_name> if it doesn't exist
 9.  podman build -t ami-vm:<uuid> \
-       -build-arg AGENT_UID=$(id -u) \
-       -build-arg OPENCODE_SERVER_PASSWORD=$(cat .vms/<uuid>/password) \
+       --build-arg AGENT_UID=$(id -u) \
+       --build-arg OPENCODE_SERVER_PASSWORD=$(cat .vms/<uuid>/password) \
        -f .vms/<uuid>/Dockerfile .
 10. podman volume create <uuid>-workspace <uuid>-transcripts <uuid>-cache
 11. Pre-copy files: for each entry in config.files, cp src → volume mountpoint
 12. Generate certs: CA + server + client → .vms/<uuid>/certs/
 13. Determine podman run flags from config:
-      -network <derived from network.mode>
-      $(for cap in config.security.cap_drop; echo "-cap-drop=$cap")
-      $(for cap in cap_add; echo "-cap-add=$cap")  # auto-derived or user override
-      $(security.no_new_privileges && echo "-security-opt=no-new-privileges")
-      $(security.read_only_rootfs && echo "-read-only -tmpfs /tmp:rw,... -tmpfs /run:rw,...")
+      --network <derived from network.mode>
+      $(for cap in config.security.cap_drop; echo "--cap-drop=$cap")
+      $(for cap in cap_add; echo "--cap-add=$cap")  # auto-derived or user override
+      $(security.no_new_privileges && echo "--security-opt=no-new-privileges")
+      $(security.read_only_rootfs && echo "--read-only --tmpfs /tmp:rw,... --tmpfs /run:rw,...")
       -e AMI_NETWORK_MODE=<mode> -e AMI_NETWORK_POLICY=<policy>
       -e AMI_NETWORK_WHITELIST="<entries>"
       -e AMI_PROXY_URL=<proxy_url if policy=proxy>
-      $(if openvpn:container then -device /dev/net/tun)
-      -env-file=<generated env file from config.env>
-14. podman run -d -name <uuid> \
-       -label ami.type=vm -label ami.uuid=<uuid> \
-       -label ami.config=<sha256> \
+      $(if openvpn:container then --device /dev/net/tun)
+      --env-file=<generated env file from config.env>
+14. podman run -d --name <uuid> \
+       --label ami.type=vm --label ami.uuid=<uuid> \
+       --label ami.config=<sha256> \
        -v <uuid>-workspace:/workspace \
        -v <uuid>-transcripts:/transcripts \
        -v <uuid>-cache:/cache \
-       -mount type=bind,src=<host config mounts>,ro \
-       -userns=keep-id \
-       -memory=<mem> -cpus=<cpus> -pids-limit=<limit> \
+       --mount type=bind,src=<host config mounts>,ro \
+       --userns=keep-id \
+       --memory=<mem> --cpus=<cpus> --pids-limit=<limit> \
        <network + security flags from step 13> \
-       -health-on-failure=stop \
+       --health-on-failure=stop \
        ami-vm:<uuid>
 15. Write host PID: podman inspect -f '{{.State.Pid}}' <uuid> → .vms/<uuid>/pid
 16. If bridge mode: get container IP, add to host /etc/hosts:
@@ -1155,7 +1155,7 @@ idempotent: it prints the existing UUID instead of rebuilding. Use
 # Added to the main Makefile:
 .PHONY: vm vm-start vm-stop vm-resume vm-delete vm-shell vm-logs vm-list vm-status vm-rebuild vm-config vm-cert vm-exec vm-kill vm-sync
 vm: ## Build + start a VM from config file
-	@.venv/bin/python workspace/scripts/vm_manager.py create -config "$(filter-out $@,$(MAKECMDGOALS))"
+	@.venv/bin/python workspace/scripts/vm_manager.py create --config "$(filter-out $@,$(MAKECMDGOALS))"
 %::
 	@true   # catch-all to prevent Make from treating config paths as targets
 
@@ -1171,11 +1171,11 @@ vm-kill:     ## read .vms/<id>/pid, send SIGKILL directly, skip podman
 	@.venv/bin/python workspace/scripts/vm_manager.py kill $(filter-out $@,$(MAKECMDGOALS))
 vm-shell:    ## podman exec -it <id> bash
 	@.venv/bin/python workspace/scripts/vm_manager.py shell $(filter-out $@,$(MAKECMDGOALS))
-vm-exec:     ## podman exec <id> - <cmd> (one-off command, no TTY)
+vm-exec:     ## podman exec <id> -- <cmd> (one-off command, no TTY)
 	@.venv/bin/python workspace/scripts/vm_manager.py exec $(filter-out $@,$(MAKECMDGOALS))
 vm-logs:     ## podman logs <id>
 	@.venv/bin/python workspace/scripts/vm_manager.py logs $(filter-out $@,$(MAKECMDGOALS))
-vm-list:     ## podman ps -a -filter label=ami.type=vm
+vm-list:     ## podman ps -a --filter label=ami.type=vm
 	@.venv/bin/python workspace/scripts/vm_manager.py list
 vm-status:   ## podman inspect + stats for <id>
 	@.venv/bin/python workspace/scripts/vm_manager.py status $(filter-out $@,$(MAKECMDGOALS))
@@ -1214,7 +1214,7 @@ agent + llamaserver + traefik) is replaced by the multi-VM design above.
 Specific changes:
 
 | Old Plan | New Plan |
-|-----|-----|
+|----------|----------|
 | One fixed agent container | Per-config VM instances with UUIDv7 IDs |
 | Single `docker-compose.yml` | Per-VM generated Dockerfile |
 | `Dockerfile.agent` at repo root | Jinja2 template at `workspace/scripts/templates/Dockerfile.vm.j2` |
@@ -1235,7 +1235,7 @@ and documents which existing facilities are reused.
 **Existing facilities reused (no new code needed):**
 
 | Facility | Path | Purpose |
-|-----|---|-----|
+|-----|---|------|
 | UUIDv7 generator | `workspace/utils/uuid_utils.py::uuid7()` | VM ID generation (RFC 9562, pure Python) |
 | Podman runtime | `.boot-linux/bin/podman` (v5.6.2, rootless, netavark) | Container lifecycle |
 | Container types | `workspace/types/status.py` (PodmanContainer, PortMapping) | VM inspection results |
@@ -1247,7 +1247,7 @@ and documents which existing facilities are reused.
 **New files - where they go:**
 
 | File | Location | Pattern followed |
-|---|-----|---------|
+|---|-----|----------|
 | VM config model | `workspace/types/vm.py` | Pydantic BaseModel (see `workspace/types/config.py`) |
 | VM config template | `workspace/config/vm-template.yaml` | YAML reference (see `install-defaults.yaml`) |
 | Bootstrap: traefik | `workspace/scripts/bootstrap/bootstrap_traefik.sh` | Shell script (see `bootstrap_opencode.sh`) |
@@ -1278,7 +1278,7 @@ and Traefik config generation. Required for Commit 3 (templates).
 ### Phase 4: Makefile & Bootstrap Integration (Days 9-10) - NOT STARTED
 
 | Action | Detail |
-|----|----|
+|--------|--------|
 | 4.1 | Add Phase 2 Makefile targets: `install-opencode`, `update-opencode` (explicit npm-based install/update for opencode-ai) |
 | 4.2 | Wire `install-opencode` into `make install` dependency chain (after `core`, before `register-extensions`) |
 | 4.3 | Add Phase 3 `make vm*` targets to Makefile (see §3.9 for full list) |
@@ -1291,7 +1291,7 @@ and Traefik config generation. Required for Commit 3 (templates).
 ### Phase 5: Verification & Hardening (Days 11-12)
 
 | Action | Detail |
-|----|----|
+|--------|--------|
 | 5.1 | Verify opencode web UI accessible only via mTLS |
 | 5.2 | Verify opencode web UI accessible only through Traefik mTLS proxy (not directly on VM's port 4096 outside the container) |
 | 5.3 | Verify container isolation (agent cannot access host filesystem except mounted paths) |
@@ -1304,7 +1304,7 @@ and Traefik config generation. Required for Commit 3 (templates).
 ### Phase 6: Documentation & Cleanup (Day 13)
 
 | Action | Detail |
-|----|----|
+|--------|--------|
 | 6.1 | Update `docs/README.md` with V3 architecture overview |
 | 6.2 | Write ops runbook for VM container management |
 | 6.3 | Write certificate renewal procedure |
@@ -1312,26 +1312,26 @@ and Traefik config generation. Required for Commit 3 (templates).
 
 **Artifacts:** Complete V3 documentation.
 
---
+---
 
 ## 10. Verification
 
 ### 10.1 Acceptance Criteria
 
 | ID | Criterion | How to Verify |
-|--|------|--------|
+|----|-----------|---------------|
 | AC-1 | `opencode` is the only agent CLI installed | `which claude` → not found; `which opencode` → found |
 | AC-2 | No old agent source code in repo | `find workspace -name "*claude*" -o -name "*gemini*" -o -name "*qwen*"` → empty |
 | AC-3 | Old docs are archived | `ls docs/archive/v2/` → populated |
-| AC-4 | `make vm <config.yaml>` builds and runs a VM container | `podman build` succeeds; `podman ps -filter label=ami.type=vm` shows running VM |
+| AC-4 | `make vm <config.yaml>` builds and runs a VM container | `podman build` succeeds; `podman ps --filter label=ami.type=vm` shows running VM |
 | AC-5 | Default: VM has no network | `podman exec <uuid> ip link` → only `lo` present |
 | AC-6 | Bridge mode: VM gets network IP | `podman inspect <uuid>` shows bridge network IP |
 | AC-7 | Bridge internet mode: blocks host access | With `network.mode: bridge` + `policy: internet`: `podman exec <uuid> curl <gateway-ip>` → timeout; `curl 1.1.1.1` → OK |
-| AC-8 | Web UI accessible via mTLS (bridge mode) | `curl -sfk -cert client.crt -key client.key https://<bridge-ip>:443` → 200 |
+| AC-8 | Web UI accessible via mTLS (bridge mode) | `curl -sfk --cert client.crt --key client.key https://<bridge-ip>:443` → 200 |
 | AC-9 | Basic Auth required for web UI | Same curl without Authorization header → 401 |
 | AC-10 | `make vm kill <id>` terminates hung container | SIGKILL via PID file; `podman ps` shows container exited |
 | AC-11 | `make vm list` shows all VMs with status | Output includes UUID, status, network mode |
-| AC-12 | All pre-commit hooks pass | `pre-commit run -all-files` → exit 0 |
+| AC-12 | All pre-commit hooks pass | `pre-commit run --all-files` → exit 0 |
 | AC-13 | Python CI tests pass | `make test` → exit 0 |
 
 ### 10.2 Test Matrix
@@ -1354,7 +1354,7 @@ and Traefik config generation. Required for Commit 3 (templates).
 └──────────────────────────────┴────────────┴──────────────┘
 ```
 
---
+---
 
 ## 11. Risk Register
 
@@ -1367,7 +1367,7 @@ and Traefik config generation. Required for Commit 3 (templates).
 | opencode-ai version drift | Low | Low | Pin major version in bootstrap; test upgrade in CI |
 | Client certificate leaked | Low | Critical | `gitignore` all `.vms/**/*.key` and `.vms/**/password`; deployer rotates per-VM CA; `make vm cert` reissues |
 
---
+---
 
 ## 12. Appendix: File Inventory
 
@@ -1516,6 +1516,6 @@ opencode.docker.json                - Docker-specific opencode config (llamaserv
 tests/integration/test_setup_shell_aliases.py - verify oc alias                               # NOT YET MODIFIED
 ```
 
---
+---
 
 *End of Migration Plan*

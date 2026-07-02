@@ -50,7 +50,7 @@ echo "=========================================="
 echo "PHASE 3: Filesystem verification"
 echo "=========================================="
 
-podman run -rm -entrypoint bash -network none "ami-vm:$VM_UUID" -c '
+podman run --rm --entrypoint bash --network none "ami-vm:$VM_UUID" -c '
 set -euo pipefail
 cd /opt/ami-agents
 echo "=== venv ==="
@@ -76,7 +76,7 @@ echo "=========================================="
 echo "PHASE 4: Git hooks"
 echo "=========================================="
 
-podman run -rm -entrypoint bash -network none "ami-vm:$VM_UUID" -c '
+podman run --rm --entrypoint bash --network none "ami-vm:$VM_UUID" -c '
 cd /opt/ami-agents
 if test -f .git/hooks/pre-commit; then echo "[PASS] pre-commit hook installed"; else echo "[WARN] pre-commit hook missing"; fi
 if test -f .git/hooks/pre-push; then echo "[PASS] pre-push hook installed"; else echo "[WARN] pre-push hook missing"; fi
@@ -89,7 +89,7 @@ echo "=========================================="
 echo "PHASE 5: Bootstrap environment"
 echo "=========================================="
 
-podman run -rm -entrypoint bash -network none "ami-vm:$VM_UUID" -c '
+podman run --rm --entrypoint bash --network none "ami-vm:$VM_UUID" -c '
 cd /opt/ami-agents
 test -d .boot-linux && echo "[PASS] .boot-linux directory exists" || { echo "[FAIL] .boot-linux missing"; exit 1; }
 test -d .boot-linux/bin && echo "[PASS] .boot-linux/bin exists"

@@ -80,9 +80,9 @@ _FEATURES_PAD = _NAME_PAD + 4  # indent under the description
 _ELLIPSIS = "\u2026"
 
 
-# --------------------------------------
+# ---------------------------------------------------------------------------
 # Banner mode
-# --------------------------------------
+# ---------------------------------------------------------------------------
 
 
 def _color_for(category: str) -> str:
@@ -292,7 +292,7 @@ def _print_extension(
     elif skip_check:
         # Don't render green ✓ when we never ran the check. INCIDENT-2026-
         # 05-05: kcadm needs `podman exec` into ami-keycloak; if the
-        # container isn't running we skip the live -help and previously
+        # container isn't running we skip the live --help and previously
         # defaulted to ✓ (because health_ok stayed True), then later the
         # user's actual `kcadm` invocation would fail with no warning.
         # Surface the missing container so the user knows what to start.
@@ -363,9 +363,9 @@ def output_banner(
             sys.stdout.flush()
 
 
-# --------------------------------------
+# ---------------------------------------------------------------------------
 # Extras and doctor modes
-# --------------------------------------
+# ---------------------------------------------------------------------------
 
 _STATUS_PAD = 18  # column width for name in extras/doctor output
 
@@ -453,9 +453,9 @@ def output_doctor(
         print("No problems detected.")
 
 
-# --------------------------------------
+# ---------------------------------------------------------------------------
 # Entry point
-# --------------------------------------
+# ---------------------------------------------------------------------------
 
 
 def main() -> None:
@@ -465,18 +465,18 @@ def main() -> None:
         description=("Extension display helper (banner, extras, doctor)."),
     )
     parser.add_argument(
-        "-mode",
+        "--mode",
         choices=["banner", "extras", "doctor"],
         default="banner",
         help="Output mode: banner (default), extras, or doctor",
     )
     parser.add_argument(
-        "-quiet",
+        "--quiet",
         action="store_true",
         help="Skip health/version checks for faster output",
     )
     parser.add_argument(
-        "-plain",
+        "--plain",
         action="store_true",
         help="Strip ANSI color codes (machine-readable output)",
     )

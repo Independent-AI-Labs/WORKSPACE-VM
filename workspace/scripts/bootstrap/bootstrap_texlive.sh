@@ -102,7 +102,7 @@ export TEXMFHOME="${TEXLIVE_DIR}/texmf-home"
 export TEXMFLOCAL="${TEXLIVE_DIR}/texmf-local"
 
 log_info "Installing minimal TeXLive (this may take several minutes)..."
-./install-tl -profile=texlive.profile -no-gui -texdir="${TEXLIVE_DIR}/texmf"
+./install-tl --profile=texlive.profile --no-gui --texdir="${TEXLIVE_DIR}/texmf"
 
 # Install additional packages needed for PDF generation
 BINARY_BASE_DIR="${TEXLIVE_DIR}/texmf/bin"
@@ -149,7 +149,7 @@ run_tlmgr_block() {
     fi
 }
 
-# -- Collections (broad package groups) --
+# --- Collections (broad package groups) ---
 run_tlmgr_block "TeX collections" \
     collection-latex \
     collection-latexrecommended \
@@ -157,13 +157,13 @@ run_tlmgr_block "TeX collections" \
     collection-fontsrecommended \
     collection-mathscience
 
-# -- Core engines and tools --
+# --- Core engines and tools ---
 run_tlmgr_block "TeX engines and tools" \
     latex-bin \
     xetex \
     luatex
 
-# -- Fonts (needed for xelatex / pandoc output) --
+# --- Fonts (needed for xelatex / pandoc output) ---
 # Removed package names that CTAN no longer ships standalone (these
 # triggered the "package not present in repository" spam in Tom's
 # log without breaking anything functional):
@@ -196,7 +196,7 @@ run_tlmgr_block "fonts" \
     lm \
     lm-math
 
-# -- Pandoc / document conversion essentials --
+# --- Pandoc / document conversion essentials ---
 # These packages are required by pandoc's default LaTeX template
 # and commonly needed when converting markdown to PDF/DOCX.
 # Removed:
@@ -255,7 +255,7 @@ run_tlmgr_block "pandoc/document conversion packages" \
     xkeyval \
     xurl
 
-# -- Tables and lists --
+# --- Tables and lists ---
 # Removed:
 #   - array, tabularx (both ship with the `tools` package, already
 #     pulled in by the pandoc/document block above)
@@ -270,7 +270,7 @@ run_tlmgr_block "table and list packages" \
     wrapfig \
     adjustbox
 
-# -- Graphics and images --
+# --- Graphics and images ---
 # Removed:
 #   - graphicx (ships inside the `graphics` package, kept below)
 run_tlmgr_block "graphics packages" \
@@ -284,7 +284,7 @@ run_tlmgr_block "graphics packages" \
     tikz-cd \
     tikzfill
 
-# -- Math and science --
+# --- Math and science ---
 run_tlmgr_block "math/science packages" \
     mathtools \
     unicode-math \
@@ -296,13 +296,13 @@ run_tlmgr_block "math/science packages" \
     algorithmicx \
     algorithm2e
 
-# -- Code listings and verbatim --
+# --- Code listings and verbatim ---
 run_tlmgr_block "code/verbatim packages" \
     minted \
     fvextra \
     lineno
 
-# -- Page layout and headers --
+# --- Page layout and headers ---
 run_tlmgr_block "layout packages" \
     lastpage \
     wallpaper \
@@ -310,7 +310,7 @@ run_tlmgr_block "layout packages" \
     everypage \
     changepage
 
-# -- Misc commonly needed --
+# --- Misc commonly needed ---
 run_tlmgr_block "miscellaneous packages" \
     catchfile \
     environ \
@@ -363,9 +363,9 @@ export TEXMFCNF="${TEXLIVE_DIR}/texmf/texmf.cnf"
 
 # Verify installation
 log_info "Verifying pdflatex installation"
-if "${VENV_DIR}/bin/pdflatex" -version >/dev/null 2>&1; then
+if "${VENV_DIR}/bin/pdflatex" --version >/dev/null 2>&1; then
     log_info "pdflatex installed successfully:"
-    _pdflatexver="$("${VENV_DIR}/bin/pdflatex" -version 2>&1)"
+    _pdflatexver="$("${VENV_DIR}/bin/pdflatex" --version 2>&1)"
     _pdflatexver="${_pdflatexver%%$'\n'*}"
     echo "  ${_pdflatexver}"
 else

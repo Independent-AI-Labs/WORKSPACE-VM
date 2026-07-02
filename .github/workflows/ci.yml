@@ -1,11 +1,11 @@
 # moon-driven CI for the WORKSPACE-VM umbrella repo (#35).
 #
 # Runs `moon ci` on every PR against main and on every push to main.
-# `-affected -base origin/main` on PRs scopes work to changed projects;
+# `--affected --base origin/main` on PRs scopes work to changed projects;
 # the push-to-main job runs the full check as a safety net.
 #
 # Notes:
-# - fetch-depth: 0 is required for `-affected` to compute the project
+# - fetch-depth: 0 is required for `--affected` to compute the project
 #   graph diff against the base branch.
 # - `make install-ci` bootstraps the .boot-linux + .venv stack so moon
 #   tasks (which shell out to `make _<target>-impl`) find python/uv at
@@ -31,7 +31,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - name: Checkout (full history for -affected)
+      - name: Checkout (full history for --affected)
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -48,10 +48,10 @@ jobs:
           # CI is not a TTY; the bootstrap installer must never prompt.
           WORKSPACE_NONINTERACTIVE: '1'
 
-      - name: Run moon ci (PR - affected only)
+      - name: Run moon ci (PR -- affected only)
         if: github.event_name == 'pull_request'
-        run: moon ci -affected -base origin/${{ github.base_ref }}
+        run: moon ci --affected --base origin/${{ github.base_ref }}
 
-      - name: Run moon ci (push to main - full check)
+      - name: Run moon ci (push to main -- full check)
         if: github.event_name == 'push'
         run: moon ci

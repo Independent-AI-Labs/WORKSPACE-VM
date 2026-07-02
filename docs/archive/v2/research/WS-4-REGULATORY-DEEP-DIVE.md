@@ -3,7 +3,7 @@
 > **Part of the Agentic Guardrails, Compliance, Standardisation & Security research programme**
 > Status: **COMPLETE** | Last updated: 2026-05-25
 
---
+---
 
 ## 1. Research Scope & Questions
 
@@ -63,12 +63,12 @@
 - Working groups: who is participating
 - Frontier Model Forum commitments and deliverables
 
---
+---
 
 ## 2. Regulatory Requirements Matrix
 
 | Regulation | Agent-Relevant Articles / Clauses | Key Requirements | Enforcement Date | Penalties |
-|--|--|--|--|--|
+|---|---|---|---|---|
 | **EU AI Act** | Art. 12, 14, 26, 6, 99; Annex III | Automated logging, human oversight, deployer duties, risk classification, conformity assessment | 2 Aug 2026 (most); 2 Feb 2025 (prohibitions); 2 Aug 2027 (Art. 6(1)) | Up to 35M EUR or 7% turnover (Art. 5 violations); 15M EUR or 3% (Art. 12-26 violations); 7.5M EUR or 1% (incorrect info) |
 | **ISO/IEC 42001:2023** | All clauses (4-10) | AIMS: AI policy, risk assessment, impact assessment, lifecycle management, documentation | Published Dec 2023; certification available now | N/A (voluntary standard, but cited for EU AI Act conformity presumption) |
 | **ISO/IEC 27001:2022** | Annex A controls | Information security management integration with AIMS | Published Oct 2022 | N/A (voluntary, but mandated by DORA indirectly) |
@@ -83,7 +83,7 @@
 | **OWASP LLM Top 10** | LLM01-LLM10 (v1.1), v2025 updated | Prompt injection, insecure output, excessive agency, supply chain, plugin security | v1.1 2023; v2025 published | N/A (industry best practice) |
 | **MLCommons AI Safety** | AI Safety v1.0 benchmarks | Safety benchmark suite for frontier models; agent-specific evaluations under development | First results Mar 2025 | N/A (voluntary testing framework) |
 
---
+---
 
 ## 3. Detailed Findings
 
@@ -195,7 +195,7 @@ AI systems listed in Annex III are ALWAYS high-risk unless they satisfy the dero
 **Annex III categories that could apply to AI agents:**
 
 | Annex III Category | Relevant to Agents? | Scenario |
-|--|--|--|
+|---|---|---|
 | 1. Biometrics (remote ID, categorisation, emotion) | Yes | Agent with vision capabilities |
 | 2. Critical infrastructure safety components | Yes | Agent managing power/water/transport systems |
 | 3. Education: access, evaluation, monitoring | Yes | Agent evaluating student work |
@@ -228,7 +228,7 @@ An Annex III system is NOT high-risk if it does not pose significant risk of har
 Per the implementation timeline:
 
 | Date | Action |
-|--|--|
+|---|---|
 | **2 Feb 2026** | Commission guidelines on Art. 6 classification rules (practical implementation + examples of high-risk/not high-risk) |
 | **2 Aug 2026** | Remainder of Act applies (except Art. 6(1)) |
 | **2 Aug 2027** | Art. 6(1) applies (product safety component rule) |
@@ -242,7 +242,7 @@ The Commission's Art. 6(5) guidelines (due 2 Feb 2026) are critical - they will 
 **Effective from:** 2 August 2025
 
 | Violation Type | Max Fine | Max % of Annual Turnover |
-|--|--|--|
+|---|---|---|
 | Prohibited AI practices (Art. 5) | 35,000,000 EUR | 7% |
 | Provider/deployer/notified body obligations (Art. 12, 14, 16, 22, 23, 24, 26, 31, 33, 34, 50) | 15,000,000 EUR | 3% |
 | Incorrect/misleading information | 7,500,000 EUR | 1% |
@@ -261,7 +261,7 @@ The Commission's Art. 6(5) guidelines (due 2 Feb 2026) are critical - they will 
 #### 3.1.7 Implementation Timeline Summary
 
 | Date | Milestone |
-|--|--|
+|---|---|
 | 1 Aug 2024 | Entry into force |
 | 2 Feb 2025 | Prohibitions (Art. 5) + AI literacy (Art. 4) apply |
 | 2 May 2025 | Codes of practice ready |
@@ -271,7 +271,7 @@ The Commission's Art. 6(5) guidelines (due 2 Feb 2026) are critical - they will 
 | 2 Aug 2027 | Art. 6(1) product safety rule applies |
 | 31 Dec 2030 | Large-scale IT systems compliance deadline |
 
---
+---
 
 ### 3.2 ISO/IEC 42001:2023 (AIMS)
 
@@ -288,7 +288,7 @@ The Commission's Art. 6(5) guidelines (due 2 Feb 2026) are critical - they will 
 #### 3.2.2 Key Clauses Mapped to Agent Lifecycle
 
 | ISO 42001 Clause | Content | Agent Lifecycle Mapping |
-|--|--|--|
+|---|---|---|
 | **4. Context** | Understanding org context, stakeholder needs, scope | Define agent deployment context, regulatory environment |
 | **5. Leadership** | AI policy, roles, responsibilities | Agent governance policy; CISO/DPO roles for agent oversight |
 | **6. Planning** | AI risk assessment, AI risk treatment, objectives | Agent risk assessment (prompt injection, tool misuse, data leakage); treatment plan |
@@ -315,7 +315,7 @@ ISO offers a package: ISO/IEC 42001 + ISO/IEC 27001 at 10% discount (CHF 380 for
 **Integration points:**
 
 | Area | ISO 27001 Control | ISO 42001 Mapping |
-|--|--|--|
+|---|---|---|
 | Asset management | A.5.9 | Agent model inventory |
 | Access control | A.8 | Agent API key mgmt, tool access |
 | Cryptography | A.6 | Agent communication encryption |
@@ -349,7 +349,7 @@ ISO offers a package: ISO/IEC 42001 + ISO/IEC 27001 at 10% discount (CHF 380 for
 - When adopted as harmonised, compliance with ISO 42001 will provide **presumption of conformity** with relevant AI Act requirements
 - The standard is cited in EU AI Act recitals and guidance as a benchmark
 
---
+---
 
 ### 3.3 NIST AI RMF + NIST AI 600-1
 
@@ -362,7 +362,7 @@ ISO offers a package: ISO/IEC 42001 + ISO/IEC 27001 at 10% discount (CHF 380 for
 **Core Functions applied to Agentic AI:**
 
 | Function | Purpose | Agent-Specific Application |
-|--|--|--|
+|---|---|---|
 | **GOVERN** | Culture of risk management | Agent governance policy, oversight structure, accountability framework |
 | **MAP** | Context understanding | Map agent capabilities, tool integrations, data flows, stakeholder impact |
 | **MEASURE** | Risk identification | Measure agent-specific risks: hallucination, tool misuse, data leakage, excessive agency |
@@ -412,7 +412,7 @@ NIST's secure-by-design principles applied to AI agents:
 3. **Secure deployment:** API security, authentication, rate limiting for agent endpoints
 4. **Secure operation:** Monitoring for prompt injection, anomalous tool calls, data exfiltration
 
---
+---
 
 ### 3.4 OWASP / ETSI / CEN-CENELEC
 
@@ -423,7 +423,7 @@ NIST's secure-by-design principles applied to AI agents:
 **Agent-relevant entries (v1.1 and v2025):**
 
 | OWASP Entry | Agent Relevance | AMI Mitigation |
-|--|--|--|
+|---|---|---|
 | **LLM01: Prompt Injection** | **CRITICAL** - direct/indirect injection into agent prompts | Guardrails for input sanitisation, context isolation |
 | **LLM02: Insecure Output Handling** | Agent outputs that execute code or make API calls | Output validation before tool execution |
 | **LLM04: Model DoS** | Recursive agent loops causing cost blowout | Budget limits, recursion depth limits |
@@ -458,7 +458,7 @@ NIST's secure-by-design principles applied to AI agents:
 **Key deliverables for EU AI Act harmonisation:**
 
 | Standard | Status | Scope | Agent Relevance |
-|--|--|--|--|
+|---|---|---|---|
 | **prEN ISO/IEC 42001** | Under adoption (EN version of ISO 42001) | AIMS requirements | Management system for agent operations |
 | **prEN ISO/IEC 23894** | Under adoption | AI risk management | Agent risk assessment methodology |
 | **prEN ISO/IEC 42005** | Published 2025 | AI impact assessment | Agent deployment impact assessment |
@@ -475,7 +475,7 @@ NIST's secure-by-design principles applied to AI agents:
 
 **Expected timeline:** First harmonised standards expected **late 2026 to early 2027**. Until published, providers must use alternative conformity routes (self-assessment or common specifications).
 
---
+---
 
 ### 3.5 DORA / NIS2 / GDPR
 
@@ -488,7 +488,7 @@ NIST's secure-by-design principles applied to AI agents:
 **Agent-relevant requirements:**
 
 | DORA Article | Requirement | Agent Implication |
-|--|--|--|
+|---|---|---|
 | **Art. 5-16** | ICT Risk Management Framework | Agent systems must be covered by ICT risk policy |
 | **Art. 7** | ICT Systems Protection | Agent API security, authentication, encryption |
 | **Art. 8** | Identification & Classification | Agent as an ICT asset; classify criticality |
@@ -518,7 +518,7 @@ NIST's secure-by-design principles applied to AI agents:
 **Agent-relevant requirements:**
 
 | NIS2 Article | Requirement | Agent Implication |
-|--|--|--|
+|---|---|---|
 | **Art. 20** | Incident reporting (early warning 24h, notification 72h, final report 1 month) | Agent security incidents must be reported |
 | **Art. 21** | Risk management measures | Agent supply chain security; access controls |
 | **Art. 22** | Use of cybersecurity products | Agent security tools; encrypted agent communication |
@@ -565,7 +565,7 @@ The ENISA Threat Landscape 2024 (published Sep 2024) and 2025 (published Oct 202
 
 ENISA's work on AI cybersecurity includes sectorial threat landscapes for AI systems, with specific attention to autonomous decision-making systems.
 
---
+---
 
 ### 3.6 MLCommons AI Safety
 
@@ -601,12 +601,12 @@ The Frontier Model Forum commitments include:
 - Information sharing on safety incidents
 - Support for MLCommons benchmarks
 
---
+---
 
 ## 4. Gap Analysis: AMI-Agents vs Requirements
 
 | Regulation | AMI Current Status | Gaps | Priority | Remediation Path |
-|--|--|--|--|--|
+|---|---|---|---|---|
 | **EU AI Act Art. 12** (Auto Logging) | 0 - No evidence of automatic logging system | No immutable audit trail; no lifecycle logging capability | **Critical** | Implement agent audit logging module: all tool calls, decisions, state changes, human overrides |
 | **EU AI Act Art. 14** (Human Oversight) | 1 - Human-in-loop patterns exist | No documented 'stop button' architecture; no override design pattern | **Critical** | Design and implement interrupt/override/stop mechanism with safe state halting |
 | **EU AI Act Art. 26** (Deployer Duties) | 0 - No deployer compliance framework | No log retention policy (6 month min); no worker notification process; no suspension protocol | **Critical** | Build deployer compliance toolkit; log retention system; notification templates |
@@ -621,7 +621,7 @@ The Frontier Model Forum commitments include:
 | **CEN-CENELEC standards** | 0 - Not tracked | No monitoring of harmonised standard development | **Medium** | Assign standards monitoring; prepare for conformity assessment |
 | **MLCommons AI Safety** | 0 - Not engaged | No safety benchmark participation | **Low** | Monitor agent safety benchmark development; adopt when stable |
 
---
+---
 
 ## 5. Certification Roadmap Recommendations
 
@@ -653,7 +653,7 @@ The Frontier Model Forum commitments include:
 4. Track **NIST** agent test suite results
 5. Regular **OWASP** reassessment
 
---
+---
 
 ## 6. Sources Consulted
 
@@ -681,7 +681,7 @@ The Frontier Model Forum commitments include:
 12. Future of Life Institute - EU AI Act resources (artificialintelligenceact.eu)
 13. Intersoft Consulting - GDPR commentary (gdpr-info.eu)
 
---
+---
 
 ## 7. Key Takeaways
 

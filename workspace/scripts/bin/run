@@ -32,7 +32,7 @@ if [[ -d "$AMI_ROOT/projects" ]]; then
 fi
 export PYTHONPATH="$AMI_ROOT:${PROJECT_PATHS}${PYTHONPATH:-}"
 
-if [[ "$#" -gt 0 && ("$1" == "-h" || "$1" == "-help") ]]; then
+if [[ "$#" -gt 0 && ("$1" == "-h" || "$1" == "--help") ]]; then
     echo "run: Universal execution wrapper for AMI Orchestrator"
     echo ""
     echo "Usage: run [subcommand] [args...]"
@@ -41,7 +41,7 @@ if [[ "$#" -gt 0 && ("$1" == "-h" || "$1" == "-help") ]]; then
     exit 0
 fi
 
-if [[ "$#" -gt 0 && "$1" == "-version" ]]; then
+if [[ "$#" -gt 0 && "$1" == "--version" ]]; then
     _err_tmp="$(mktemp)"
     if ! VERSION="$(git -C "$AMI_ROOT" describe -always -dirty 2>"$_err_tmp")"; then
         if [[ -s "$_err_tmp" ]]; then cat "$_err_tmp" >&2; fi
@@ -129,12 +129,12 @@ case "$SUBCOMMAND" in
         exec "$BOOT_DIR/go/bin/go" "${ARGS[@]}"
         ;;
     extras)
-        exec "$VENV_PYTHON" "$AMI_ROOT/workspace/scripts/shell/banner_helper.py" -mode extras "${ARGS[@]}"
+        exec "$VENV_PYTHON" "$AMI_ROOT/workspace/scripts/shell/banner_helper.py" --mode extras "${ARGS[@]}"
         ;;
     doctor)
-        exec "$VENV_PYTHON" "$AMI_ROOT/workspace/scripts/shell/banner_helper.py" -mode doctor "${ARGS[@]}"
+        exec "$VENV_PYTHON" "$AMI_ROOT/workspace/scripts/shell/banner_helper.py" --mode doctor "${ARGS[@]}"
         ;;
     banner)
-        exec "$VENV_PYTHON" "$AMI_ROOT/workspace/scripts/shell/banner_helper.py" -mode banner "${ARGS[@]}"
+        exec "$VENV_PYTHON" "$AMI_ROOT/workspace/scripts/shell/banner_helper.py" --mode banner "${ARGS[@]}"
         ;;
 esac

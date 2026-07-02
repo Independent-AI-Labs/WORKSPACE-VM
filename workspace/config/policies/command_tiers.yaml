@@ -32,7 +32,7 @@ hard_deny:
     message: "Background execution forbidden"
 
   # Dangerous invocations
-  - pattern: '-no-verify'
+  - pattern: '--no-verify'
     message: "Git hook bypass forbidden"
   - pattern: '\bpython3?\s+-c\b'
     message: "Inline python execution forbidden"
@@ -44,8 +44,8 @@ hard_deny:
     message: "Use scripts/git-commit for linting"
   - pattern: '^\s*cd\b'
     message: "Use absolute paths instead of cd"
-  - pattern: '\bgit\b.*\brm\b.*-cached'
-    message: "git rm -cached forbidden"
+  - pattern: '\bgit\b.*\brm\b.*--cached'
+    message: "git rm --cached forbidden"
   - pattern: '\bdd\b'
     message: "Low-level disk operations forbidden"
   - pattern: '\bshred\b'

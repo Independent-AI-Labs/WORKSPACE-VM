@@ -3,7 +3,7 @@
 > **Part of the Agentic Guardrails, Compliance, Standardisation & Security research programme**
 > Status: **COMPLETE** | Last updated: 2026-05-25
 
---
+---
 
 ## 1. Research Scope & Questions
 
@@ -60,7 +60,7 @@
 - Certification posture (SOC2, ISO 27001, C5, SecNumCloud)
 - Do any offer agent-specific infrastructure?
 
---
+---
 
 ## 2. Findings
 
@@ -274,7 +274,7 @@
 - Access reviews and recertification
 - Six-year track record with no major security incidents
 
---
+---
 
 ### 2.2 Model-as-a-Service Neoclouds
 
@@ -417,7 +417,7 @@
 - No SIEM integration documented
 - No compliance portal with evidence packages
 
---
+---
 
 ### 2.3 Serverless + Infra Neoclouds
 
@@ -524,7 +524,7 @@
 - No SOC 2 or ISO certifications documented
 - No EU data centre documentation
 
---
+---
 
 ### 2.4 Decentralized Compute
 
@@ -654,7 +654,7 @@
 - No SIEM-level tenant audit logging documented
 - Smart contract-verified resource allocation
 
---
+---
 
 ### 2.5 European Neoclouds
 
@@ -703,12 +703,12 @@
 - Anti-DDoS, private network
 - No agent-level security features
 
---
+---
 
 ## 3. Comparative Analysis
 
 | Provider | Type | Tenant Isolation | SOC2 | ISO 27001 | ISO 42001 | EU DCs | HIPAA | GPU TEE | VPC | MFA/SSO | Audit Logs | Safety Filter | Content Mod |
-|--|--|--|--|--|--|--|--|--|--|--|--|--|--|
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | **CoreWeave** | GPU-first | Bare metal + DPU, single-tenant nodes | Type II | Yes | In progress | UK, SE, NO, ES | Yes | NVIDIA CC (H100+) | Yes | Yes | Loki/Kafka/SIEM | N/A | N/A |
 | **Lambda Labs** | GPU-first | Single-tenant compute, virtualized mgmt | Type II | Yes | No | Limited | Yes | Via Intel SGX | IPsec/Direct Connect | Yes | Immutable logs + SIEM | N/A | N/A |
 | **RunPod** | GPU-first | Docker containers (Secure Cloud T3/T4) | Type II | Partner-level | No | CZ, FR, NL, RO, SE, IS | Yes (Secure Cloud) | No | Global Networking (no VPC peering) | SSH key | SOC 2 audited | N/A | N/A |
@@ -722,7 +722,7 @@
 | **Golem** | Decentralized | Sandboxed env, SGX explored | No | No | No | Global (P2P) | No | SGX (explored) | No | OIDC (Golem Cloud) | Durable agent log | N/A | N/A |
 | **Spheron** | Decentralized | VM/bare metal from tiered DCs | Partner-level | Partner-level | No | US, EU, CA | Partner-level | Yes (NVIDIA CC) | Provider-managed | SSH key | Provider dashboard | N/A | N/A |
 
---
+---
 
 ## 4. Sources Consulted
 
@@ -868,7 +868,7 @@
 - Europe Data Center Map 2026: https://www.thenextgentechinsider.com/posts/ai-surge-and-policy-shifts-redraw-europes-data-center-map-by-2026
 - DeployBase SOC 2 GPU Cloud: https://deploybase.ai/articles/best-gpu-cloud-with-soc-2-compliance
 
---
+---
 
 ## 5. Key Takeaways
 

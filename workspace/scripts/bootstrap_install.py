@@ -149,7 +149,7 @@ def _pull_workspace_repo(component: Component) -> None:
     if (repo_path / ".git").exists():
         try:
             subprocess.run(
-                ["git", "pull", "-ff-only"],
+                ["git", "pull", "--ff-only"],
                 cwd=repo_path,
                 stdin=subprocess.DEVNULL,
                 check=True,
@@ -167,7 +167,7 @@ def _pull_workspace_repo(component: Component) -> None:
                 str(
                     _PROJECT_ROOT / "workspace" / "scripts" / "bin" / "bootstrap-repos"
                 ),
-                "-include",
+                "--include",
                 component.name,
             ],
             cwd=str(_PROJECT_ROOT),

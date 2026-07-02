@@ -292,7 +292,7 @@ def check_container(name: str) -> bool:
     counted as present. INCIDENT-2026-05-05: previously this used
     ``ps -a`` which classified ami-keycloak as "present" even when the
     container was exited; the resolve pass therefore marked kcadm
-    READY, but the banner's live ``kcadm -help`` (which execs into
+    READY, but the banner's live ``kcadm --help`` (which execs into
     the container) failed and rendered ✗ - an unflagged disagreement
     between doctor and banner. Containers that exist-but-aren't-running
     cannot satisfy ``podman exec`` callers, which is what every
@@ -306,9 +306,9 @@ def check_container(name: str) -> bool:
             [
                 runtime,
                 "ps",
-                "-filter",
+                "--filter",
                 f"name={name}",
-                "-format",
+                "--format",
                 "{{.Names}}",
             ],
             capture_output=True,

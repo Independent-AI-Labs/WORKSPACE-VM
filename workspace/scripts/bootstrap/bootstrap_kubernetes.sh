@@ -110,9 +110,9 @@ log_debug "URL: ${KUBECTL_URL}"
 log_debug "Dest: ${KUBECTL_BIN}"
 _dl_start=$(date +%s)
 if command -v curl &> /dev/null; then
-    curl -fSL -connect-timeout 30 -max-time 120 -o "${KUBECTL_BIN}" "${KUBECTL_URL}"
+    curl -fSL --connect-timeout 30 --max-time 120 -o "${KUBECTL_BIN}" "${KUBECTL_URL}"
 elif command -v wget &> /dev/null; then
-    wget -timeout=30 -O "${KUBECTL_BIN}" "${KUBECTL_URL}"
+    wget --timeout=30 -O "${KUBECTL_BIN}" "${KUBECTL_URL}"
 else
     log_error "Neither curl nor wget found. Please install one of them."
     exit 1
@@ -153,9 +153,9 @@ log_debug "URL: ${HELM_URL}"
 log_debug "Dest: ${HELM_TARBALL}"
 _dl_start=$(date +%s)
 if command -v curl &> /dev/null; then
-    curl -fSL -connect-timeout 30 -max-time 120 -o "${HELM_TARBALL}" "${HELM_URL}"
+    curl -fSL --connect-timeout 30 --max-time 120 -o "${HELM_TARBALL}" "${HELM_URL}"
 elif command -v wget &> /dev/null; then
-    wget -timeout=30 -O "${HELM_TARBALL}" "${HELM_URL}"
+    wget --timeout=30 -O "${HELM_TARBALL}" "${HELM_URL}"
 else
     log_error "Neither curl nor wget found."
     exit 1
@@ -171,13 +171,13 @@ log_info "Helm tarball downloaded ($(du -h "${HELM_TARBALL}" | cut -f1)) in $((_
 log_debug "Tarball type: $(file -b "${HELM_TARBALL}")"
 
 # Extract Helm - use /tmp (native Linux FS) to avoid WSL/DrvFS/Defender stalls.
-# Helm is the only bootstrap that uses -strip-components + member-path filtering,
+# Helm is the only bootstrap that uses --strip-components + member-path filtering,
 # which forces tar to scan entry-by-entry - extremely slow on NTFS-backed mounts.
 _HELM_TMP="$(mktemp -d)"
 log_step "Extracting Helm to ${_HELM_TMP} (bypassing project dir for speed)..."
-log_debug "tar -xzf ${HELM_TARBALL} -C ${_HELM_TMP} -no-same-owner -strip-components=1 ${OS}-${ARCH}/helm"
+log_debug "tar -xzf ${HELM_TARBALL} -C ${_HELM_TMP} --no-same-owner --strip-components=1 ${OS}-${ARCH}/helm"
 _ext_start=$(date +%s)
-tar -xzf "${HELM_TARBALL}" -C "${_HELM_TMP}" -no-same-owner -strip-components=1 "${OS}-${ARCH}/helm"
+tar -xzf "${HELM_TARBALL}" -C "${_HELM_TMP}" --no-same-owner --strip-components=1 "${OS}-${ARCH}/helm"
 _ext_end=$(date +%s)
 log_info "Helm extracted in $((_ext_end - _ext_start))s"
 
@@ -222,8 +222,8 @@ log_info "✓ kubectl and helm are valid ELF binaries"
 
 # Best-effort version check with 15s timeout (Defender may delay first exec)
 log_debug "Running kubectl version (15s timeout)..."
-if timeout 15 "${BIN_DIR}/kubectl" version -client -output=json 2>&1 | grep -q "clientVersion"; then
-    _kubever="$(timeout 5 "${BIN_DIR}/kubectl" version -client 2>&1)"
+if timeout 15 "${BIN_DIR}/kubectl" version --client --output=json 2>&1 | grep -q "clientVersion"; then
+    _kubever="$(timeout 5 "${BIN_DIR}/kubectl" version --client 2>&1)"
     _kubever="${_kubever%%$'\n'*}"
     log_info "✓ kubectl ${_kubever:-v${KUBECTL_VERSION}}"
 else
@@ -232,7 +232,7 @@ fi
 
 log_debug "Running helm version (15s timeout)..."
 if timeout 15 "${BIN_DIR}/helm" version 2>&1 | grep -q "version"; then
-    _helmver="$(timeout 5 "${BIN_DIR}/helm" version -short 2>&1)"
+    _helmver="$(timeout 5 "${BIN_DIR}/helm" version --short 2>&1)"
     log_info "✓ helm ${_helmver:-v${HELM_VERSION}}"
 else
     log_warn "helm version check timed out or failed (binary is valid ELF - likely Defender delay on WSL)"

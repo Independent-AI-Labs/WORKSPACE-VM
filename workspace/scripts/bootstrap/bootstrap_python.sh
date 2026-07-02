@@ -59,7 +59,7 @@ if [ -x "${PYTHON_ENV}/bin/python" ]; then
     _current_ver="$("${PYTHON_ENV}/bin/python" -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')"
     if [[ "$_current_ver" == "$PY_VERSION" ]]; then
         log_info "Python ${PY_VERSION} already installed at ${PYTHON_ENV}"
-        "${PYTHON_ENV}/bin/python" -version
+        "${PYTHON_ENV}/bin/python" --version
         # Always recreate symlinks (fixes broken links after repo move)
         mkdir -p "${BIN_DIR}"
         ln -sf "${PYTHON_ENV}/bin/python" "${BIN_DIR}/python"
@@ -85,7 +85,7 @@ mkdir -p "${BIN_DIR}"
 
 # Create venv in subdirectory (not at .boot-linux root)
 # Python version resolved from pyproject.toml requires-python above.
-"$UV_CMD" venv "${PYTHON_ENV}" -seed -python "$PY_VERSION"
+"$UV_CMD" venv "${PYTHON_ENV}" --seed --python "$PY_VERSION"
 
 # Symlink to bin/ so other scripts can find the binary
 ln -sf "${PYTHON_ENV}/bin/python" "${BIN_DIR}/python"
@@ -96,7 +96,7 @@ if [ -x "${BIN_DIR}/python" ]; then
     log_info "Python installed successfully"
     log_info "  Venv: ${PYTHON_ENV}"
     log_info "  Symlink: ${BIN_DIR}/python"
-    "${BIN_DIR}/python" -version
+    "${BIN_DIR}/python" --version
 else
     log_error "Python installation failed"
     exit 1

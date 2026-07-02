@@ -8,7 +8,7 @@
 
 **Source Codebase (original):** `base/backend/dataops/` (~24,000 LOC, 96 files)
 
---
+---
 
 ## Table of Contents
 
@@ -27,7 +27,7 @@
 13. [Testing Strategy](#13-testing-strategy)
 14. [Multi-Backend ORM Landscape](#14-multi-backend-orm-landscape)
 
---
+---
 
 ## 1. Executive Summary
 
@@ -36,7 +36,7 @@
 `base/backend/dataops/` is a custom **polyglot persistence framework** supporting 8 backend types with configurable multi-storage synchronization. It provides a unified CRUD interface across fundamentally different database paradigms: relational (PostgreSQL), graph (Dgraph), key-value (Redis), vector (PGVector), secrets (OpenBao/Vault), REST APIs, time-series (Prometheus), and document (MongoDB, no adapter implemented).
 
 | Metric | Value |
-|--|--|
+|---|---|
 | Total files | 96 Python files |
 | Total LOC | ~24,000 |
 | Backend adapters | 7 implemented + 1 slot (MongoDB) |
@@ -49,7 +49,7 @@
 ### 1.2. What's Wrong
 
 | Category | Lines | % of Total |
-|--|--|--|
+|---|---|---|
 | Dead security modules (zero imports) | 2,854 | 12% |
 | Scaffolding (compliance_reporting.py) | 1,006 | 4% |
 | Duplicate implementation (two UnifiedCRUD) | 853 | 4% |
@@ -72,7 +72,7 @@ The custom architecture (BaseDAO → DAOFactory → UnifiedCRUD → SyncStrategy
 
 Extract `base/backend/dataops/` into `projects/AMI-DATAOPS/` in the agents monorepo. Clean up the ~24% waste. Fix critical bugs. Establish a clean public API. Make it the shared persistence foundation for all AMI services.
 
---
+---
 
 ## 2. Architecture Audit
 
@@ -119,21 +119,21 @@ flowchart TD
         PROMS[(Prometheus)]
     end
 
-    Auth -> CRUD
-    Trading -> CRUD
-    Portal -> CRUD
-    CRUD -> Sync
-    CRUD -> Factory
-    Sync -> Factory
-    Factory -> Registry
-    Registry -> PG & DG & RD & PGV & OB & REST & PROM
-    PG -> PGS
-    DG -> DGS
-    RD -> RDS
-    PGV -> PGVS
-    OB -> OBS
-    REST -> RESTS
-    PROM -> PROMS
+    Auth --> CRUD
+    Trading --> CRUD
+    Portal --> CRUD
+    CRUD --> Sync
+    CRUD --> Factory
+    Sync --> Factory
+    Factory --> Registry
+    Registry --> PG & DG & RD & PGV & OB & REST & PROM
+    PG --> PGS
+    DG --> DGS
+    RD --> RDS
+    PGV --> PGVS
+    OB --> OBS
+    REST --> RESTS
+    PROM --> PROMS
     Models -.-> CRUD
     Config -.-> Factory
 ```
@@ -141,7 +141,7 @@ flowchart TD
 ### 2.2. What's Good
 
 | Component | Location | Why It's Good |
-|--|--|--|
+|---|---|---|
 | **BaseDAO[T] interface** | `core/dao.py` (288 lines) | Clean generic abstract class. 12 well-defined methods. All adapters implement it consistently. |
 | **DAOFactory + Registry** | `core/factory.py` + registry | Auto-discovers DAO classes by scanning `implementations/`. Extensible without modifying factory code. |
 | **StorageConfig** | `models/storage_config.py` (109 lines) | Pydantic model with connection string generation, env var support, sensible defaults per storage type. |
@@ -153,7 +153,7 @@ flowchart TD
 ### 2.3. What's Broken
 
 | Component | Location | Problem |
-|--|--|--|
+|---|---|---|
 | **Duplicate UnifiedCRUD** | `core/unified_crud.py` (372L) vs `services/unified_crud.py` (481L) | Two competing implementations. Core handles single-storage DAO lifecycle. Services handles multi-storage sync. Models use core, tests use services. |
 | **DAOFactory signature** | `core/factory.py:23` | Expects `(cls, config, collection_name, **kwargs)` but callers pass `(cls, config)` or `(model_class, config)`. Will crash at runtime. |
 | **compliance_reporting.py** | `security/compliance_reporting.py` (1,006L) | 99% stubs. SOC2Reporter: 9/11 methods return `False` with "not yet implemented". Zero imports anywhere. |
@@ -162,7 +162,7 @@ flowchart TD
 ### 2.4. What's Dead
 
 | Module | Lines | Evidence |
-|--|--|--|
+|---|---|---|
 | `security/multi_tenancy.py` | 411 | Zero imports across entire codebase |
 | `security/audit_trail.py` | 377 | Blockchain-based audit with proof-of-work mining (!). Zero imports. |
 | `security/query_sanitizer.py` | 391 | SQL injection prevention. Not integrated with any DAO. |
@@ -172,14 +172,14 @@ flowchart TD
 | `security/compliance_reporting.py` | 1,006 | 99% stubs as detailed above. |
 | **Total dead** | **3,389** | |
 
---
+---
 
 ## 3. File Inventory & Triage
 
 ### 3.1. Disposition Legend
 
 | Code | Meaning |
-|--|--|
+|---|---|
 | **MOVE** | Copy to AMI-DATAOPS as-is |
 | **FIX** | Move + fix critical issues |
 | **SLIM** | Move + remove dead code / simplify |
@@ -190,7 +190,7 @@ flowchart TD
 ### 3.2. Core Layer
 
 | File | Lines | Disposition | Notes |
-|--|--|--|--|
+|---|---|---|---|
 | `core/dao.py` | 288 | **MOVE** | BaseDAO[T] abstract. Clean. |
 | `core/unified_crud.py` | 372 | **FIX** | Merge with services/unified_crud.py into single class |
 | `core/factory.py` | 41 | **FIX** | Fix signature mismatch with callers |
@@ -203,14 +203,14 @@ flowchart TD
 ### 3.3. Services Layer
 
 | File | Lines | Disposition | Notes |
-|--|--|--|--|
+|---|---|---|---|
 | `services/unified_crud.py` | 481 | **FIX** | Merge into core/unified_crud.py. Keep: multi-storage sync, SyncStrategy, operation logging. Drop: duplicate find/create/update/delete. |
 | `services/decorators.py` | 247 | **MOVE** | @sensitive_field, @record_event, @cached_result |
 
 ### 3.4. Models Layer
 
 | File | Lines | Disposition | Notes |
-|--|--|--|--|
+|---|---|---|---|
 | `models/base_model.py` | 269 | **MOVE** | StorageModel base class. Foundation. |
 | `models/storage_config.py` | 109 | **MOVE** | StorageConfig Pydantic model |
 | `models/storage_config_factory.py` | 79 | **MOVE** | YAML config loader |
@@ -232,7 +232,7 @@ flowchart TD
 ### 3.5. Implementations Layer (Backend Adapters)
 
 | File | Lines | Disposition | Notes |
-|--|--|--|--|
+|---|---|---|---|
 | `implementations/sql/postgresql_dao.py` | 370 | **MOVE** | Core adapter. Production-ready. |
 | `implementations/sql/postgresql_create.py` | 316 | **MOVE** | |
 | `implementations/sql/postgresql_read.py` | 189 | **MOVE** | |
@@ -274,7 +274,7 @@ flowchart TD
 ### 3.6. Security Layer
 
 | File | Lines | Disposition | Notes |
-|--|--|--|--|
+|---|---|---|---|
 | `security/sync_strategy.py` | 471 | **FIX** | Keep SyncStrategy + DataSynchronizer. Deduplicate enum from services/unified_crud.py. |
 | `security/encryption.py` | 391 | **MOVE** | Field-level encryption. Useful. |
 | `security/compliance_reporting.py` | 1,006 | **DELETE** | 99% stubs. Zero imports. |
@@ -288,7 +288,7 @@ flowchart TD
 ### 3.7. Secrets Management
 
 | File | Lines | Disposition | Notes |
-|--|--|--|--|
+|---|---|---|---|
 | `secrets/client.py` | 291 | **MOVE** | Secrets client for vault |
 | `secrets/adapter.py` | 121 | **MOVE** | Hydration/serialization |
 | `secrets/repository.py` | 136 | **MOVE** | Repository pattern for secrets |
@@ -298,7 +298,7 @@ flowchart TD
 ### 3.8. Storage / Utils / Other
 
 | File | Lines | Disposition | Notes |
-|--|--|--|--|
+|---|---|---|---|
 | `storage/registry.py` | 171 | **MOVE** | StorageRegistry |
 | `storage/validator.py` | 178 | **MOVE** | Config validation |
 | `utils/http_client.py` | 140 | **MOVE** | HTTP client with retries |
@@ -307,7 +307,7 @@ flowchart TD
 ### 3.9. Triage Summary
 
 | Disposition | Files | Lines | % |
-|--|--|--|--|
+|---|---|---|---|
 | **MOVE** (as-is) | ~60 | ~14,200 | 59% |
 | **FIX** (move + fix bugs) | 4 | ~1,365 | 6% |
 | **SLIM** (move + trim) | 0 | 0 | 0% |
@@ -318,7 +318,7 @@ flowchart TD
 
 **Net migration: ~15,565 lines across ~64 files into AMI-DATAOPS.**
 
---
+---
 
 ## 4. Critical Bugs
 
@@ -327,7 +327,7 @@ flowchart TD
 **Problem**: Two classes both named `UnifiedCRUD` in different locations.
 
 | File | Lines | Role | Used By |
-|--|--|--|--|
+|---|---|---|---|
 | `core/unified_crud.py` | 372 | Single-storage DAO lifecycle, UID registry, model-to-storage mapping | `base_model.py` (line 12) |
 | `services/unified_crud.py` | 481 | Multi-storage sync, SyncStrategy, SecurityContext, operation logging | Tests (`test_dataops_security.py:18`) |
 
@@ -383,14 +383,14 @@ def create(
 
 **Fix**: Single definition in `core/storage_types.py` alongside `StorageType` and `OperationType`. Both consumers import from there.
 
---
+---
 
 ## 5. Backend Adapters
 
 ### 5.1. Adapter Matrix
 
 | Adapter | StorageType | Files | LOC | Driver | Port | Status |
-|--|--|--|--|--|--|--|
+|---|---|---|---|---|---|---|
 | **PostgreSQLDAO** | RELATIONAL | 6 | ~1,126 | `asyncpg` | 5432 | Production-ready |
 | **DgraphDAO** | GRAPH | 8 | ~2,653 | `pydgraph` (gRPC) | 9080 | Production-ready |
 | **RedisDAO** | INMEM | 7 | ~1,160 | `redis` | 6379 | Production-ready |
@@ -444,7 +444,7 @@ class BaseDAO(ABC, Generic[T]):
 ### 5.3. Connection String Formats
 
 | Backend | Format |
-|--|--|
+|---|---|
 | PostgreSQL | `postgresql+asyncpg://user:pass@host:port/db` |
 | Dgraph | `host:port` (gRPC) |
 | Redis | `redis://host:port/db` |
@@ -456,7 +456,7 @@ class BaseDAO(ABC, Generic[T]):
 ### 5.4. PostgreSQL Type Mapping
 
 | Python Type | PostgreSQL Type |
-|--|--|
+|---|---|
 | `str` | `TEXT` |
 | `int` | `BIGINT` |
 | `float` | `DOUBLE PRECISION` |
@@ -466,7 +466,7 @@ class BaseDAO(ABC, Generic[T]):
 | `datetime` | `TIMESTAMPTZ` |
 | `UUID` | `UUID` |
 
---
+---
 
 ## 6. Data Model Layer
 
@@ -496,7 +496,7 @@ class StorageModel(SecuredModelMixin, StorageConfigMixin, BaseModel):
 Models in `base/backend/dataops/models/` belong to different services:
 
 | Model | File | Destination | Rationale |
-|--|--|--|--|
+|---|---|---|---|
 | `StorageModel` | `base_model.py` | **AMI-DATAOPS** | Foundation class |
 | `StorageConfig` | `storage_config.py` | **AMI-DATAOPS** | Infra config |
 | `StorageConfigFactory` | `storage_config_factory.py` | **AMI-DATAOPS** | Config loader |
@@ -515,7 +515,7 @@ Models in `base/backend/dataops/models/` belong to different services:
 | `ConsentRecord`, `LegalBasis` | `gdpr.py` | **DEFERRED** | No consumer |
 | `RetentionPolicy` | `retention.py` | **DEFERRED** | No consumer |
 
---
+---
 
 ## 7. Sync Strategy System
 
@@ -524,7 +524,7 @@ Models in `base/backend/dataops/models/` belong to different services:
 Defined in `security/sync_strategy.py` (471 lines). The `DataSynchronizer` class orchestrates multi-storage writes:
 
 | Strategy | Behavior | Use Case |
-|--|--|--|
+|---|---|---|
 | `SEQUENTIAL` | Write to each backend one-by-one. Stop on first failure. | Maximum safety. Audit trails. |
 | `PARALLEL` | Write to all backends simultaneously. Fail if any fails. | Performance-critical with strong consistency. |
 | `PRIMARY_FIRST` | Write to primary first. Then secondaries in parallel. Secondary failures are logged, not fatal. | Default. Primary is source of truth. |
@@ -535,7 +535,7 @@ Defined in `security/sync_strategy.py` (471 lines). The `DataSynchronizer` class
 ### 7.2. Conflict Resolution
 
 | Strategy | Behavior |
-|--|--|
+|---|---|
 | `LAST_WRITE_WINS` | Latest timestamp wins |
 | `FIRST_WRITE_WINS` | Earliest timestamp wins |
 | `HIGHEST_PRIORITY` | Storage type priority ordering decides |
@@ -546,28 +546,28 @@ Defined in `security/sync_strategy.py` (471 lines). The `DataSynchronizer` class
 
 **SPEC-DAO-005**: Only `PRIMARY_FIRST` and `SEQUENTIAL` have been exercised by existing tests. All 6 strategies shall have dedicated unit tests after migration.
 
---
+---
 
 ## 8. Security Layer Triage
 
 ### 8.1. Keep
 
 | Module | Lines | Reason |
-|--|--|--|
+|---|---|---|
 | `security/encryption.py` | 391 | Field-level encryption. Useful for sensitive columns. |
 | `security/sync_strategy.py` | 471 | Core multi-storage orchestration. Essential. |
 
 ### 8.2. Defer
 
 | Module | Lines | Reason |
-|--|--|--|
+|---|---|---|
 | `security/query_sanitizer.py` | 391 | Good concept but not wired into any DAO. Revisit when DAOs integrate it. |
 | `security/resilience.py` | 394 | Circuit breaker + retry logic. Not connected. Revisit when needed. |
 
 ### 8.3. Delete
 
 | Module | Lines | Reason |
-|--|--|--|
+|---|---|---|
 | `security/compliance_reporting.py` | 1,006 | 99% stubs. SOC2/GDPR/HIPAA reporters with 9/11 methods returning `False`. Zero imports. |
 | `security/audit_trail.py` | 377 | Blockchain-based audit with proof-of-work mining. Unused. Over-engineered. |
 | `security/multi_tenancy.py` | 411 | Tenant isolation logic. Zero imports anywhere. |
@@ -575,7 +575,7 @@ Defined in `security/sync_strategy.py` (471 lines). The `DataSynchronizer` class
 | `security/cache_layer.py` | 522 | Caching with TTL. Zero imports. |
 | **Total deleted** | **2,604** | |
 
---
+---
 
 ## 9. Migration to projects/AMI-DATAOPS
 
@@ -726,7 +726,7 @@ members = ["projects/AMI-TRADING", "projects/AMI-AUTH", "projects/AMI-DATAOPS"]
 All internal imports change from `base.backend.dataops.*` to `ami_dataops.*`:
 
 | Old Import | New Import |
-|--|--|
+|---|---|
 | `from base.backend.dataops.core.dao import BaseDAO` | `from ami_dataops.core.dao import BaseDAO` |
 | `from base.backend.dataops.models.base_model import StorageModel` | `from ami_dataops.models.base_model import StorageModel` |
 | `from base.backend.dataops.services.unified_crud import UnifiedCRUD` | `from ami_dataops.core.unified_crud import UnifiedCRUD` |
@@ -737,7 +737,7 @@ All internal imports change from `base.backend.dataops.*` to `ami_dataops.*`:
 Files in `base/` that import from dataops:
 
 | Consumer | Files | Action |
-|--|--|--|
+|---|---|---|
 | `base/backend/registry/` | DAO registry, discovery | Update imports to `ami_dataops` or keep in base/ as legacy |
 | `base/backend/opsec/` | Auth, MFA, password, GDPR | Being migrated to AMI-AUTH (see SPEC-AUTH-BASE-MIGRATION) |
 | `base/backend/mcp/` | MCP CRUD tools | Update imports or deprecate |
@@ -746,7 +746,7 @@ Files in `base/` that import from dataops:
 
 **SPEC-DAO-006**: After AMI-DATAOPS extraction, `base/backend/dataops/` shall remain in `base/` as a deprecated reference. No new code shall import from it.
 
---
+---
 
 ## 10. Public API Design
 
@@ -793,7 +793,7 @@ await crud.create({"name": "example", "value": 42.0})
 results = await crud.find({"name": "example"})
 ```
 
---
+---
 
 ## 11. Integration with AMI Services
 
@@ -802,7 +802,7 @@ results = await crud.find({"name": "example"})
 The OIDC provider spec (SPEC-AUTH-OIDC-PROVIDER) currently specifies plain SQLAlchemy for persistence. With AMI-DATAOPS available, there are two options:
 
 | Approach | Pros | Cons |
-|--|--|--|
+|---|---|---|
 | Plain SQLAlchemy (as specced) | Simple. No dependency on AMI-DATAOPS. | Doesn't benefit from multi-backend. |
 | AMI-DATAOPS PostgreSQLDAO | Shared patterns. Could add vault for key storage. | Heavier dependency. |
 
@@ -819,7 +819,7 @@ AMI-TRADING currently uses raw SQLAlchemy + asyncpg. It could adopt AMI-DATAOPS 
 
 Any new AMI service gets multi-backend persistence out of the box by declaring `StorageModel` subclasses with `Meta.storage_configs`.
 
---
+---
 
 ## 12. Configuration System
 
@@ -892,23 +892,23 @@ flowchart LR
     Registry["StorageRegistry"]
     DAOReg["DAORegistry"]
 
-    YAML -> Factory
-    ENV -> Factory
-    Factory ->|"from_yaml('postgres')"| Registry
-    Registry ->|"get_config('postgres')"| DAOReg
-    DAOReg ->|"auto-discover DAOs"| DAO["PostgreSQLDAO"]
+    YAML --> Factory
+    ENV --> Factory
+    Factory -->|"from_yaml('postgres')"| Registry
+    Registry -->|"get_config('postgres')"| DAOReg
+    DAOReg -->|"auto-discover DAOs"| DAO["PostgreSQLDAO"]
 ```
 
 **SPEC-DAO-008**: Environment variables shall always override YAML defaults. The `${VAR:-default}` substitution pattern shall be preserved.
 
---
+---
 
 ## 13. Testing Strategy
 
 ### 13.1. Existing Tests
 
 | File | Lines | Covers |
-|--|--|--|
+|---|---|---|
 | `base/tests/test_dataops_decorators.py` | 300 | `@sensitive_field`, `@record_event`, `@cached_result` |
 | `base/tests/test_dataops_security.py` | 319 | SecurityContext + UnifiedCRUD (services version) |
 | `base/tests/test_bpmn_model.py` | 358 | BPMN model creation (not execution) |
@@ -918,7 +918,7 @@ flowchart LR
 ### 13.2. Required Tests (Post-Migration)
 
 | Test File | Target | Coverage |
-|--|--|--|
+|---|---|---|
 | `test_unified_crud.py` | Merged UnifiedCRUD: single + multi-storage paths | 90%+ |
 | `test_dao_factory.py` | DAOFactory creation, registry lookup, collection_name derivation | 90%+ |
 | `test_storage_config.py` | Config loading, env var substitution, connection strings | 90%+ |
@@ -938,7 +938,7 @@ flowchart LR
 
 **SPEC-DAO-009**: All test files shall be < 512 lines per agents repo pre-push hook. Use `postgres:16.6` (not `:latest`). No `/home/` paths. Empty `__init__.py` everywhere.
 
---
+---
 
 ## 14. Multi-Backend ORM Landscape
 
@@ -947,7 +947,7 @@ flowchart LR
 Exhaustive search of the Python ecosystem (February 2026) confirms no library provides polyglot persistence across relational + graph + secrets backends:
 
 | Library | Scope | Why Insufficient |
-|--|--|--|
+|---|---|---|
 | SQLAlchemy 2.0 | Relational (multi-DB via binds) | No graph, no vault, no time-series |
 | Tortoise ORM | Async relational | Same limitations as SQLAlchemy |
 | Prisma Python | Multi-relational (PG, MySQL, MongoDB, SQLite) | No graph, no vault |
@@ -961,7 +961,7 @@ Exhaustive search of the Python ecosystem (February 2026) confirms no library pr
 The dataops architecture follows established patterns:
 
 | Pattern | Implementation |
-|--|--|
+|---|---|
 | Repository/DAO | `BaseDAO[T]`: one adapter per backend |
 | Abstract Factory | `DAOFactory`: runtime adapter selection via registry |
 | Strategy | `SyncStrategy`: pluggable consistency models |

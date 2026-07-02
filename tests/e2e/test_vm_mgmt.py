@@ -111,7 +111,7 @@ class TestVMDelete:
 
     def test_delete_with_purge(self, test_vm: str) -> None:
         vm_cmd("stop", test_vm)
-        delete_result = vm_cmd("delete", test_vm, "-purge")
+        delete_result = vm_cmd("delete", test_vm, "--purge")
         assert delete_result.returncode == 0
         for suffix in ("workspace", "transcripts", "cache"):
             with pytest.raises(subprocess.CalledProcessError):

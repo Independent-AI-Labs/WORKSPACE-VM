@@ -67,7 +67,7 @@ class TestFindDuplicatesMain:
         (dir_b / "shared.txt").write_text("b")
         with patch(
             "sys.argv",
-            ["find_duplicates", str(dir_a), str(dir_b), "-trash"],
+            ["find_duplicates", str(dir_a), str(dir_b), "--trash"],
         ):
             main()
         out = capsys.readouterr().out

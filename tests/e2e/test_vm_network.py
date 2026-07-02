@@ -25,7 +25,7 @@ class TestVMNetworkNone:
         uuid_val = extract_uuid(result.stdout)
         vm_tracker.register(uuid_val)
 
-        exec_result = vm_cmd("exec", uuid_val, "-", "ip", "link")
+        exec_result = vm_cmd("exec", uuid_val, "--", "ip", "link")
         raw_lines = [ln for ln in exec_result.stdout.splitlines() if ln.strip()]
         non_lo = [
             ln for ln in raw_lines if "lo:" not in ln and "LOOPBACK" not in ln.upper()
@@ -47,7 +47,7 @@ class TestVMNetworkNone:
         ping_result = vm_cmd(
             "exec",
             uuid_val,
-            "-",
+            "--",
             "ping",
             "-c",
             "1",

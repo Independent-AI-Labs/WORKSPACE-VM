@@ -1,5 +1,5 @@
 # Full installation for e2e testing - ALL components
-# Used by: scripts/setup/test_install_e2e.sh with -full flag
+# Used by: scripts/setup/test_install_e2e.sh with --full flag
 #
 # WARNING: This installs everything and takes significantly longer than
 # install-defaults.yaml. Only use for comprehensive testing.

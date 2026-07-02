@@ -9,13 +9,13 @@ repos:
         always_run: true
       - id: ruff-format
         name: ruff format
-        entry: uv run ruff format -config res/config/ruff.toml .
+        entry: uv run ruff format --config res/config/ruff.toml .
         language: system
         pass_filenames: false
         always_run: true
       - id: ruff
         name: ruff lint
-        entry: uv run ruff check -config res/config/ruff.toml -fix -exit-non-zero-on-fix .
+        entry: uv run ruff check --config res/config/ruff.toml --fix --exit-non-zero-on-fix .
         language: system
         pass_filenames: false
         always_run: true
@@ -27,7 +27,7 @@ repos:
         always_run: true
       - id: gitleaks
         name: Block secrets in staged content (gitleaks)
-        entry: gitleaks protect -staged -redact -no-banner -verbose
+        entry: gitleaks protect --staged --redact --no-banner --verbose
         language: system
         pass_filenames: false
         always_run: true
@@ -39,14 +39,14 @@ repos:
         always_run: true
       - id: check-dependency-versions
         name: Check Dependency Versions (strict pinning + latest)
-        entry: bash -c 'uv run python -c "import ci" 2>/dev/null || { echo "FAILED: ci not installed - run: make sync" >&2; exit 1; }; exec uv run python -m ci.check_dependency_versions "$@"' -
+        entry: bash -c 'uv run python -c "import ci" 2>/dev/null || { echo "FAILED: ci not installed - run: make sync" >&2; exit 1; }; exec uv run python -m ci.check_dependency_versions "$@"' --
         language: system
         pass_filenames: false
         always_run: true
 
       - id: check-duplicate-dependencies
         name: Check Duplicate/Redundant Dependencies
-        entry: bash -c 'uv run python -c "import ci" 2>/dev/null || { echo "FAILED: ci not installed - run: make sync" >&2; exit 1; }; exec uv run python -m ci.check_duplicate_dependencies "$@"' -
+        entry: bash -c 'uv run python -c "import ci" 2>/dev/null || { echo "FAILED: ci not installed - run: make sync" >&2; exit 1; }; exec uv run python -m ci.check_duplicate_dependencies "$@"' --
         language: system
         pass_filenames: false
         always_run: true
@@ -55,7 +55,7 @@ repos:
         name: Check Banned Words
         entry: "bash -c 'source projects/CI/lib/checks.sh && ci_check_banned_words \"$@\"' _"
         language: system
-        pass_filenames: true
+        pass_filenames: false
         always_run: true
         stages: [pre-commit]
       - id: check-coverage-no-devolution
@@ -72,7 +72,7 @@ repos:
         always_run: true
       - id: check-markdown-docs
         name: Check Markdown Documentation References
-        entry: "uv run python -m ci.check_markdown_docs -all-md -check-remote"
+        entry: "uv run python -m ci.check_markdown_docs --all-md --check-remote"
         language: system
         pass_filenames: false
         always_run: true
@@ -101,20 +101,28 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
-        args: [ -config-file, res/config/mypy.toml, workspace ]
+        args: [ --config-file, res/config/mypy.toml, workspace ]
       - id: check-commit-message
         name: Check Commit Message Format
-        entry: "bash -c 'source projects/CI/lib/checks.sh && ci_check_commit_message \"$1\"' -"
+        entry: "bash -c 'source projects/CI/lib/checks.sh && ci_check_commit_message \"$1\"' --"
         language: system
         stages: [commit-msg]
       - id: block-coauthored
         name: Block Co-authored Commits
-        entry: "bash -c 'source projects/CI/lib/checks.sh && ci_block_coauthored \"$1\"' -"
+        entry: "bash -c 'source projects/CI/lib/checks.sh && ci_block_coauthored \"$1\"' --"
         language: system
         stages: [commit-msg]
 
   - repo: local
     hooks:
+      - id: ci-check-push
+        name: Pre-push Quality Gate (lint + type + tests)
+        entry: "make check-push"
+        language: system
+        stages: [pre-push]
+        pass_filenames: false
+        always_run: true
+
       - id: block-coauthored-history
         name: Block Commits with Blocked Patterns (full history scan)
         entry: "bash -c 'source projects/CI/lib/checks.sh && ci_block_coauthored_history'"

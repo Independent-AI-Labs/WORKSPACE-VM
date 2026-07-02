@@ -36,7 +36,7 @@ esac
 install_git_lfs() {
     if [ -x "${BIN_DIR}/git-lfs" ]; then
         log_info "git-lfs already installed"
-        "${BIN_DIR}/git-lfs" -version
+        "${BIN_DIR}/git-lfs" --version
         return 0
     fi
 
@@ -70,7 +70,7 @@ install_git_lfs() {
     rm -rf "$TEMP_DIR"
 
     log_info "git-lfs installed successfully"
-    "${BIN_DIR}/git-lfs" -version
+    "${BIN_DIR}/git-lfs" --version
 }
 
 # ==============================================================================
@@ -79,7 +79,7 @@ install_git_lfs() {
 install_git_xet() {
     if [ -x "${BIN_DIR}/git-xet" ]; then
         log_info "git-xet already installed"
-        "${BIN_DIR}/git-xet" -version
+        "${BIN_DIR}/git-xet" --version
         return 0
     fi
 
@@ -123,7 +123,7 @@ install_git_xet() {
     rm -rf "$TEMP_DIR"
 
     log_info "git-xet installed successfully"
-    "${BIN_DIR}/git-xet" -version
+    "${BIN_DIR}/git-xet" --version
 }
 
 # ==============================================================================

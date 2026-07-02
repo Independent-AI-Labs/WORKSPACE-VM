@@ -4,7 +4,7 @@
 set -euo pipefail
 
 case "${1:-}" in
-    -help|-h)
+    --help|-h)
         echo "kcadm - Keycloak Admin CLI wrapper"
         echo ""
         echo "Usage: kcadm <command> [options]"
@@ -22,7 +22,7 @@ case "${1:-}" in
         echo "Setup: make compose-deploy in AMI-DATAOPS"
         exit 0
         ;;
-    -version|-V)
+    --version|-V)
         _err_tmp="$(mktemp)"
         if ! podman exec ami-keycloak java -jar /opt/keycloak/lib/quarkus-run.jar -version 2>"$_err_tmp"; then
             if [[ -s "$_err_tmp" ]]; then cat "$_err_tmp" >&2; fi

@@ -3,7 +3,7 @@
 > **Part of the Agentic Guardrails, Compliance, Standardisation & Security research programme**
 > Status: **COMPLETE** | Last updated: 2026-05-25
 
---
+---
 
 ## 1. Research Scope & Questions
 
@@ -57,7 +57,7 @@
 - Agent guardrail offerings (if any)
 - Gaps in the EU startup ecosystem for agent security
 
---
+---
 
 ## 2. Findings
 
@@ -917,12 +917,12 @@
 - youtube.com (Oct 2025) - Helsing's Reil on AI defence
 - numalis.com (Jan 2025) - GENIUS project announcement
 
---
+---
 
 ## 3. Comparative Analysis
 
 | Tool | Category | Agent-Specific Safety | Open Source | EU Data Residency | Key Differentiator |
-|--|--|--|--|--|--|
+|---|---|---|---|---|---|
 | Guardrails AI | Guardrails | Partial (I/O guards only) | Yes (Apache 2.0) | Self-hosted | Largest validator marketplace (Hub) |
 | NeMo Guardrails | Guardrails | Strong (tool rails, dialog rails) | Yes (Apache 2.0) | Self-hosted | Colang DSL + NIM microservices for agent flows |
 | LangChain | Orchestration | Minimal (callbacks only) | Yes (MIT) | LangSmith SaaS | Largest ecosystem; external governance needed |
@@ -964,7 +964,7 @@ For a complete enterprise agent safety stack, organizations typically need:
 5. SIEM integration (custom via OpenTelemetry)
 
 
---
+---
 
 ## 4. Sources Consulted
 
@@ -1052,7 +1052,7 @@ For a complete enterprise agent safety stack, organizations typically need:
 71. Helsing - helsing.ai
 72. Medium (Oct 2025) - Europe's Defence AI Moment
 
---
+---
 
 ## 5. Key Takeaways
 
@@ -1081,7 +1081,7 @@ For a complete enterprise agent safety stack, organizations typically need:
 ### Recommended Enterprise Stack (Best-of-Breed)
 
 | Layer | Tool | Rationale |
-|--|--|--|
+|---|---|---|
 | Guardrails | NeMo Guardrails (tool/dialog rails) | Only agent-specific rail architecture |
 | Orchestration | Semantic Kernel (filters) or LangGraph + governance middleware | Built-in safety hooks or external policy engine |
 | Observability | Arize Phoenix (self-hosted) | OTEL-native, multi-agent tracing, EU data residency |

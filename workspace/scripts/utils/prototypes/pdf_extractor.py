@@ -4,7 +4,7 @@ PDF Extractor Utility
 Extracts text and images from a PDF file.
 
 Usage:
-    python pdf_extractor.py input.pdf output_directory [-start_page N] [-end_page N]
+    python pdf_extractor.py input.pdf output_directory [--start_page N] [--end_page N]
 
 Requirements:
     pymupdf (fitz)
@@ -101,13 +101,13 @@ if __name__ == "__main__":
     parser.add_argument("pdf_path", help="Path to the source PDF file")
     parser.add_argument("output_dir", help="Directory to save extracted content")
     parser.add_argument(
-        "-start_page",
+        "--start_page",
         type=int,
         default=1,
         help="Page number to start from (1-based, default: 1)",
     )
     parser.add_argument(
-        "-end_page",
+        "--end_page",
         type=int,
         default=None,
         help="Page number to end at (1-based, default: end)",

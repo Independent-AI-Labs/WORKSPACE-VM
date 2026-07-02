@@ -3,7 +3,7 @@
 
 Both files list the workspace's repos but for different consumers:
   - .moon/workspace.yml::projects - moon's project graph (drives `moon run
-    :update`, `moon ci -affected`, every cross-project task walk).
+    :update`, `moon ci --affected`, every cross-project task walk).
   - workspace/config/workspace-clones.yaml::workspaceClones - the boot installer's
     repo-selection step + the chicken-egg-safe clone walker
     (bootstrap-repos).

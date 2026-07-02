@@ -5,17 +5,17 @@
 
 ami-mail is now built as a himalaya fork in the AMI-STREAMS project. Requirements and specifications live there.
 
---
+---
 
 ## Implementation Status (2026-04-13)
 
 ### Current (v1 - stdlib)
 
 | Feature | Status | Details |
-|-----|----|-----|
+|---------|--------|---------|
 | SMTP send | DONE | `smtplib.SMTP` via exim relay (127.0.0.1:2525) |
-| HTML email | DONE | `-html` flag, `add_alternative(subtype="html")` |
-| File attachments | DONE | `-attachment` flag, multiple, MIME type detection |
+| HTML email | DONE | `--html` flag, `add_alternative(subtype="html")` |
+| File attachments | DONE | `--attachment` flag, multiple, MIME type detection |
 | IMAP fetch | DONE | `imaplib.IMAP4_SSL`, folder selection, limit |
 | Send-block | DONE | Polls IMAP, **subject matching** (not Message-ID threading) |
 | Multi-account | NOT BUILT | Single account via CLI args / env vars |
@@ -32,7 +32,7 @@ ami-mail is now built as a himalaya fork in the AMI-STREAMS project. Requirement
 
 Migration from stdlib to himalaya backend. All v1 features preserved, all REQ-MAIL requirements addressed.
 
---
+---
 
 ## 1. Architecture
 
@@ -45,13 +45,13 @@ flowchart LR
         block[send-block]
         fetch[fetch]
     end
-    send -> SMTP1[smtplib.SMTP]
-    block -> SMTP2[smtplib.SMTP]
-    block -> IMAP1["imaplib.IMAP4_SSL<br/>(poll loop)"]
-    fetch -> IMAP2[imaplib.IMAP4_SSL]
-    SMTP1 -> EXIM["exim relay :2525"]
-    SMTP2 -> EXIM
-    EXIM -> GMAIL[Gmail]
+    send --> SMTP1[smtplib.SMTP]
+    block --> SMTP2[smtplib.SMTP]
+    block --> IMAP1["imaplib.IMAP4_SSL<br/>(poll loop)"]
+    fetch --> IMAP2[imaplib.IMAP4_SSL]
+    SMTP1 --> EXIM["exim relay :2525"]
+    SMTP2 --> EXIM
+    EXIM --> GMAIL[Gmail]
 ```
 
 Single file: `ami/scripts/bin/ami_mail.py` (309 lines). No config file. SMTP host/port/sender via env vars (`AMI_SMTP_HOST`, `AMI_SMTP_PORT`, `AMI_MAIL_FROM`). IMAP credentials passed as CLI args.
@@ -71,12 +71,12 @@ flowchart TB
         imap["IMAP ops<br/>list · read · search · move · delete · flags"]
         cred["auth.command credential retrieval"]
     end
-    readY -> gen -> secrets -> invoke -> RS
+    readY --> gen --> secrets --> invoke --> RS
 ```
 
 Same pattern as ami-docs wrapping pandoc: Python facade generating config, Rust binary doing the work.
 
---
+---
 
 ## 2. himalaya Bootstrap
 
@@ -91,7 +91,7 @@ Component(
     group="Enterprise Tools",
     script="bootstrap_himalaya.sh",
     detect_path=".boot-linux/bin/himalaya",
-    version_cmd=[".boot-linux/bin/himalaya", "-version"],
+    version_cmd=[".boot-linux/bin/himalaya", "--version"],
     version_pattern=r"himalaya (\d+\.\d+\.\d+)",
 )
 ```
@@ -107,7 +107,7 @@ Symlink: .boot-linux/bin/himalaya
 Architectures: x86_64, aarch64
 ```
 
---
+---
 
 ## 3. Configuration
 
@@ -200,7 +200,7 @@ message.send.backend.command = "bao kv get -mount=secret -field=password platfor
 
 For `.env`-based interim auth, the Python wrapper resolves env vars before writing the TOML, using himalaya's `passwd.type = "command"` with `echo` as a simple passthrough.
 
---
+---
 
 ## 4. Send-Block (Human-in-the-Loop)
 
@@ -218,7 +218,7 @@ For `.env`-based interim auth, the Python wrapper resolves env vars before writi
 - Send email via himalaya, capture returned `Message-ID` header
 - Poll IMAP via himalaya `envelope list` with JSON output
 - Match replies by `In-Reply-To` or `References` header containing the original `Message-ID`
-- Return reply as JSON (`-json` flag) or plain text
+- Return reply as JSON (`--json` flag) or plain text
 - Exit codes: 0 (reply received), 1 (timeout), 2 (system error)
 
 ### Invocation
@@ -226,13 +226,13 @@ For `.env`-based interim auth, the Python wrapper resolves env vars before writi
 ```bash
 # Agent sends question, waits up to 10 minutes for human reply
 ami-mail send-block \
-  -account gmail \
-  -to human@example.com \
-  -subject "Approval needed: deploy v2.1?" \
-  -body "Please reply YES or NO" \
-  -timeout 600 \
-  -poll-interval 15 \
-  -json
+  --account gmail \
+  --to human@example.com \
+  --subject "Approval needed: deploy v2.1?" \
+  --body "Please reply YES or NO" \
+  --timeout 600 \
+  --poll-interval 15 \
+  --json
 ```
 
 Returns:
@@ -247,49 +247,49 @@ Returns:
 }
 ```
 
---
+---
 
 ## 5. CLI Design (v2)
 
 ```bash
 # Sending
-ami-mail send -account relay -to user@example.com -subject "Test" -body "Hello"
-ami-mail send -account gmail -to @team -subject "Report" -template weekly-report -data report.yaml
-ami-mail send -account relay -to user@example.com -subject "Test" -body "Hello" -attachment report.pdf -dry-run
-ami-mail send -account gmail -to user@example.com -cc boss@example.com -bcc audit@example.com -subject "Proposal" -body "See attached" -attachment proposal.pdf
+ami-mail send --account relay --to user@example.com --subject "Test" --body "Hello"
+ami-mail send --account gmail --to @team --subject "Report" --template weekly-report --data report.yaml
+ami-mail send --account relay --to user@example.com --subject "Test" --body "Hello" --attachment report.pdf --dry-run
+ami-mail send --account gmail --to user@example.com --cc boss@example.com --bcc audit@example.com --subject "Proposal" --body "See attached" --attachment proposal.pdf
 
 # Reading
-ami-mail list -account gmail                          # envelopes from INBOX
-ami-mail list -account gmail -folder Sent -limit 20
-ami-mail read -account gmail -id 1234                # full message
-ami-mail search -account gmail -from boss@co.com -since 2026-04-01
-ami-mail folders -account gmail                       # list IMAP folders
+ami-mail list --account gmail                          # envelopes from INBOX
+ami-mail list --account gmail --folder Sent --limit 20
+ami-mail read --account gmail --id 1234                # full message
+ami-mail search --account gmail --from boss@co.com --since 2026-04-01
+ami-mail folders --account gmail                       # list IMAP folders
 
 # Operations
-ami-mail reply -account gmail -id 1234 -body "Acknowledged"
-ami-mail reply -account gmail -id 1234 -template ack -data ctx.yaml
-ami-mail forward -account gmail -id 1234 -to colleague@co.com
-ami-mail move -account gmail -id 1234 -folder Archive
-ami-mail delete -account gmail -id 1234
-ami-mail flag -account gmail -id 1234 -set starred
-ami-mail flag -account gmail -id 1234 -remove read
+ami-mail reply --account gmail --id 1234 --body "Acknowledged"
+ami-mail reply --account gmail --id 1234 --template ack --data ctx.yaml
+ami-mail forward --account gmail --id 1234 --to colleague@co.com
+ami-mail move --account gmail --id 1234 --folder Archive
+ami-mail delete --account gmail --id 1234
+ami-mail flag --account gmail --id 1234 --set starred
+ami-mail flag --account gmail --id 1234 --remove read
 
 # Send-block
-ami-mail send-block -account gmail -to human@co.com -subject "Approve?" -body "Yes/No" -timeout 600 -json
+ami-mail send-block --account gmail --to human@co.com --subject "Approve?" --body "Yes/No" --timeout 600 --json
 
 # Domain verification
 ami-mail check-domain example.com
 
-# All read commands support -json
-ami-mail list -account gmail -json
+# All read commands support --json
+ami-mail list --account gmail --json
 ```
 
 ```bash
 # Batch / mail merge
-ami-mail batch -account gmail -template newsletter -data subscribers.csv -subject "Update: {{title}}" -dry-run
-ami-mail batch -account gmail -template newsletter -data subscribers.csv -subject "Update: {{title}}" -rate 10/min
-ami-mail batch -account gmail -to @dev-team -template announcement -data release.yaml -bcc-mode
-ami-mail batch -account relay -template invoice -data clients.yaml -attachment-pdf -rate 5/min
+ami-mail batch --account gmail --template newsletter --data subscribers.csv --subject "Update: {{title}}" --dry-run
+ami-mail batch --account gmail --template newsletter --data subscribers.csv --subject "Update: {{title}}" --rate 10/min
+ami-mail batch --account gmail --to @dev-team --template announcement --data release.yaml --bcc-mode
+ami-mail batch --account relay --template invoice --data clients.yaml --attachment-pdf --rate 5/min
 ```
 
 All commands delegate to himalaya subprocess. `ami-mail` handles:
@@ -303,16 +303,16 @@ All commands delegate to himalaya subprocess. `ami-mail` handles:
 - JSON output formatting
 - Batch progress reporting and failure logging
 
---
+---
 
 ## 6. Batch Sending & Personalization
 
 ### Two Modes
 
-**BCC mode** (`-bcc-mode`): Single message, all recipients in BCC. No personalization - everyone gets the same body. Fast, one himalaya invocation.
+**BCC mode** (`--bcc-mode`): Single message, all recipients in BCC. No personalization - everyone gets the same body. Fast, one himalaya invocation.
 
 ```bash
-ami-mail batch -account relay -to @dev-team -subject "All-hands tomorrow" -body "See you at 3pm" -bcc-mode
+ami-mail batch --account relay --to @dev-team --subject "All-hands tomorrow" --body "See you at 3pm" --bcc-mode
 ```
 
 Flow:
@@ -323,7 +323,7 @@ Flow:
 **Individual mode** (default): One message per recipient with per-recipient template variables. Supports full mail merge from CSV or YAML/JSON data files.
 
 ```bash
-ami-mail batch -account gmail -template newsletter -data subscribers.csv -subject "Hi {{name}}, your {{month}} update" -rate 10/min
+ami-mail batch --account gmail --template newsletter --data subscribers.csv --subject "Hi {{name}}, your {{month}} update" --rate 10/min
 ```
 
 Flow:
@@ -357,17 +357,17 @@ recipients:
     plan: free
 ```
 
-**Group reference:** `-to @dev-team` loads addresses from `mail.yaml` recipient_groups. No per-recipient variables in this mode (use `-bcc-mode` or provide a data file for personalization).
+**Group reference:** `--to @dev-team` loads addresses from `mail.yaml` recipient_groups. No per-recipient variables in this mode (use `--bcc-mode` or provide a data file for personalization).
 
 ### Rate Limiting
 
-Format: `-rate N/unit` where unit is `sec`, `min`, or `hour`.
+Format: `--rate N/unit` where unit is `sec`, `min`, or `hour`.
 
 | Flag | Behavior |
-|---|-----|
-| `-rate 1/sec` | 1 message per second (sleep 1s between sends) |
-| `-rate 10/min` | 10 per minute (sleep 6s between sends) |
-| `-rate 500/hour` | 500 per hour (sleep 7.2s between sends) |
+|------|----------|
+| `--rate 1/sec` | 1 message per second (sleep 1s between sends) |
+| `--rate 10/min` | 10 per minute (sleep 6s between sends) |
+| `--rate 500/hour` | 500 per hour (sleep 7.2s between sends) |
 | (no flag) | No rate limiting - send as fast as possible |
 
 Gmail limit: ~500/day for personal, ~2000/day for Workspace. SES varies by account. Exim relay has no limit but upstream relay may.
@@ -383,7 +383,7 @@ During execution:
 [200/200] Complete: 198 sent, 2 failed
 ```
 
-With `-json`:
+With `--json`:
 ```json
 {
   "total": 200,
@@ -400,19 +400,19 @@ Failed sends are logged but do not abort the batch.
 
 ### Dry-Run
 
-`-dry-run` on batch:
+`--dry-run` on batch:
 1. Loads all recipient data
 2. Renders every template (catches Jinja2 errors)
-3. Prints each rendered message (or first N with `-preview N`)
+3. Prints each rendered message (or first N with `--preview N`)
 4. Reports total count and any render failures
 5. Sends nothing
 
---
+---
 
 ## 7. Template Rendering
 
 ```bash
-ami-mail send -account relay -to @ops -subject "Weekly Report: {{week}}" -template weekly-report -data report.yaml
+ami-mail send --account relay --to @ops --subject "Weekly Report: {{week}}" --template weekly-report --data report.yaml
 ```
 
 Flow:
@@ -420,9 +420,9 @@ Flow:
 2. Load data from `report.yaml`
 3. Render with Jinja2 (template receives: `subject`, `date`, `account`, and all data file keys)
 4. If template is HTML, send as HTML body
-5. If `-attachment-pdf` flag, render HTML → PDF via `ami-docs pandoc` and attach
+5. If `--attachment-pdf` flag, render HTML → PDF via `ami-docs pandoc` and attach
 
---
+---
 
 ## 7. Domain Verification
 
@@ -435,21 +435,21 @@ Uses `dns.resolver` (dnspython) or subprocess `dig`/`nslookup`:
 - Query `example.com` TXT records for SPF (`v=spf1`)
 - Report pass/fail with record values
 
---
+---
 
 ## 8. File Map
 
 ### Current (v1)
 
 | File | Purpose |
-|---|-----|
+|------|---------|
 | `ami/scripts/bin/ami_mail.py` | CLI entry point (309 lines, stdlib) |
 | `projects/AMI-STREAMS/extension.manifest.yaml` | Extension registration (enterprise category) |
 
 ### Target (v2)
 
 | File | Purpose |
-|---|-----|
+|------|---------|
 | `ami/scripts/bin/ami_mail.py` | CLI entry point (rewritten, himalaya wrapper) |
 | `ami/scripts/bootstrap/bootstrap_himalaya.sh` | himalaya binary bootstrap |
 | `ami/scripts/bootstrap_component_defs.py` | himalaya component definition (new entry) |
@@ -458,7 +458,7 @@ Uses `dns.resolver` (dnspython) or subprocess `dig`/`nslookup`:
 | `ami/config/mail/templates/` | Shared Jinja2 email templates |
 | `.boot-linux/bin/himalaya` | Bootstrapped himalaya binary |
 
---
+---
 
 ## 9. Migration Path (v1 → v2)
 

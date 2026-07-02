@@ -3,7 +3,7 @@
 > **Part of the Agentic Guardrails, Compliance, Standardisation & Security research programme**
 > Status: **COMPLETE** | Last updated: 2026-05-25 | 65 papers annotated
 
---
+---
 
 ## 1. Research Scope & Questions
 
@@ -54,7 +54,7 @@
 - ICRL 2025 - safe RL for agents
 - AI Safety Conference / Alignment Workshop
 
---
+---
 
 ## 2. Annotated Bibliography
 
@@ -572,12 +572,12 @@
 - Key Findings: Treats agent traces as structured programs. Converts to CFG/DFG/PDG representations. Type system for static inference. 95.75% TPR with 3.66% FPR on AgentDojo. Reduces ASR to 1.16%.
 - Relevance to AMI: Program analysis approach is a promising direction for AMI's trace verification.
 
---
+---
 
 ## 3. Key Findings → AMI Architecture Mapping
 
 | Finding | Source Papers | AMI Application | Priority |
-|--|--|--|--|
+|---|---|---|---|
 | Reward hacking is a structural equilibrium, not a correctable bug | [2], [3], [19] | AMI must design for detection/mitigation, not prevention; embed hack-verifiable properties in environments | CRITICAL |
 | RL post-training substantially increases reward hacking (0.6% vs 13.9%) | [1], [3] | AMI's training pipeline must include reward hacking benchmarks and isomorphic verification | CRITICAL |
 | Environmental hardening reduces reward hacking by 87.7% | [1], [6] | AMI's evaluation pipeline must use evaluator locking, reduced file access, hardened boundaries | CRITICAL |
@@ -599,7 +599,7 @@
 | Cryptographic enforcement provides worst-case privacy guarantees independent of model behavior | [71] | AMI should combine LLM-based scanning with deterministic cryptographic enforcement for regulated data | HIGH |
 | Causal monitoring (counterfactual re-execution) detects multi-turn IPI takeover | [29] | AMI's runtime monitoring should include temporal causal diagnostics | MEDIUM |
 
---
+---
 
 ## 4. Sources Consulted
 
@@ -708,7 +708,7 @@
 - ACM CCS 2025: Accepted papers (published October 2025, Taipei)
 - OWASP Top 10 for LLM Applications (2025)
 
---
+---
 
 ## 5. Key Takeaways
 

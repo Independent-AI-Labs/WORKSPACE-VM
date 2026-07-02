@@ -83,7 +83,7 @@ tasks:
     deps:
       - '~:check'
   update:
-    command: 'bash -c "git pull -ff-only 2>/dev/null || true && make sync"'
+    command: 'bash -c "git pull --ff-only 2>/dev/null || true && make sync"'
     deps:
       - '^:update'
     options:

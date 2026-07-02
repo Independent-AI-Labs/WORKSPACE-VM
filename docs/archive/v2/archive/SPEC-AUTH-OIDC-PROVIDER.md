@@ -6,7 +6,7 @@
 **Domain:** Authentication & Identity
 **Prerequisite:** [AUTH-FRAGMENTATION-AUDIT.md](AUTH-FRAGMENTATION-AUDIT.md)
 
---
+---
 
 ## Table of Contents
 
@@ -24,7 +24,7 @@
 12. [Implementation Phases](#12-implementation-phases)
 13. [Verification](#13-verification)
 
---
+---
 
 ## 1. Executive Summary
 
@@ -32,14 +32,14 @@ This specification defines a standards-compliant **OpenID Connect (OIDC) Identit
 
 The existing TypeScript NextAuth.js client library in `projects/AMI-AUTH/src/` remains unchanged. The Python service is added alongside it, making AMI-AUTH a polyglot project: TypeScript client library + Python OIDC server.
 
---
+---
 
 ## 2. Problem Statement
 
 The AUTH-FRAGMENTATION-AUDIT (February 2026) identified:
 
 | # | System | Location | Technology | Status |
-|--|----|-----|------|----|
+|---|----|-----|------|----|
 | 1 | AMI-AUTH | `projects/AMI-AUTH/` | TypeScript, NextAuth.js v5 | Active (Portal only) |
 | 2 | base/opsec | `base/backend/opsec/` | Python, ~4,700 lines | **Unused** |
 | 3 | AMI-TRADING | `projects/AMI-TRADING/src/` | Python, FastAPI, HS256 JWT | Active (Trading only) |
@@ -53,7 +53,7 @@ The AUTH-FRAGMENTATION-AUDIT (February 2026) identified:
 - 4,700 lines of enterprise auth code in `base/` (JWT RS256, OAuth2+PKCE, Argon2, MFA, audit trails, secrets management) sits completely unused.
 - Each new service must reinvent auth from scratch.
 
---
+---
 
 ## 3. Solution Overview
 
@@ -81,16 +81,16 @@ flowchart TD
     Matrix["Matrix/MAS<br/>(Synapse)"]
     TSLib["@ami/auth<br/>TypeScript Library"]
 
-    Portal ->|"OIDC via wellKnown"| OIDC
-    TSLib ->|"POST /auth/verify<br/>GET /auth/users/*"| DataOps
-    Trading ->|"RS256 JWT validation<br/>via /oauth/jwks"| OIDC
-    Matrix ->|"Upstream OIDC<br/>delegation"| OIDC
-    OIDC -> AuthCore
-    DataOps -> AuthCore
-    AuthCore -> DB
+    Portal -->|"OIDC via wellKnown"| OIDC
+    TSLib -->|"POST /auth/verify<br/>GET /auth/users/*"| DataOps
+    Trading -->|"RS256 JWT validation<br/>via /oauth/jwks"| OIDC
+    Matrix -->|"Upstream OIDC<br/>delegation"| OIDC
+    OIDC --> AuthCore
+    DataOps --> AuthCore
+    AuthCore --> DB
 ```
 
---
+---
 
 ## 4. Architecture
 
@@ -99,7 +99,7 @@ flowchart TD
 AMI-AUTH becomes a dual-runtime project within the agents monorepo:
 
 | Layer | Runtime | Purpose | Entry Point |
-|----|-----|-----|-------|
+|----|-----|-----|---------|
 | Client library | TypeScript (Node.js) | NextAuth.js wrapper for Portal | `src/index.ts` |
 | OIDC server | Python 3.12 (FastAPI) | Identity provider + DataOps API | `backend/main.py` |
 
@@ -155,7 +155,7 @@ Relying parties validate tokens without calling AMI-AUTH on every request:
 5. Validate standard claims: `iss`, `aud`, `exp`, `iat`
 6. Extract user identity from `sub`, `email`, `roles` claims
 
---
+---
 
 ## 5. OIDC Endpoints
 
@@ -164,7 +164,7 @@ All OIDC endpoints conform to the specifications listed.
 ### 5.1. Discovery
 
 | | |
-|--|--|
+|---|---|
 | **Endpoint** | `GET /.well-known/openid-configuration` |
 | **RFC** | OpenID Connect Discovery 1.0 |
 | **Auth** | Public (no authentication) |
@@ -207,7 +207,7 @@ Returns a JSON document describing the provider's capabilities:
 ### 5.2. Authorization
 
 | | |
-|--|--|
+|---|---|
 | **Endpoint** | `GET /oauth/authorize` |
 | **RFC** | RFC 6749 Section 4.1, RFC 7636 (PKCE) |
 | **Auth** | User session (login form if no session) |
@@ -232,7 +232,7 @@ Returns a JSON document describing the provider's capabilities:
 ### 5.3. Token
 
 | | |
-|--|--|
+|---|---|
 | **Endpoint** | `POST /oauth/token` |
 | **RFC** | RFC 6749 Section 4.1.3, RFC 7636 Section 4.6 |
 | **Auth** | Client credentials (post body or Basic header) |
@@ -241,7 +241,7 @@ Returns a JSON document describing the provider's capabilities:
 **Supported grant types:**
 
 | Grant Type | Use Case |
-|--|--|
+|---|---|
 | `authorization_code` | User login via browser (Portal, Matrix) |
 | `refresh_token` | Extend session without re-authentication |
 | `client_credentials` | Service-to-service calls (Trading backend) |
@@ -267,7 +267,7 @@ Returns a JSON document describing the provider's capabilities:
 ### 5.4. UserInfo
 
 | | |
-|--|--|
+|---|---|
 | **Endpoint** | `GET /oauth/userinfo` |
 | **RFC** | OpenID Connect Core 1.0 Section 5.3 |
 | **Auth** | Bearer access token |
@@ -292,7 +292,7 @@ Returns a JSON document describing the provider's capabilities:
 ### 5.5. Token Revocation
 
 | | |
-|--|--|
+|---|---|
 | **Endpoint** | `POST /oauth/revoke` |
 | **RFC** | RFC 7009 |
 | **Auth** | Client credentials |
@@ -303,7 +303,7 @@ Returns a JSON document describing the provider's capabilities:
 ### 5.6. JSON Web Key Set
 
 | | |
-|--|--|
+|---|---|
 | **Endpoint** | `GET /oauth/jwks` |
 | **RFC** | RFC 7517 |
 | **Auth** | Public (no authentication) |
@@ -329,7 +329,7 @@ Returns a JSON document describing the provider's capabilities:
 
 **SPEC-OIDC-010**: JWKS responses shall include `Cache-Control: public, max-age=3600` headers. Relying parties should cache JWKS and only refresh on `kid` mismatch.
 
---
+---
 
 ## 6. DataOps Compatibility API
 
@@ -340,7 +340,7 @@ The existing TypeScript client (`projects/AMI-AUTH/src/dataops-client.ts`) calls
 These endpoints are **internal**, authenticated by a shared `DATAOPS_INTERNAL_TOKEN` Bearer header, not by OIDC tokens.
 
 | Endpoint | Method | Request | Response | TS Client Method |
-|--|--|--|--|--|
+|---|---|---|---|---|
 | `/auth/verify` | POST | `{ email, password }` | `{ user: AuthenticatedUser \| null, reason?: string }` | `verifyCredentials()` |
 | `/auth/users/by-email` | GET | `?email=<email>` | `{ user: AuthenticatedUser \| null }` | `getUserByEmail()` |
 | `/auth/users/{id}` | GET | Path param | `{ user: AuthenticatedUser \| null }` | `getUserById()` |
@@ -388,13 +388,13 @@ This leverages the existing `wellKnown` support in `projects/AMI-AUTH/src/config
 Both API sets run on the same FastAPI application:
 
 | Prefix | Auth | Consumer |
-|--|--|--|
+|---|---|---|
 | `/auth/*` | `DATAOPS_INTERNAL_TOKEN` header | TypeScript `DataOpsClient` |
 | `/.well-known/*`, `/oauth/*` | OIDC (public + client creds) | All relying parties |
 
 **SPEC-OIDC-011**: The DataOps API shall remain available for backward compatibility. It may be deprecated once all consumers migrate to native OIDC flows.
 
---
+---
 
 ## 7. Database Schema
 
@@ -405,7 +405,7 @@ A dedicated PostgreSQL database (`ami_auth`) with five tables.
 Maps to `AuthenticatedUser` TypeScript type.
 
 | Column | Type | Constraints | Notes |
-|--|--|--|--|
+|---|---|---|---|
 | `id` | `UUID` | PK, default uuid4 | |
 | `email` | `VARCHAR(255)` | UNIQUE, NOT NULL | Lowercase, trimmed |
 | `name` | `VARCHAR(255)` | Nullable | Display name |
@@ -426,7 +426,7 @@ Maps to `AuthenticatedUser` TypeScript type.
 Registered relying parties (Portal, Trading, Matrix, etc.).
 
 | Column | Type | Constraints | Notes |
-|--|--|--|--|
+|---|---|---|---|
 | `id` | `VARCHAR(48)` | PK | e.g. `ami-portal`, `ami-trading` |
 | `client_secret_hash` | `VARCHAR(255)` | Nullable | bcrypt hash. Null for public clients (PKCE-only). |
 | `client_name` | `VARCHAR(255)` | NOT NULL | Human-readable |
@@ -443,7 +443,7 @@ Registered relying parties (Portal, Trading, Matrix, etc.).
 Short-lived codes for the authorization code flow.
 
 | Column | Type | Constraints | Notes |
-|--|--|--|--|
+|---|---|---|---|
 | `code` | `VARCHAR(48)` | PK | Cryptographically random |
 | `client_id` | `VARCHAR(48)` | FK -> oauth_clients | |
 | `user_id` | `UUID` | FK -> users | |
@@ -461,7 +461,7 @@ Short-lived codes for the authorization code flow.
 Issued access and refresh tokens.
 
 | Column | Type | Constraints | Notes |
-|--|--|--|--|
+|---|---|---|---|
 | `id` | `UUID` | PK | |
 | `client_id` | `VARCHAR(48)` | FK -> oauth_clients | |
 | `user_id` | `UUID` | FK -> users, Nullable | Null for client_credentials |
@@ -479,7 +479,7 @@ Issued access and refresh tokens.
 RSA key pairs for JWT signing.
 
 | Column | Type | Constraints | Notes |
-|--|--|--|--|
+|---|---|---|---|
 | `kid` | `VARCHAR(50)` | PK | Key identifier in JWT header |
 | `algorithm` | `VARCHAR(10)` | NOT NULL | `RS256` |
 | `private_key_pem` | `TEXT` | NOT NULL | Fernet-encrypted at rest |
@@ -490,7 +490,7 @@ RSA key pairs for JWT signing.
 
 **SPEC-OIDC-012**: Only one signing key shall be `is_active=true` at a time. Key rotation creates a new active key and sets the old key to `is_active=false` (but keeps it for verification).
 
---
+---
 
 ## 8. Authlib Integration
 
@@ -544,13 +544,13 @@ server.register_grant(ClientCredentialsGrant)
 - DataOps compatibility endpoints: custom FastAPI routes
 - RSA key generation and rotation: handled by `backend/crypto/keys.py`
 
---
+---
 
 ## 9. Project Structure
 
 ```
 projects/AMI-AUTH/
-  # -- TypeScript (EXISTING, UNCHANGED) --
+  # ---- TypeScript (EXISTING, UNCHANGED) ----
   package.json                 # @ami/auth v0.1.0
   package-lock.json
   tsconfig.json
@@ -567,7 +567,7 @@ projects/AMI-AUTH/
     security-logger.ts         # Audit logging
     next-auth.d.ts             # Type augmentations
 
-  # -- Python (NEW) --
+  # ---- Python (NEW) ----
   pyproject.toml               # ami-auth-backend, Python 3.12
   alembic.ini                  # Database migrations config
   compose.yaml                 # Dev: Postgres 16 + service
@@ -639,7 +639,7 @@ projects/AMI-AUTH/
       test_dataops_contract.py # Verify TS client contract compatibility
 ```
 
---
+---
 
 ## 10. Dependencies
 
@@ -699,7 +699,7 @@ dev = [
 ]
 ```
 
---
+---
 
 ## 11. Security
 
@@ -766,7 +766,7 @@ All request handling shall use `loguru` structured logging with:
 - Failed auth attempts logged at `WARNING` level with client IP
 - No sensitive data (passwords, tokens, secrets) in log output
 
---
+---
 
 ## 12. Implementation Phases
 
@@ -775,7 +775,7 @@ All request handling shall use `loguru` structured logging with:
 Create the project skeleton with no behavioral changes.
 
 | Step | Description |
-|--|--|
+|---|---|
 | 1 | Create `projects/AMI-AUTH/pyproject.toml` |
 | 2 | Add to workspace members in root `pyproject.toml:138` |
 | 3 | Create all directories with empty `__init__.py` |
@@ -789,7 +789,7 @@ Create the project skeleton with no behavioral changes.
 Stand up the 5 DataOps endpoints so the TypeScript client works against the Python service.
 
 | Deliverable | Source |
-|--|--|
+|---|---|
 | `backend/config.py` | New |
 | `backend/db/engine.py` | New (pattern: AMI-TRADING) |
 | `backend/db/models.py` | New (User table only) |
@@ -806,7 +806,7 @@ Stand up the 5 DataOps endpoints so the TypeScript client works against the Pyth
 Add the 6 OIDC endpoints and supporting crypto layer.
 
 | Deliverable | Source |
-|--|--|
+|---|---|
 | `backend/crypto/jwt_manager.py` | Migrate from `base/backend/opsec/crypto/jwt_utils.py` |
 | `backend/crypto/keys.py` | New |
 | `backend/crypto/encryption.py` | Migrate from `base/backend/opsec/crypto/encryption.py` |
@@ -828,14 +828,14 @@ See [SPEC-AUTH-CONSUMER-MIGRATION.md](SPEC-AUTH-CONSUMER-MIGRATION.md).
 
 See [SPEC-AUTH-BASE-MIGRATION.md](SPEC-AUTH-BASE-MIGRATION.md) Section 5.
 
---
+---
 
 ## 13. Verification
 
 ### 13.1. Unit Tests (90%+ Coverage)
 
 | Test File | Covers |
-|--|--|
+|---|---|
 | `test_jwt_manager.py` | RS256 sign/verify, kid, expiration, key generation |
 | `test_password.py` | bcrypt hash/verify, argon2, policy validation |
 | `test_discovery.py` | Discovery document structure, all required fields |
@@ -852,7 +852,7 @@ See [SPEC-AUTH-BASE-MIGRATION.md](SPEC-AUTH-BASE-MIGRATION.md) Section 5.
 ### 13.2. Integration Tests (50%+ Coverage)
 
 | Test File | Covers |
-|--|--|
+|---|---|
 | `test_oidc_flow.py` | Full auth code flow: authorize -> login -> callback -> token -> userinfo -> revoke |
 | `test_dataops_contract.py` | Verify Python responses match TypeScript type shapes from `src/types.ts` |
 
@@ -862,7 +862,7 @@ See [SPEC-AUTH-BASE-MIGRATION.md](SPEC-AUTH-BASE-MIGRATION.md) Section 5.
 2. `uv run pytest projects/AMI-AUTH/tests/unit/ -v` passes with 90%+ coverage
 3. `docker compose -f projects/AMI-AUTH/compose.yaml up -d` starts Postgres
 4. `alembic upgrade head` applies migrations without error
-5. `uv run uvicorn backend.main:app -port 8000` starts the service
+5. `uv run uvicorn backend.main:app --port 8000` starts the service
 6. `curl localhost:8000/.well-known/openid-configuration` returns valid discovery doc
 7. `curl localhost:8000/oauth/jwks` returns valid JWKS
 8. `DATAOPS_AUTH_URL=http://localhost:8000` in Portal env: DataOpsClient works

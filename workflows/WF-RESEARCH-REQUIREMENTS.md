@@ -2,7 +2,7 @@
 
 **Purpose:** Standard process for researching requirements before building or extending any AMI extension or feature. This is the generic workflow - feature-specific research documents go in `docs/REQUIREMENTS-*.md`.
 
---
+---
 
 ## Phase 1: Audit Existing State
 
@@ -13,7 +13,7 @@ Before designing anything, map what already exists across all layers.
 Find ALL code, config, scripts, ansible roles, docker-compose services, and CLI tools related to the feature area. Search across:
 
 | Location | What lives there |
-|-----|---------|
+|----------|-----------------|
 | `ami/scripts/bin/` | CLI tools (Python + Bash) |
 | `ami/config/` | Configuration files (extensions.yaml, hooks.yaml, automation.yaml, policies/) |
 | `ami/config/extensions.yaml` | Registered CLI extensions (single source of truth for banner + `.boot-linux/bin/`) |
@@ -47,7 +47,7 @@ Look for:
 Map how the feature connects to existing AMI systems:
 
 | System | What it provides |
-|----|---------|
+|--------|-----------------|
 | **OpenBao** | Secrets - KV v2 at `platform/secrets/service/` and `platform/secrets/infra/` |
 | **Keycloak** | Auth/identity - JWT auth, OIDC, OAuth2 |
 | **ami-cron** | Scheduled automation - AMI-tagged crontab entries |
@@ -58,7 +58,7 @@ Map how the feature connects to existing AMI systems:
 | **Postmoogle** | Email↔Matrix bridge |
 | **Matrix (Synapse)** | Messaging, notifications |
 
---
+---
 
 ## Phase 2: External Research
 
@@ -76,12 +76,12 @@ Search for:
 Evaluate against AMI constraints:
 
 | Constraint | Question |
-|------|-----|
+|------------|----------|
 | **Bootstrappable** | Can it be downloaded as a binary and installed to `.boot-linux/bin/`? |
 | **Offline-capable** | Does it work on internal networks without internet? |
 | **Dependency footprint** | How many deps does it pull in? Prefer minimal. |
 | **AMI patterns** | Does it integrate with YAML config, OpenBao secrets, Jinja2 templates? |
-| **JSON output** | Does it support `-output json` for scripting? |
+| **JSON output** | Does it support `--output json` for scripting? |
 | **Multi-account** | Does it support multiple configurations/accounts natively? |
 | **Maturity** | Stars, version, maintenance activity, known issues? |
 
@@ -94,20 +94,20 @@ Always consider at least:
 
 The ami-docs pattern (thin Python wrapper → external tool passthrough) is the established AMI pattern for tool integration.
 
---
+---
 
 ## Phase 3: Gap Analysis
 
 Compare what exists vs what's needed. Categorize every requirement:
 
 | Status | Meaning | Action |
-|----|-----|----|
+|----|-----|---------|
 | **Solved** | Already works in codebase | Wire it up, don't rebuild |
 | **Prototype** | Solved in a project, needs generalization | Extract and generalize the pattern |
 | **Tool exists** | External tool does it, needs bootstrapping + wrapper | Bootstrap + thin wrapper |
 | **Must build** | No existing solution | New code required |
 
---
+---
 
 ## Phase 4: Interactive Q&A
 
@@ -126,7 +126,7 @@ Ask the user targeted questions to resolve ambiguity. Run multiple rounds if nee
 - Don't ask about things you can determine from the codebase
 - After each round, record decisions in the requirements doc before asking more
 
---
+---
 
 ## Phase 5: Design Decisions + Architecture
 
@@ -138,7 +138,7 @@ After Q&A rounds are complete:
 4. **Command surface** - List every CLI command with usage examples
 5. **Bootstrap plan** - If adding external tools, document the exact bootstrap pattern
 
---
+---
 
 ## Phase 6: Implementation Plan
 
@@ -148,7 +148,7 @@ Break into ordered phases with:
 - **Verification** - how to test each phase independently
 - **Migration** - how existing code/config transitions to the new design
 
---
+---
 
 ## Output
 

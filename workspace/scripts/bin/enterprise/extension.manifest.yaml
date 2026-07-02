@@ -13,7 +13,7 @@ extensions:
     container: ami-keycloak
     installHint: "make compose-deploy in AMI-DATAOPS"
     check:
-      command: ["{binary}", "-version"]
+      command: ["{binary}", "--version"]
       versionPattern: "(\\d+\\.\\d+\\.\\d+)"
       healthExpect: "."
       timeout: 5
@@ -35,7 +35,7 @@ extensions:
       - install
     bannerPriority: 420
     check:
-      command: ["{binary}", "-version"]
+      command: ["{binary}", "--version"]
       versionPattern: "(\\d+\\.\\d+\\.\\d+)"
       healthExpect: "."
       timeout: 5

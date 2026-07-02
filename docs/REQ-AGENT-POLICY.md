@@ -20,7 +20,7 @@
 - [REQUIREMENTS-A2A](REQUIREMENTS-A2A.md) (A2A Remote Agent Integration)
 - [GAP-ANALYSIS-A2A](GAP-ANALYSIS-A2A.md) (A2A Codebase Gap Analysis)
 
---
+---
 
 ## 1. Scope
 
@@ -43,7 +43,7 @@ The policy engine provides:
 - Containerized agent isolation policy (covered by REQ-AGENT-CONTAINERS.md)
 - MCP protocol governance (separate requirement track)
 
---
+---
 
 ## 2.1 Artifact Persistence and Template Seeding
 
@@ -61,12 +61,12 @@ The system follows the same template→userfile→deploy pattern as the current 
 
 **Profile Storage:** Profiles are stored in `workspace/config/opencode/policies/profiles/`. User-created profiles MAY be committed for team sharing; built-in template profiles (`standard.template.yaml`, `strict.template.yaml`) are tracked in the template directory.
 
---
+---
 
 ## 2. Terminology
 
 | Term | Definition |
-|---|------|
+|------|------------|
 | **Policy** | A single Event → Match → Action rule expressed in YAML. Maps one opencode hook event to conditional matching and prescribed action. |
 | **Policy File** | A YAML file (`rules.yaml`, `guards.yaml`, `tool-guards.yaml`, etc.) containing an array of policies targeting a specific hook domain. |
 | **Policy Engine** | The bash + `yq` pipeline that validates YAML policies and renders them into `policies.json`, deployed alongside a static plugin JS file. |
@@ -80,7 +80,7 @@ The system follows the same template→userfile→deploy pattern as the current 
 | **Policy Apply** | Render `policies.json` + copy the static plugin JS → `~/.config/opencode/plugins/`. |
 | **Audit Trail** | Append-only, tamper-evident JSONL log of every policy evaluation decision, with structured metadata. |
 
---
+---
 
 ## 3. Functional Requirements
 
@@ -124,7 +124,7 @@ Every `run` action decision SHALL be logged to the structured audit trail with: 
 **FR-2.1 - Separate Files Per Hook Domain:**
 Policies SHALL be organized into domain-specific YAML files. Templates are the tracked source of truth; userfiles are gitignored working copies:
 | Template (tracked) | Userfile (gitignored) | Hook Domain | CLI Command |
-|---|---|-------|-------|
+|------|------|-------------|-------------|
 | `template/rules.template.yaml` | `rules.yaml` | `chat.messages.transform` (user-message scope) | `rules` |
 | `template/guards.template.yaml` | `guards.yaml` | `chat.messages.transform` (assistant-message scope) | `guards` |
 | `template/tool-guards.template.yaml` | `tool-guards.yaml` | `tool.execute.before`, `tool.execute.after` | `tool-guards` |
@@ -257,7 +257,7 @@ When a `block` or `ask` action fires, the system SHALL surface: the policy name,
 **FR-8.3 - Pack Removal:**
 `profile remove NAME` SHALL delete the profile file and its associated deployment state.
 
---
+---
 
 ## 4. Non-Functional Requirements
 
@@ -317,7 +317,7 @@ Adding support for a new opencode hook type SHALL require changes to only two fi
 **NFR-4.3 - All Files Under 512 Lines:**
 All source files (shell scripts, YAML schemas, JS templates) SHALL remain under 512 lines per AGENTS.md Rule 12.
 
---
+---
 
 ## 5. Regulatory Requirements
 
@@ -415,7 +415,7 @@ The policy engine SHALL support ISO/IEC 42001 alignment:
 ### REG-4: OWASP Top 10 for LLM Applications
 
 | OWASP Entry | Relevance | Requirement |
-|-------|------|-------|
+|-------------|-----------|-------------|
 | **LLM01: Prompt Injection** | Malicious input may bypass regex-based match conditions | Match conditions SHALL be evaluated by the static plugin at runtime, not injected into system prompts before evaluation. User-provided regex patterns SHALL be validated for compile validity at render time to prevent ReDoS attacks. |
 | **LLM06: Excessive Agency** | Policies govern tool execution scope | Policies SHALL default to deny-by-default for tool execution hooks. Explicit `action: allow` required for all governed tools. Least privilege principle: unknown tools are denied. |
 | **LLM07: Insecure Plugin Design** | Plugin is an opencode plugin | Static plugin SHALL follow least privilege: only the hooks with policies defined in policies.json are active. No `eval()`, no dynamic code evaluation. |
@@ -465,12 +465,12 @@ For deployments in financial services (DORA) or critical infrastructure (NIS2):
 - Cross-jurisdictional data flows (e.g., A2A remote agent invocation to non-EU domains) SHALL be logged with jurisdiction metadata
 - No policy data SHALL be transmitted to external services without explicit configuration
 
---
+---
 
 ## 6. Constraints
 
 | ID | Constraint | Source |
-|--|------|----|
+|----|------------|--------|
 | C-1 | The policy engine SHALL NOT make network calls to any external policy evaluation service (deterministic, local-only evaluation). | EU AI Act Art. 9(5) - risk elimination through design; OWASP - no remote LLM calls |
 | C-2 | Policy files SHALL be valid YAML 1.2 and SHALL pass schema validation before rendering. | Industry standard (all 10+ policy engines converge on YAML). |
 | C-3 | The static plugin JS SHALL NOT use `eval()`, `Function()`, or dynamic code execution. Policies are loaded from JSON, not generated into code. | OWASP LLM07 - Insecure Plugin Design. |
@@ -484,12 +484,12 @@ For deployments in financial services (DORA) or critical infrastructure (NIS2):
 | C-11 | `yq` (https://github.com/mikefarah/yq) SHALL be available on PATH. Fallback: `python3 -c "import yaml, json, sys; json.dump(yaml.safe_load(sys.stdin), sys.stdout)"` is an acceptable emergency fallback but SHALL NOT be the primary path. | Shell-first principle. |
 | C-12 | Template YAML files SHALL be a working minimal default - seeding from template must produce a valid `policies.json` with zero user edits. | Bootstrap ergonomics. |
 
---
+---
 
 ## 7. Assumptions
 
 | ID | Assumption |
-|--|------|
+|----|------------|
 | A-1 | opencode's 24 hook types (as defined in `@opencode-ai/plugin` Hooks interface) will maintain backward-compatible signatures through opencode 1.x. |
 | A-2 | The `experimental.chat.messages.transform` and `experimental.chat.system.transform` hooks (currently experimental) will be promoted to stable in opencode 2.0. If removed, the static plugin must be updated. |
 | A-3 | opencode's plugin runtime environment (Bun or Node.js) will remain available for executing the static plugin JS file. |
@@ -498,12 +498,12 @@ For deployments in financial services (DORA) or critical infrastructure (NIS2):
 | A-6 | The A2A Protocol Specification v1.0 AgentCard schema remains stable. Extensions to the AgentCard (governance metadata proposal #1717) will be adopted in a future version. |
 | A-7 | opencode continues to load plugins from `~/.config/opencode/plugins/` as the primary auto-discovery path. |
 
---
+---
 
 ## 8. Traceability Matrix
 
 | Requirement ID | Source | Domain | Priority |
-|:--------|:----|:----|:-----|
+|:---------------|:-------|:-------|:---------|
 | FR-1.1 | Industry convergence (harness, Mirage, Aegis, Veto, Agent RuleZ, et al.) | Policy DSL | HIGH |
 | FR-1.2 | Industry convergence | Policy DSL | HIGH |
 | FR-1.3 | Self (REQ-HOOKS-070 feedback injection) | Policy DSL | HIGH |
@@ -563,7 +563,7 @@ For deployments in financial services (DORA) or critical infrastructure (NIS2):
 | C-11 | AGENTS.md Rule 5 - Shell-First | Tooling | HIGH |
 | C-12 | Self (bootstrap ergonomics) | Templates | HIGH |
 
---
+---
 
 ## 9. Success Criteria
 
@@ -594,7 +594,7 @@ For deployments in financial services (DORA) or critical infrastructure (NIS2):
 - [ ] Circuit breaker for A2A remote agent policy violations
 - [ ] Policy pack install from git sources
 
---
+---
 
 ## 10. Glossary of Regulatory Sources (Excerpts)
 
@@ -618,6 +618,6 @@ For deployments in financial services (DORA) or critical infrastructure (NIS2):
 
 > **A2A Protocol §7.5 (Authorization):** "A2A Servers must enforce authorization to restrict actions to authorized clients only. Permissions should follow the principle of least privilege."
 
---
+---
 
 *This requirements specification incorporates material from: the A2A Protocol Specification v1.0 (a2aproject/A2A, Linux Foundation), opencode Plugin Hooks Interface (`@opencode-ai/plugin`), the EU AI Act (Regulation (EU) 2024/1689), GDPR, ISO/IEC 42001:2023, OWASP guidance, NIST AI RMF, and the AMI-Agents research programme (docs/research/). Industry pattern analysis covers 10+ AI agent policy systems (harness, Mirage, Aegis, AgentSpec, open-guardrail, OpenGuardrails, Veto, Agent RuleZ, hook-bridge, mcp-claude-hooks, hooksmith, Zrb, hookify, AgentContract, Cohorte, Microsoft Agent Governance Toolkit, OpenAI Guardrails). Quotations from regulatory sources are excerpted from WS-4 Regulatory Deep Dive, which references primary legal sources.*

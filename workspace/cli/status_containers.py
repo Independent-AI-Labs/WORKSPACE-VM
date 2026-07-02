@@ -62,7 +62,7 @@ def _parse_port_mapping(port_data: PortData) -> PortMapping:
 
 def _get_container_inspect_info(name: str, podman_bin: str) -> ContainerInspectInfo:
     """Get exposed ports and labels from container inspect data."""
-    inspect_raw = run_cmd(f"{podman_bin} inspect {name} -format json")
+    inspect_raw = run_cmd(f"{podman_bin} inspect {name} --format json")
     exposed_ports: list[PortMapping] = []
     labels = cast(ContainerLabels, {})
     if not inspect_raw:
@@ -91,7 +91,7 @@ def _get_container_inspect_info(name: str, podman_bin: str) -> ContainerInspectI
 def get_container_stats() -> list[ContainerStatsData]:
     """Get CPU/memory stats for all running containers."""
     stats: list[ContainerStatsData] = []
-    raw = run_cmd("podman stats -no-stream -format json")
+    raw = run_cmd("podman stats --no-stream --format json")
     if not raw:
         return stats
     try:
@@ -121,7 +121,7 @@ def get_container_sizes() -> list[ContainerSizeData]:
     """Get disk sizes for all containers."""
     sizes: list[ContainerSizeData] = []
     # Format: "name\twritable (virtual total)"
-    raw = run_cmd('podman ps -a -size -format "{{.Names}}\t{{.Size}}"')
+    raw = run_cmd('podman ps -a --size --format "{{.Names}}\t{{.Size}}"')
     if not raw:
         return sizes
     for line in raw.splitlines():
@@ -155,7 +155,7 @@ def _get_volume_size_bytes(src: str) -> int:
 def get_container_volumes(name: str) -> list[VolumeData]:
     """Get volume mounts for a container."""
     volumes: list[VolumeData] = []
-    raw = run_cmd(f"podman inspect {name} -format json")
+    raw = run_cmd(f"podman inspect {name} --format json")
     if not raw:
         return volumes
     try:
@@ -190,7 +190,7 @@ def get_container_volumes(name: str) -> list[VolumeData]:
 def get_podman_containers() -> list[PodmanContainer]:
     """Get podman containers information."""
     podman_bin = "podman"
-    raw = run_cmd(f"{podman_bin} ps -a -format json")
+    raw = run_cmd(f"{podman_bin} ps -a --format json")
     if not raw:
         return []
     try:
@@ -238,10 +238,10 @@ def get_system_docker_containers() -> list[PodmanContainer]:
         return []
 
     # Try without sudo first (user may be in docker group)
-    raw = run_cmd(f"{SYSTEM_DOCKER_BIN} ps -a -format json 2>/dev/null")
+    raw = run_cmd(f"{SYSTEM_DOCKER_BIN} ps -a --format json 2>/dev/null")
     if not raw:
         # Fall back to sudo
-        raw = run_cmd(f"sudo {SYSTEM_DOCKER_BIN} ps -a -format json 2>/dev/null")
+        raw = run_cmd(f"sudo {SYSTEM_DOCKER_BIN} ps -a --format json 2>/dev/null")
     if not raw:
         return []
 
@@ -295,13 +295,13 @@ def get_system_docker_stats() -> list[ContainerStatsData]:
 
     # Try without sudo first (user may be in docker group)
     raw = run_cmd(
-        f"{SYSTEM_DOCKER_BIN} stats -no-stream -format "
+        f"{SYSTEM_DOCKER_BIN} stats --no-stream --format "
         "'{{{{.Name}}}}|{{{{.CPUPerc}}}}|{{{{.MemUsage}}}}' 2>/dev/null"
     )
     if not raw:
         # Fall back to sudo
         raw = run_cmd(
-            f"sudo {SYSTEM_DOCKER_BIN} stats -no-stream -format "
+            f"sudo {SYSTEM_DOCKER_BIN} stats --no-stream --format "
             "'{{{{.Name}}}}|{{{{.CPUPerc}}}}|{{{{.MemUsage}}}}' 2>/dev/null"
         )
     if not raw:

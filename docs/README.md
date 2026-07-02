@@ -5,7 +5,7 @@
 
 Active documentation for the AMI-Agents V3 workspace. Pre-V3 docs (V2 agent ecosystem, old specifications, research programme) are archived in [`archive/v2/`](archive/v2/).
 
---
+---
 
 ## Migration
 

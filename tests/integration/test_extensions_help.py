@@ -199,7 +199,7 @@ class TestExtensionHelp:
 
     @pytest.mark.parametrize("ext_name", EXTENSIONS_HELP_READY)
     def test_extension_help(self, ext_name: str):
-        """Test that extension responds to -help or -h without error."""
+        """Test that extension responds to --help or -h without error."""
         ext = get_extension_by_name(ext_name)
         assert ext is not None
         assert ext.binary, f"Extension {ext_name} has no binary defined"
@@ -219,7 +219,7 @@ class TestExtensionHelp:
                     f"Issues: {'; '.join(issues)}"
                 )
 
-        for flag in ("-help", "-h"):
+        for flag in ("--help", "-h"):
             result = subprocess.run(
                 [str(cmd_path), flag],
                 capture_output=True,

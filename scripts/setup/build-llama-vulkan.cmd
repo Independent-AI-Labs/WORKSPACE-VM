@@ -17,7 +17,7 @@ if errorlevel 1 (
     echo ERROR: cmake not found. Install from https://cmake.org/download/
     exit /b 1
 )
-for /f "delims=" %%i in ('cmake -version 2^>^&1') do (
+for /f "delims=" %%i in ('cmake --version 2^>^&1') do (
     set "cmake_line=%%i"
     goto :cmake_done
 )
@@ -73,7 +73,7 @@ if errorlevel 1 (
 )
 
 echo === Step 4: Building ===
-cmake -build "%BUILD_DIR%" -config Release -j %NUMBER_OF_PROCESSORS%
+cmake --build "%BUILD_DIR%" --config Release -j %NUMBER_OF_PROCESSORS%
 if errorlevel 1 (
     echo ERROR: Build failed
     exit /b 1

@@ -19,10 +19,10 @@ sudo rm -f /etc/apt/sources.list.d/oneAPI.list
 
 echo "=== Step 2: Provisioning Repository Security Keys ==="
 # Add Intel Graphics Key
-wget -qO - https://repositories.intel.com/gpu/intel-graphics.key | gpg -yes -dearmor | sudo tee /usr/share/keyrings/intel-graphics.gpg > /dev/null
+wget -qO - https://repositories.intel.com/gpu/intel-graphics.key | gpg --yes --dearmor | sudo tee /usr/share/keyrings/intel-graphics.gpg > /dev/null
 
 # Add Intel oneAPI Key
-wget -qO - https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB | gpg -yes -dearmor | sudo tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null
+wget -qO - https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB | gpg --yes --dearmor | sudo tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null
 
 echo "=== Step 3: Registering Official Repositories ==="
 # 1. Intel Graphics Kobuk PPA for Ubuntu 24.04 (Noble)

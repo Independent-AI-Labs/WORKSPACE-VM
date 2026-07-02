@@ -31,12 +31,12 @@ fi
 case "$1" in
     rm)
         for arg in "$@"; do
-            [[ "$arg" == "-a" || "$arg" == "-all" ]] && block "Bulk container removal (rm -a/-all)"
+            [[ "$arg" == "-a" || "$arg" == "--all" ]] && block "Bulk container removal (rm -a/--all)"
         done
         ;;
     rmi)
         for arg in "$@"; do
-            [[ "$arg" == "-a" || "$arg" == "-all" ]] && block "Bulk image removal (rmi -a/-all)"
+            [[ "$arg" == "-a" || "$arg" == "--all" ]] && block "Bulk image removal (rmi -a/--all)"
         done
         ;;
     system)
@@ -50,14 +50,14 @@ case "$1" in
         [[ "${2:-}" == "prune" ]] && block "volume prune"
         if [[ "${2:-}" == "rm" ]]; then
             for arg in "$@"; do
-                [[ "$arg" == "-a" || "$arg" == "-all" ]] && block "Bulk volume removal"
+                [[ "$arg" == "-a" || "$arg" == "--all" ]] && block "Bulk volume removal"
             done
         fi
         ;;
     image)
         if [[ "${2:-}" == "prune" ]]; then
             for arg in "$@"; do
-                [[ "$arg" == "-a" || "$arg" == "-all" ]] && block "image prune -a"
+                [[ "$arg" == "-a" || "$arg" == "--all" ]] && block "image prune -a"
             done
         fi
         ;;

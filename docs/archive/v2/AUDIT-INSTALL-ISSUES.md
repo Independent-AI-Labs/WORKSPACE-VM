@@ -7,7 +7,7 @@
 
 Tracks architectural issues in the installation and bootstrap logic. Originally 10 items; 8 fully resolved, 2 partially fixed.
 
---
+---
 
 ## 1. Self-Destructing Code Trap (OpenVPN) - FIXED
 
@@ -17,7 +17,7 @@ Bootstrap script contained a heredoc that overwrote `ami/scripts/bin/run_openvpn
 
 **Resolution:** Heredoc removed. Script now uses `dpkg-deb -x` for extraction and verifies the Python file exists without overwriting it.
 
---
+---
 
 ## 2. Versioning Split-Brain (Agent CLIs) - FIXED
 
@@ -27,7 +27,7 @@ Bootstrap installer hardcoded AI agent versions separately from `package.json`.
 
 **Resolution:** `_get_package_version()` dynamically reads `scripts/package.json`. All agent components use this function.
 
---
+---
 
 ## 3. Copy-Paste Debian Extractor - PARTIALLY FIXED
 
@@ -39,7 +39,7 @@ Multiple bootstrap scripts independently re-implement `.deb` extraction logic.
 
 **Remaining work:** Extract shared `extract_deb()` into `ami/scripts/bootstrap/utils/extract_deb.sh`.
 
---
+---
 
 ## 4. Root Detection - PARTIALLY FIXED
 
@@ -58,13 +58,13 @@ Multiple competing implementations of "find the project root":
 
 **Remaining work:** Update `submodule.sh` to use `ami-pwd` or `$AMI_ROOT`.
 
---
+---
 
 ## 5. Makefile Target Explosion - FIXED
 
 Separate `install-cpu`, `install-cuda`, `install-rocm`, etc. targets all ran identical commands. Consolidated into a single `install` target with a 5-step flow: `sync-package`, `setup-config`, `register-extensions`, `install-bootstrap`, `install-shell`.
 
---
+---
 
 ## 6. Agent Installation Duplication - FIXED
 
@@ -72,19 +72,19 @@ Two divergent implementations for installing AI agents (Python bootstrap vs shel
 
 **Resolution:** Created `bootstrap_agents.sh` wrapping `node.sh`. All agent components in `bootstrap_component_defs.py` point to this script. Custom NPM logic removed from `bootstrap_install.py`.
 
---
+---
 
 ## 7. Hardcoded Infrastructure (ami_mail.py) - FIXED
 
 SMTP host/port/sender hardcoded in source. Now externalized via `os.getenv()` with local-first defaults (`AMI_SMTP_HOST`, `AMI_SMTP_PORT`, `AMI_MAIL_FROM`).
 
---
+---
 
 ## 8. Git Wrapper Recursion Loop - FIXED
 
 Separate patcher script conflicted with bootstrap symlink. Eliminated the patcher; bootstrap now installs `workspace-guard` directly. Real git symlinked to `real-git`.
 
---
+---
 
 ## 9. Shell Setup Comment Parsing Bug - FIXED
 

@@ -8,13 +8,13 @@ ExecStart={{ playbook_dir }}/../projects/llama.cpp/build-%i/bin/llama-server \
     -m {{ llama_model_path }} \
     -c {{ llama_context_size }} \
     -ngl {{ llama_gpu_layers }} \
-    -host {{ llama_server_host }} \
+    --host {{ llama_server_host }} \
     -t {{ llama_threads }} \
-    -fit off \
+    --fit off \
     -np {{ llama_parallel }} \
     -fa 1 \
-    -no-mmap \
-    -threads-http 1
+    --no-mmap \
+    --threads-http 1
 Environment=LD_LIBRARY_PATH=/opt/intel/oneapi/compiler/latest/lib:{{ playbook_dir }}/../projects/llama.cpp/build-%i/lib
 EnvironmentFile=%h/.config/llamaserver/llamaserver-%i.env
 StandardOutput=journal

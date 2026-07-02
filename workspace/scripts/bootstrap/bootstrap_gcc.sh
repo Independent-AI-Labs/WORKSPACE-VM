@@ -26,7 +26,7 @@ log_error() { echo -e "${RED}[ERROR]${NC} $*"; }
 
 # Check if already installed
 if [[ -x "${GCC_MUSL_DIR}/bin/gcc" ]]; then
-    VERSION=$("${GCC_MUSL_DIR}/bin/gcc" -version 2>&1)
+    VERSION=$("${GCC_MUSL_DIR}/bin/gcc" --version 2>&1)
     VERSION="${VERSION%%$'\n'*}"
     log_info "GCC/musl already installed: $VERSION"
     exit 0
@@ -66,12 +66,12 @@ else
 fi
 
 # Verify gcc works
-if ! "${GCC_BIN_DIR}/gcc" -version &> /dev/null; then
+if ! "${GCC_BIN_DIR}/gcc" --version &> /dev/null; then
     log_error "Extracted gcc failed to execute"
     exit 1
 fi
 
-VERSION=$("${GCC_BIN_DIR}/gcc" -version 2>&1)
+VERSION=$("${GCC_BIN_DIR}/gcc" --version 2>&1)
 VERSION="${VERSION%%$'\n'*}"
 log_info "GCC extracted successfully: $VERSION"
 
@@ -107,8 +107,8 @@ for bin in ar as ld nm objdump ranlib strip size strings addr2line; do
 done
 
 # Verify the symlinked cc works
-if "${BIN_DIR}/cc" -version &> /dev/null; then
-    _ccver="$("${BIN_DIR}/cc" -version 2>&1)"
+if "${BIN_DIR}/cc" --version &> /dev/null; then
+    _ccver="$("${BIN_DIR}/cc" --version 2>&1)"
     _ccver="${_ccver%%$'\n'*}"
     log_info "✓ C compiler bootstrapped successfully: ${_ccver}"
 else

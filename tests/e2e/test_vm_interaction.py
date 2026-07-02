@@ -11,23 +11,23 @@ pytestmark = pytest.mark.e2e
 
 class TestVMExec:
     def test_exec_returns_output(self, test_vm: str) -> None:
-        exec_result = vm_cmd("exec", test_vm, "-", "echo", "hello-world")
+        exec_result = vm_cmd("exec", test_vm, "--", "echo", "hello-world")
         assert "hello-world" in exec_result.stdout
 
     def test_exec_exit_code_zero(self, test_vm: str) -> None:
-        exec_result = vm_cmd("exec", test_vm, "-", "true")
+        exec_result = vm_cmd("exec", test_vm, "--", "true")
         assert exec_result.returncode == 0
 
     def test_exec_exit_code_nonzero(self, test_vm: str) -> None:
-        exec_result = vm_cmd("exec", test_vm, "-", "false")
+        exec_result = vm_cmd("exec", test_vm, "--", "false")
         assert exec_result.returncode == 1
 
     def test_exec_with_args(self, test_vm: str) -> None:
-        exec_result = vm_cmd("exec", test_vm, "-", "ls", "/")
+        exec_result = vm_cmd("exec", test_vm, "--", "ls", "/")
         assert exec_result.returncode == 0
 
     def test_exec_nonexistent_vm(self) -> None:
-        result = vm_cmd("exec", "nonexistent-uuid-12345", "-", "echo", "hi")
+        result = vm_cmd("exec", "nonexistent-uuid-12345", "--", "echo", "hi")
         assert result.returncode != 0
 
 

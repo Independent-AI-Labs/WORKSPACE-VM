@@ -33,7 +33,7 @@ log_error() {
 # Check if uv is already installed in .boot-linux
 if [ -x "${BIN_DIR}/uv" ]; then
     log_info "uv already installed at ${BIN_DIR}/uv"
-    "${BIN_DIR}/uv" -version
+    "${BIN_DIR}/uv" --version
     exit 0
 fi
 
@@ -123,7 +123,7 @@ rm -rf "$TEMP_DIR"
 # Verify installation
 if [ -x "${BIN_DIR}/uv" ]; then
     log_info "uv installed successfully to ${BIN_DIR}/uv"
-    "${BIN_DIR}/uv" -version
+    "${BIN_DIR}/uv" --version
 else
     log_error "uv installation failed"
     exit 1

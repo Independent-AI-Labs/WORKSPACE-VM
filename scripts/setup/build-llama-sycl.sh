@@ -18,7 +18,7 @@ fi
 
 echo "Sourcing Intel environment..."
 set +u
-if ! source "$ONEAPI_VARS" -force; then
+if ! source "$ONEAPI_VARS" --force; then
     echo "ERROR: failed to source $ONEAPI_VARS" >&2
     exit 1
 fi
@@ -45,7 +45,7 @@ cmake -B "$BUILD_DIR" \
     -DCMAKE_BUILD_TYPE=Release
 
 echo "=== Step 4: Building ==="
-cmake -build "$BUILD_DIR" -config Release -j"$(nproc)"
+cmake --build "$BUILD_DIR" --config Release -j"$(nproc)"
 
 echo "================================================================"
 echo " BUILD SUCCESSFUL! "

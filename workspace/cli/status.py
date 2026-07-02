@@ -183,7 +183,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="System Status Report")
     parser.add_argument(
         "-s",
-        "-system",
+        "--system",
         action="store_true",
         help="Include system Docker containers (/usr/bin/docker)",
     )

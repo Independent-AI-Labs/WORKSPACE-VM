@@ -78,7 +78,7 @@ _install_components() {
 if [ -x "$RUST_HOME/bin/rustc" ] && [ -x "$RUST_HOME/bin/cargo" ]; then
     export RUSTUP_HOME="$RUST_HOME"
     export CARGO_HOME="$RUST_HOME"
-    if EXISTING_VER=$("$RUST_HOME/bin/rustc" -version 2>&1); then
+    if EXISTING_VER=$("$RUST_HOME/bin/rustc" --version 2>&1); then
         log_info "Rust is already installed: $EXISTING_VER"
         _create_symlinks
         exit 0
@@ -123,12 +123,12 @@ fi
 log_info "Installing Rust (this may take a moment)..."
 # Run rustup-init non-interactively
 # -y: don't prompt
-# -no-modify-path: don't touch shell profiles
-# -default-toolchain stable: install stable Rust
+# --no-modify-path: don't touch shell profiles
+# --default-toolchain stable: install stable Rust
 # Output suppressed - rustup prints verbose component-by-component progress and
 # a patronising "Rust is installed now. Great!" message. Our own log_success
 # on the next line is the single source of truth.
-sh rustup-init.sh -y -no-modify-path -default-toolchain stable >/dev/null 2>&1
+sh rustup-init.sh -y --no-modify-path --default-toolchain stable >/dev/null 2>&1
 
 cd - >/dev/null
 
@@ -144,8 +144,8 @@ if [ ! -x "$RUST_HOME/bin/cargo" ]; then
 fi
 
 log_success "Rust installed to $RUST_HOME"
-"$RUST_HOME/bin/rustc" -version
-"$RUST_HOME/bin/cargo" -version
+"$RUST_HOME/bin/rustc" --version
+"$RUST_HOME/bin/cargo" --version
 
 if [ ! -x "$BOOT_DIR/bin/gcc-glibc" ]; then
     log_info "Bootstrapping glibc GCC for Rust linker..."

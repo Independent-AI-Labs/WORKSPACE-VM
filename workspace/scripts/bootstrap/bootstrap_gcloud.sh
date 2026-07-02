@@ -121,10 +121,10 @@ rm -f "$GCLOUD_DIR/$ARCHIVE_FILE"
 # Run install script non-interactively
 echo "Running gcloud install script..."
 if ! "$GCLOUD_SDK_DIR/install.sh" \
-    -usage-reporting=false \
-    -command-completion=false \
-    -path-update=false \
-    -quiet; then
+    --usage-reporting=false \
+    --command-completion=false \
+    --path-update=false \
+    --quiet; then
     echo "Error: gcloud install script failed"
     exit 1
 fi
@@ -160,8 +160,8 @@ echo
 echo "2. Grant impersonation permission (if using service account):"
 echo "   $GCLOUD_BIN iam service-accounts add-iam-policy-binding \\"
 echo "     SERVICE_ACCOUNT_EMAIL \\"
-echo "     -member=\"user:YOUR_EMAIL\" \\"
-echo "     -role=\"roles/iam.serviceAccountTokenCreator\""
+echo "     --member=\"user:YOUR_EMAIL\" \\"
+echo "     --role=\"roles/iam.serviceAccountTokenCreator\""
 echo
 echo "3. Configure .env with service account email:"
 echo "   GDRIVE_AUTH_METHOD=impersonation"

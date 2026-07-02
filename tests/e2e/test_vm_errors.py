@@ -82,7 +82,7 @@ class TestVMErrors:
         assert result.returncode != 0
 
     def test_help_exits_zero(self) -> None:
-        result = vm_cmd("-help")
+        result = vm_cmd("--help")
         assert result.returncode == 0
         assert "usage:" in result.stdout.lower()
 

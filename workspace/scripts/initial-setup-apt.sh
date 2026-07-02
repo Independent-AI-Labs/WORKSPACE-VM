@@ -71,9 +71,9 @@ install_missing() {
     # are now handled by the component installer in bootstrap_install.py).
     local apt_entries=("${MISSING_ENTRIES[@]}")
 
-    # ---------------------------------
+    # ------------------------------------------------------------------
     # Install apt packages
-    # ---------------------------------
+    # ------------------------------------------------------------------
     if [[ ${#apt_entries[@]} -gt 0 ]]; then
         local apt_installable=()
         local unavail=()

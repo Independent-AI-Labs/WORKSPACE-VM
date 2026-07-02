@@ -4,7 +4,7 @@
 #
 # Replaces the hardcoded `ensure-ci` / `ensure-dataops` Makefile
 # targets with a single data-driven walker. Mandatory entries always
-# clone; optional entries opt-in via -include <id>,<id> or -all.
+# clone; optional entries opt-in via --include <id>,<id> or --all.
 # Optional `minTag` enforcement: abort if the cloned working tree's
 # nearest tag is older than the declared minimum.
 #
@@ -16,11 +16,11 @@
 #
 # Usage:
 #   bootstrap-repos                           # mandatory only
-#   bootstrap-repos -include ami-portal      # mandatory + portal
-#   bootstrap-repos -include ami-portal,ami-srp
-#   bootstrap-repos -all                     # mandatory + ALL optional
-#   bootstrap-repos -pull                    # also git-pull existing repos
-#   bootstrap-repos -include ami-portal -pull
+#   bootstrap-repos --include ami-portal      # mandatory + portal
+#   bootstrap-repos --include ami-portal,ami-srp
+#   bootstrap-repos --all                     # mandatory + ALL optional
+#   bootstrap-repos --pull                    # also git-pull existing repos
+#   bootstrap-repos --include ami-portal --pull
 
 set -euo pipefail
 
@@ -53,27 +53,27 @@ if [[ ! -x "$PYTHON" ]]; then
     fi
 fi
 
-# -- argument parsing --
+# --- argument parsing ---
 INCLUDE_OPTIONAL=()
 PULL=0
 ALL_OPTIONAL=0
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        -include)
+        --include)
             IFS=',' read -ra _splits <<<"$2"
             INCLUDE_OPTIONAL+=("${_splits[@]}")
             shift 2
             ;;
-        -all)
+        --all)
             ALL_OPTIONAL=1
             shift
             ;;
-        -pull)
+        --pull)
             PULL=1
             shift
             ;;
-        -h|-help)
+        -h|--help)
             sed -n '2,22p' "$0"
             exit 0
             ;;
@@ -84,7 +84,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# -- read workspaceClones via python --
+# --- read workspaceClones via python ---
 # Output one line per entry: id|remote|path|mandatory|minTag
 ENTRIES=$("$PYTHON" - "$CLONES_YAML" <<'PY'
 import sys
@@ -135,7 +135,7 @@ if [[ -z "$ENTRIES" ]]; then
     exit 1
 fi
 
-# -- decide which entries to process --
+# --- decide which entries to process ---
 declare -A include_set
 for id in "${INCLUDE_OPTIONAL[@]}"; do
     include_set["$id"]=1
@@ -165,7 +165,7 @@ while IFS='|' read -r entry_id remote path mandatory min_tag; do
     else
         if [[ $PULL -eq 1 ]]; then
             echo "🔄 pulling $entry_id at $path"
-            if ! ( cd "$target" && git pull -ff-only ); then
+            if ! ( cd "$target" && git pull --ff-only ); then
                 echo "WARNING: $entry_id pull failed (offline, dirty tree, or non-ff)" >&2
             fi
         fi

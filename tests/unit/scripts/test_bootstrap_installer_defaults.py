@@ -168,7 +168,7 @@ class TestMainEntryDispatch:
     ) -> None:
         f = tmp_path / "defaults.yaml"
         f.write_text("components: [uv]\n")
-        monkeypatch.setattr("sys.argv", ["bootstrap_installer", "-defaults", str(f)])
+        monkeypatch.setattr("sys.argv", ["bootstrap_installer", "--defaults", str(f)])
 
         rc = main()
 

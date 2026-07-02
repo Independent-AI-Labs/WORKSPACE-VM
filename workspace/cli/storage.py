@@ -37,7 +37,7 @@ def _clean_uv_cache() -> None:
     print("  * uv cache...", end=" ", flush=True)
     try:
         subprocess.run(
-            ["uv", "cache", "clean", "-force"],
+            ["uv", "cache", "clean", "--force"],
             capture_output=True,
             text=True,
             check=True,
@@ -108,7 +108,7 @@ def _clean_system_tmp() -> None:
 
 def _run_clean(project_path: str) -> None:
     """Prune safe caches and temp directories."""
-    print("\n-- Cleaning safe caches --")
+    print("\n--- Cleaning safe caches ---")
     _clean_uv_cache()
     _clean_podman_dangling()
     _clean_project_tmp(project_path)
@@ -143,27 +143,27 @@ def main() -> int:
         help="Path to break down (default: current directory)",
     )
     parser.add_argument(
-        "-no-containers",
+        "--no-containers",
         action="store_true",
         help="Skip container size collection",
     )
     parser.add_argument(
-        "-no-breakdown",
+        "--no-breakdown",
         action="store_true",
         help="Skip top-25 directory breakdown",
     )
     parser.add_argument(
-        "-no-fs-scan",
+        "--no-fs-scan",
         action="store_true",
         help="Skip root filesystem scan",
     )
     parser.add_argument(
-        "-no-tmp-scan",
+        "--no-tmp-scan",
         action="store_true",
         help="Skip /tmp breakdown",
     )
     parser.add_argument(
-        "-clean",
+        "--clean",
         action="store_true",
         help="Prune safe caches: uv cache, podman dangling images, ./tmp/, /tmp/",
     )
@@ -176,11 +176,11 @@ def main() -> int:
         analyze(args.path)
     if not args.no_fs_scan:
         print()
-        print("-- Other directories on this filesystem --")
+        print("--- Other directories on this filesystem ---")
         analyze("/", same_fs=True)
     if not args.no_tmp_scan:
         print()
-        print("-- /tmp breakdown --")
+        print("--- /tmp breakdown ---")
         analyze("/tmp")
     if not args.no_containers:
         _print_container_sizes()

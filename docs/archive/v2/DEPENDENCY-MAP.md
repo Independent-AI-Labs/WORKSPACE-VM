@@ -3,7 +3,7 @@
 **Date:** 2026-04-14
 **Type:** Architecture Reference
 
---
+---
 
 ## 1. Overview - Category Relationships
 
@@ -20,16 +20,16 @@ graph LR
     PROJECTS["Projects\nAMI-STREAMS, AMI-DATAOPS\nAMI-PORTAL, AMI-TRADING, ..."]:::grp
     CI["AMI-CI\nHooks, checks, linting"]:::grp
 
-    BOOT -> SYS
-    EXT -> BOOT
+    BOOT --> SYS
+    EXT --> BOOT
     EXT ==> CONTAINERS
-    PROJECTS -> BOOT
+    PROJECTS --> BOOT
     PROJECTS ==> CONTAINERS
     PROJECTS -.-> CI
-    CONTAINERS -> BOOT
+    CONTAINERS --> BOOT
 ```
 
---
+---
 
 ## 2. Bootstrap Install Chain
 
@@ -98,32 +98,32 @@ graph TB
     end
 
     %% Phase 1 internal
-    python -> uv
+    python --> uv
     gcc_glibc -.-> gcc_musl
 
     %% Phase 2 deps on Phase 1
-    rust -> gcc_glibc
-    rust -> uv
-    node -> uv
+    rust --> gcc_glibc
+    rust --> uv
+    node --> uv
 
     %% Phase 3 deps
-    pdfjam -> texlive
-    hf -> python
+    pdfjam --> texlive
+    hf --> python
 
     %% Phase 4 deps
-    claude -> node
-    gemini -> node
-    qwen -> node
-    matrix_cmdr -> python
-    synadm -> python
-    ansible -> python
+    claude --> node
+    gemini --> node
+    qwen --> node
+    matrix_cmdr --> python
+    synadm --> python
+    ansible --> python
 
     %% Phase 5 deps
-    himalaya -> rust
-    himalaya -> gcc_glibc
+    himalaya --> rust
+    himalaya --> gcc_glibc
 ```
 
---
+---
 
 ## 3. Extensions → Bootstrap Dependencies
 
@@ -139,19 +139,19 @@ graph LR
     classDef sys fill:#666,stroke:#444,color:#fff
 
     %% Core extensions
-    e_agent(ami-agent):::ext -> python[Python]:::boot
-    e_ami(ami / ami-run):::ext -> python
-    e_repo(ami-repo):::ext -> python
-    e_repo -> git[git]:::sys
-    e_transcripts(ami-transcripts):::ext -> python
+    e_agent(ami-agent):::ext --> python[Python]:::boot
+    e_ami(ami / ami-run):::ext --> python
+    e_repo(ami-repo):::ext --> python
+    e_repo --> git[git]:::sys
+    e_transcripts(ami-transcripts):::ext --> python
 
     %% Enterprise extensions
-    e_mail(ami-mail):::ext -> rust[Rust]:::boot
+    e_mail(ami-mail):::ext --> rust[Rust]:::boot
     e_mail -. "submodule" .-> himalaya[(himalaya fork)]
-    e_chat(ami-chat):::ext -> matrix_cmdr[Matrix Cmdr]:::boot
-    e_synadm(ami-synadm):::ext -> synadm_b[Synadm]:::boot
+    e_chat(ami-chat):::ext --> matrix_cmdr[Matrix Cmdr]:::boot
+    e_synadm(ami-synadm):::ext --> synadm_b[Synadm]:::boot
     e_kcadm(ami-kcadm):::ext ==> keycloak{{Keycloak}}:::ctr
-    e_browser(ami-browser):::ext -> python
+    e_browser(ami-browser):::ext --> python
 ```
 
 ### Dev, Docs & Agent Extensions
@@ -164,31 +164,31 @@ graph LR
     classDef hidden fill:#5a8c5a,stroke:#3a6c3a,color:#aaa,stroke-dasharray:3 3
 
     %% Dev extensions
-    e_backup(ami-backup):::ext -> python[Python]:::boot
+    e_backup(ami-backup):::ext --> python[Python]:::boot
     e_backup -. "optional" .-> gcloud[gcloud]:::boot
-    e_restore(ami-restore):::ext -> python
-    e_gcloud(ami-gcloud):::hidden -> gcloud
-    e_cron(ami-cron):::ext -> python
-    e_ami(ami):::ext -> k8s[kubectl + helm]:::boot
+    e_restore(ami-restore):::ext --> python
+    e_gcloud(ami-gcloud):::hidden --> gcloud
+    e_cron(ami-cron):::ext --> python
+    e_ami(ami):::ext --> k8s[kubectl + helm]:::boot
 
     %% Infra (hidden)
-    e_ssh(ami-ssh):::hidden -> openssh[openssh]:::sys
-    e_vpn(ami-vpn):::hidden -> openvpn[openvpn]:::sys
-    e_tunnel(ami-tunnel):::hidden -> cloudflared[Cloudflared]:::boot
-    e_ssl(ami-ssl):::hidden -> openssl[openssl]:::sys
+    e_ssh(ami-ssh):::hidden --> openssh[openssh]:::sys
+    e_vpn(ami-vpn):::hidden --> openvpn[openvpn]:::sys
+    e_tunnel(ami-tunnel):::hidden --> cloudflared[Cloudflared]:::boot
+    e_ssl(ami-ssl):::hidden --> openssl[openssl]:::sys
 
     %% Docs
-    e_docs(ami-docs):::ext -> pandoc[Pandoc]:::boot
-    e_docs -> wkhtmltopdf[wkhtmltopdf]:::boot
-    e_docs -> texlive[TeX Live]:::boot
+    e_docs(ami-docs):::ext --> pandoc[Pandoc]:::boot
+    e_docs --> wkhtmltopdf[wkhtmltopdf]:::boot
+    e_docs --> texlive[TeX Live]:::boot
 
     %% Agents
-    e_claude(ami-claude):::ext -> b_claude[Claude Code]:::boot
-    e_gemini(ami-gemini):::ext -> b_gemini[Gemini CLI]:::boot
-    e_qwen(ami-qwen):::ext -> b_qwen[Qwen Code]:::boot
+    e_claude(ami-claude):::ext --> b_claude[Claude Code]:::boot
+    e_gemini(ami-gemini):::ext --> b_gemini[Gemini CLI]:::boot
+    e_qwen(ami-qwen):::ext --> b_qwen[Qwen Code]:::boot
 ```
 
---
+---
 
 ## 4. Project Topology
 
@@ -212,14 +212,14 @@ graph TB
     RUST[RUST-TRADING\nRust ZK Workspace]:::proj
 
     %% All projects depend on workspace root
-    CI -> AGENTS
-    DATAOPS -> AGENTS
-    STREAMS -> AGENTS
-    PORTAL -> AGENTS
-    TRADING -> AGENTS
-    BROWSER -> AGENTS
-    ZK -> AGENTS
-    RUST -> AGENTS
+    CI --> AGENTS
+    DATAOPS --> AGENTS
+    STREAMS --> AGENTS
+    PORTAL --> AGENTS
+    TRADING --> AGENTS
+    BROWSER --> AGENTS
+    ZK --> AGENTS
+    RUST --> AGENTS
 
     %% CI provides hooks to everyone
     DATAOPS -. "hooks" .-> CI
@@ -228,12 +228,12 @@ graph TB
     TRADING -. "hooks" .-> CI
 
     %% DATAOPS provides infrastructure
-    PORTAL - "Keycloak\nOpenBao" -> DATAOPS
-    TRADING - "Keycloak" -> DATAOPS
+    PORTAL -- "Keycloak\nOpenBao" --> DATAOPS
+    TRADING -- "Keycloak" --> DATAOPS
     STREAMS -. "compose\nservices" .-> DATAOPS
 ```
 
---
+---
 
 ## 5. Container Service Map
 
@@ -268,15 +268,15 @@ graph TB
     end
 
     %% Internal deps
-    KC -> PG
+    KC --> PG
 
     %% Consumer apps
-    PORTAL(AMI-PORTAL\n:3000):::app - "OIDC" -> KC
-    TRADING(AMI-TRADING\n:8080):::app - "OIDC" -> KC
+    PORTAL(AMI-PORTAL\n:3000):::app -- "OIDC" --> KC
+    TRADING(AMI-TRADING\n:8080):::app -- "OIDC" --> KC
     PORTAL -. "secrets" .-> BAO
 ```
 
---
+---
 
 ## Summary Table
 

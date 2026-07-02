@@ -296,34 +296,34 @@ class TestOcScriptSelfChecks:
         return p
 
     def test_oc_help_works(self, oc_path: Path):
-        """oc -help returns success and mentions opencode."""
+        """oc --help returns success and mentions opencode."""
         result = subprocess.run(
-            [str(oc_path), "-help"],
+            [str(oc_path), "--help"],
             capture_output=True,
             text=True,
             timeout=10,
             check=False,
         )
-        assert result.returncode == 0, f"oc -help failed: {result.stderr}"
+        assert result.returncode == 0, f"oc --help failed: {result.stderr}"
         assert "opencode" in result.stdout.lower(), (
             f"Help output missing opencode mention: {result.stdout}"
         )
 
     def test_oc_version_works(self, oc_path: Path):
-        """oc -version returns success (or at least doesn't crash)."""
+        """oc --version returns success (or at least doesn't crash)."""
         result = subprocess.run(
-            [str(oc_path), "-version"],
+            [str(oc_path), "--version"],
             capture_output=True,
             text=True,
             timeout=10,
             check=False,
         )
-        assert result.returncode == 0, f"oc -version failed: {result.stderr}"
+        assert result.returncode == 0, f"oc --version failed: {result.stderr}"
 
     def test_oc_passes_session_flag_to_opencode(self, oc_path: Path):
         """oc -s <session> passes flag through directly, no run wrapper."""
         result = subprocess.run(
-            [str(oc_path), "-s", "test_session_tdd", "-help"],
+            [str(oc_path), "-s", "test_session_tdd", "--help"],
             capture_output=True,
             text=True,
             timeout=15,
@@ -335,9 +335,9 @@ class TestOcScriptSelfChecks:
         )
 
     def test_oc_runs_task_with_run_subcommand(self, oc_path: Path):
-        """oc 'task text' wraps in run -dir subcommand."""
+        """oc 'task text' wraps in run --dir subcommand."""
         result = subprocess.run(
-            [str(oc_path), "-help"],
+            [str(oc_path), "--help"],
             capture_output=True,
             text=True,
             timeout=15,

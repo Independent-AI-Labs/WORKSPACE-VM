@@ -80,7 +80,7 @@ def rebuild(uuid_str: str) -> None:
     password = (vm_dir / "password").read_text().strip()
 
     subprocess.run(
-        ["podman", "rm", "-f", "-time", "1", uuid_str],
+        ["podman", "rm", "-f", "--time", "1", uuid_str],
         capture_output=True,
         text=True,
         timeout=30,

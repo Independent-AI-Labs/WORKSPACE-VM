@@ -1,4 +1,4 @@
---
+---
 - name: Deploy Vulkan LlamaServer with systemd
   hosts: localhost
   gather_facts: true

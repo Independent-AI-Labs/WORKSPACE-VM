@@ -11,6 +11,6 @@ extensions:
       - pdfjam
     bannerPriority: 410
     check:
-      command: ["{python}", "{binary}", "-help"]
+      command: ["{python}", "{binary}", "--help"]
       healthExpect: "docs"
       timeout: 5
