@@ -61,7 +61,7 @@ architecture is affected on the Vulkan backend.
 ## Relevant Upstream Issues
 
 | Issue | Status | Description |
-|----|----|--------|
+|-------|--------|-------------|
 | [#23322](https://github.com/ggml-org/llama.cpp/issues/23322) | Closed | Low MTP Draft Acceptance Rate with SWA/Hybrid Memory Models (Qwen3.6) |
 | [#23321](https://github.com/ggml-org/llama.cpp/issues/23321) | Open | Vulkan Backend `no-kv-offload` on Qwen3 produces gibberish |
 | [#21912](https://github.com/ggml-org/llama.cpp/issues/21912) | Closed | Gemma 4 & Qwen 3.5 full prompt reprocessing from system prompt |

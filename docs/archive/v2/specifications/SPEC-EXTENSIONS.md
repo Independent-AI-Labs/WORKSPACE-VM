@@ -74,7 +74,7 @@ categories:
 ### Optional Fields
 
 | Field | Type | Default | Description |
-|----|---|------|---------|
+|-------|------|---------|-------------|
 | `features` | list[string] | `[]` | Feature list (joined with `", "` for banner display) |
 | `bannerPriority` | integer | `500` | Display order (lower = first) |
 | `hidden` | boolean | `false` | Hide from default banner |
@@ -124,7 +124,7 @@ Enforced by the `ci_check_py_not_executable` pre-commit hook in AMI-CI.
 ## 2. Dependency Types
 
 | Type | Check | Field |
-|---|----|-------|
+|------|-------|-------|
 | `binary` | File exists and is executable at `AMI_ROOT/{path}` | `path` |
 | `submodule` | Directory exists and is non-empty at `AMI_ROOT/{path}` | `path` |
 | `container` | Container runtime finds the named container | `container` |
@@ -167,7 +167,7 @@ def check_container(name: str) -> bool:
 ## 3. Extension Status Model
 
 | Status | Meaning | Banner | `ami extras` | `ami doctor` |
-|----|-----|----|-------|---------|
+|--------|---------|--------|--------------|--------------|
 | `READY` | Binary exists, all required deps present, health passes | Shown (name + desc + version) | - | - |
 | `DEGRADED` | Binary exists, optional dep missing OR health fails | Shown with ⚠ indicator | - | Listed with reason |
 | `VERSION_MISMATCH` | Binary exists but violates minVersion/maxVersion | Not shown (downgraded in doctor) | - | Listed with reason |
@@ -553,7 +553,7 @@ Prints `No problems detected.` when everything is healthy.
 ## 8. Default Category Properties
 
 | Category | Title | Icon | Color | Order |
-|----------|----|---|------|-------|
+|----------|-------|------|-------|-------|
 | core | Core Execution & Management | 🟡 | gold | 1 |
 | enterprise | Enterprise Services | 🌐 | cyan | 2 |
 | dev | Development Tools | 🌸 | pink | 3 |
@@ -568,7 +568,7 @@ Unknown categories: icon 🔹, color green, appended alphabetically after known 
 ## 9. Default Banner Priorities
 
 | Extension | Category | bannerPriority |
-|------|-----|----------|
+|-----------|----------|---------------|
 | ami-agent | core | 10 |
 | ami | core | 20 |
 | ami-run | core | 30 |

@@ -14,7 +14,7 @@ The 2024-2026 period has seen a dramatic escalation in real-world AI agent failu
 ## 2. Incident Timeline
 
 | Date | Incident | Impact | Source |
-|---|-----|----|----|
+|------|----------|--------|--------|
 | **2024-05** | GitHub Copilot training data leakage - reproduces real secrets from training data; 40% higher leakage rate than baseline | Confidential data exposure in AI coding tools | awesome-ai-agent-attacks repo |
 | **2024-09** | Salesforce launches Agentforce - "third wave of the AI revolution" - autonomous customer service agents in production | Enterprise milestone; 1,000+ customers by 2025 | Yahoo Finance, Salesforce Dreamforce |
 | **2024-12** | Lawyers sanctioned for AI-hallucinated legal citations (Gauthier v. Goodyear) | $2,000 penalty; legal profession guidelines tightened | AI Incident Database |
@@ -44,7 +44,7 @@ The 2024-2026 period has seen a dramatic escalation in real-world AI agent failu
 ## 3. Benchmark Analysis
 
 | Benchmark | Measures | Top Score (May 2026) | Safety Dimension | Gap |
-|------|-----|-----------|----------|---------------------|
+|-----------|----------|---------------------|------------------|-----|
 | **SWE-bench Verified** | Real GitHub issue resolution (500 human-verified tasks from 12 Python repos) | 88.7% (GPT-5.5) / 87.6% (Claude Opus 4.7) | No safety evaluation - measures correctness only | Does not test for harmful patches, data leakage, prompt injection during coding tasks |
 | **GAIA** | Multi-step real-world tasks requiring tool use, web browsing, reasoning (466 questions, 3 levels) | 52.3% (Claude Mythos Preview) | Basic safety through exact-match answer verification | No adversarial testing; no tool misuse detection; biased toward web search tasks |
 | **AgentBench** | Multi-turn, open-ended reasoning in diverse environments (OS, DB, Web, KG) | 54.3% (April 2026) | Evaluates task completion in sandboxed environments | Does not measure real-world safety; sandboxed environments miss production failure modes |
@@ -118,7 +118,7 @@ Agentic AI implicitly covered by the AI Act's broad definition - obligations dep
 ## 5. Regulatory Enforcement Actions
 
 | Date | Regulator | Case / Action | Relevance to Agents |
-|---|------|-----------|---------------|
+|------|-----------|---------------|---------------------|
 | **2024-12** | ECJ (EU Court of Justice) | **Schufa decision** - credit scoring by automated means constitutes automated decision-making under GDPR Art. 22 | Establishes that AI-driven decisions require meaningful human intervention (not rubber-stamping) |
 | **2025-02** | UK Government | **DUAA (Data Use and Access Act) 2025** - replaces Art. 22 UK GDPR; shifts from prohibition-with-exceptions to permission-with-safeguards model for ADM | UK diverges from EU: agents can make automated decisions using any lawful basis if safeguards exist |
 | **2025-05** | Austrian DSB | **Public Employment Service (AMS) case** - automated profiling system found to violate GDPR Art. 22; "meaningful human intervention" requires active, informed, independent judgement | Sets high bar for human-in-the-loop with autonomous systems |
@@ -143,7 +143,7 @@ Agentic AI implicitly covered by the AI Act's broad definition - obligations dep
 ### 6.1 Enterprise Deployments
 
 | Company | Product | Launch | Scale |
-|---------|-----|----|--------|
+|---------|---------|--------|-------|
 | **Salesforce** | Agentforce (autonomous customer service agents) | Sep 2024 | Thousands of enterprise customers; CEO Benioff called it "third wave of AI revolution" |
 | **Microsoft** | Copilot Studio agents + Agent Dashboard | Mar 2026 | Integrated with M365, Purview DLP, enterprise governance controls |
 | **Sierra** | Enterprise customer service AI agents | 2024 | $10B valuation, $100M ARR in 21 months, $635M total funding; customers: SoFi, Ramp, Discord, Rivian, Cigna |
@@ -156,7 +156,7 @@ Agentic AI implicitly covered by the AI Act's broad definition - obligations dep
 ### 6.2 Insurance Products for AI Agents
 
 | Product | Date | Details |
-|-----|---|------|
+|---------|------|---------|
 | SUPERAGENT AI fully autonomous insurance agent | Announced Aug 2025 | First fully autonomous AI insurance agent; handles advisory, sales, customer service 24/7 |
 | AWS + insurance claims agentic processing | Dec 2025 | Production frameworks for autonomous claims adjudication using multi-agent systems |
 | MerchantGuard AI agent certification for payments | Feb 2026 | TrustVerdict v1.1 - evaluates agents across behavioral probes, security scanning, identity verification |
@@ -166,7 +166,7 @@ No dedicated "AI agent liability insurance" product identified yet - traditional
 ### 6.3 AI Agent Security Funding
 
 | Company | Amount | Date | Lead Investor | Focus |
-|-----|----|---|--------|------|
+|---------|--------|------|---------------|-------|
 | **Noma Security** | $100M Series B | Jul 2025 | Evolution Equity Partners | Unified AI and agent security platform; 1,300% ARR growth |
 | **Trent AI** | $13M Seed | Apr 2026 | LocalGlobe, Cambridge Innovation Capital | Multi-agent security assessment and risk management |
 | **Lakera** | Undisclosed (growth) | 2025-2026 | - | AI-native security platform; real-time threat detection for agents |
@@ -178,7 +178,7 @@ Total identifiable agent security funding: **~$120M+ (2025-2026)**
 ### 6.4 Certification Schemes
 
 | Scheme | Date | Details |
-|----|---|------|
+|--------|------|---------|
 | **GSDC Agentic AI Professional Certification** | 2025-2026 | Covers foundations, architecture, governance, multi-agent systems, guardrails |
 | **MerchantGuard TrustVerdict v1.1** | Feb 2026 | AI agent certification for payment compliance - behavioral probes, security scanning, identity verification |
 | **NIST AI Agent Test Suite** | Announced for Q4 2026 | Standardized test scenarios for single-agent, multi-agent, security adversarial, and boundary condition testing |
@@ -192,7 +192,7 @@ Total identifiable agent security funding: **~$120M+ (2025-2026)**
 ### 7.1 AI Regulatory Actions Relevant to Agents
 
 | Case | Date | Holding | Agent Relevance |
-|---|---|------|---------|
+|------|------|---------|-----------------|
 | Schufa (ECJ C-634/21) | Dec 2024 | Automated credit scoring = Art. 22 decision; requires meaningful human involvement | Establishes minimum human oversight standard for autonomous decisions |
 | AMS Austria (BVwG) | 2025 | Automated job-seeker profiling violated GDPR; human involvement must be active, informed, independent | Sets rigorous test for "human in the loop" - rubber-stamping insufficient |
 | Gauthier v. Goodyear | Nov 2024 | Lawyer sanctioned $2,000 for AI-hallucinated citations | Agent outputs carry human liability; verification mandatory |

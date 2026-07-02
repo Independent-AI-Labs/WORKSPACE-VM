@@ -191,7 +191,7 @@ policies:                                  # array of policy objects
 ### 1.2 Policy Object Fields
 
 | Field | Type | Required | Default | Description |
-|----|---|------|----------|---------|
+|-------|------|----------|---------|-------------|
 | `name` | string (kebab-case) | **Yes** | - | Unique policy identifier within the domain file. Pattern: `[a-z][a-z0-9._-]+`. |
 | `description` | string | No | `""` | Human-readable purpose. Included in audit logs and `policy show`. |
 | `enabled` | boolean | No | `true` | `false` → skipped during rendering. |
@@ -242,7 +242,7 @@ match:
 ```
 
 | Operator | Semantics | Example |
-|-----|------|-----------|
+|----------|-----------|---------|
 | `regex` | POSIX ERE match | `value: "rm\\s+-rf\\s+/"` |
 | `equals` | Exact string equality | `value: "Bash"` |
 | `contains` | Substring match | `value: "sudo"` |
@@ -310,7 +310,7 @@ action:
 ```
 
 | Action | Compatible Events | Effect |
-|--------|----------|----|
+|--------|-------------------|--------|
 | `inject` | `chat.messages.transform`, `chat.system.transform`, `experimental.session.compacting` | Add `system_prompt` text to system context |
 | `block` | `tool.execute.before`, `command.execute.before`, `permission.ask` | Block the operation; show `reason` |
 | `allow` | `permission.ask`, `tool.execute.before` | Explicitly permit (override lower-priority policies) |
@@ -323,7 +323,7 @@ action:
 **Event-Action Compatibility Matrix:**
 
 | Event | inject | block | allow | warn | ask | modify | env | run |
-|-------|----|----|----|---|---|----|---|------|
+|-------|--------|-------|-------|------|-----|--------|-----|-----|
 | `chat.messages.transform` | ✓ | - | - | ✓ | - | ✓ | - | - |
 | `chat.system.transform` | ✓ | - | - | - | - | ✓ | - | - |
 | `tool.execute.before` | - | ✓ | ✓ | ✓ | ✓ | ✓ | - | ✓ |
@@ -774,7 +774,7 @@ export const amiContext = async () => {
 The static plugin maps policy `event` field values to opencode hook function names. This mapping is coded once in the static plugin, not generated:
 
 | Policy `event` | opencode Hook Function | Handler Present? |
-|--------|------------|------------------------|
+|----------------|------------------------|------------------|
 | `chat.messages.transform` | `experimental.chat.messages.transform` | Always (core) |
 | `chat.system.transform` | `experimental.chat.system.transform` | Always (core) |
 | `tool.execute.before` | `tool.execute.before` | Always (core) |
@@ -1007,7 +1007,7 @@ profile apply strict
 ## 5. File Map
 
 | File | Purpose | Tracked? |
-|---|-----|---------|
+|------|---------|----------|
 | `workspace/scripts/bin/rules` | Domain CLI: rules editing (~30 lines) | Git |
 | `workspace/scripts/bin/guards` | Domain CLI: guards editing (~30 lines) | Git |
 | `workspace/scripts/bin/policy` | Policy lifecycle CLI (~120 lines) | Git |

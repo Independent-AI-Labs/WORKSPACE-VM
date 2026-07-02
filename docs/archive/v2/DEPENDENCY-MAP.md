@@ -281,7 +281,7 @@ graph TB
 ## Summary Table
 
 | Extension | Category | Bootstrap Deps | Dep Type | Project |
-|------|-----|--------|-----|-----|
+|-----------|----------|---------------|----------|---------|
 | ami-agent | core | python | binary | AGENTS |
 | ami / ami-run | core | python, kubectl, helm | binary | AGENTS |
 | ami-repo | core | python, git | binary, system | AGENTS |

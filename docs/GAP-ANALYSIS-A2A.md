@@ -16,7 +16,7 @@ The A2A (Agent-to-Agent) protocol integration exists as **unmerged code in a clo
 ### Status Overview
 
 | Area | PR Branch Has? | Current `dev` Has? | Action Required |
-|------|--------|----------|-------------------|
+|------|---------------|-------------------|-----------------|
 | `src/a2a/` module (11 files) | **Yes** - complete module | **No** | Cherry-pick + adapt to Effect patterns where needed |
 | `test/a2a/` (10 files) | **Yes** - full test suite | **No** | Cherry-pick, adapt test harness to `bun:test` |
 | `src/agent/agent.ts` integration | **Yes** - conflicted | **No** | Re-write against Effect-based agent.ts |
@@ -43,7 +43,7 @@ The A2A (Agent-to-Agent) protocol integration exists as **unmerged code in a clo
 **On PR branch:** 11 source files + 1 spec doc, fully implemented against `@a2a-js/sdk@0.3.9`:
 
 | File | Implements | Status for Porting |
-|---|------|-----------|
+|------|-----------|-------------------|
 | `agent-card.ts` | Agent card fetch, parse, cache, ref parsing, OAuth detection | **Clean cherry-pick** - uses `zod` + `fetch`; no Effect dependency |
 | `client.ts` | A2A SDK client wrapper, sendMessage, streamMessage, getTask, cancelTask | **Cherry-pick + minor adapt** - uses `@a2a-js/sdk/client` |
 | `context.ts` | In-memory context store (sessionId:domain → contextId) | **Clean cherry-pick** - 21 lines, no deps |
@@ -81,7 +81,7 @@ The A2A (Agent-to-Agent) protocol integration exists as **unmerged code in a clo
 These files exist on the PR branch with merge conflicts because the current `dev` has been refactored to Effect patterns.
 
 | File | PR Branch Approach | Current `dev` Approach | Gap |
-|------|-------------------|-----------|---|
+|------|-------------------|----------------------|-----|
 | `agent/agent.ts` | async function state() returning Record<string, Info>; adds remote agents via `A2A.discoverAgents()` in `state()` | `InstanceState.make` with `Effect.fnUntraced` methods; no async/await; uses `Permission`, `Schema.Struct` | **Full re-write needed** - port A2A discovery into the `Effect.fn(...)` block inside `InstanceState.make`, referencing `cfg` from Effect `Config.Service` |
 | `config/config.ts` | zod `Info` schema with `remoteAgents.domains` + `remote_agent` in permission; zod `Agent` schema | Effect `Schema.Struct` `Info` with `ConfigPermission.Info`; no zod layer | **Schema port needed** - add `remoteAgents` field to Effect `Schema.Struct` `Info`; add `remote_agent` to `ConfigPermission.Info` |
 | `cli/cmd/run.ts` | `--trust-domains` option + `A2A.trustForSession()` calls in async handler | Effect-based handler (`Effect.fn("Cli.run")`) with `yield* Agent.Service`, `RuntimeFlags`, `InstanceRef` | **Re-write** - add `-trust-domains` to builder, add A2A trust calls in the effect handler |
@@ -107,7 +107,7 @@ These files exist on the PR branch with merge conflicts because the current `dev
 ### FR-1: Agent Discovery
 
 | Sub-req | Exists on PR? | Exists on `dev`? | Gap | Action |
-|-----|--------|---------|---|------------------|
+|---------|---------------|------------------|-----|--------|
 | FR-1.1 Agent Card Acquisition | Yes - `fetchAgentCard` in `agent-card.ts` | No | Full feature | Cherry-pick `agent-card.ts` |
 | FR-1.2 Agent Card Validation | Yes - `AgentCardSchema` (zod) | No | Zod validation - should be ported to Effect Schema | Either keep zod for validation or re-write as Effect Schema |
 | FR-1.3 Agent Card Caching | Yes - 5-min TTL cache in `agent-card.ts` | No | Caching exists but is a simple Map, not HTTP semantics | Cherry-pick as-is; HTTP caching is a nice-to-have |
@@ -117,7 +117,7 @@ These files exist on the PR branch with merge conflicts because the current `dev
 ### FR-2: Agent Communication
 
 | Sub-req | Exists on PR? | Exists on `dev`? | Gap | Action |
-|-----|--------|---------|---|------------------|
+|---------|---------------|------------------|-----|--------|
 | FR-2.1 Send Message | Yes - `sendMessage` in `client.ts` | No | Wraps `@a2a-js/sdk` client | Cherry-pick + verify SDK v0.3.9 API |
 | FR-2.2 Streaming | Yes - `streamMessage` async generator + `transformStreamEvent` | No | Full SSE streaming support | Cherry-pick + verify |
 | FR-2.3 Multi-Turn Context | Yes - `context.ts` | No | In-memory map, keyed by sessionId:domain | Cherry-pick clean |
@@ -127,7 +127,7 @@ These files exist on the PR branch with merge conflicts because the current `dev
 ### FR-3: Authentication & Authorization
 
 | Sub-req | Exists on PR? | Exists on `dev`? | Gap | Action |
-|-----|--------|---------|---|------------------|
+|---------|---------------|------------------|-----|--------|
 | FR-3.1 Auth Scheme Discovery | Yes - `requiresOAuth`, `getOAuthConfig` | No | Reads from Agent Card securitySchemes | Cherry-pick |
 | FR-3.2 OAuth 2.0 with PKCE | Yes - full flow in `oauth/` | No (only in plugins) | Complete S256 PKCE via Bun.serve callback | Cherry-pick; note: uses Bun.serve, not Node http |
 | FR-3.3 Token Refresh | Yes - `refreshTokens` in `oauth/flow.ts` | No | refresh_token grant type | Cherry-pick |
@@ -137,7 +137,7 @@ These files exist on the PR branch with merge conflicts because the current `dev
 ### FR-4: Trust & Permission Model
 
 | Sub-req | Exists on PR? | Exists on `dev`? | Gap | Action |
-|-----|--------|---------|---|------------------|
+|---------|---------------|------------------|-----|--------|
 | FR-4.1 Domain Trust Evaluation | Yes - `checkTrust` in `trust.ts` | No | Evaluates permission + session + legacy config | Re-write against PermissionV2 |
 | FR-4.2 Trust Actions | Yes - allow/deny/ask | No | Three states supported | Re-write against PermissionV2 |
 | FR-4.3 Session-Scoped Trust | Yes - `Set<string>` in `trust.ts` | No | In-memory Set, not persisted | Cherry-pick logic; port to Effect Ref |
@@ -146,7 +146,7 @@ These files exist on the PR branch with merge conflicts because the current `dev
 ### FR-5: Agent Capability Representation
 
 | Sub-req | Exists on PR? | Exists on `dev`? | Gap | Action |
-|-----|--------|---------|---|------------------|
+|---------|---------------|------------------|-----|--------|
 | FR-5.1 Agent Card Skills | Yes - formatted in task.ts | No | Skills exposed to LLM in task tool prompt | Re-write in Effect task tool |
 | FR-5.2 Text Part Exchange | Yes - client.ts handles text parts | No | Via `@a2a-js/sdk` | Cherry-pick |
 | FR-5.3 Modality Negotiation | No - not explicitly checked | No | Should validate modes before sending | Must be written |
@@ -155,7 +155,7 @@ These files exist on the PR branch with merge conflicts because the current `dev
 ### FR-6: Observability & Audit
 
 | Sub-req | Exists on PR? | Exists on `dev`? | Gap | Action |
-|-----|--------|---------|---|------------------|
+|---------|---------------|------------------|-----|--------|
 | FR-6.1 Task Event Recording | **No** - not implemented | No - EventV2 system exists but no A2A events | A2A events not defined | Must be written - define A2A events via EventV2 |
 | FR-6.2 Distributed Trace Propagation | **No** - not implemented | Partial - OTEL for AI SDK calls only | No A2A-specific tracing | Must be written - add trace context to A2A HTTP calls |
 | FR-6.3 Agent Invocation Metadata | **No** - not implemented | No | No metadata capture | Must be written - capture domain, task ID, timestamps |
@@ -163,7 +163,7 @@ These files exist on the PR branch with merge conflicts because the current `dev
 ### NFR-1: Performance
 
 | Sub-req | Exists on PR? | Exists on `dev`? | Gap | Action |
-|-----|--------|---------|---|------------------|
+|---------|---------------|------------------|-----|--------|
 | NFR-1.1 Agent Card Fetch Timeout | Yes - 10s timeout | No | Uses `AbortSignal.timeout(10000)` | Cherry-pick |
 | NFR-1.2 Streaming Responsiveness | Yes - incremental SSE | No | AsyncGenerator yields events as they arrive | Cherry-pick |
 | NFR-1.3 Startup Latency | Partial - discovery is async | No | On PR: called in agent registration | Re-write in Effect (fork in InstanceState) |
@@ -171,7 +171,7 @@ These files exist on the PR branch with merge conflicts because the current `dev
 ### NFR-2: Security
 
 | Sub-req | Exists on PR? | Exists on `dev`? | Gap | Action |
-|-----|--------|---------|---|------------------|
+|---------|---------------|------------------|-----|--------|
 | NFR-2.1 Transport Security | Yes - HTTPS for non-localhost | No | In `agent-card.ts` resolves to HTTPS | Cherry-pick |
 | NFR-2.2 Token Storage Security | Yes - `chmod(0o600)` in storage.ts | No | File permissions set after write | Cherry-pick |
 | NFR-2.3 OAuth State Validation | Yes - callback.ts validates state | No | CSRF protection via state param | Cherry-pick |
@@ -181,27 +181,27 @@ These files exist on the PR branch with merge conflicts because the current `dev
 ### NFR-3: Reliability
 
 | Sub-req | Exists on PR? | Exists on `dev`? | Gap | Action |
-|-----|--------|---------|---|------------------|
+|---------|---------------|------------------|-----|--------|
 | NFR-3.1 Graceful Degradation | Yes - discovery catches errors, logs warnings | No | In `discovery.ts` and `client.ts` | Cherry-pick error handling pattern |
 | NFR-3.2 Streaming Reconnection | **No** - not implemented | No | No resubscription logic | Must be written |
 
 ### NFR-4: Scalability
 
 | Sub-req | Exists on PR? | Exists on `dev`? | Gap | Action |
-|-----|--------|---------|---|------------------|
+|---------|---------------|------------------|-----|--------|
 | NFR-4.1 Concurrent Invocations | Yes - agents are independent | No | No shared mutable state per invocation | Cherry-pick; Effect ensures isolation |
 
 ### NFR-5: Privacy
 
 | Sub-req | Exists on PR? | Exists on `dev`? | Gap | Action |
-|-----|--------|---------|---|------------------|
+|---------|---------------|------------------|-----|--------|
 | NFR-5.1 Data Minimization | **No** - not enforced | No | Sends full message, not minimized | Must be written - context filter |
 | NFR-5.2 Opaque Execution Default | Yes - only declared capabilities shared | No | Per A2A spec design | Already inherent in protocol architecture |
 
 ### REG-1: EU AI Act
 
 | Sub-req | Exists on PR? | Exists on `dev`? | Gap | Action |
-|-----|--------|---------|---|------------------|
+|---------|---------------|------------------|-----|--------|
 | REG-1.1 Automatic Logging (Art. 12) | **No** | No - EventV2 system can be extended | No A2A event types or log retention | Must be written - define A2A event types, add configurable retention (default 6-month minimum per Art. 26(6), not a cap) |
 | REG-1.2 Human Oversight (Art. 14) | **No** | Partial - Cancel Task exists | No A2A-specific stop button | Must be written - wire cancel to remote agent |
 | REG-1.3 Deployer Duties (Art. 26) | **No** | No | No deployer-facing suspension mechanism | Must be written |
@@ -211,7 +211,7 @@ These files exist on the PR branch with merge conflicts because the current `dev
 ### REG-2 through REG-6
 
 | Req | Exists on PR? | Exists on `dev`? | Action |
-|-----|---------------|---------|----|
+|-----|---------------|------------------|--------|
 | REG-2 GDPR Art. 22 | **No** | No | Ensure human review pathway documented |
 | REG-3 ISO 42001 Alignment | **No** | No | Config persistence already in place; A2A needs documented info |
 | REG-4 OWASP LLM01/LLM06 | **No** | No - but Evaluate already checks "deny" | Validate remote output, bound scope |

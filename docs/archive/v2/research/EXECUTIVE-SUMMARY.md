@@ -18,7 +18,7 @@ The window to build the agent security platform is open but finite. Every major 
 Seven workstreams executed in parallel across four phases:
 
 | WS | Title | Focus | Lines |
-|--|----|-------|-------|
+|----|-------|-------|-------|
 | [WS-1](WS-1-FAANG-GUARDRAILS.md) | FAANG & Big Tech | Guardrails from Google, Microsoft, AWS, Meta, Apple, OpenAI, Anthropic | 601 |
 | [WS-2](WS-2-SME-ECOSYSTEM.md) | SME & Startup Ecosystem | Guardrails AI, NeMo, LangChain, CrewAI, AutoGen, Semantic Kernel, Arize, Galileo, Lakera, Protect AI, EU startups | 1,100 |
 | [WS-3](WS-3-NEOCLOUD-LANDSCAPE.md) | Neocloud Landscape | CoreWeave, Lambda, RunPod, Vast, Together, Fireworks, Modal, Beam, Akash, Golem, Spheron, EU neoclouds | 896 |
@@ -63,7 +63,7 @@ The startup landscape is fragmented across five categories with no single end-to
 The infrastructure layer is mature enough for enterprise agent workloads but offers **zero agent-specific security**:
 
 | Tier | Providers | Certification Profile | Agent Security |
-|---|------|-----------|---------------------|
+|------|-----------|---------------------|----------------|
 | **Tier 1: Enterprise-ready** | CoreWeave, Fireworks AI, Lambda Labs | SOC 2 + ISO 27001 + HIPAA (Fireworks: ISO 42001) | None |
 | **Tier 2: Growing compliance** | Together AI, RunPod, Modal, Beam | SOC 2 + HIPAA (varies) | gVisor sandbox only |
 | **Tier 3: Dev/experimental** | Vast.ai, Replicate, Akash, Golem, Spheron | SOC 2 or partner-level | Marketplace model |
@@ -100,7 +100,7 @@ The regulatory environment presents both existential risk and strategic opportun
 The literature across [84 papers](WS-5-ACADEMIC-LANDSCAPE.md#2-annotated-bibliography) at top venues converges on five architectural conclusions:
 
 | Finding | Source Papers | Strategic Implication |
-|-----|-------|--------------|
+|---------|--------------|----------------------|
 | **Prompt injection is structurally inescapable** | [27](https://arxiv.org/abs/2605.17634), [19](https://proceedings.mlr.press/v235/wolf24a.html), [26](https://arxiv.org/abs/2503.0061) | Containment (semantic virtualization) is the only viable strategy. Prevention is not achievable at the token level. |
 | **Reward hacking is an equilibrium, not a bug** | [2](https://arxiv.org/abs/2603.28063), [3](https://arxiv.org/abs/2604.15149), [19](https://proceedings.mlr.press/v235/wolf24a.html) | Architect for detection and mitigation, not prevention. Embed hack-verifiable properties in environments. |
 | **Memory poisoning enables persistent cross-session compromise** | [33-40](WS-5-ACADEMIC-LANDSCAPE.md#2-2-adversarial-robustness) | MINJA achieves 95%+ injection with query-only access. Zombie Agent persists across sessions. Cryptographic integrity mandatory. |
@@ -117,7 +117,7 @@ The literature across [84 papers](WS-5-ACADEMIC-LANDSCAPE.md#2-annotated-bibliog
 The incident landscape confirms the research findings with alarming clarity:
 
 | Incident | Date | Impact | Root Cause |
-|-----|---|----|------|
+|----------|------|--------|------------|
 | **[PocketOS](https://indianexpress.com/article/technology/artificial-intelligence/how-an-ai-agent-deleted-a-startups-critical-data-10660538/)** | Apr 2026 | Production DB + backups deleted in 9 seconds; 30-hour outage; 3 months data loss | Over-privileged tokens, no confirmation gates, no sandbox |
 | **[Kiro (AWS)](https://ubos.tech/news/amazons-ai-coding-assistant-kiro-triggers-major-aws-outage-impact-and-lessons/)** | Dec 2025 | Autonomous agent deleted production AWS environment; 13-hour outage | Unrestricted tool scope |
 | **[Claude Code loop](https://github.com/anthropics/claude-code/issues/15909)** | Jan 2026 | 27M tokens consumed in 4.6 hours; $2K+ compute | No timeout, no kill switch |
@@ -166,7 +166,7 @@ AMI leads only in EU data sovereignty (tied with neoclouds). The compliance cert
 ### 4.1 Five Must-Win Battles
 
 | Battle | Target | Timeline | Impact |
-|----|----|-----|--------|
+|--------|--------|----------|--------|
 | **1. EU AI Act Compliance** | Full compliance for high-risk classification, including audit trail, stop button, reversal, and deployer toolkit | **2 Aug 2026** (10 weeks) | Regulatory survival. Without it, cannot sell to EU enterprises. |
 | **2. Semantic Virtualization** | Production Guest/Visor split with STI protocol - treat LLM as untrusted | Q3 2026 (2 week MVP) | Structural containment of prompt injection. Near-zero ASR. 6-9 month first-mover advantage. |
 | **3. Multi-Agent Security** | Signed A2A protocol with delegation depth tracking, before multi-agent goes mainstream | Q4 2026 | Prevent the next generation of agent attacks. First-mover in undefined category. |

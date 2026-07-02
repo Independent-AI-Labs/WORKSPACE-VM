@@ -240,7 +240,7 @@ podman run -d ...
 ### FR-5.3: Network Modes
 
 | Mode | iptables | Whitelist |
-|---|-----|----------|
+|------|----------|-----------|
 | `whitelist` (default) | DROP default + explicit ACCEPT | Provider API + package registries |
 | `allow-all` | No rules | Everything allowed |
 | `deny-all` | DROP all + loopback only | Nothing, fully offline |
@@ -416,7 +416,7 @@ Container logs go to Podman's default log driver (journald). No external monitor
 ## Resolved Decisions
 
 | # | Decision | Choice |
-|---|-----|----|
+|---|----------|--------|
 | 1 | Registry | **Podman labels**, no custom filesystem registry |
 | 2 | Credentials | **Bind mount :ro**, not rsync |
 | 3 | Workspace sync | **rsync on demand**, no daemon, no inotifywait |

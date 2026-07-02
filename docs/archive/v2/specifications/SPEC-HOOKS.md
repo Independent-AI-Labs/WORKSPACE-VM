@@ -63,7 +63,7 @@ flowchart LR
 ### Validator Details
 
 | Validator | Event | What it does |
-|------|----|-------|
+|-----------|-------|-------------|
 | **CommandTierValidator** | PRE_BASH | Classifies commands into 4 tiers (observe/modify/execute/admin). Checks hard deny patterns (22 rules, no override). Resolves action from scope chain. Returns DENY, CONFIRM, or ALLOW. |
 | **PathTraversalValidator** | PRE_EDIT | Detects encoded traversal attacks: `../`, `%2e%2e`, `%252e`, null bytes, overlong UTF-8, absolute paths escaping project root. 9 pattern types. |
 | **EditSafetyValidator** | PRE_EDIT | Blocks edits to security-sensitive files. Loads patterns from `sensitive_files.yaml`. |
@@ -74,7 +74,7 @@ flowchart LR
 Commands are classified into 4 security tiers in `command_tiers.yaml`:
 
 | Tier | Default Action | Triggers Edit Hooks | Examples |
-|------|---------------|----------|-----|
+|------|---------------|-------------------|---------|
 | **observe** | ALLOW | No | ls, cat, grep, git status/log/diff, find, head, tail, wc, stat |
 | **modify** | CONFIRM | Yes | touch, mkdir, sed, awk, tee, cp, mv, ln, echo, >, >> |
 | **execute** | CONFIRM | No | python, pytest, mypy, make, cargo, uv, curl, wget, ami-* |

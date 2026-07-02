@@ -46,7 +46,7 @@ Multiple bootstrap scripts independently re-implement `.deb` extraction logic.
 Multiple competing implementations of "find the project root":
 
 | Implementation | Method | Status |
-|--------|----|----|
+|---------------|--------|--------|
 | `ami-pwd` | `~/.config/ami/root` state file + walk for `pyproject.toml`/`.git` | Canonical |
 | `ami.core.env.get_project_root()` | Python equivalent | Canonical |
 | `backup/common/paths.py` | Imports from `ami.core.env` | Consolidated |

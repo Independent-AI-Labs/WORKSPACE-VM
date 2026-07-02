@@ -60,7 +60,7 @@ Four source files in AMI-DATAOPS import from `ami.cli_components`:
 Staying scripts in `ami/scripts/` also import from the modules being deleted:
 
 | Staying Script | Imports From | Will Resolve From |
-|--------|-------|-------------|
+|----------------|-------------|-------------------|
 | `ami/scripts/bootstrap_installer.py` | `ami.cli_components.dialogs`, `ami.cli_components.menu_selector`, `ami.cli_components.selection_dialog`, `ami.types.results.NamedComponentStatus` | AMI-DATAOPS (namespace) |
 | `ami/scripts/bootstrap_installer_ui.py` | `ami.cli_components.text_input_utils` | AMI-DATAOPS (namespace) |
 | `ami/scripts/bootstrap_install.py` | `ami.types.common.InstallationResult` | **import path must change** |
@@ -139,7 +139,7 @@ The V3 plan deletes ALL of `ami/types/`. Two categories of types must survive:
 **Category A - TUI types (used by moving cli_components):**
 
 | Type | Used By | Fields |
-|---|-----|---------|
+|------|---------|--------|
 | `GroupRange` | `selection_dialog.py` | `header_idx: int, start: int, end: int` |
 | `KeyHandleResult` | `selection_dialog.py` | `should_continue: bool, result: object` |
 | `CharWithOrdinal` | `text_input_utils.py` | `char: str, ordinal: int` |
@@ -148,7 +148,7 @@ The V3 plan deletes ALL of `ami/types/`. Two categories of types must survive:
 **Category B - Bootstrap types (used by staying scripts in `ami/scripts/`):**
 
 | Type | Currently In | Used By | Fields |
-|------|-------------|-----|----|
+|------|-------------|---------|--------|
 | `NamedComponentStatus` | `ami.types.results` | `bootstrap_installer.py` | `name, installed, version, path` |
 | `ColorPair` | `ami.types.results` | `sys_info.py` | `fg: int, bg: int` |
 | `InstallationResult` | `ami.types.common` | `bootstrap_install.py` | `component_name, success, error` |
@@ -174,7 +174,7 @@ Python namespace packages cannot merge two modules at the same import path. If b
 Both `ami-agents` (root `ami/`) and `AMI-DATAOPS` (`projects/AMI-DATAOPS/ami/`) use `setuptools` namespace packages. Python resolves `ami.cli_components.*` and `ami.types.*` by scanning all `sys.path` entries. After the move:
 
 | Namespace | Provided By | After Migration |
-|------|-------|-------------|
+|-----------|-------------|-----------------|
 | `ami.cli_components` | ~~ami-agents~~ → **AMI-DATAOPS** | AMI-DATAOPS |
 | `ami.types` | ~~ami-agents~~ → **AMI-DATAOPS** | AMI-DATAOPS |
 | `ami.dataops` | **AMI-DATAOPS** | AMI-DATAOPS |
@@ -332,7 +332,7 @@ class InstallationResult(TypedDict):
 The `ami/types/` directory stays in the main package. The surviving cli_components files (status, storage, legend, status_containers, status_systemd, status_utils - see §4.2) depend on types that the slim consolidated DATAOPS `results.py` does not provide:
 
 | Type Needed | In Main `types/` | In DATAOPS `results.py` |
-|-------|---------|-----------------|
+|-------------|-----------------|------------------------|
 | `LegendRender` | `results.py` | No |
 | `ContainerStatusDisplay` | `results.py` | No |
 | `ContainerInspectInfo` | `results.py` | No |
@@ -438,7 +438,7 @@ Every import in AMI-DATAOPS source files uses `ami.cli_components.*` or `ami.typ
 Verified imports:
 
 | Source File | Import | Status |
-|-------------|----|----|
+|-------------|--------|--------|
 | `operator.py:25` | `from ami.cli_components import dialogs` | ✅ |
 | `operator.py:26` | `from ami.cli_components.selection_dialog import ...` | ✅ |
 | `revision_display.py:9` | `from ami.cli_components.format_utils import format_file_size` | ✅ |
@@ -456,7 +456,7 @@ Verified imports:
 The moved `.py` files reference each other using the same `ami.cli_components.*` paths. These also resolve via namespace package lookup:
 
 | File | Imports | Resolves To |
-|---|-----|---------|
+|------|---------|-------------|
 | `dialogs.py` | `ami.cli_components.keys` | `projects/AMI-DATAOPS/ami/cli_components/keys.py` |
 | `dialogs.py` | `ami.cli_components.terminal.ansi` | `projects/AMI-DATAOPS/ami/cli_components/terminal/ansi.py` |
 | `selection_dialog.py` | `ami.cli_components.tui` | `projects/AMI-DATAOPS/ami/cli_components/tui.py` |
@@ -487,7 +487,7 @@ This is the **only import change required** anywhere in the codebase.
 ### 8.2 All Other Staying Script Imports (unchanged)
 
 | Script | Import | Resolves From |
-|----|----|--------|
+|--------|--------|---------------|
 | `bootstrap_installer.py:39` | `from ami.cli_components import dialogs as _dialogs` | AMI-DATAOPS ✅ |
 | `bootstrap_installer.py:40` | `from ami.cli_components import menu_selector as _menu` | AMI-DATAOPS ✅ |
 | `bootstrap_installer.py:41` | `from ami.cli_components.selection_dialog import DialogItem` | AMI-DATAOPS ✅ |
@@ -737,7 +737,7 @@ The following issues are NOT addressed by this migration document because they i
 **Problem:** `ami/core/env.py` is scheduled for deletion, but three staying files import from it:
 
 | File | Import | Breaks When |
-|---|----|--------|
+|------|--------|-------------|
 | `ami/config_utils.py:9` | `from ami.core.env import get_project_root` | `ami/core/` deleted |
 | `ami/scripts/bootstrap_component_defs.py:24` | `from ami.core.env import PROJECT_ROOT` | `ami/core/` deleted |
 | `ami/scripts/bootstrap_components.py:10` | `from ami.core.env import PROJECT_ROOT` | `ami/core/` deleted |
@@ -942,7 +942,7 @@ No cyclic imports: `config_utils` depends only on stdlib (`os`, `pathlib`). Boot
 ## 13. Risk Register
 
 | Risk | Likelihood | Impact | Mitigation |
-|---|------|----|------|
+|------|-----------|--------|------------|
 | Namespace package resolution fails at runtime | Low | High | No overlapping subpackage names - verify with AC-CLI-1 |
 | Stripped `results.py` misses a type | Low | Medium | Build failure on first import - caught by AC-CLI-2 |
 | `uv sync` fails to install both namespace packages | ~~Low~~ **Verified** | Low | Both set `namespaces = true`; `ami-dataops` added to root dev deps - verify with AC-CLI-11/AC-CLI-12 |

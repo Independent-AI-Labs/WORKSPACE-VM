@@ -43,7 +43,7 @@ WORKSPACE-VM is a federated AI-agent workspace with:
 ### 1.2 What Changes
 
 | Component | Current State | Target State |
-|------|-------|--------------|
+|-----------|--------------|--------------|
 | Agent CLI runtime | Claude Code + Gemini + Qwen (npm) | **opencode-ai only** (npm) |
 | Python agent orchestration | `ami/cli/`, `ami/core/`, `ami/cli_components/`, `ami/types/`, `ami/tools/` | **Archived** - all agent orchestration delegated to opencode |
 | Agent CLI wrappers | `claude_cli.py`, `gemini_cli.py`, `qwen_cli.py` | **Deleted** |
@@ -655,7 +655,7 @@ an independent security domain.
 ### Phase 2: Base opencode Integration (Days 3-4) - ~80% DONE
 
 | Action | Detail | Status |
-|--------|----|----|
+|--------|--------|--------|
 | 2.1 | `npx opencode` available (v1.15.13 installed at `~/.local/npm-global/bin/opencode`) | **DONE** ✓ |
 | 2.2 | Draft `opencode.docker.json` with llama.cpp + web UI config | **DONE** ✓ |
 | 2.3 | **Replace** `install-node-agents` + `update-node-agents` with `install-opencode` + `update-opencode` in Makefile | **NOT DONE** |
@@ -897,7 +897,7 @@ time (web UI model picker, or `opencode run --model <provider/model>`).
 **SSH & host configs** (copied at build time into `/home/ami/`):
 
 | `ssh.mode` | Files copied | Source |
-|------------|-------|----|
+|------------|-------------|--------|
 | `none` (default) | Nothing | - |
 | `inherit` | `~/.ssh/id_*`, `~/.ssh/config`, `~/.ssh/known_hosts`, `~/.gitconfig`, `~/.aws/*`, `~/.npmrc` | Host user's home |
 | `custom` | User-specified list (`ssh.files:`) | Per-file host paths |
@@ -932,7 +932,7 @@ gitignored (Dockerfile references paths outside the build context).
 **Systemd services** (generated conditionally based on config):
 
 | Service | When generated | Purpose |
-|-----|--------|---------------|
+|---------|---------------|---------|
 | `opencode.service` | Always (if `web_ui: true`) | opencode web on `127.0.0.1:4096` |
 | `traefik.service` | `network.mode != none` AND `web_ui: true` | mTLS proxy `:443 → :4096` |
 | `ami-network.service` | `network.mode: bridge` + `network.policy: internet\|proxy` | iptables rules |
@@ -1026,7 +1026,7 @@ proxy starts after opencode is ready.
 Three named volumes per VM, created by `make vm`:
 
 | Volume | Mount point | Purpose |
-|----|-------|-------------|
+|--------|-------------|---------|
 | `<uuid>-workspace` | `/workspace` | rsynced source files |
 | `<uuid>-transcripts` | `/transcripts` | opencode session logs |
 | `<uuid>-cache` | `/cache` | `.boot-linux`, `.venv`, `node_modules` |
@@ -1235,7 +1235,7 @@ and documents which existing facilities are reused.
 **Existing facilities reused (no new code needed):**
 
 | Facility | Path | Purpose |
-|-----|---|------|
+|----------|------|---------|
 | UUIDv7 generator | `workspace/utils/uuid_utils.py::uuid7()` | VM ID generation (RFC 9562, pure Python) |
 | Podman runtime | `.boot-linux/bin/podman` (v5.6.2, rootless, netavark) | Container lifecycle |
 | Container types | `workspace/types/status.py` (PodmanContainer, PortMapping) | VM inspection results |
@@ -1247,7 +1247,7 @@ and documents which existing facilities are reused.
 **New files - where they go:**
 
 | File | Location | Pattern followed |
-|---|-----|----------|
+|------|----------|-----------------|
 | VM config model | `workspace/types/vm.py` | Pydantic BaseModel (see `workspace/types/config.py`) |
 | VM config template | `workspace/config/vm-template.yaml` | YAML reference (see `install-defaults.yaml`) |
 | Bootstrap: traefik | `workspace/scripts/bootstrap/bootstrap_traefik.sh` | Shell script (see `bootstrap_opencode.sh`) |
@@ -1359,7 +1359,7 @@ and Traefik config generation. Required for Commit 3 (templates).
 ## 11. Risk Register
 
 | Risk | Likelihood | Impact | Mitigation |
-|---|------|----|------|
+|------|-----------|--------|------------|
 | opencode-ai npm package incompatible with LLM endpoint | Low | High | Test against llamaserver before migration; opencode supports OpenAI-compatible API |
 | Traefik misconfiguration or cert expiry | Low | Critical | Each VM has its own Traefik (not shared); cert expiry printed at creation; `make vm cert <id>` regenerates; Traefik restart picks up new cert |
 | Loss of functionality from old agent CLIs | Medium | Medium | Audit all `ami-*` commands before deletion; map each to opencode equivalent |

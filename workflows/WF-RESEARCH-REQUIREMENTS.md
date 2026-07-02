@@ -101,7 +101,7 @@ The ami-docs pattern (thin Python wrapper → external tool passthrough) is the 
 Compare what exists vs what's needed. Categorize every requirement:
 
 | Status | Meaning | Action |
-|----|-----|---------|
+|--------|---------|--------|
 | **Solved** | Already works in codebase | Wire it up, don't rebuild |
 | **Prototype** | Solved in a project, needs generalization | Extract and generalize the pattern |
 | **Tool exists** | External tool does it, needs bootstrapping + wrapper | Bootstrap + thin wrapper |

@@ -55,7 +55,7 @@ graph TD
 ## Component Responsibilities
 
 | Component | Repo | Language | Responsibility |
-|------|---|------|----------|
+|-----------|------|----------|----------------|
 | **ami-agent** | WORKSPACE-VM | Python | The agent itself (BootloaderAgent, ReAct loop). Runs on host AND inside containers. |
 | **ami-agentd** | WORKSPACE-VM | Rust (Axum) | Single binary: CLI (`create/start/stop/sync`) + gateway server (`serve`). Manages containers via podman, proxies A2A to agent UDS, OIDC auth, TLS, interaction logs (SQLite/PG). **Host only**, disabled inside containers (`AMI_CONTAINER=1`). |
 | **Agent Container** | WORKSPACE-VM | Python (Starlette + BootloaderAgent) | Runs A2A server on UDS. Executes claude/qwen CLI subprocesses. Isolated filesystem, network whitelist. |
@@ -86,7 +86,7 @@ graph LR
 ```
 
 | Path | Transport | Auth | Notes |
-|---|------|---|----|
+|------|-----------|------|-------|
 | Browser → Agent | HTTPS POST+SSE → Gateway → UDS | OIDC JWT | Gateway handles TLS + auth |
 | CLI → Agent | UDS direct | Filesystem perms | No network, no auth needed |
 | Agent ↔ Agent | UDS via `.mesh/` | Mount = access | Only mesh members |
@@ -177,7 +177,7 @@ graph TD
 ## Key Decisions Summary
 
 | Decision | Choice | Rationale |
-|-----|----|--------|
+|----------|--------|-----------|
 | Agent execution | Containerised always (Podman) | Isolation, reproducibility, network control |
 | Agent communication | A2A v0.3 over UDS | Standard protocol, no TCP exposure |
 | Streaming | SSE (not WebSocket) | A2A-native, supports auth headers, HTTP/3 efficient |

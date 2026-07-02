@@ -125,7 +125,8 @@ def test_extract_compose_info_extracts_compose_file_from_f_flag() -> None:
 
 def test_extract_compose_info_extracts_profiles_from_profile_flags() -> None:
     result = _extract_compose_info(
-        "/usr/bin/podman-compose -f /etc/compose.yml -profile prod -profile debug up -d"
+        "/usr/bin/podman-compose -f /etc/compose.yml"
+        " --profile prod --profile debug up -d"
     )
     assert result.compose_profiles == ["prod", "debug"]
 

@@ -39,7 +39,7 @@ The existing TypeScript NextAuth.js client library in `projects/AMI-AUTH/src/` r
 The AUTH-FRAGMENTATION-AUDIT (February 2026) identified:
 
 | # | System | Location | Technology | Status |
-|---|----|-----|------|----|
+|---|--------|----------|------------|--------|
 | 1 | AMI-AUTH | `projects/AMI-AUTH/` | TypeScript, NextAuth.js v5 | Active (Portal only) |
 | 2 | base/opsec | `base/backend/opsec/` | Python, ~4,700 lines | **Unused** |
 | 3 | AMI-TRADING | `projects/AMI-TRADING/src/` | Python, FastAPI, HS256 JWT | Active (Trading only) |
@@ -99,7 +99,7 @@ flowchart TD
 AMI-AUTH becomes a dual-runtime project within the agents monorepo:
 
 | Layer | Runtime | Purpose | Entry Point |
-|----|-----|-----|---------|
+|-------|---------|---------|-------------|
 | Client library | TypeScript (Node.js) | NextAuth.js wrapper for Portal | `src/index.ts` |
 | OIDC server | Python 3.12 (FastAPI) | Identity provider + DataOps API | `backend/main.py` |
 

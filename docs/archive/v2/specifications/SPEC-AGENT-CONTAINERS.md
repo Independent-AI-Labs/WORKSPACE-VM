@@ -24,7 +24,7 @@ gateway. This spec sequences the work into milestones in § 14.
 ## 1. Component Layout
 
 | Component | Repo | Language | Path |
-|------|---|------|----------|
+|-----------|------|----------|------|
 | `ami-agent` (BootloaderAgent CLI) | WORKSPACE-VM | Python | `ami/core/bootloader_agent.py` |
 | `ami-agentd` binary | WORKSPACE-VM | Rust (Axum) | `ami-agentd/` (new Cargo crate at repo root) |
 | Compiled `ami-agentd` artifact | WORKSPACE-VM | n/a | `.boot-linux/bin/ami-agentd` |
@@ -151,7 +151,7 @@ them via `podman ps --filter label=ami.type=agent`. There is no
 external registry file.
 
 | Label | Source | Example | Purpose |
-|----|----|-----|--------|
+|-------|--------|---------|---------|
 | `ami.type` | Dockerfile | `agent` | Filter for agent containers |
 | `ami.provider` | `create` flag | `claude`, `qwen`, `gemini` | Provider routing |
 | `ami.model` | `create` flag | `claude-sonnet-4-6` | Card metadata |
@@ -176,7 +176,7 @@ Three named volumes per agent. `ami-agentd create` runs
 `podman volume create` before `podman run`.
 
 | Volume | Mount point | Survives `rm` | Contents |
-|----|-------|--------|-----|
+|--------|-------------|---------------|----------|
 | `<name>-workspace` | `/workspace` | yes (without `-v`) | Source files synced from host |
 | `<name>-transcripts` | `/transcripts` | yes | `TranscriptStore` JSONL session logs |
 | `<name>-cache` | `/cache` | yes | `.boot-linux`, `.venv`, `node_modules` (rebuild-expensive) |
@@ -196,7 +196,7 @@ volumes.
 Read-only bind mounts, decided at `create` time based on provider:
 
 | Provider | Host path | Container path |
-|-----|------|-----------|
+|----------|-----------|----------------|
 | `claude` | `~/.claude` | `/home/agent/.claude:ro` |
 | `qwen`   | `~/.config/qwen` | `/home/agent/.config/qwen:ro` |
 | `gemini` | `~/.config/gemini` | `/home/agent/.config/gemini:ro` |
@@ -218,7 +218,7 @@ The entrypoint applies one of three modes based on `AMI_NETWORK_MODE`
 (set by `ami-agentd create`).
 
 | Mode | OUTPUT chain | DNS | Use case |
-|------|-------|---|-----|
+|------|--------------|-----|----------|
 | `whitelist` (default) | `DROP` + explicit ACCEPT for `AMI_NETWORK_WHITELIST` | container `/etc/resolv.conf` | Production agents |
 | `allow-all` | no rules added | container `/etc/resolv.conf` | Debug only |
 | `deny-all` | `DROP` + loopback only | n/a | Offline replay / forensic |
@@ -309,7 +309,7 @@ of Axum is the operator's responsibility (reverse proxy or
 ### 9.2 Routes
 
 | Method + path | Auth | Body | Response |
-|---------------|---|---|------|
+|---------------|------|------|----------|
 | `GET /health` | none | n/a | `{"agents": N, "ok": bool}` |
 | `GET /agents` | OIDC | n/a | `[{name, provider, model, status, healthy}, ...]` |
 | `GET /agents/{name}/card` | OIDC | n/a | A2A AgentCard JSON |
@@ -541,7 +541,7 @@ takes effect.
 Two layers, both active:
 
 | Layer | Mechanism | Cadence | Surfaced |
-|----|------|-----|-----|
+|-------|-----------|---------|----------|
 | Podman | `HEALTHCHECK` in Dockerfile, tests UDS exists | 30s | `podman inspect --format '{{.State.Health.Status}}'` |
 | Gateway | A2A `GetAgentCard` over UDS, 5s timeout | 10s | cached, exposed via `GET /health` and `GET /agents` |
 
