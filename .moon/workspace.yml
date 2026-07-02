@@ -22,14 +22,6 @@ projects:
   ci: 'projects/CI'
   dataops: 'projects/DATAOPS'
   ami-portal: 'projects/AMI-PORTAL'
-  ami-srp: 'projects/AMI-SRP'
-  ami-streams: 'projects/AMI-STREAMS'
-  ami-trading: 'projects/AMI-TRADING'
-  ami-browser: 'projects/AMI-BROWSER'
-  rust-trading: 'projects/RUST-TRADING'
-  zk-portal: 'projects/ZK-PORTAL'
-  polymarket-tracker: 'projects/polymarket-insider-tracker'
-  ami-docs: 'projects/docs'
   workspace-guard: 'projects/WORKSPACE-GUARD'
 
 vcs:
