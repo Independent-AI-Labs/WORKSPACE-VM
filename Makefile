@@ -25,13 +25,14 @@ init: ## Install system dependencies
 # --- Core prereqs ---
 
 .PHONY: core
-core: ## Bootstrap uv + python + git-xet + node (prereq for sync-package)
+core: ## Bootstrap uv + python + git-xet + node + ansible (prereq for sync-package)
 	@echo "🔧 Bootstrapping core tools..."
 	@mkdir -p .boot-linux/bin
 	@AMI_ROOT="$$(pwd)" bash workspace/scripts/bootstrap/bootstrap_uv.sh
 	@AMI_ROOT="$$(pwd)" bash workspace/scripts/bootstrap/bootstrap_python.sh
 	@AMI_ROOT="$$(pwd)" bash workspace/scripts/bootstrap/bootstrap_git_xet.sh
 	@AMI_ROOT="$$(pwd)" bash workspace/scripts/bootstrap/bootstrap_node.sh
+	@AMI_ROOT="$$(pwd)" bash workspace/scripts/bootstrap/bootstrap_ansible.sh
 	@echo "✅ Core bootstrap complete"
 
 # --- Install - component selection ---

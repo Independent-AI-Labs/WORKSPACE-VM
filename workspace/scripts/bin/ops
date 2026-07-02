@@ -7,10 +7,12 @@ AMI_ROOT="$("$SCRIPT_DIR/pwd")"
 export AMI_ROOT
 
 VENV_DIR="$AMI_ROOT/.venv"
-VENV_PYTHON="/home/agent/WORKSPACE-VM/.venv/bin/python"
+VENV_PYTHON="$VENV_DIR/bin/python"
 BOOT_DIR="$AMI_ROOT/.boot-linux"
 
-[[ -f "$AMI_ROOT/.env" ]] && export $(grep -v '^#' "$AMI_ROOT/.env" | xargs) || true
+if [[ -f "$AMI_ROOT/.env" ]]; then
+    export $(grep -v '^#' "$AMI_ROOT/.env" | xargs)
+fi
 
 export PATH="$BOOT_DIR/bin:$VENV_DIR/bin:$PATH"
 
@@ -32,7 +34,11 @@ if [[ "$#" -gt 0 && ("$1" == "-h" || "$1" == "--help") ]]; then
 fi
 
 if [[ "$#" -gt 0 && "$1" == "--version" ]]; then
-    VERSION="$(git -C "$AMI_ROOT" describe --always --dirty 2>/dev/null || echo "unknown")"
+    if VERSION="$(git -C "$AMI_ROOT" describe --always --dirty 2>&1)"; then
+        :
+    else
+        VERSION="unknown"
+    fi
     echo "ops (AMI Orchestrator) ${VERSION}"
     exit 0
 fi
@@ -62,7 +68,7 @@ case "$SUBCOMMAND" in
         exec systemctl --user "${ARGS[@]}"
         ;;
     ansible|ansible-playbook|ansible-galaxy)
-        exec "$VENV_DIR/bin/$SUBCOMMAND" "${ARGS[@]}"
+        exec "$BOOT_DIR/bin/$SUBCOMMAND" "${ARGS[@]}"
         ;;
     kubectl)
         export KUBECONFIG="${KUBECONFIG:-${HOME}/.kube/config:./.kube/config}"
