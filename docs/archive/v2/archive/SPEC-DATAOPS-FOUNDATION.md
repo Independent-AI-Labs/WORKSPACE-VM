@@ -83,7 +83,7 @@ flowchart TD
     subgraph "Consumer Services"
         Auth["AMI-AUTH"]
         Trading["AMI-TRADING"]
-        Portal["AMI-PORTAL"]
+        Portal["WORKSPACE-PORTAL"]
     end
 
     subgraph "AMI-DATAOPS Public API"

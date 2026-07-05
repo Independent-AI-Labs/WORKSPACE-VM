@@ -99,6 +99,10 @@ requires:
     apt_package: libolm-dev
     description: libolm development headers (python-olm build dependency)
 
+  - check_cmd: rg
+    apt_package: ripgrep
+    description: ripgrep (fast recursive search)
+
   - check_cmd: crontab
     apt_package: cron
     description: System cron daemon

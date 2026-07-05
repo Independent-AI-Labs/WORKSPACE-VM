@@ -21,7 +21,8 @@ projects:
   workspace: '.'
   ci: 'projects/CI'
   dataops: 'projects/DATAOPS'
-  ami-portal: 'projects/AMI-PORTAL'
+  workspace-streams: 'projects/WORKSPACE-STREAMS'
+  workspace-portal: 'projects/WORKSPACE-PORTAL'
   workspace-guard: 'projects/WORKSPACE-GUARD'
 
 vcs:

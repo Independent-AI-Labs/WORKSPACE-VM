@@ -17,7 +17,7 @@ graph LR
     BOOT["Bootstrap Components\nuv, python, gcc, rust, go\npandoc, podman, k8s, ..."]:::grp
     EXT["Extensions\n22 CLI commands\n6 categories"]:::grp
     CONTAINERS["Containers\nKeycloak, OpenBao, PostgreSQL\nRedis, Vaultwarden, Prometheus"]:::grp
-    PROJECTS["Projects\nAMI-STREAMS, AMI-DATAOPS\nAMI-PORTAL, AMI-TRADING, ..."]:::grp
+    PROJECTS["Projects\nWORKSPACE-STREAMS, AMI-DATAOPS\nWORKSPACE-PORTAL, AMI-TRADING, ..."]:::grp
     CI["AMI-CI\nHooks, checks, linting"]:::grp
 
     BOOT --> SYS
@@ -204,8 +204,8 @@ graph TB
 
     CI[AMI-CI\nHooks & Checks]:::proj
     DATAOPS[AMI-DATAOPS\nData & Infra Services]:::infra
-    STREAMS[AMI-STREAMS\nMail, Matrix, Comms]:::proj
-    PORTAL[AMI-PORTAL\nUI & Account Mgmt]:::proj
+    STREAMS[WORKSPACE-STREAMS\nMail, Matrix, Comms]:::proj
+    PORTAL[WORKSPACE-PORTAL\nUI & Account Mgmt]:::proj
     TRADING[AMI-TRADING\nTrading Platform]:::proj
     BROWSER[AMI-BROWSER\nBrowser Automation]:::proj
     ZK[ZK-PORTAL\nBlockchain Portal]:::proj
@@ -271,7 +271,7 @@ graph TB
     KC --> PG
 
     %% Consumer apps
-    PORTAL(AMI-PORTAL\n:3000):::app -- "OIDC" --> KC
+    PORTAL(WORKSPACE-PORTAL\n:3000):::app -- "OIDC" --> KC
     TRADING(AMI-TRADING\n:8080):::app -- "OIDC" --> KC
     PORTAL -. "secrets" .-> BAO
 ```

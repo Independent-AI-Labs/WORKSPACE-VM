@@ -16,11 +16,11 @@
 #
 # Usage:
 #   bootstrap-repos                           # mandatory only
-#   bootstrap-repos --include ami-portal      # mandatory + portal
-#   bootstrap-repos --include ami-portal,ami-srp
+#   bootstrap-repos --include workspace-portal      # mandatory + portal
+#   bootstrap-repos --include workspace-portal,ami-srp
 #   bootstrap-repos --all                     # mandatory + ALL optional
 #   bootstrap-repos --pull                    # also git-pull existing repos
-#   bootstrap-repos --include ami-portal --pull
+#   bootstrap-repos --include workspace-portal --pull
 
 set -euo pipefail
 

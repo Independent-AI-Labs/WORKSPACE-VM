@@ -18,7 +18,7 @@ Find ALL code, config, scripts, ansible roles, docker-compose services, and CLI 
 | `ami/config/` | Configuration files (extensions.yaml, hooks.yaml, automation.yaml, policies/) |
 | `ami/config/extensions.yaml` | Registered CLI extensions (single source of truth for banner + `.boot-linux/bin/`) |
 | `projects/*/` | Project-specific implementations - **often contain prototypes** that already solve part of the problem |
-| `projects/AMI-STREAMS/ansible/` | Infrastructure-as-code - deployed services, roles, playbooks |
+| `projects/WORKSPACE-STREAMS/ansible/` | Infrastructure-as-code - deployed services, roles, playbooks |
 | `docs/` and `docs/specifications/` | Specs, architecture docs, requirement docs |
 | `.boot-linux/bin/` | Bootstrapped binaries (134+ executables) |
 | `ami/scripts/bootstrap/` | Bootstrap scripts that install tools |
@@ -29,7 +29,7 @@ Find ALL code, config, scripts, ansible roles, docker-compose services, and CLI 
 Identify deployed services that are already running and relevant:
 - Docker/Podman containers (`podman ps`, docker-compose files)
 - Systemd units (ansible-managed services)
-- Ansible roles and playbooks (especially in `projects/AMI-STREAMS/ansible/`)
+- Ansible roles and playbooks (especially in `projects/WORKSPACE-STREAMS/ansible/`)
 - Network services (ports, listeners, relays)
 
 ### 1.3 Prototype Scan
@@ -52,7 +52,7 @@ Map how the feature connects to existing AMI systems:
 | **Keycloak** | Auth/identity - JWT auth, OIDC, OAuth2 |
 | **ami-cron** | Scheduled automation - AMI-tagged crontab entries |
 | **ami-docs** | Document generation - pandoc, wkhtmltopdf, pdflatex, etc. |
-| **Ansible** | Infrastructure provisioning - playbooks in AMI-STREAMS |
+| **Ansible** | Infrastructure provisioning - playbooks in WORKSPACE-STREAMS |
 | **Docker/Podman** | Containerized services |
 | **Exim relay** | SMTP relay to external providers (port 2525/2526) |
 | **Postmoogle** | Email↔Matrix bridge |

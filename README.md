@@ -19,6 +19,17 @@ make install
 ```
 *The `make install` TUI handles the federated dependency graph. Choose the sub-projects relevant to your development focus. Once finished, `ami-oc` (opencode wrapper) will be available in your path.*
 
+### Post-Install: System Log Ceilings (requires sudo)
+After `make install`, enforce system-wide log ceilings to prevent runaway processes from filling the root disk:
+```bash
+make enforce-syslog-limits
+```
+This configures:
+- **`/etc/logrotate.d/rsyslog`**: rotates `/var/log/syslog` at 500M (or daily), keeping 7 compressed copies
+- **`/etc/systemd/journald.conf`**: rate limit 2000 msgs/30s, 2G total storage, only `err+` forwarded to syslog
+
+*Incident 2026-07-05: A corrupted Turbopack SST DB caused `ami-portal-dev` to panic-loop at ~50k lines/sec, filling `/var/log/syslog` to 697G.*
+
 ---
 
 ## 2. Workspace Philosophy
@@ -51,6 +62,9 @@ This workspace is not a standard monorepo; it is a **federated system**.
 3.  **Bootstrap Drift:**
     *   **Reason:** Your local `.moon/` cache or `workspace-clones.yaml` is out of sync with the upstream.
     *   **Fix:** Run `moon run :update` to force a topological synchronization of the workspace graph.
+4.  **Root disk filling up (`/var/log/syslog` growing uncontrollably):**
+    *   **Reason:** A dev process (portal, CI, etc.) is emitting log lines in an infinite loop; logrotate has no size ceiling and journald forwards all levels to syslog.
+    *   **Fix:** Run `make enforce-syslog-limits` to install log-rate ceilings. Then investigate which process is spamming: `journalctl --user -u <service> --since '5 min ago' | tail`.
 
 ---
 

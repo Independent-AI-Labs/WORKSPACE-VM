@@ -1,9 +1,9 @@
 # Specification: Enterprise Mail Extension (`ami-mail`)
 
 **Status:** MOVED
-**Moved to:** `projects/AMI-STREAMS/docs/SPEC-MAIL.md`
+**Moved to:** `projects/WORKSPACE-STREAMS/docs/SPEC-MAIL.md`
 
-ami-mail is now built as a himalaya fork in the AMI-STREAMS project. Requirements and specifications live there.
+ami-mail is now built as a himalaya fork in the WORKSPACE-STREAMS project. Requirements and specifications live there.
 
 ---
 
@@ -444,7 +444,7 @@ Uses `dns.resolver` (dnspython) or subprocess `dig`/`nslookup`:
 | File | Purpose |
 |------|---------|
 | `ami/scripts/bin/ami_mail.py` | CLI entry point (309 lines, stdlib) |
-| `projects/AMI-STREAMS/extension.manifest.yaml` | Extension registration (enterprise category) |
+| `projects/WORKSPACE-STREAMS/extension.manifest.yaml` | Extension registration (enterprise category) |
 
 ### Target (v2)
 

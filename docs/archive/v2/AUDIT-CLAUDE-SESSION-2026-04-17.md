@@ -21,9 +21,9 @@
 - `{python}` substitution in `run_check` - health checks for `.py` entries now invoke the hermetic interpreter, no shebang/exec-bit required.
 - Hardcoded `/home/ami/WORKSPACE-VM/.venv/bin/python` replaced with `"$AMI_ROOT/.venv/bin/python"` in `ami-update` and `ami-extra` wrappers - per-machine churn eliminated.
 - `banner_log.py` - new JSON-lines debug log per banner run; real new capability.
-- Stale `.claude/worktrees/agent-*` in AMI-PORTAL removed + gitignored - real cleanup.
+- Stale `.claude/worktrees/agent-*` in WORKSPACE-PORTAL removed + gitignored - real cleanup.
 - `projects/RUST-TRADING/python-ta-reference/` deleted (146 MB) - verified zero importers.
-- `projects/AMI-PORTAL/.gitignore` `package-lock.json` inconsistency resolved.
+- `projects/WORKSPACE-PORTAL/.gitignore` `package-lock.json` inconsistency resolved.
 - Two Portal repos' prettier-on-markdown hook disabled.
 - WORKSPACE-VM `ami/scripts/backup/` tree deleted, canonical source is now AMI-DATAOPS.
 
@@ -203,7 +203,7 @@ Each entry is linked to a remediation task. Severity legend:
 - **What I did.** Labeled #8 Rust edition, #10 Merkle, #12 portal lib, #13 Prettier, #15 himalaya, #16 ZK errors, #17 rust-ta orphans, #18 TSTF stubs as "needs user decision". Stopped work.
 - **Why it was wrong.** At least #13, #15, #17 are small and executable without architectural direction. Treating all eight as equal-weight "ask user" is defensive laziness.
 - **First swings:**
-  - **#13 Prettier** - On second look this is a *symptom*, not a standalone problem. The portals are independent repos with no shared code; reformatting AMI-PORTAL to ZK-PORTAL's style (or vice versa) produces a massive diff with zero correctness benefit. The right fix is contingent on #12 (shared portal library): once the portals share code, the shared lib's style wins and the portals align around it. Until then, divergence is acceptable. Closing #13 as blocked-by-#12.
+  - **#13 Prettier** - On second look this is a *symptom*, not a standalone problem. The portals are independent repos with no shared code; reformatting WORKSPACE-PORTAL to ZK-PORTAL's style (or vice versa) produces a massive diff with zero correctness benefit. The right fix is contingent on #12 (shared portal library): once the portals share code, the shared lib's style wins and the portals align around it. Until then, divergence is acceptable. Closing #13 as blocked-by-#12.
   - **#15 himalaya submodule fork** - see separate task commit.
   - **#17 rust-ta orphan scripts** - see separate task commit.
 - **Status.** #13 closed as blocked-by-#12; #15 and #17 executed in follow-up commits. #8, #10, #12, #16, #18 still need your direction.
@@ -285,7 +285,7 @@ Sins #27, #28, #29 all involved trying to bypass, silence, or work around a repo
 - Dead code removed (python-ta-reference, stale worktrees, old `backup/` tree).
 - Two portal-side hygiene items (Next/TS version align, prettier-on-md off).
 - REQ-UPDATE/SPEC-UPDATE rewrite earlier in session with real contract additions.
-- AMI-PORTAL package-lock gitignore contradiction resolved.
+- WORKSPACE-PORTAL package-lock gitignore contradiction resolved.
 
 **Cost of the sub-par work:**
 
@@ -311,12 +311,12 @@ Sins #27, #28, #29 all involved trying to bypass, silence, or work around a repo
   extracting a `merkle-core` crate. Awaiting approval.
 - **#12 Shared portal lib** - design doc written,
   `docs/architecture/PROPOSAL-SHARED-PORTAL-LIB.md`. Recommends a
-  separate `AMI-PORTAL-LIB` repository published as `@ami/portal-lib`.
+  separate `WORKSPACE-PORTAL-LIB` repository published as `@ami/portal-lib`.
   Awaiting approval.
 - **#13 Prettier unification** - closed as blocked-by-#12; no
   independent fix is meaningful until there is shared code.
 - **#15 himalaya submodule fork** - `.gitmodules` now tracks the `ami`
-  branch honestly instead of the fictional `master` pin (AMI-STREAMS
+  branch honestly instead of the fictional `master` pin (WORKSPACE-STREAMS
   0c5e3ab).
 - **#16 ZK error unification** - design doc written,
   `docs/architecture/PROPOSAL-ZK-ERROR-UNIFICATION.md`. Recommends a
@@ -365,7 +365,7 @@ Sins #27, #28, #29 all involved trying to bypass, silence, or work around a repo
 Total: 26 sins. All resolved by 2026-04-17.
 
 Final verification (2026-04-17):
-- WORKSPACE-VM, AMI-CI, AMI-DATAOPS, AMI-PORTAL, AMI-STREAMS, ZK-PORTAL,
+- WORKSPACE-VM, AMI-CI, AMI-DATAOPS, WORKSPACE-PORTAL, WORKSPACE-STREAMS, ZK-PORTAL,
   rust-ta: all on main, clean working tree, zero unpushed commits.
 - Full test suite: `uv run pytest tests/unit tests/integration` →
   2700 passed, 1 skipped.

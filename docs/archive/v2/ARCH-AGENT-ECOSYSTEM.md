@@ -17,7 +17,7 @@ graph TD
     subgraph BROWSER["Browser Clients"]
         TRADING_UI["AMI-TRADING<br/><i>Chat Sidebar (SSE)</i>"]
         SRP_UI["AMI-SRP<br/><i>Ops Center + Agent Chat</i>"]
-        PORTAL_UI["AMI-PORTAL<br/><i>Workspace</i>"]
+        PORTAL_UI["WORKSPACE-PORTAL<br/><i>Workspace</i>"]
     end
 
     subgraph HOST["Agent Host"]

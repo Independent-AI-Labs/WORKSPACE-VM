@@ -10,7 +10,7 @@
 
 ## Background
 
-The previous extension system used a single centralized `extensions.yaml` file listing all CLI tools. That didn't scale - adding an extension required editing a shared config file, there was no dependency tracking, and tools in external submodules (AMI-STREAMS, AMI-DATAOPS) had no way to self-register. Discovery is now per-component `extension.manifest.yaml` files (see SPEC-EXTENSIONS).
+The previous extension system used a single centralized `extensions.yaml` file listing all CLI tools. That didn't scale - adding an extension required editing a shared config file, there was no dependency tracking, and tools in external submodules (WORKSPACE-STREAMS, AMI-DATAOPS) had no way to self-register. Discovery is now per-component `extension.manifest.yaml` files (see SPEC-EXTENSIONS).
 
 ---
 

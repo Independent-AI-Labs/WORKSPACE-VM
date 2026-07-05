@@ -156,12 +156,14 @@ class TestInstallComponent:
     def test_installs_workspace_repo_via_pull(self, mock_pull) -> None:
         """Test WORKSPACE_REPO pulls existing repo."""
         comp = Component(
-            name="ami-portal",
-            label="ami-portal",
-            description="[optional] git@example.com:foo.git -> projects/AMI-PORTAL",
+            name="workspace-portal",
+            label="workspace-portal",
+            description=(
+                "[optional] git@example.com:foo.git -> projects/WORKSPACE-PORTAL"
+            ),
             type=ComponentType.WORKSPACE_REPO,
             group="Workspace Repositories",
-            detect_path="projects/AMI-PORTAL",
+            detect_path="projects/WORKSPACE-PORTAL",
         )
 
         result = install_component(comp)
@@ -394,7 +396,7 @@ class TestPullWorkspaceRepo:
     def test_clones_missing_repo_via_bootstrap(self, mock_run) -> None:
         """Missing repo (no .git) calls bootstrap-repos --include."""
         comp = Component(
-            name="ami-portal",
+            name="workspace-portal",
             label="T",
             description="T",
             type=ComponentType.WORKSPACE_REPO,
@@ -407,7 +409,7 @@ class TestPullWorkspaceRepo:
         call_args = mock_run.call_args[0][0]
         assert call_args[0] == "bash"
         assert "--include" in call_args
-        assert call_args[-1] == "ami-portal"
+        assert call_args[-1] == "workspace-portal"
 
     @patch("workspace.scripts.bootstrap_install.subprocess.run")
     def test_clone_failure_does_not_crash(self, mock_run) -> None:
@@ -416,7 +418,7 @@ class TestPullWorkspaceRepo:
             returncode=1, cmd="bootstrap-repos"
         )
         comp = Component(
-            name="ami-portal",
+            name="workspace-portal",
             label="T",
             description="T",
             type=ComponentType.WORKSPACE_REPO,

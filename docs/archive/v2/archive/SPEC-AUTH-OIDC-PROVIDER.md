@@ -43,8 +43,8 @@ The AUTH-FRAGMENTATION-AUDIT (February 2026) identified:
 | 1 | AMI-AUTH | `projects/AMI-AUTH/` | TypeScript, NextAuth.js v5 | Active (Portal only) |
 | 2 | base/opsec | `base/backend/opsec/` | Python, ~4,700 lines | **Unused** |
 | 3 | AMI-TRADING | `projects/AMI-TRADING/src/` | Python, FastAPI, HS256 JWT | Active (Trading only) |
-| 4 | Matrix/MAS | `projects/AMI-STREAMS/ansible/` | Ansible-deployed OAuth2 | Active (Matrix only) |
-| 5 | AMI-PORTAL | `projects/AMI-PORTAL/` | Delegates to AMI-AUTH TS | Active |
+| 4 | Matrix/MAS | `projects/WORKSPACE-STREAMS/ansible/` | Ansible-deployed OAuth2 | Active (Matrix only) |
+| 5 | WORKSPACE-PORTAL | `projects/WORKSPACE-PORTAL/` | Delegates to AMI-AUTH TS | Active |
 | 6 | Backup OAuth | `projects/AMI-DATAOPS/ami/dataops/backup/` | Google OAuth2 (standalone) | Active |
 
 **Critical failures:**
@@ -76,7 +76,7 @@ flowchart TD
         DB[(PostgreSQL<br/>users, clients, tokens, keys)]
     end
 
-    Portal["AMI-PORTAL<br/>(NextAuth.js)"]
+    Portal["WORKSPACE-PORTAL<br/>(NextAuth.js)"]
     Trading["AMI-TRADING<br/>(FastAPI)"]
     Matrix["Matrix/MAS<br/>(Synapse)"]
     TSLib["@ami/auth<br/>TypeScript Library"]
@@ -103,7 +103,7 @@ AMI-AUTH becomes a dual-runtime project within the agents monorepo:
 | Client library | TypeScript (Node.js) | NextAuth.js wrapper for Portal | `src/index.ts` |
 | OIDC server | Python 3.12 (FastAPI) | Identity provider + DataOps API | `backend/main.py` |
 
-The TypeScript `src/` directory is consumed by AMI-PORTAL at build time via `"@ami/auth": "file:../AMI-AUTH"` in `package.json`. The Python `backend/` directory runs as a standalone FastAPI service. They share no runtime coupling.
+The TypeScript `src/` directory is consumed by WORKSPACE-PORTAL at build time via `"@ami/auth": "file:../AMI-AUTH"` in `package.json`. The Python `backend/` directory runs as a standalone FastAPI service. They share no runtime coupling.
 
 ### 4.2. Request Flow: Authorization Code + PKCE
 
@@ -374,7 +374,7 @@ Defined in `projects/AMI-AUTH/src/types.ts:64-90`. The provider catalog endpoint
   "id": "ami-oidc",
   "providerType": "oauth2",
   "mode": "oauth",
-  "clientId": "ami-portal",
+  "clientId": "workspace-portal",
   "clientSecret": "<configured-secret>",
   "wellKnown": "https://auth.example.com/.well-known/openid-configuration",
   "flags": { "allowDangerousEmailAccountLinking": true }
@@ -427,7 +427,7 @@ Registered relying parties (Portal, Trading, Matrix, etc.).
 
 | Column | Type | Constraints | Notes |
 |---|---|---|---|
-| `id` | `VARCHAR(48)` | PK | e.g. `ami-portal`, `ami-trading` |
+| `id` | `VARCHAR(48)` | PK | e.g. `workspace-portal`, `ami-trading` |
 | `client_secret_hash` | `VARCHAR(255)` | Nullable | bcrypt hash. Null for public clients (PKCE-only). |
 | `client_name` | `VARCHAR(255)` | NOT NULL | Human-readable |
 | `redirect_uris` | `TEXT[]` | NOT NULL | Allowed callback URLs |
@@ -742,7 +742,7 @@ dev = [
 
 ### 11.7. CORS
 
-AMI-PORTAL runs on a different origin than the OIDC service. The following CORS configuration is required:
+WORKSPACE-PORTAL runs on a different origin than the OIDC service. The following CORS configuration is required:
 
 ```python
 from fastapi.middleware.cors import CORSMiddleware

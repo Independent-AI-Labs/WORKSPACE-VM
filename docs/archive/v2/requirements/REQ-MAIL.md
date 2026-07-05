@@ -1,9 +1,9 @@
 # Requirements: Enterprise Mail Extension (`ami-mail`)
 
 **Status:** MOVED
-**Moved to:** `projects/AMI-STREAMS/docs/REQ-MAIL.md`
+**Moved to:** `projects/WORKSPACE-STREAMS/docs/REQ-MAIL.md`
 
-ami-mail is now built as a himalaya fork in the AMI-STREAMS project. Requirements and specifications live there.
+ami-mail is now built as a himalaya fork in the WORKSPACE-STREAMS project. Requirements and specifications live there.
 
 ---
 
@@ -130,7 +130,7 @@ This is a core agent automation capability: an agent sends an email asking a hum
 
 - **Local mail storage** - no Maildir, no mbsync, no notmuch sync
 - **Interactive TUI** - use himalaya directly for interactive use
-- **Postmoogle integration** - Postmoogle is a Matrix-internal email bridge for Matrix's own needs (deployed via AMI-STREAMS). Not related to ami-mail.
+- **Postmoogle integration** - Postmoogle is a Matrix-internal email bridge for Matrix's own needs (deployed via WORKSPACE-STREAMS). Not related to ami-mail.
 - **PGP/S/MIME encryption** - deferred to future phase
 - **Bounce handling** - deferred to future phase
 - **Mail queue/retry** - deferred to future phase

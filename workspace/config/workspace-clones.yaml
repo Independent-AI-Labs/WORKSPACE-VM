@@ -19,9 +19,9 @@ workspaceClones:
     remote: 'git@github.com:Independent-AI-Labs/AMI-DOCS.git'
     path: 'projects/docs'
     mandatory: false
-  ami-portal:
-    remote: 'git@github.com:Independent-AI-Labs/AMI-PORTAL.git'
-    path: 'projects/AMI-PORTAL'
+  workspace-portal:
+    remote: 'git@github.com:Independent-AI-Labs/WORKSPACE-PORTAL.git'
+    path: 'projects/WORKSPACE-PORTAL'
     mandatory: false
   ami-srp:
     remote: 'git@github.com:Independent-AI-Labs/AMI-SRP.git'
@@ -31,9 +31,9 @@ workspaceClones:
     remote: 'git@github.com:Independent-AI-Labs/AMI-BROWSER.git'
     path: 'projects/AMI-BROWSER'
     mandatory: false
-  ami-streams:
-    remote: 'git@github.com:Independent-AI-Labs/AMI-STREAMS.git'
-    path: 'projects/AMI-STREAMS'
+  workspace-streams:
+    remote: 'git@github.com:Independent-AI-Labs/WORKSPACE-STREAMS.git'
+    path: 'projects/WORKSPACE-STREAMS'
     mandatory: false
   ami-trading:
     remote: 'git@github.com:Independent-AI-Labs/AMI-TRADING.git'

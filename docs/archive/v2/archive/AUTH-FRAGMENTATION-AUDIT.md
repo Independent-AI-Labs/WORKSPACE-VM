@@ -21,7 +21,7 @@ This document catalogues every auth implementation found.
 **Location:** `projects/AMI-AUTH/`
 **Type:** NPM library (not a standalone service)
 **Framework:** NextAuth.js v5 wrapper
-**Consumer:** AMI-PORTAL (only)
+**Consumer:** WORKSPACE-PORTAL (only)
 
 ### Architecture
 
@@ -29,7 +29,7 @@ AMI-AUTH is a **shared library** that wraps NextAuth.js conventions. It is NOT a
 
 ```
 @ami/auth (library)
-  -> Consumed by AMI-PORTAL via package.json: "file:../AMI-AUTH"
+  -> Consumed by WORKSPACE-PORTAL via package.json: "file:../AMI-AUTH"
   -> Talks to DataOps service for user storage (optional)
   -> Falls back to local JSON files when DataOps unavailable
 ```
@@ -129,9 +129,9 @@ When a request passes auth, middleware injects:
 
 ---
 
-## 2. AMI-PORTAL: TypeScript/Next.js Application
+## 2. WORKSPACE-PORTAL: TypeScript/Next.js Application
 
-**Location:** `projects/AMI-PORTAL/`
+**Location:** `projects/WORKSPACE-PORTAL/`
 **Type:** Next.js web application
 **Auth:** Delegates 100% to `@ami/auth`
 
@@ -292,9 +292,9 @@ fastapi==0.128.0 # Web framework with security utilities
 
 ---
 
-## 4. AMI-STREAMS: Matrix Synapse Homeserver
+## 4. WORKSPACE-STREAMS: Matrix Synapse Homeserver
 
-**Location:** `projects/AMI-STREAMS/`
+**Location:** `projects/WORKSPACE-STREAMS/`
 **Type:** Ansible-deployed Matrix homeserver
 **Auth:** Matrix Synapse built-in + Matrix Authentication Service
 
@@ -625,7 +625,7 @@ The `base/` module has **everything** needed for a unified auth system:
 
 ## FRAGMENTATION MATRIX
 
-| Dimension | AMI-AUTH / Portal | AMI-TRADING | AMI-STREAMS | Base (unused) | Orchestrator |
+| Dimension | AMI-AUTH / Portal | AMI-TRADING | WORKSPACE-STREAMS | Base (unused) | Orchestrator |
 |-----------|-------------------|-------------|-------------|---------------|--------------|
 | **Language** | TypeScript | Python | Ansible/YAML | Python | Python |
 | **Framework** | NextAuth.js v5 | FastAPI | Matrix Synapse | FastAPI | Custom |
@@ -714,7 +714,7 @@ No central secrets manager is consistently used despite `SECRETS_BROKER_*` env v
 
 - AMI-AUTH: Has `security-logger.ts` with structured security events
 - AMI-TRADING: No audit logging whatsoever
-- AMI-STREAMS: Matrix Synapse has its own logging
+- WORKSPACE-STREAMS: Matrix Synapse has its own logging
 - Base: Has blockchain-based audit trail (**unused**)
 - No centralized audit trail
 
@@ -738,7 +738,7 @@ The `base/` module has full MFA support (TOTP, WebAuthn, backup codes) that coul
 
 | Category | Count | Services |
 |----------|-------|----------|
-| TypeScript auth systems | 2 | @ami/auth library, AMI-PORTAL consumer |
+| TypeScript auth systems | 2 | @ami/auth library, WORKSPACE-PORTAL consumer |
 | Python auth systems | 3 | AMI-TRADING FastAPI, Base opsec (unused), Orchestrator backup |
 | Infrastructure auth | 2 | Matrix Synapse, OpenVPN |
 | Total independent user stores | 4 | DataOps/JSON, PostgreSQL, Synapse DB, Base Postgres+Dgraph (unused) |
@@ -762,15 +762,15 @@ The `base/` module has full MFA support (TOTP, WebAuthn, backup codes) that coul
 - `projects/AMI-AUTH/src/security-logger.ts`: Audit logging (82 lines)
 - `projects/AMI-AUTH/src/client.ts`: Browser fetch wrapper (26 lines)
 
-### AMI-PORTAL
-- `projects/AMI-PORTAL/app/api/auth/[...nextauth]/route.ts`: NextAuth handler
-- `projects/AMI-PORTAL/app/auth/signin/page.tsx`: Sign-in page
-- `projects/AMI-PORTAL/app/auth/signin/SignInForm.tsx`: Sign-in form (275 lines)
-- `projects/AMI-PORTAL/app/auth/signin/guest/guest-handler.ts`: Guest flow
-- `projects/AMI-PORTAL/app/lib/auth-guard.ts`: API protection (44 lines)
-- `projects/AMI-PORTAL/middleware.ts`: Route middleware
-- `projects/AMI-PORTAL/src/components/account/AccountDrawer.tsx`: Account UI (647 lines)
-- `projects/AMI-PORTAL/app/lib/store.ts:216-570`: Account store
+### WORKSPACE-PORTAL
+- `projects/WORKSPACE-PORTAL/app/api/auth/[...nextauth]/route.ts`: NextAuth handler
+- `projects/WORKSPACE-PORTAL/app/auth/signin/page.tsx`: Sign-in page
+- `projects/WORKSPACE-PORTAL/app/auth/signin/SignInForm.tsx`: Sign-in form (275 lines)
+- `projects/WORKSPACE-PORTAL/app/auth/signin/guest/guest-handler.ts`: Guest flow
+- `projects/WORKSPACE-PORTAL/app/lib/auth-guard.ts`: API protection (44 lines)
+- `projects/WORKSPACE-PORTAL/middleware.ts`: Route middleware
+- `projects/WORKSPACE-PORTAL/src/components/account/AccountDrawer.tsx`: Account UI (647 lines)
+- `projects/WORKSPACE-PORTAL/app/lib/store.ts:216-570`: Account store
 
 ### AMI-TRADING
 - `projects/AMI-TRADING/src/core/security.py`: JWT + bcrypt (46 lines)
@@ -780,8 +780,8 @@ The `base/` module has full MFA support (TOTP, WebAuthn, backup codes) that coul
 - `projects/AMI-TRADING/src/types/config.py`: JWT config (338 lines)
 - `projects/AMI-TRADING/src/delivery/cli/user_commands.py`: CLI tools (195 lines)
 
-### AMI-STREAMS
-- `projects/AMI-STREAMS/ansible/inventory/host_vars/mx1.p9q3fjcwcla0.uk/vars.yml`: All Matrix auth config
+### WORKSPACE-STREAMS
+- `projects/WORKSPACE-STREAMS/ansible/inventory/host_vars/mx1.p9q3fjcwcla0.uk/vars.yml`: All Matrix auth config
 
 ### Base Module (UNUSED, at `/home/ami/Projects/AMI-ORCHESTRATOR/base/`)
 - `backend/opsec/auth/auth_service.py`: Core auth service (269 lines)

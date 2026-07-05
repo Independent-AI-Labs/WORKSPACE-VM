@@ -12,7 +12,7 @@
 
 1. [Overview](#1-overview)
 2. [Migration Order](#2-migration-order)
-3. [AMI-PORTAL Migration](#3-ami-portal-migration)
+3. [WORKSPACE-PORTAL Migration](#3-workspace-portal-migration)
 4. [AMI-TRADING Migration](#4-ami-trading-migration)
 5. [Matrix/MAS Migration](#5-matrix-mas-migration)
 6. [Rollback Strategy](#6-rollback-strategy)
@@ -28,7 +28,7 @@ Once the OIDC provider (SPEC-AUTH-OIDC-PROVIDER Phase 1 + Phase 2) is operationa
 
 | Consumer | Current Auth | Token Format | User Store |
 |---|---|---|---|
-| AMI-PORTAL | NextAuth.js via `@ami/auth` TS library | Session cookie (NextAuth) | Local JSON / DataOps API |
+| WORKSPACE-PORTAL | NextAuth.js via `@ami/auth` TS library | Session cookie (NextAuth) | Local JSON / DataOps API |
 | AMI-TRADING | Custom FastAPI JWT auth | HS256 JWT + httpOnly cookie | PostgreSQL (local users table) |
 | Matrix/MAS | Matrix Authentication Service | MAS OAuth2 tokens | MAS internal store |
 
@@ -36,7 +36,7 @@ Once the OIDC provider (SPEC-AUTH-OIDC-PROVIDER Phase 1 + Phase 2) is operationa
 
 | Consumer | Target Auth | Token Format | User Store |
 |---|---|---|---|
-| AMI-PORTAL | OIDC via wellKnown discovery | RS256 JWT (from OIDC provider) | OIDC provider `/auth/users/*` |
+| WORKSPACE-PORTAL | OIDC via wellKnown discovery | RS256 JWT (from OIDC provider) | OIDC provider `/auth/users/*` |
 | AMI-TRADING | OIDC token validation via JWKS | RS256 JWT (from OIDC provider) | OIDC provider (via token claims) |
 | Matrix/MAS | Upstream OIDC delegation | RS256 JWT (from OIDC provider) | OIDC provider (via userinfo) |
 
@@ -60,17 +60,17 @@ flowchart LR
     P2 --> Matrix
 ```
 
-**SPEC-MIG-001**: AMI-PORTAL shall be migrated first because it requires zero code changes (environment variables only) and validates the DataOps API contract.
+**SPEC-MIG-001**: WORKSPACE-PORTAL shall be migrated first because it requires zero code changes (environment variables only) and validates the DataOps API contract.
 
 **SPEC-MIG-002**: AMI-TRADING and Matrix/MAS migrations require OIDC endpoints (Phase 2) and can proceed in parallel after Phase 2 is complete.
 
 ---
 
-## 3. AMI-PORTAL Migration
+## 3. WORKSPACE-PORTAL Migration
 
 ### 3.1. Scope
 
-AMI-PORTAL uses the `@ami/auth` TypeScript library which calls the DataOps API via `DataOpsClient` in `projects/AMI-AUTH/src/dataops-client.ts`. The migration involves:
+WORKSPACE-PORTAL uses the `@ami/auth` TypeScript library which calls the DataOps API via `DataOpsClient` in `projects/AMI-AUTH/src/dataops-client.ts`. The migration involves:
 
 1. Pointing the DataOps client at the new Python service
 2. Adding the OIDC provider to the provider catalog
@@ -79,7 +79,7 @@ AMI-PORTAL uses the `@ami/auth` TypeScript library which calls the DataOps API v
 
 ### 3.2. Environment Configuration
 
-Set the following environment variables in AMI-PORTAL's deployment:
+Set the following environment variables in WORKSPACE-PORTAL's deployment:
 
 ```bash
 # Point DataOps client at the Python OIDC service
@@ -101,7 +101,7 @@ The OIDC provider registers itself in the provider catalog endpoint (`GET /auth/
     "id": "ami-oidc",
     "providerType": "oauth2",
     "mode": "oauth",
-    "clientId": "ami-portal",
+    "clientId": "workspace-portal",
     "clientSecret": "<portal-client-secret>",
     "wellKnown": "https://auth.example.com/.well-known/openid-configuration",
     "flags": {
@@ -123,13 +123,13 @@ And `providerType: "oauth2"` maps to a generic OAuth provider at `config.ts:244-
 
 ### 3.4. Client Registration
 
-Register `ami-portal` as an OIDC client in the provider's `oauth_clients` table:
+Register `workspace-portal` as an OIDC client in the provider's `oauth_clients` table:
 
 | Field | Value |
 |---|---|
-| `id` | `ami-portal` |
+| `id` | `workspace-portal` |
 | `client_secret_hash` | bcrypt hash of client secret |
-| `client_name` | AMI Portal |
+| `client_name` | WORKSPACE Portal |
 | `redirect_uris` | `["https://portal.example.com/api/auth/callback/ami-oidc"]` |
 | `grant_types` | `["authorization_code", "refresh_token"]` |
 | `scope` | `openid profile email roles` |
@@ -322,7 +322,7 @@ Register `ami-trading` as an OIDC client:
 
 ### 5.1. Scope
 
-Matrix Synapse uses the Matrix Authentication Service (MAS) deployed via Ansible at `projects/AMI-STREAMS/ansible/matrix-docker-ansible-deploy/`. MAS already supports upstream OIDC providers. The migration adds AMI-AUTH as an upstream provider.
+Matrix Synapse uses the Matrix Authentication Service (MAS) deployed via Ansible at `projects/WORKSPACE-STREAMS/ansible/matrix-docker-ansible-deploy/`. MAS already supports upstream OIDC providers. The migration adds AMI-AUTH as an upstream provider.
 
 ### 5.2. MAS Configuration
 
@@ -393,7 +393,7 @@ The OIDC provider's `/oauth/userinfo` endpoint returns these claims as specified
 
 ## 6. Rollback Strategy
 
-### 6.1. AMI-PORTAL Rollback
+### 6.1. WORKSPACE-PORTAL Rollback
 
 Remove `DATAOPS_AUTH_URL` environment variable. The `DataOpsClient` at `dataops-client.ts:179-195` falls back to local store when `this.baseUrl` is null:
 
@@ -456,7 +456,7 @@ Validate that a single user identity works across all services:
 ```mermaid
 sequenceDiagram
     participant User
-    participant Portal as AMI-PORTAL
+    participant Portal as WORKSPACE-PORTAL
     participant Auth as OIDC Provider
     participant Trading as AMI-TRADING
     participant Matrix as Matrix/MAS

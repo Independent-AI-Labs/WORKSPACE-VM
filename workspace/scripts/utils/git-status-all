@@ -45,10 +45,10 @@ while IFS= read -r git_dir; do
         if [[ -s "$_branch_err" ]]; then cat "$_branch_err" >&2; fi
         branch="detached"
     fi
-    if ! status=$("$REAL_GIT" -C "$repo_dir" status -porcelain 2>"$_status_err"); then
+    if ! status=$("$REAL_GIT" -C "$repo_dir" status --porcelain 2>"$_status_err"); then
         if [[ -s "$_status_err" ]]; then cat "$_status_err" >&2; fi
     fi
-    if ! ahead_behind=$("$REAL_GIT" -C "$repo_dir" rev-list -left-right -count HEAD...@{upstream} 2>"$_ab_err"); then
+    if ! ahead_behind=$("$REAL_GIT" -C "$repo_dir" rev-list --left-right --count HEAD...@{upstream} 2>"$_ab_err"); then
         if [[ -s "$_ab_err" ]]; then cat "$_ab_err" >&2; fi
         ahead_behind="? ?"
     fi

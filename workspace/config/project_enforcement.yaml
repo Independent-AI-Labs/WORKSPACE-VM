@@ -53,10 +53,10 @@ exemptions:
     tier: vendored
     reason: "Third-party research code mirrors; not part of the AMI contract"
 
-  # pimalaya-core fork under AMI-STREAMS - tracks pimalaya/core upstream
-  # via a separate origin (Independent-AI-Labs/core); AMI-STREAMS does
+  # pimalaya-core fork under WORKSPACE-STREAMS - tracks pimalaya/core upstream
+  # via a separate origin (Independent-AI-Labs/core); WORKSPACE-STREAMS does
   # not manage its hooks. Vendored here so the workspace wrapper passes
   # commits through to the fork's own development cadence.
-  - path: projects/AMI-STREAMS/pimalaya-core/
+  - path: projects/WORKSPACE-STREAMS/pimalaya-core/
     tier: vendored
-    reason: "Fork of pimalaya/core; tracked upstream, AMI-STREAMS does not manage its CI"
+    reason: "Fork of pimalaya/core; tracked upstream, WORKSPACE-STREAMS does not manage its CI"

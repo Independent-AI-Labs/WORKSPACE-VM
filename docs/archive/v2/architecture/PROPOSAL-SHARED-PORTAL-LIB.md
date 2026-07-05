@@ -1,14 +1,14 @@
-# Proposal: Shared library for AMI-PORTAL and ZK-PORTAL
+# Proposal: Shared library for WORKSPACE-PORTAL and ZK-PORTAL
 
 **Date:** 2026-04-17
 **Status:** DRAFT for approval (SIN #12 of the 2026-04-17 audit)
 
 ## Problem
 
-AMI-PORTAL and ZK-PORTAL are two independent Next.js 16 applications
+WORKSPACE-PORTAL and ZK-PORTAL are two independent Next.js 16 applications
 with diverging toolchains (prettier, eslint, Next.js minor), disjoint
 auth stacks (next-auth vs `jose`), disjoint security-header policies,
-and no code-sharing mechanism. AMI-PORTAL has started a `packages/*`
+and no code-sharing mechanism. WORKSPACE-PORTAL has started a `packages/*`
 npm-workspace layout (`packages/highlight-core`, `packages/highlight-engine`)
 that ZK-PORTAL cannot consume because the two repos are independent
 git remotes.
@@ -27,7 +27,7 @@ for tonight.
 
 ### Option A - Extract a dedicated `@ami/portal-lib` repo
 
-Create a new repository `Independent-AI-Labs/AMI-PORTAL-LIB`
+Create a new repository `Independent-AI-Labs/WORKSPACE-PORTAL-LIB`
 containing shared primitives (auth helpers, session types, security
 headers config, common UI components). Both portals depend on it via
 an npm-published package.
@@ -40,7 +40,7 @@ an npm-published package.
 ### Option B - Add a git-submodule `shared/` inside each portal
 
 Both portals include the same submodule pointing at
-`AMI-PORTAL-LIB`. Simpler than npm publish but brings submodule
+`WORKSPACE-PORTAL-LIB`. Simpler than npm publish but brings submodule
 coordination costs.
 
 - **Pro:** no publish; every portal sees the same HEAD.
@@ -74,10 +74,10 @@ fewer of A's benefits.
 
 ## First-draft scope for A
 
-- Create `Independent-AI-Labs/AMI-PORTAL-LIB` (empty Next.js-library
+- Create `Independent-AI-Labs/WORKSPACE-PORTAL-LIB` (empty Next.js-library
   scaffold, TypeScript, prettier config matches ZK-PORTAL's style).
 - Move `lib/auth/*`, `lib/security/*`, shared session types from
-  AMI-PORTAL into it.
+  WORKSPACE-PORTAL into it.
 - Publish as `@ami/portal-lib` (private npm registry or GitHub
   Packages).
 - Add as dependency in both portals; remove the duplicated files.

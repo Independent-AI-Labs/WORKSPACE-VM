@@ -101,9 +101,9 @@ workspaceClones:
     remote: 'git@github.com:Independent-AI-Labs/AMI-DATAOPS.git'
     path: 'projects/AMI-DATAOPS'
     mandatory: true
-  ami-portal:
-    remote: 'git@github.com:Independent-AI-Labs/AMI-PORTAL.git'
-    path: 'projects/AMI-PORTAL'
+  workspace-portal:
+    remote: 'git@github.com:Independent-AI-Labs/WORKSPACE-PORTAL.git'
+    path: 'projects/WORKSPACE-PORTAL'
     mandatory: false
   ami-srp:
     remote: 'git@github.com:Independent-AI-Labs/AMI-SRP.git'
@@ -128,7 +128,7 @@ class TestMandatoryOnly:
         assert "clone git@github.com:Independent-AI-Labs/AMI-CI.git" in log
         assert "clone git@github.com:Independent-AI-Labs/AMI-DATAOPS.git" in log
         # Optionals must not be cloned.
-        assert "AMI-PORTAL" not in log
+        assert "WORKSPACE-PORTAL" not in log
         assert "AMI-SRP" not in log
         assert "2 processed" in result.stdout
         assert "2 optional skipped" in result.stdout
@@ -143,11 +143,11 @@ class TestIncludeSelection:
         stub = tmp_path / "stub-bin"
         _make_fake_git(stub, log_file)
 
-        result = _run_walker(walker, "--include", "ami-portal", stub_dir=stub)
+        result = _run_walker(walker, "--include", "workspace-portal", stub_dir=stub)
 
         assert result.returncode == 0, result.stderr
         log = log_file.read_text() if log_file.exists() else ""
-        assert "AMI-PORTAL.git" in log
+        assert "WORKSPACE-PORTAL.git" in log
         # Other optional still skipped.
         assert "AMI-SRP" not in log
 
@@ -157,11 +157,13 @@ class TestIncludeSelection:
         stub = tmp_path / "stub-bin"
         _make_fake_git(stub, log_file)
 
-        result = _run_walker(walker, "--include", "ami-portal,ami-srp", stub_dir=stub)
+        result = _run_walker(
+            walker, "--include", "workspace-portal,ami-srp", stub_dir=stub
+        )
 
         assert result.returncode == 0, result.stderr
         log = log_file.read_text() if log_file.exists() else ""
-        assert "AMI-PORTAL.git" in log
+        assert "WORKSPACE-PORTAL.git" in log
         assert "AMI-SRP.git" in log
 
 
@@ -181,7 +183,7 @@ class TestAllOptional:
         for repo in (
             "WORKSPACE-CI.git",
             "AMI-DATAOPS.git",
-            "AMI-PORTAL.git",
+            "WORKSPACE-PORTAL.git",
             "AMI-SRP.git",
         ):
             assert repo in log

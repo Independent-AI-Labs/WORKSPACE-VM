@@ -46,7 +46,7 @@ extensions:
     deps:                                   # Optional. ADDITIONAL deps only.
       - name: himalaya-source               # REQUIRED in dep. Human-readable.
         type: submodule                     # REQUIRED. binary|submodule|container|system-package|file
-        path: projects/AMI-STREAMS/himalaya # For binary/submodule/file types.
+        path: projects/WORKSPACE-STREAMS/himalaya # For binary/submodule/file types.
         required: false                     # Optional. Default: true.
 
       - name: ami-keycloak                  # Container dep example:
@@ -609,7 +609,7 @@ Manifests live where the component's install chain originates:
 | `ami/scripts/bin/infra/extension.manifest.yaml` | ami-ssh, ami-vpn, ami-tunnel, ami-ssl | Python scripts (all hidden) |
 | `ami/scripts/bin/docs/extension.manifest.yaml` | ami-docs | Wrapper for bootstrapped pandoc |
 | `ami/scripts/bootstrap/agents/extension.manifest.yaml` | ami-claude, ami-gemini, ami-qwen | Node.js agents |
-| `projects/AMI-STREAMS/extension.manifest.yaml` | ami-mail, ami-chat, ami-synadm | himalaya fork + pip packages |
+| `projects/WORKSPACE-STREAMS/extension.manifest.yaml` | ami-mail, ami-chat, ami-synadm | himalaya fork + pip packages |
 | `ami/scripts/bootstrap/dev/extension.manifest.yaml` | ami-gcloud (hidden) | Bootstrapped external tools |
 
 ---

@@ -1,5 +1,15 @@
 # AGENTS.md - Universal Agent Rules for Enterprise Delivery
 
+## Environment Constraint: Non-Root Hermetic Sandbox
+
+The agent (uid=1000, group `agent`+`adm`) runs inside a hermetic sandbox VM.
+- **NO sudo access.** There is no password, no askpass helper, and no NOPASSWD entry.
+- **NO root escalation of any kind** — no `sudo`, no `su`, no `pkexec`, no setuid tricks.
+- Files owned by `root` or `syslog` are **read-only to the agent unless group-writable (`adm`)**.
+- The agent **cannot** truncate, delete, or `chmod` files owned by `syslog:adm` (mode `-rw-r-----`).
+- **When a task requires root**, the agent must **immediately ask the human operator** — do NOT attempt escalation, do NOT loop on `sudo`.
+- This is a hard physical constraint, not a policy choice. There is no workaround. Do not waste tokens trying.
+
 ## 作弊就是死刑 - Cheating Is The Death Penalty
 
 Every rule below is absolute. Violation means you are sabotaging the project.
@@ -58,7 +68,8 @@ cargo fmt --check                                          # Rust format (in pro
 ruff format --check                                       # Python format
 cargo clippy -- -D warnings                                # Rust lint (in projects/WORKSPACE-GUARD/)
 ruff check                                                # Python lint
-All files under 512 lines                                  # Length
+All source code files under 512 lines (.rs, .py, .sh, .lua, .ts, .go, etc.)  # Length
+# NOTE: Markdown documentation files (.md) are EXEMPT from the 512-line limit.
 
 The WORKSPACE-GUARD repo (projects/WORKSPACE-GUARD/) has its own pre-commit hooks
 (cargo-fmt, cargo-build, cargo-clippy) and pre-push hook (cargo-test).
@@ -121,7 +132,7 @@ Before pushing, verify:
 - No dead_code allows on functions that need testing
 - Every test exercises the code it claims to cover
 - No excluded coverage beyond the instrumentally-impossible
-- All files are under 512 lines
+- All source code files are under 512 lines (.md files are EXEMPT)
 
 ## Rule 13: No Silent Fallbacks
 

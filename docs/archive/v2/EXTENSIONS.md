@@ -4,8 +4,8 @@
 
 | Extension | Category | Project | Status |
 | :--- | :--- | :--- | :--- |
-| ami-mail | Enterprise | AMI-STREAMS | Ready |
-| ami-chat | Enterprise | AMI-STREAMS | Ready |
+| ami-mail | Enterprise | WORKSPACE-STREAMS | Ready |
+| ami-chat | Enterprise | WORKSPACE-STREAMS | Ready |
 | ami-backup | Dev | AMI-DATAOPS | Ready |
 | ami-restore | Dev | AMI-DATAOPS | Ready |
 | ami-serve | Infra | WORKSPACE-VM | Degraded |

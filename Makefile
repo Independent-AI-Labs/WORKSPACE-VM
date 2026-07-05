@@ -60,7 +60,17 @@ install: init-check sync-package ## Interactive TUI to select and install compon
 	$(MAKE) install-hooks-recursive && \
 	if ! $(MAKE) build-guard; then echo "⚠️  Git guard build failed - continuing without guard"; fi && \
 	if ! $(MAKE) install-guard; then echo "⚠️  Git guard installation skipped (needs sudo)"; fi && \
-	bash workspace/scripts/shell/shell-setup --welcome
+	bash workspace/scripts/shell/shell-setup --welcome && \
+	echo "" && \
+	echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" && \
+	echo "⚠️  POST-INSTALL ACTION REQUIRED (needs sudo):" && \
+	echo "" && \
+	echo "    make enforce-syslog-limits" && \
+	echo "" && \
+	echo "    Enforces system-wide log ceilings (logrotate + journald rate" && \
+	echo "    limiting) to prevent runaway processes from filling the root" && \
+	echo "    disk via /var/log/syslog. See INCIDENT-2026-07-05." && \
+	echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 .PHONY: install-ci
 install-ci: init-check sync-package ## Non-interactive component install (uses install-defaults.yaml)
@@ -72,7 +82,23 @@ install-ci: init-check sync-package ## Non-interactive component install (uses i
 	$(MAKE) install-hooks-recursive && \
 	if ! $(MAKE) build-guard; then echo "⚠️  Git guard build failed - continuing without guard"; fi && \
 	echo "✨ Installation complete (CI mode)!" && \
-	echo "⚠️  Git guard binary built but not installed - run: sudo make install-guard"
+	echo "⚠️  Git guard binary built but not installed - run: sudo make install-guard" && \
+	echo "" && \
+	echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" && \
+	echo "⚠️  POST-INSTALL ACTION REQUIRED (needs sudo):" && \
+	echo "" && \
+	echo "    make enforce-syslog-limits" && \
+	echo "" && \
+	echo "    Enforces system-wide log ceilings (logrotate + journald rate" && \
+	echo "    limiting) to prevent runaway processes from filling the root" && \
+	echo "    disk via /var/log/syslog. See INCIDENT-2026-07-05." && \
+	echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+# --- System hardening (requires sudo -- run after install) ---
+
+.PHONY: enforce-syslog-limits
+enforce-syslog-limits: ## Enforce system-level log ceilings (needs sudo) - delegates to CI
+	@$(MAKE) -C projects/CI enforce-syslog-limits
 
 # --- Repos ---
 
