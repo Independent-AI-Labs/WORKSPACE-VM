@@ -45,6 +45,16 @@ Every rule below is absolute. Violation means you are sabotaging the project.
 - Valid types: `feat|fix|refactor|docs|test|chore|ci|perf|style|build|revert`.
 - No auto-generated messages (merge, fixup, squash) unless whitelisted.
 - No agent self-attribution lines (Co-authored-by, Claude, Anthropic email).
+- **PARTIAL COMMITS ARE BANNED.** You CANNOT stage and commit a subset
+  of changed files. The pre-commit `check-unstaged` hook auto-stages ALL
+  untracked and modified files and then FAILS the commit, forcing a re-run.
+  This means: if 8 stages of work are on disk, you MUST commit ALL of them
+  together in a single commit, OR commit nothing at all. There is no
+  middle ground. The hook makes partial commits physically impossible.
+- When multiple logical changes are on disk simultaneously, combine them
+  into one commit with a multi-line body explaining each part. Do NOT
+  attempt to stage individual files with `git add <file>` and commit them
+  separately - the hook will auto-stage everything else and block you.
 
 ## Rule 3.5: No Going Back - Only Forward
 
