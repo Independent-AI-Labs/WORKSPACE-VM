@@ -68,3 +68,13 @@ exceptions:
   # Double hyphen with spaces in comments (not --flag style)
   - pattern: ' -- '
     paths: ['docs/']
+
+  # bootstrap_hooks.sh documents the cleanup of pre-commit Python artifacts
+  # (the word "legacy" describes what gets removed, not a code path kept).
+  - pattern: '\blegacy\b'
+    paths: ['workspace/scripts/bootstrap/bootstrap_hooks\.sh$']
+
+  # shell-setup strips AMI marker comments from dotfiles; the function
+  # name and log message reference "legacy" as the thing being removed.
+  - pattern: '\blegacy\b'
+    paths: ['workspace/scripts/shell/shell-setup$']

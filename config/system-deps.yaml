@@ -1,0 +1,85 @@
+# System dependencies for WORKSPACE-VM host-side tools.
+# Checked and installed by: make init (via CI's scripts/install-system-deps)
+#
+# Unified schema (shared by CI, VM, GATEWAY). Each entry has:
+#   check_cmd        - binary name to verify on PATH
+#   check_type       - special check: c-compiler | network-tools | libolm-headers | playwright-libs
+#                      (use check_cmd OR check_type, not both)
+#   apt_package      - Debian/Ubuntu package for apt-get install
+#                      (omit if hermetically bootstrapped via bootstrap_script)
+#   description      - human-readable description shown in check output
+#   optional         - if true, missing dep is non-fatal (default false)
+#   bootstrap_script - hermetic installer (apt phase skips these)
+#   component        - tag: which bootstrap component needs this dep
+#
+# Extracted from workspace/config/bootstrap-components.yaml:
+#   - top-level requires: (15 entries; gitleaks excluded - hermetic component)
+#   - playwright component requires: (flattened with component: playwright)
+#   - cron component requires: crontab (duplicate of top-level, skipped)
+#
+# install-system-deps skips any tool already present on the system.
+
+requires:
+  - check_cmd: make
+    apt_package: make
+    description: GNU Make
+
+  - check_cmd: curl
+    apt_package: curl
+    description: curl
+
+  - check_type: c-compiler
+    description: C compiler (gcc/cc/clang)
+
+  - check_cmd: git
+    apt_package: git
+    description: Git version control
+
+  - check_cmd: tar
+    apt_package: tar
+    description: tar archiver
+
+  - check_cmd: gzip
+    apt_package: gzip
+    description: gzip compression
+
+  - check_cmd: dpkg-deb
+    apt_package: dpkg
+    description: dpkg-deb extractor
+
+  - check_cmd: unzip
+    apt_package: unzip
+    description: unzip archive extractor
+
+  - check_type: network-tools
+    description: curl or wget (at least one required)
+
+  - check_cmd: Xvfb
+    apt_package: xvfb
+    description: X Virtual Framebuffer (headless display)
+    optional: true
+
+  - check_cmd: newuidmap
+    apt_package: uidmap
+    description: newuidmap/newgidmap (rootless container UID mapping)
+
+  - check_cmd: slirp4netns
+    apt_package: slirp4netns
+    description: Rootless container networking
+
+  - check_type: libolm-headers
+    apt_package: libolm-dev
+    description: libolm development headers (python-olm build dependency)
+
+  - check_cmd: rg
+    apt_package: ripgrep
+    description: ripgrep (fast recursive search)
+
+  - check_cmd: crontab
+    apt_package: cron
+    description: System cron daemon
+    optional: true
+
+  - check_type: playwright-libs
+    description: Playwright browser dependencies
+    component: playwright

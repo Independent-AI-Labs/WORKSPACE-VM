@@ -14,13 +14,15 @@ help: ## Show this help message
 # --- Init - system dependencies ---
 
 .PHONY: init-check
-init-check: ## Check system dependencies
-	@AMI_ROOT="$$(pwd)" bash workspace/scripts/initial-setup.sh
+init-check: ## Check system dependencies (via CI resolver)
+	@bash projects/CI/scripts/install-system-deps --check
 
 .PHONY: init
-init: ## Install system dependencies
-	@AMI_ROOT="$$(pwd)" bash workspace/scripts/initial-setup.sh --export-missing
-	@AMI_ROOT="$$(pwd)" bash workspace/scripts/initial-setup.sh --install-only
+init: ## Install system dependencies (two-phase sudo via CI resolver)
+	@_missing=$$(mktemp); \
+	bash projects/CI/scripts/install-system-deps --export-missing "$$_missing"; \
+	bash projects/CI/scripts/install-system-deps --install-only "$$_missing"; \
+	rm -f "$$_missing"
 
 # --- Core prereqs ---
 

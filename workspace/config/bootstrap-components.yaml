@@ -1,18 +1,13 @@
 # Bootstrap component manifest - loaded by ami/scripts/bootstrap_component_defs.py
-# and ami/scripts/initial-setup.sh (via inline Python YAML parsing).
+# and ami/scripts/bootstrap_installer.py (via inline Python YAML parsing).
 #
 # Single source of truth for:
-#   1. System dependencies (top-level requires) - checked by initial-setup.sh
-#   2. Bootstrap components (components) - installed by make install / make install-ci
-#   3. Workspace repos - in workspace-clones.yaml, loaded via the same Python module
+#   1. Bootstrap components (components) - installed by make install / make install-ci
+#   2. Workspace repos - in workspace-clones.yaml, loaded via the same Python module
 #
-# requires fields:
-#   check_cmd      - binary name to check for existence on PATH
-#   apt_package    - Debian/Ubuntu package name (for apt install)
-#   description    - human-readable description
-#   bootstrap_script - shell script to run if apt package unavailable
-#   optional       - if true, missing dep is non-fatal (default false)
-#   check_type     - special check type: c-compiler | network-tools | playwright-libs
+# System dependencies (apt-level) have moved to config/system-deps.yaml and are
+# checked by CI's scripts/install-system-deps (called from the Makefile init
+# target). This file no longer contains requires: sections.
 #
 # Component fields:
 #   name           - stable identifier (used by install-defaults.yaml refs).
@@ -25,7 +20,6 @@
 #   version_pattern- regex with one capture group; first match wins.
 #   detect_cmd     - alternative argv when detect_path is unreliable.
 #   package_ref    - npm package name; version is resolved from scripts/package.json.
-#   requires       - system prerequisites for this component (checked by initial-setup.sh).
 
 groups:
   - 'Core Dependencies'
@@ -39,74 +33,6 @@ groups:
   - 'Document Processing'
   - 'Browser & Device Automation'
   - 'Matrix & Communication'
-
-# ---------------------------------------------------------------------------
-# System dependencies - checked by initial-setup.sh on every make install.
-# Union of requires (top-level) + all components[].requires = full check list.
-# ---------------------------------------------------------------------------
-requires:
-  - check_cmd: make
-    apt_package: make
-    description: GNU Make
-
-  - check_cmd: curl
-    apt_package: curl
-    description: curl
-
-  - check_type: c-compiler
-    description: C compiler (gcc/cc/clang)
-
-  - check_cmd: git
-    apt_package: git
-    description: Git version control
-
-  - check_cmd: tar
-    apt_package: tar
-    description: tar archiver
-
-  - check_cmd: gzip
-    apt_package: gzip
-    description: gzip compression
-
-  - check_cmd: dpkg-deb
-    apt_package: dpkg
-    description: dpkg-deb extractor
-
-  - check_cmd: unzip
-    apt_package: unzip
-    description: unzip archive extractor
-
-  - check_type: network-tools
-    description: curl or wget (at least one required)
-
-  - check_cmd: Xvfb
-    apt_package: xvfb
-    description: X Virtual Framebuffer (headless display)
-    optional: true
-
-  - check_cmd: gitleaks
-    description: Gitleaks (secret scanning)
-
-  - check_cmd: newuidmap
-    apt_package: uidmap
-    description: newuidmap/newgidmap (rootless container UID mapping)
-
-  - check_cmd: slirp4netns
-    apt_package: slirp4netns
-    description: Rootless container networking
-
-  - check_type: libolm-headers
-    apt_package: libolm-dev
-    description: libolm development headers (python-olm build dependency)
-
-  - check_cmd: rg
-    apt_package: ripgrep
-    description: ripgrep (fast recursive search)
-
-  - check_cmd: crontab
-    apt_package: cron
-    description: System cron daemon
-    optional: true
 
 components:
   # =========================================================================
@@ -294,11 +220,7 @@ components:
     script: 'bootstrap_cron.sh'
     detect_path: '.boot-linux/bin/cron'
     version_cmd: ['dpkg-query', '-W', '-f=${Version}', 'cron']
-    version_pattern: '(\d+\.\d+\S+)'
-    requires:
-      - check_cmd: crontab
-        apt_package: cron
-        description: System crontab binary
+    version_pattern: '(\d+\.\S+)'
 
   - name: llama_cpu
     label: 'llama.cpp (CPU)'
@@ -404,9 +326,9 @@ components:
     description: 'Count Lines of Code'
     type: script
     group: 'Shell Utilities'
-    script: 'bootstrap_cloc.sh'
-    detect_path: '.boot-linux/bin/cloc'
-    version_cmd: ['.boot-linux/bin/cloc', '--version']
+    script_path: 'projects/CI/scripts/bootstrap-cloc'
+    detect_path: 'projects/CI/.boot-linux/bin/cloc'
+    version_cmd: ['projects/CI/.boot-linux/bin/cloc', '--version']
     version_pattern: '(\d+\.\d+)'
 
   # =========================================================================
@@ -464,9 +386,6 @@ components:
     detect_path: '.boot-linux/playwright-browsers'
     version_cmd: ['.venv/bin/playwright', '--version']
     version_pattern: '(\d+\.\d+\.\d+)'
-    requires:
-      - check_type: playwright-libs
-        description: Playwright browser dependencies
 
   - name: adb
     label: 'ADB'
