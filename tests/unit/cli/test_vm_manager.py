@@ -338,7 +338,8 @@ class TestVMMainDispatch:
         monkeypatch.setattr(subprocess, "run", _fake_subprocess_run)
         monkeypatch.setattr("workspace.cli.vm_core._podman", _fake_podman_run)
         monkeypatch.setattr(
-            "workspace.cli.vm_manager._ensure_podman_machine", lambda: None
+            "workspace.cli.hypervisor.podman_backend._ensure_podman_machine",
+            lambda: None,
         )
         monkeypatch.setattr("workspace.cli.vm_build._get_uid", lambda: "1000")
         _patch_vms_dir(monkeypatch, tmp_path)
@@ -367,7 +368,7 @@ class TestVMMainDispatch:
 
     def test_sync_with_uuid(self, tmp_path: Path, monkeypatch) -> None:
         monkeypatch.setattr(subprocess, "run", _fake_subprocess_run)
-        monkeypatch.setattr("workspace.cli.vm_manager._podman", _fake_podman_run)
+        monkeypatch.setattr("workspace.cli.vm_core._podman", _fake_podman_run)
         monkeypatch.setattr("workspace.cli.vm_core._podman", _fake_podman_run)
         vms_dir = _patch_vms_dir(monkeypatch, tmp_path)
         monkeypatch.setattr("workspace.cli.vm_core._VMS_DIR", vms_dir)
@@ -386,7 +387,8 @@ class TestVMManagerCreate:
         monkeypatch.setattr(subprocess, "run", _fake_subprocess_run)
         monkeypatch.setattr("workspace.cli.vm_core._podman", _fake_podman_run)
         monkeypatch.setattr(
-            "workspace.cli.vm_manager._ensure_podman_machine", lambda: None
+            "workspace.cli.hypervisor.podman_backend._ensure_podman_machine",
+            lambda: None,
         )
         monkeypatch.setattr("workspace.cli.vm_build._get_uid", lambda: "1000")
         _patch_vms_dir(monkeypatch, tmp_path)
@@ -421,7 +423,7 @@ class TestVMManagerSync:
 
     def test_sync_monkeypatched(self, tmp_path: Path, monkeypatch) -> None:
         monkeypatch.setattr(subprocess, "run", _fake_subprocess_run)
-        monkeypatch.setattr("workspace.cli.vm_manager._podman", _fake_podman_run)
+        monkeypatch.setattr("workspace.cli.vm_core._podman", _fake_podman_run)
         monkeypatch.setattr("workspace.cli.vm_core._podman", _fake_podman_run)
         vms_dir = _patch_vms_dir(monkeypatch, tmp_path)
         monkeypatch.setattr("workspace.cli.vm_core._VMS_DIR", vms_dir)

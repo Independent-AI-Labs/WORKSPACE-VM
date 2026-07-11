@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import platform
 import posixpath
 import sys
 from typing import Literal
@@ -145,6 +146,32 @@ class VMSecurityConfig(BaseModel):
     cap_add: list[str] = Field(default_factory=list)
 
 
+def _default_guest_arch() -> Literal["aarch64", "x86_64"]:
+    machine = platform.machine().lower()
+    if machine in ("aarch64", "arm64"):
+        return "aarch64"
+    return "x86_64"
+
+
+class VMQemuConfig(BaseModel):
+    """QEMU backend settings (ignored when isolation.backend is podman)."""
+
+    guest_arch: Literal["aarch64", "x86_64"] = Field(
+        default_factory=_default_guest_arch
+    )
+    accel: Literal["auto", "kvm", "hvf", "whpx", "tcg"] = "auto"
+    disk_gb: int = Field(default=20, ge=8, le=512)
+    ssh_host_port: int = Field(default=0, ge=0, le=65535)
+    image: str = "workspace-vm-base-ubuntu-24.04-aarch64.qcow2"
+
+
+class VMIsolationConfig(BaseModel):
+    """Hypervisor driver selection for make vm."""
+
+    backend: Literal["podman", "qemu"] = "podman"
+    qemu: VMQemuConfig = Field(default_factory=VMQemuConfig)
+
+
 class VMConfig(BaseModel):
     """Complete VM configuration - passed to make vm <config.yaml>.
 
@@ -164,6 +191,7 @@ class VMConfig(BaseModel):
     mounts: list[str] = Field(default_factory=list)
 
     network: VMNetworkConfig = Field(default_factory=VMNetworkConfig)
+    isolation: VMIsolationConfig = Field(default_factory=VMIsolationConfig)
     web_ui: bool = True
     env: dict[str, str] = Field(default_factory=dict)
     security: VMSecurityConfig = Field(default_factory=VMSecurityConfig)

@@ -69,6 +69,19 @@ web_ui: true
 env:
   OPENCODE_ENABLE_EXA: "1"
 
+# --- Isolation backend ---
+# Default podman: rootless agent containers (existing behaviour).
+# Use qemu for a full Linux guest (WORKSPACE-GUARD cap/kernel E2E).
+# See docs/REQ-VM-HYPERVISOR.md and docs/SPEC-VM-HYPERVISOR.md.
+isolation:
+  backend: podman  # podman | qemu
+  qemu:
+    guest_arch: aarch64   # aarch64 | x86_64 (defaults to host CPU)
+    accel: auto           # auto | kvm | hvf | whpx | tcg
+    disk_gb: 20
+    ssh_host_port: 0      # 0 = allocate a free localhost port
+    image: workspace-vm-base-ubuntu-24.04-aarch64.qcow2
+
 # --- Security ---
 security:
   purge_sudo: true

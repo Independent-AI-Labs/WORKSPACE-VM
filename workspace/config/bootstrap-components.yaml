@@ -211,6 +211,16 @@ components:
     version_cmd: ['projects/CI/.boot-linux/bin/ansible', '--version']
     version_pattern: 'ansible.*?(\d+\.\d+\.\d+)'
 
+  - name: qemu
+    label: 'QEMU'
+    description: 'VM hypervisor for make vm qemu backend (GPL-2.0, subprocess only)'
+    type: script
+    group: 'Infrastructure & Orchestration'
+    script: 'bootstrap_qemu.sh'
+    detect_path: '.boot-linux/bin/qemu-system-aarch64'
+    version_cmd: ['.boot-linux/bin/qemu-system-aarch64', '--version']
+    version_pattern: 'QEMU emulator version (\d+\.\d+\.\d+)'
+
   - name: cron
     label: 'Cron'
     description: 'AMI crontab manager via system cron package'

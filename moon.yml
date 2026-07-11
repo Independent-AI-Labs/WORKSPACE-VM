@@ -64,7 +64,7 @@ tasks:
       - 'Makefile'
   check:
     # Aggregator: deps fan out via moon's task DAG; command is a no-op
-    # to avoid recursing back through the public make check shim.
+    # to avoid recursing back through the public make check wrapper.
     command: 'true'
     deps:
       - '~:lint'

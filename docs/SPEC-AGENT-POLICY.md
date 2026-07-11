@@ -38,9 +38,9 @@ workspace/config/opencode/policies/
 ├── template/                         ← TRACKED in git (immutable, seeded on first use)
 │   ├── rules.template.yaml           ← 5 default context injection rules
 │   ├── guards.template.yaml          ← 1 default speculation-words guard
-│   ├── tool-guards.template.yaml     ← (empty) - placeholder for tool guardrails
-│   ├── shell-guards.template.yaml    ← (empty) - placeholder for shell guardrails
-│   ├── system-rules.template.yaml    ← (empty) - placeholder for system rules
+│   ├── tool-guards.template.yaml     ← (empty) - reserved slot for tool guardrails
+│   ├── shell-guards.template.yaml    ← (empty) - reserved slot for shell guardrails
+│   ├── system-rules.template.yaml    ← (empty) - reserved slot for system rules
 │   └── profiles/
 │       ├── standard.template.yaml    ← built-in standard profile
 │       ├── strict.template.yaml      ← built-in strict profile

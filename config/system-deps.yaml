@@ -96,6 +96,18 @@ requires:
     description: System cron daemon
     optional: true
 
+  - check_cmd: cloud-localds
+    apt_package: cloud-image-utils
+    brew_package: cloud-utils
+    description: cloud-init seed builder for QEMU guests (cloud-localds)
+    component: qemu
+
+  - check_cmd: qemu-img
+    apt_package: qemu-utils
+    description: QEMU disk tool (optional when qemu bootstrapped)
+    component: qemu
+    optional: true
+
   - check_type: playwright-libs
     description: Playwright browser dependencies
     component: playwright

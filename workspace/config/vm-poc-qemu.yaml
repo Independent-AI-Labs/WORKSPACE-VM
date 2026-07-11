@@ -1,0 +1,24 @@
+# Minimal QEMU POC — boots Ubuntu guest, SSH only.
+# Prerequisites: make install-qemu, cloud-localds on PATH.
+# See docs/REQ-VM-HYPERVISOR.md
+
+components:
+  - uv
+
+resources:
+  memory: "2g"
+  cpus: 2
+
+isolation:
+  backend: qemu
+  qemu:
+    accel: auto
+    disk_gb: 12
+
+network:
+  mode: none
+
+web_ui: false
+
+security:
+  purge_sudo: true

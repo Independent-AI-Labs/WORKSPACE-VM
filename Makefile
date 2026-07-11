@@ -104,6 +104,10 @@ install: init-check sync-package ## Interactive TUI to select and install compon
 	echo "    disk via /var/log/syslog. See INCIDENT-2026-07-05." && \
 	echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
+.PHONY: install-qemu
+install-qemu: ## Install QEMU + firmware into platform boot directory (GPL-2.0)
+	bash workspace/scripts/bootstrap/bootstrap_qemu.sh
+
 .PHONY: install-ci
 install-ci: init-check sync-package ## Non-interactive component install (uses install-defaults.yaml)
 	@.venv/bin/python workspace/scripts/bootstrap_installer.py --defaults workspace/config/install-defaults.yaml && \

@@ -1,0 +1,35 @@
+# Pinned QEMU and guest image versions for make install-qemu / QemuBackend.
+# See docs/SPEC-VM-HYPERVISOR.md §10.2
+
+version: 1
+
+qemu:
+  version: "9.2.0"
+  source_url: "https://download.qemu.org/qemu-9.2.0.tar.xz"
+
+linux:
+  apt_packages:
+    - qemu-system-arm
+    - qemu-system-x86
+    - qemu-utils
+    - qemu-efi-aarch64
+  min_version: "9.0.0"
+
+darwin:
+  brew_package: qemu
+  min_version: "9.0.0"
+
+firmware:
+  aarch64_edk2:
+    linux_path: /usr/share/qemu-efi-aarch64/QEMU_EFI.fd
+    darwin_brew_subpath: share/qemu/edk2-aarch64-code.fd
+
+images:
+  ubuntu_2404_arm64:
+    url: https://cloud-images.ubuntu.com/releases/24.04/release/ubuntu-24.04-server-cloudimg-arm64.img
+    sha256: pending-pin-at-bootstrap
+    dest_name: workspace-vm-base-ubuntu-24.04-aarch64.qcow2
+  ubuntu_2404_x86_64:
+    url: https://cloud-images.ubuntu.com/releases/24.04/release/ubuntu-24.04-server-cloudimg-amd64.img
+    sha256: pending-pin-at-bootstrap
+    dest_name: workspace-vm-base-ubuntu-24.04-x86_64.qcow2

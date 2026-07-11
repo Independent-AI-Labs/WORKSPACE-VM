@@ -80,7 +80,7 @@ The feature provides:
 
 **FR-2.4** Resolution order for auth SHALL be: explicit path → `OPENVPN_AUTH_FILE` env → canonical path (optional, omit `--auth-user-pass` when absent).
 
-**FR-2.5** `workspace/config/vpn/` SHALL be gitignored; only a `.gitkeep` placeholder MAY be committed.
+**FR-2.5** `workspace/config/vpn/` SHALL be gitignored; only a `.gitkeep` sentinel file MAY be committed.
 
 **FR-2.6** Config validation SHALL require at least one of `remote `, `proto `, or `dev ` in the file body before start or image build.
 
