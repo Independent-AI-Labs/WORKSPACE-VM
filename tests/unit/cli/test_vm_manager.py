@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import contextlib
 import subprocess
+import sys
 from pathlib import Path
 from unittest.mock import MagicMock
 
@@ -94,7 +95,8 @@ class TestDeriveNetworkFlags:
         flags = _derive_network_flags(cfg)
         assert flags == ["--network", "host"]
 
-    def test_openvpn_netns(self) -> None:
+    def test_openvpn_netns(self, monkeypatch) -> None:
+        monkeypatch.setattr(sys, "platform", "linux")
         cfg = VMConfig.model_validate(
             {
                 "components": ["opencode"],
@@ -102,6 +104,7 @@ class TestDeriveNetworkFlags:
                     "mode": "openvpn",
                     "vpn_type": "netns",
                     "vpn_netns": "myvpn",
+                    "vpn_config": "/tmp/client.ovpn",
                 },
             }
         )

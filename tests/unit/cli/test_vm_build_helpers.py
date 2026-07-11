@@ -11,10 +11,12 @@ import pytest
 
 from workspace.cli.vm_build import (
     _build_context,
+    _build_context_inputs,
     _derive_network_flags,
     _generate_companion_files,
     _prepare_build_ssh_key,
     _render_and_build,
+    _stage_vpn_assets,
 )
 from workspace.cli.vm_core import (
     _config_sha256,
@@ -81,7 +83,12 @@ class TestBuildContext:
         )
         vm_dir = tmp_path / "vm"
         vm_dir.mkdir()
-        ctx = _build_context(cfg, "pw", vm_dir, tmp_path / "defaults.yaml", "key/path")
+        ctx = _build_context(
+            cfg,
+            "pw",
+            vm_dir,
+            _build_context_inputs(tmp_path / "defaults.yaml", "key/path"),
+        )
 
         assert ctx["container_user"] == VM_CONTAINER_USER
         assert ctx["container_home"] == VM_CONTAINER_HOME
@@ -91,11 +98,47 @@ class TestBuildContext:
         assert ctx["policy"] == "proxy"
 
 
+class TestStageVpnAssets:
+    def test_stages_config_and_auth(self, tmp_path: Path, monkeypatch) -> None:
+        monkeypatch.chdir(tmp_path)
+        ovpn = tmp_path / "vpn" / "client.ovpn"
+        ovpn.parent.mkdir(parents=True)
+        ovpn.write_text("remote vpn.example.com\nproto udp\ndev tun\n")
+        auth = tmp_path / "vpn" / "auth.txt"
+        auth.write_text("user\npass\n")
+
+        cfg = VMConfig.model_validate(
+            {
+                "components": ["opencode"],
+                "network": {
+                    "mode": "openvpn",
+                    "vpn_type": "container",
+                    "vpn_config": str(ovpn),
+                    "vpn_auth": str(auth),
+                },
+            }
+        )
+        vm_dir = tmp_path / "vm"
+        vm_dir.mkdir()
+        staged = _stage_vpn_assets(vm_dir, cfg)
+
+        assert (vm_dir / "client.ovpn").exists()
+        assert (vm_dir / "auth.txt").exists()
+        assert staged["vpn_config"].endswith("vm/client.ovpn")
+        assert staged["vpn_auth"].endswith("vm/auth.txt")
+
+    def test_returns_empty_when_not_openvpn_container(self, tmp_path: Path) -> None:
+        cfg = VMConfig.model_validate({"components": ["opencode"]})
+        vm_dir = tmp_path / "vm"
+        vm_dir.mkdir()
+        assert _stage_vpn_assets(vm_dir, cfg) == {"vpn_config": "", "vpn_auth": ""}
+
+
 class TestGenerateCompanionFiles:
     def test_writes_openvpn_service(self, tmp_path: Path) -> None:
         cfg = VMConfig.model_validate(
             {
-                "components": ["opencode"],
+                "components": ["opencode", "openvpn"],
                 "network": {
                     "mode": "openvpn",
                     "vpn_type": "container",
@@ -105,7 +148,16 @@ class TestGenerateCompanionFiles:
         )
         vm_dir = tmp_path / "vm"
         vm_dir.mkdir()
-        ctx = _build_context(cfg, "pw", vm_dir, tmp_path / "defaults.yaml", "key/path")
+        ctx = _build_context(
+            cfg,
+            "pw",
+            vm_dir,
+            _build_context_inputs(
+                tmp_path / "defaults.yaml",
+                "key/path",
+                {"vpn_config": "vm/client.ovpn", "vpn_auth": ""},
+            ),
+        )
 
         _generate_companion_files(vm_dir, cfg, ctx)
 
@@ -120,7 +172,12 @@ class TestGenerateCompanionFiles:
         )
         vm_dir = tmp_path / "vm"
         vm_dir.mkdir()
-        ctx = _build_context(cfg, "pw", vm_dir, tmp_path / "defaults.yaml", "key/path")
+        ctx = _build_context(
+            cfg,
+            "pw",
+            vm_dir,
+            _build_context_inputs(tmp_path / "defaults.yaml", "key/path"),
+        )
 
         _generate_companion_files(vm_dir, cfg, ctx)
 
@@ -145,7 +202,12 @@ class TestRenderAndBuild:
         monkeypatch.setattr("workspace.cli.vm_build._get_uid", lambda: "1000")
 
         cfg = VMConfig.model_validate({"components": ["opencode"]})
-        ctx = _build_context(cfg, "pw", vm_dir, tmp_path / "defaults.yaml", "key/path")
+        ctx = _build_context(
+            cfg,
+            "pw",
+            vm_dir,
+            _build_context_inputs(tmp_path / "defaults.yaml", "key/path"),
+        )
         _render_and_build("uuid", "pw", vm_dir, ctx)
 
         assert not ssh_key.exists()

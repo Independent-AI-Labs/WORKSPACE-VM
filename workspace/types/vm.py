@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import posixpath
+import sys
 from typing import Literal
 
 from pydantic import BaseModel, Field, model_validator
@@ -32,6 +33,10 @@ class _OpenVPNRequiresConfigError(_VMConfigError):
 
 
 class _OpenVPNRequiresNetNSError(_VMConfigError):
+    pass
+
+
+class _OpenVPNNetnsUnsupportedOnDarwinError(_VMConfigError):
     pass
 
 
@@ -94,6 +99,7 @@ class VMNetworkConfig(BaseModel):
     whitelist: list[str] = Field(default_factory=list)
     vpn_type: Literal["container", "netns"] = "container"
     vpn_config: str = ""
+    vpn_auth: str = ""
     vpn_netns: str = ""
 
     @model_validator(mode="after")
@@ -116,6 +122,16 @@ class VMNetworkConfig(BaseModel):
     def _require_vpn_netns_for_openvpn_netns(self) -> VMNetworkConfig:
         if self.mode == "openvpn" and self.vpn_type == "netns" and not self.vpn_netns:
             raise _OpenVPNRequiresNetNSError
+        return self
+
+    @model_validator(mode="after")
+    def _reject_netns_on_darwin(self) -> VMNetworkConfig:
+        if (
+            self.mode == "openvpn"
+            and self.vpn_type == "netns"
+            and sys.platform == "darwin"
+        ):
+            raise _OpenVPNNetnsUnsupportedOnDarwinError
         return self
 
 
@@ -151,3 +167,13 @@ class VMConfig(BaseModel):
     web_ui: bool = True
     env: dict[str, str] = Field(default_factory=dict)
     security: VMSecurityConfig = Field(default_factory=VMSecurityConfig)
+
+    @model_validator(mode="after")
+    def _ensure_openvpn_component(self) -> VMConfig:
+        if (
+            self.network.mode == "openvpn"
+            and self.network.vpn_type == "container"
+            and "openvpn" not in self.components
+        ):
+            self.components = [*self.components, "openvpn"]
+        return self

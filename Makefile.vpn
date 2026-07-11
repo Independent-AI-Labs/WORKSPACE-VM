@@ -1,0 +1,50 @@
+# Workspace OpenVPN host client
+#
+# Prereqs: workspace/config/vpn/client.ovpn (+ optional auth.txt)
+#
+#   make vpn-install              # bootstrap binary + install LaunchDaemon (macOS: sudo)
+#   make vpn-start / vpn-stop     # macOS: sudo launchctl kickstart/bootout
+#   make vpn-start                # connect now (no reboot persistence change)
+#   make vpn-start PERSIST=1        # connect + auto-start on reboot/login
+#   make vpn-stop                 # disconnect now
+#   make vpn-stop PERSIST=0       # disconnect + disable auto-start on reboot/login
+#   make vpn-persist-on           # enable auto-start only
+#   make vpn-persist-off          # disable auto-start only
+#   make vpn-persist-status       # show auto-start state
+#   make vpn-health               # JSON health check
+#   make vpn-status               # connection + persist state
+#   make vpn-restart [PERSIST=1]  # restart (+ optional persist change)
+#   make vpn-logs                 # tail log (LINES=100 make vpn-logs)
+
+.PHONY: vpn-install vpn-start vpn-stop vpn-restart vpn-status vpn-health vpn-logs \
+	vpn-persist-on vpn-persist-off vpn-persist-status
+
+vpn-install: ## Bootstrap OpenVPN and install host service unit
+	@bash workspace/scripts/bin/vpn install
+
+vpn-start: ## Start workspace OpenVPN (PERSIST=1|0 to toggle reboot auto-start)
+	@PERSIST="$(PERSIST)" bash workspace/scripts/bin/vpn start
+
+vpn-stop: ## Stop workspace OpenVPN (PERSIST=0|1 to toggle reboot auto-start)
+	@PERSIST="$(PERSIST)" bash workspace/scripts/bin/vpn stop
+
+vpn-restart: ## Restart workspace OpenVPN (PERSIST=1|0 optional)
+	@PERSIST="$(PERSIST)" bash workspace/scripts/bin/vpn restart
+
+vpn-status: ## Show OpenVPN connection and persist state
+	@bash workspace/scripts/bin/vpn status
+
+vpn-health: ## JSON health check for workspace OpenVPN
+	@bash workspace/scripts/bin/vpn health
+
+vpn-logs: ## Tail OpenVPN log (LINES=50 default)
+	@LINES="$(LINES)" bash workspace/scripts/bin/vpn logs
+
+vpn-persist-on: ## Enable OpenVPN auto-start on reboot/login (macOS + Linux)
+	@bash workspace/scripts/bin/vpn persist-on
+
+vpn-persist-off: ## Disable OpenVPN auto-start on reboot/login (macOS + Linux)
+	@bash workspace/scripts/bin/vpn persist-off
+
+vpn-persist-status: ## Show whether OpenVPN auto-starts on reboot/login
+	@bash workspace/scripts/bin/vpn persist-status

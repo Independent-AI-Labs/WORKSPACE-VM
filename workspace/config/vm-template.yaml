@@ -3,6 +3,7 @@
 #
 # This file is the canonical reference. See MIGRATION-PLAN.md §3.1 for field
 # descriptions and §3.12 for implementation architecture.
+# OpenVPN: docs/REQ-OPENVPN.md + docs/SPEC-OPENVPN.md
 
 # --- Install layer ---
 # Same format as install-defaults.yaml. Passed to make install-ci.
@@ -47,6 +48,21 @@ mounts: []
 # DEFAULT: none - container has zero network interfaces (fully air-gapped).
 network:
   mode: none  # none | bridge | host | openvpn
+
+# OpenVPN example (container mode, works on macOS and Linux):
+# network:
+#   mode: openvpn
+#   vpn_type: container
+#   vpn_config: workspace/config/vpn/client.ovpn
+#   vpn_auth: workspace/config/vpn/auth.txt  # optional
+# Place configs in workspace/config/vpn/ (gitignored). See docs/SPEC-OPENVPN.md.
+
+# OpenVPN example (netns mode, Linux host only):
+# network:
+#   mode: openvpn
+#   vpn_type: netns
+#   vpn_netns: workspace-vpn
+#   vpn_config: workspace/config/vpn/client.ovpn
 
 # --- Runtime ---
 web_ui: true

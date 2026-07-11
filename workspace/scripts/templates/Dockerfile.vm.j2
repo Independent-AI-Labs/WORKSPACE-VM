@@ -70,10 +70,14 @@ COPY res/systemd/workspace-network-setup /usr/local/sbin/workspace-network-setup
 RUN chmod +x /usr/local/sbin/workspace-network-setup
 {% endif %}
 {% if openvpn_enabled %}
+RUN mkdir -p /etc/openvpn
 COPY {{ vm_openvpn_service }} /etc/systemd/system/openvpn.service
-{% endif %}
 {% if vpn_config %}
 COPY {{ vpn_config }} /etc/openvpn/client.ovpn
+{% endif %}
+{% if vpn_auth %}
+COPY {{ vpn_auth }} /etc/openvpn/auth.txt
+{% endif %}
 {% endif %}
 
 RUN systemctl enable opencode.service{% if traefik_enabled %} && systemctl enable traefik.service{% endif %}{% if network_enabled %} && systemctl enable workspace-network.service{% endif %}{% if openvpn_enabled %} && systemctl enable openvpn.service{% endif %}

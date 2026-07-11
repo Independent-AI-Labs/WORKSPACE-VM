@@ -150,10 +150,45 @@ class TestNetworkService:
         assert "WORKSPACE_PROXY_URL=http://proxy:3128" in result
 
 
+class TestOpenVPNHostLaunchd:
+    def test_persist_disabled_by_default(self) -> None:
+        ctx = {
+            "openvpn_binary": "/opt/workspace/.boot-macos/bin/openvpn",
+            "vpn_config": "/cfg/client.ovpn",
+            "vpn_auth": "",
+            "log_path": "/var/log/workspace/openvpn.log",
+            "run_at_load": False,
+            "keep_alive": False,
+        }
+        result = _render("launchd-openvpn-client.plist.j2", ctx)
+        assert "<false/>" in result
+        assert "RunAtLoad" in result
+
+    def test_persist_enabled(self) -> None:
+        ctx = {
+            "openvpn_binary": "/opt/workspace/.boot-macos/bin/openvpn",
+            "vpn_config": "/cfg/client.ovpn",
+            "vpn_auth": "/cfg/auth.txt",
+            "log_path": "/var/log/workspace/openvpn.log",
+            "run_at_load": True,
+            "keep_alive": True,
+        }
+        result = _render("launchd-openvpn-client.plist.j2", ctx)
+        persist_true_tags = 2
+        assert result.count("<true/>") >= persist_true_tags
+        assert "auth.txt" in result
+
+
 class TestOpenVPNService:
-    def test_basic_render(self) -> None:
-        result = _render("systemd-openvpn.service.j2", {})
-        assert "openvpn" in result.lower()
+    def test_uses_workspace_install_root(self) -> None:
+        ctx = _base_ctx(
+            VMConfig.model_validate({"components": ["opencode", "openvpn"]}),
+            vpn_auth="vm/auth.txt",
+        )
+        result = _render("systemd-openvpn.service.j2", ctx)
+        assert f"{VM_INSTALL_ROOT}/.boot-linux/bin/openvpn" in result
+        assert "/etc/openvpn/auth.txt" in result
+        assert "workspace-network.service" in result
 
 
 class TestTemplateExists:
@@ -164,6 +199,8 @@ class TestTemplateExists:
             "systemd-workspace-network.service.j2",
             "systemd-traefik.service.j2",
             "systemd-openvpn.service.j2",
+            "systemd-openvpn-client.service.j2",
+            "launchd-openvpn-client.plist.j2",
             "traefik-static.yml.j2",
             "traefik-dynamic.yml.j2",
         ]

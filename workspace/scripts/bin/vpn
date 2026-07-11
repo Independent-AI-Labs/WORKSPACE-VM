@@ -1,0 +1,194 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Workspace OpenVPN host client: install, start, stop, status, health, logs.
+# macOS: LaunchDaemon for start/stop/persist (sudo). Linux: systemd user unit.
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+AMI_ROOT="$SCRIPT_DIR"
+while [[ "$AMI_ROOT" != "/" && ! -f "$AMI_ROOT/pyproject.toml" ]]; do
+    AMI_ROOT="$(dirname "$AMI_ROOT")"
+done
+export AMI_ROOT
+cd "$AMI_ROOT"
+
+_BOOT_PLATFORM="$(uname -s | tr 'A-Z' 'a-z')"
+case "$_BOOT_PLATFORM" in
+    darwin) _BOOT_NAME=".boot-macos" ;;
+    *) _BOOT_NAME=".boot-linux" ;;
+esac
+BOOT_DIR="${AMI_ROOT}/${_BOOT_NAME}"
+OPENVPN_BIN="${BOOT_DIR}/bin/openvpn"
+PYTHON="/Users/vladislavdonchev/WORKSPACE-VM/.venv/bin/python"
+VPN_PY="${AMI_ROOT}/workspace/scripts/bin/run_openvpn_client.py"
+VPN_CONFIG="${AMI_ROOT}/workspace/config/vpn/client.ovpn"
+SERVICE_SCRIPT="${AMI_ROOT}/workspace/scripts/bootstrap/bootstrap_openvpn_service.sh"
+LOG_DARWIN="/var/log/workspace/openvpn.log"
+LOG_LINUX="${HOME}/.local/state/workspace/openvpn.log"
+
+die() {
+    echo "vpn: ERROR: $*" >&2
+    exit 1
+}
+
+_require_config() {
+    [[ -f "$VPN_CONFIG" ]] || die "missing $VPN_CONFIG; add workspace/config/vpn/client.ovpn"
+}
+
+_require_python() {
+    [[ -x "$PYTHON" ]] || die "missing .venv; run: make sync-package"
+}
+
+_ensure_launchdaemon() {
+    if [[ "$(uname -s)" != "Darwin" ]]; then
+        return 0
+    fi
+    source "${SERVICE_SCRIPT}" || exit 1
+    ensure_openvpn_daemon_installed "${AMI_ROOT}" "${OPENVPN_BIN}"
+}
+
+_apply_persist_flag() {
+    local persist="${PERSIST:-}"
+    source "${SERVICE_SCRIPT}" || exit 1
+    case "${persist}" in
+        "")
+            return 0
+            ;;
+        1|true|yes|on)
+            configure_openvpn_persist "true" "${AMI_ROOT}" "${OPENVPN_BIN}"
+            ;;
+        0|false|no|off)
+            configure_openvpn_persist "false" "${AMI_ROOT}" "${OPENVPN_BIN}"
+            ;;
+        *)
+            die "invalid PERSIST=${persist} (use 1 or 0)"
+            ;;
+    esac
+}
+
+_usage() {
+    cat <<EOF
+Usage: vpn <command>
+
+Commands:
+  install         Bootstrap openvpn binary and install host service unit
+  start           Start the workspace OpenVPN client
+  stop            Stop the workspace OpenVPN client
+  restart         Restart the workspace OpenVPN client
+  status          Show binary, config, and connection state
+  health          Emit JSON health check
+  logs            Tail OpenVPN log (LINES=50 by default)
+  persist-on      Enable auto-start on reboot/login (both platforms)
+  persist-off     Disable auto-start on reboot/login (both platforms)
+  persist-status  Show whether auto-start is enabled
+
+Environment:
+  PERSIST=1|0     With start/stop/restart: enable or disable reboot persistence
+
+Makefile:
+  make vpn-install
+  make vpn-start [PERSIST=1]
+  make vpn-stop [PERSIST=0]
+  make vpn-persist-on | vpn-persist-off | vpn-persist-status
+EOF
+}
+
+cmd_install() {
+    _require_config
+    AMI_ROOT="$AMI_ROOT" BOOT_DIR="$BOOT_DIR" bash "${AMI_ROOT}/workspace/scripts/bootstrap/bootstrap_openvpn.sh"
+}
+
+cmd_start() {
+    _require_python
+    _require_config
+    echo "vpn: starting..." >&2
+    _ensure_launchdaemon
+    _apply_persist_flag
+    "$PYTHON" "$VPN_PY" --action start --daemon
+}
+
+cmd_stop() {
+    _require_python
+    echo "vpn: stopping..." >&2
+    _apply_persist_flag
+    "$PYTHON" "$VPN_PY" --action stop
+}
+
+cmd_restart() {
+    _require_python
+    _require_config
+    _ensure_launchdaemon
+    _apply_persist_flag
+    _stop_rc=0
+    "$PYTHON" "$VPN_PY" --action stop || _stop_rc=$?
+    if [ "$_stop_rc" -ne 0 ]; then
+        echo "vpn: stop exited ${_stop_rc} (continuing restart)" >&2
+    fi
+    echo "vpn: restarting..." >&2
+    "$PYTHON" "$VPN_PY" --action start --daemon
+}
+
+cmd_status() {
+    _require_python
+    "$PYTHON" "$VPN_PY" --action status
+    source "${SERVICE_SCRIPT}" || exit 1
+    echo "persist: $(openvpn_persist_status)"
+}
+
+cmd_health() {
+    _require_python
+    exec "$PYTHON" "$VPN_PY" --action health
+}
+
+cmd_logs() {
+    local lines="${LINES:-50}"
+    local log_path="$LOG_LINUX"
+    if [[ "$(uname -s)" == "Darwin" ]]; then
+        log_path="$LOG_DARWIN"
+
+    fi
+    if [[ ! -f "$log_path" ]]; then
+        die "log not found: $log_path (run: make vpn-start)"
+    fi
+    tail -n "$lines" -f "$log_path"
+}
+
+cmd_persist_on() {
+    _require_config
+    source "${SERVICE_SCRIPT}" || exit 1
+    configure_openvpn_persist "true" "${AMI_ROOT}" "${OPENVPN_BIN}"
+}
+
+cmd_persist_off() {
+    source "${SERVICE_SCRIPT}" || exit 1
+    configure_openvpn_persist "false" "${AMI_ROOT}" "${OPENVPN_BIN}"
+}
+
+cmd_persist_status() {
+    source "${SERVICE_SCRIPT}" || exit 1
+    openvpn_persist_status
+}
+
+main() {
+    local cmd="${1:-}"
+    case "$cmd" in
+        install) cmd_install ;;
+        start) cmd_start ;;
+        stop) cmd_stop ;;
+        restart) cmd_restart ;;
+        status) cmd_status ;;
+        health) cmd_health ;;
+        logs) cmd_logs ;;
+        persist-on) cmd_persist_on ;;
+        persist-off) cmd_persist_off ;;
+        persist-status) cmd_persist_status ;;
+        -h|--help|help|"")
+            _usage
+            ;;
+        *)
+            die "unknown command: $cmd (try: vpn help)"
+            ;;
+    esac
+}
+
+main "$@"

@@ -172,8 +172,25 @@ class TestVMNetworkConfig:
             mode="openvpn",
             vpn_type="container",
             vpn_config=self._vpn_test_config,
+            vpn_auth="/tmp/vpn/auth.txt",
         )
         assert cfg.vpn_config == self._vpn_test_config
+        assert cfg.vpn_auth == "/tmp/vpn/auth.txt"
+
+
+class TestVMConfigOpenvpn:
+    def test_auto_appends_openvpn_component(self) -> None:
+        cfg = VMConfig.model_validate(
+            {
+                "components": ["opencode"],
+                "network": {
+                    "mode": "openvpn",
+                    "vpn_type": "container",
+                    "vpn_config": "/tmp/vpn/client.ovpn",
+                },
+            }
+        )
+        assert "openvpn" in cfg.components
 
 
 class TestVMSecurityConfig:

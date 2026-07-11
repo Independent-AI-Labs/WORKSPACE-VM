@@ -8,4 +8,5 @@ compose_services:
     compose_file: projects/AMI-DATAOPS/res/docker/docker-compose.yml
     profiles: [data, secrets, dev]
 
-local_services: {}
+local_services:
+  workspace-openvpn: {}

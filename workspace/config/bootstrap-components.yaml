@@ -310,7 +310,7 @@ components:
 
   - name: openvpn
     label: 'OpenVPN'
-    description: 'OpenVPN client'
+    description: 'OpenVPN CLI client + platform host service (see docs/SPEC-OPENVPN.md)'
     type: script
     group: 'Networking'
     script: 'bootstrap_openvpn.sh'

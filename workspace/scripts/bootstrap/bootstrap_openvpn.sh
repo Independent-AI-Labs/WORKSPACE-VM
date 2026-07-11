@@ -69,3 +69,6 @@ _version_out="$("${BIN_DIR}/openvpn" --version 2>&1)"
 _version_line="${_version_out%%$'\n'*}"
 log_info "OpenVPN installed: ${_version_line}"
 log_info "Symlinked to ${BIN_DIR}/openvpn"
+
+source "${SCRIPT_DIR}/bootstrap_openvpn_service.sh" || exit 1
+install_openvpn_service "${PROJECT_ROOT}" "${BIN_DIR}/openvpn"

@@ -9,6 +9,7 @@ import subprocess
 import sys
 from collections.abc import Mapping
 from pathlib import Path
+from typing import NamedTuple
 
 from workspace.cli.vm_core import (
     _config_sha256,
@@ -16,6 +17,7 @@ from workspace.cli.vm_core import (
     _podman,
     _render_template,
 )
+from workspace.cli.vpn_core import validate_ovpn
 from workspace.types.vm import (
     VM_CONTAINER_HOME,
     VM_CONTAINER_USER,
@@ -34,6 +36,46 @@ class _InvalidUIDError(RuntimeError):
     """id -u returned a non-numeric UID."""
 
 
+class _VPNAssetStagingError(RuntimeError):
+    """VPN config staging failed before image build."""
+
+    def __init__(self, detail: str) -> None:
+        super().__init__(detail)
+
+
+class _BuildContextInputs(NamedTuple):
+    install_defaults: Path
+    vm_temp_ssh_key_relpath: str
+    staged_vpn_assets: Mapping[str, str]
+
+
+def _build_context_inputs(
+    install_defaults: Path,
+    vm_temp_ssh_key_relpath: str,
+    staged_vpn_assets: Mapping[str, str] | None = None,
+) -> _BuildContextInputs:
+    return _BuildContextInputs(
+        install_defaults=install_defaults,
+        vm_temp_ssh_key_relpath=vm_temp_ssh_key_relpath,
+        staged_vpn_assets=staged_vpn_assets or {"vpn_config": "", "vpn_auth": ""},
+    )
+
+
+class _VPNConfigMissing(_VPNAssetStagingError):
+    def __init__(self, path: Path) -> None:
+        super().__init__(f"VPN config not found: {path}")
+
+
+class _VPNConfigInvalid(_VPNAssetStagingError):
+    def __init__(self, path: Path) -> None:
+        super().__init__(f"invalid OpenVPN config: {path}")
+
+
+class _VPNAuthMissing(_VPNAssetStagingError):
+    def __init__(self, path: Path) -> None:
+        super().__init__(f"VPN auth file not found: {path}")
+
+
 def _get_uid() -> str:
     result = subprocess.run(
         ["id", "-u"],
@@ -45,6 +87,45 @@ def _get_uid() -> str:
     if not uid or not uid.isdigit():
         raise _InvalidUIDError
     return uid
+
+
+def _resolve_vpn_host_path(path_str: str, workspace_root: Path) -> Path:
+    expanded = Path(os.path.expanduser(path_str))
+    if expanded.is_absolute():
+        return expanded.resolve()
+    return (workspace_root / expanded).resolve()
+
+
+def _stage_vpn_assets(vm_dir: Path, cfg: VMConfig) -> dict[str, str]:
+    """Copy VPN files into the VM build directory; return repo-relative COPY paths."""
+    if not (cfg.network.mode == "openvpn" and cfg.network.vpn_type == "container"):
+        return {"vpn_config": "", "vpn_auth": ""}
+
+    workspace_root = Path.cwd().resolve()
+    src = _resolve_vpn_host_path(cfg.network.vpn_config, workspace_root)
+    if not src.is_file():
+        raise _VPNConfigMissing(src)
+    if not validate_ovpn(src):
+        raise _VPNConfigInvalid(src)
+
+    shutil.copy2(src, vm_dir / "client.ovpn")
+    staged: dict[str, str] = {
+        "vpn_config": os.path.relpath(
+            (vm_dir / "client.ovpn").resolve(), workspace_root
+        ),
+        "vpn_auth": "",
+    }
+
+    if cfg.network.vpn_auth:
+        auth_src = _resolve_vpn_host_path(cfg.network.vpn_auth, workspace_root)
+        if not auth_src.is_file():
+            raise _VPNAuthMissing(auth_src)
+        shutil.copy2(auth_src, vm_dir / "auth.txt")
+        staged["vpn_auth"] = os.path.relpath(
+            (vm_dir / "auth.txt").resolve(), workspace_root
+        )
+
+    return staged
 
 
 def _prepare_build_ssh_key(vm_dir: Path) -> str:
@@ -219,10 +300,10 @@ def _build_context(
     cfg: VMConfig,
     password: str,
     vm_dir: Path,
-    install_defaults: Path,
-    vm_temp_ssh_key_relpath: str,
+    inputs: _BuildContextInputs,
 ) -> Mapping[str, object]:
     net_enabled = cfg.network.mode != "none"
+    vpn_assets = inputs.staged_vpn_assets
     return {
         "security": cfg.security,
         "credentials": cfg.credentials,
@@ -235,8 +316,8 @@ def _build_context(
         ),
         "password": password,
         "certs": str(vm_dir / "certs"),
-        "vm_install_defaults": str(install_defaults),
-        "vm_temp_ssh_key_relpath": vm_temp_ssh_key_relpath,
+        "vm_install_defaults": str(inputs.install_defaults),
+        "vm_temp_ssh_key_relpath": inputs.vm_temp_ssh_key_relpath,
         "vm_opencode_json": str(vm_dir / "vm-opencode.json"),
         "vm_opencode_service": str(vm_dir / "vm-opencode.service"),
         "vm_traefik_service": str(vm_dir / "vm-traefik.service"),
@@ -244,6 +325,8 @@ def _build_context(
         "vm_traefik_dynamic": str(vm_dir / "vm-traefik-dynamic.yml"),
         "vm_workspace_network_service": str(vm_dir / "vm-workspace-network.service"),
         "vm_openvpn_service": str(vm_dir / "vm-openvpn.service"),
+        "vpn_config": vpn_assets.get("vpn_config", ""),
+        "vpn_auth": vpn_assets.get("vpn_auth", ""),
         "container_user": VM_CONTAINER_USER,
         "container_home": VM_CONTAINER_HOME,
         "container_install_root": VM_INSTALL_ROOT,

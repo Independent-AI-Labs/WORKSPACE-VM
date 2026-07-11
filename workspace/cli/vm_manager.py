@@ -11,6 +11,7 @@ import yaml
 
 from workspace.cli.vm_build import (
     _build_context,
+    _build_context_inputs,
     _build_run_args,
     _ensure_bridge_network,
     _ensure_volume,
@@ -19,6 +20,7 @@ from workspace.cli.vm_build import (
     _pre_copy_files,
     _prepare_build_ssh_key,
     _render_and_build,
+    _stage_vpn_assets,
 )
 from workspace.cli.vm_core import (
     _CERTS_SCRIPT,
@@ -29,6 +31,8 @@ from workspace.cli.vm_core import (
     _remove_hosts_entry,
     _wait_healthy,
 )
+from workspace.cli.vpn_core import find_workspace_root
+from workspace.cli.vpn_netns import ensure_vpn_netns
 from workspace.types.vm import VMConfig
 from workspace.utils.uuid_utils import uuid7
 
@@ -49,7 +53,13 @@ def create(config_path: str) -> None:
     install_defaults.write_text(yaml.dump({"components": cfg.components}))
 
     ssh_key_relpath = _prepare_build_ssh_key(vm_dir)
-    context = _build_context(cfg, password, vm_dir, install_defaults, ssh_key_relpath)
+    staged_vpn = _stage_vpn_assets(vm_dir, cfg)
+    context = _build_context(
+        cfg,
+        password,
+        vm_dir,
+        _build_context_inputs(install_defaults, ssh_key_relpath, staged_vpn),
+    )
     _generate_companion_files(vm_dir, cfg, context)
     _render_and_build(uuid_str, password, vm_dir, context)
 
@@ -62,6 +72,12 @@ def create(config_path: str) -> None:
         check=True,
     )
     _ensure_bridge_network(cfg)
+    if (
+        cfg.network.mode == "openvpn"
+        and cfg.network.vpn_type == "netns"
+        and sys.platform != "darwin"
+    ):
+        ensure_vpn_netns(cfg, find_workspace_root())
     subprocess.run(_build_run_args(cfg, uuid_str), check=True)
     _post_run_inspect(uuid_str, vm_dir, cfg)
     _wait_healthy(uuid_str)
@@ -96,13 +112,25 @@ def rebuild(uuid_str: str) -> None:
     install_defaults = vm_dir / "vm-install-defaults.yaml"
     install_defaults.write_text(yaml.dump({"components": cfg.components}))
     ssh_key_relpath = _prepare_build_ssh_key(vm_dir)
-    context = _build_context(cfg, password, vm_dir, install_defaults, ssh_key_relpath)
+    staged_vpn = _stage_vpn_assets(vm_dir, cfg)
+    context = _build_context(
+        cfg,
+        password,
+        vm_dir,
+        _build_context_inputs(install_defaults, ssh_key_relpath, staged_vpn),
+    )
     _generate_companion_files(vm_dir, cfg, context)
     _render_and_build(uuid_str, password, vm_dir, context)
 
     for suffix in ("workspace", "transcripts", "cache"):
         _ensure_volume(f"{uuid_str}-{suffix}")
 
+    if (
+        cfg.network.mode == "openvpn"
+        and cfg.network.vpn_type == "netns"
+        and sys.platform != "darwin"
+    ):
+        ensure_vpn_netns(cfg, find_workspace_root())
     subprocess.run(_build_run_args(cfg, uuid_str), check=True)
     _post_run_inspect(uuid_str, vm_dir, cfg)
     _wait_healthy(uuid_str)

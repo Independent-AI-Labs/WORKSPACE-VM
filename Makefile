@@ -437,6 +437,11 @@ check-compliance-recursive: ensure-repos ## Audit every nested repo for CI contr
 	[ $$_failed -eq 0 ]
 
 # ==============================================================================
+# OpenVPN host client
+# ==============================================================================
+-include Makefile.vpn
+
+# ==============================================================================
 # LlamaServer - multi-flavor build + deployment (cpu, sycl, vulkan)
 # ==============================================================================
 -include Makefile.llamaserver
