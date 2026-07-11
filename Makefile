@@ -57,14 +57,14 @@ endif
 # --- Core prereqs ---
 
 .PHONY: core
-core: ## Bootstrap CI tools (uv + ansible) + VM-specific tools (python + git-xet + node + playwright)
+core: ## Bootstrap CI tools (uv + ansible + node) + VM-specific tools (python + git-xet + playwright)
 	@echo "🔧 Bootstrapping CI tools..."
 	@$(MAKE) -C projects/CI install-boot-tools
 	@$(MAKE) -C projects/CI install-ansible
+	@$(MAKE) -C projects/CI install-node
 	@echo "🔧 Bootstrapping VM-specific tools..."
 	@AMI_ROOT="$$(pwd)" bash workspace/scripts/bootstrap/bootstrap_python.sh
 	@AMI_ROOT="$$(pwd)" bash workspace/scripts/bootstrap/bootstrap_git_xet.sh
-	@AMI_ROOT="$$(pwd)" bash workspace/scripts/bootstrap/bootstrap_node.sh
 	@AMI_ROOT="$$(pwd)" bash workspace/scripts/bootstrap/bootstrap_playwright.sh
 	@echo "✅ Core bootstrap complete"
 

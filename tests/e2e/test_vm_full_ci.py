@@ -36,7 +36,7 @@ _FULL_CI_COMPONENTS = [
 _ESSENTIAL_BINARIES = [
     ("uv", "/opt/ami-agents/.boot-linux/bin/uv"),
     ("python3", "/opt/ami-agents/.boot-linux/bin/python3"),
-    ("node", "/opt/ami-agents/.boot-linux/bin/node"),
+    ("node", "/opt/ami-agents/projects/CI/.boot-linux/bin/node"),
     ("opencode", "/opt/ami-agents/.boot-linux/bin/opencode"),
     ("git", "/usr/bin/git"),
 ]

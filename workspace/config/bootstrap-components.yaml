@@ -90,12 +90,12 @@ components:
 
   - name: node
     label: 'Node.js'
-    description: 'Node.js + npm (hermetic, via nodeenv)'
+    description: 'Node.js + npm (hermetic, official tarball)'
     type: script
     group: 'Core Dependencies'
-    script: 'bootstrap_node.sh'
-    detect_path: '.boot-linux/bin/node'
-    version_cmd: ['.boot-linux/bin/node', '--version']
+    script_path: 'projects/CI/scripts/bootstrap-node'
+    detect_path: 'projects/CI/.boot-linux/bin/node'
+    version_cmd: ['projects/CI/.boot-linux/bin/node', '--version']
     version_pattern: 'v(\d+\.\d+\.\d+)'
 
   - name: gitleaks
