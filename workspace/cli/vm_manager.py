@@ -17,11 +17,13 @@ from workspace.cli.vm_build import (
     _generate_companion_files,
     _post_run_inspect,
     _pre_copy_files,
+    _prepare_build_ssh_key,
     _render_and_build,
 )
 from workspace.cli.vm_core import (
     _CERTS_SCRIPT,
     _VMS_DIR,
+    _ensure_podman_machine,
     _generate_password,
     _podman,
     _remove_hosts_entry,
@@ -32,6 +34,7 @@ from workspace.utils.uuid_utils import uuid7
 
 
 def create(config_path: str) -> None:
+    _ensure_podman_machine()
     cfg = VMConfig.model_validate(yaml.safe_load(Path(config_path).read_text()))
     uuid_str = uuid7()
     vm_dir = _VMS_DIR / uuid_str
@@ -45,7 +48,8 @@ def create(config_path: str) -> None:
     install_defaults = vm_dir / "vm-install-defaults.yaml"
     install_defaults.write_text(yaml.dump({"components": cfg.components}))
 
-    context = _build_context(cfg, password, vm_dir, install_defaults)
+    ssh_key_relpath = _prepare_build_ssh_key(vm_dir)
+    context = _build_context(cfg, password, vm_dir, install_defaults, ssh_key_relpath)
     _generate_companion_files(vm_dir, cfg, context)
     _render_and_build(uuid_str, password, vm_dir, context)
 
@@ -71,6 +75,7 @@ def create(config_path: str) -> None:
 
 
 def rebuild(uuid_str: str) -> None:
+    _ensure_podman_machine()
     vm_yaml = _VMS_DIR / uuid_str / "vm.yaml"
     if not vm_yaml.exists():
         print(f"vm: no vm.yaml found for VM '{uuid_str}'", file=sys.stderr)
@@ -90,7 +95,8 @@ def rebuild(uuid_str: str) -> None:
 
     install_defaults = vm_dir / "vm-install-defaults.yaml"
     install_defaults.write_text(yaml.dump({"components": cfg.components}))
-    context = _build_context(cfg, password, vm_dir, install_defaults)
+    ssh_key_relpath = _prepare_build_ssh_key(vm_dir)
+    context = _build_context(cfg, password, vm_dir, install_defaults, ssh_key_relpath)
     _generate_companion_files(vm_dir, cfg, context)
     _render_and_build(uuid_str, password, vm_dir, context)
 

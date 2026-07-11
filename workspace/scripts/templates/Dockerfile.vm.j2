@@ -1,30 +1,40 @@
 #jinja2:lstrip_blocks:True
-{% set container_home = '/home' ~ '/ami' %}
 FROM ubuntu:22.04 AS base
 RUN apt-get update && apt-get install -y --no-install-recommends \
         systemd iptables git curl rsync gnupg sudo ca-certificates make unzip openssh-client
-RUN useradd -m -s /bin/bash ami && usermod -aG sudo ami
-COPY workspace/ /opt/ami-agents/workspace/
-COPY workspace/config/ /opt/ami-agents/workspace/config/
-COPY Makefile pyproject.toml moon.yml /opt/ami-agents/
+RUN useradd -m -s /bin/bash {{ container_user }} && usermod -aG sudo {{ container_user }}
+COPY workspace/ {{ container_install_root }}/workspace/
+COPY workspace/config/ {{ container_install_root }}/workspace/config/
+COPY Makefile pyproject.toml moon.yml {{ container_install_root }}/
+COPY tests/ {{ container_install_root }}/tests/
 ARG AGENT_UID=1000
-WORKDIR /opt/ami-agents
+WORKDIR {{ container_install_root }}
 
 FROM base AS installer
 {% if ssh.mode == "inherit" %}
 {% for f in ssh.inherit_files -%}
-COPY --chown=ami:ami {{ f.src }} {{ f.dst }}
+COPY --chown={{ container_user }}:{{ container_user }} {{ f.src }} {{ f.dst }}
 {% endfor %}
-RUN chmod 0700 ~ami/.ssh && chmod 0600 ~ami/.ssh/id_*
+RUN chmod 0700 {{ container_home }}/.ssh && chmod 0600 {{ container_home }}/.ssh/id_*
 {% elif ssh.mode == "custom" %}
 {% for f in ssh.files -%}
-COPY --chown=ami:ami {{ f.src }} {{ f.dst }}
+COPY --chown={{ container_user }}:{{ container_user }} {{ f.src }} {{ f.dst }}
 {% endfor %}
-RUN chmod 0700 ~ami/.ssh && chmod 0600 ~ami/.ssh/id_*
+RUN chmod 0700 {{ container_home }}/.ssh && chmod 0600 {{ container_home }}/.ssh/id_*
 {% endif %}
 COPY {{ vm_install_defaults }} /tmp/install-defaults.yaml
+COPY {{ vm_temp_ssh_key_relpath }} /tmp/temp_ssh_key
 RUN make init && rm -rf /var/lib/apt/lists/*
-RUN --mount=type=ssh mkdir -p ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts && make install-ci INSTALL_DEFAULTS=/tmp/install-defaults.yaml
+RUN mkdir -p ~/.ssh && chmod 700 ~/.ssh && \
+    ssh-keyscan github.com >> ~/.ssh/known_hosts && \
+    if [ -f /tmp/temp_ssh_key ] && [ -s /tmp/temp_ssh_key ]; then \
+        cp /tmp/temp_ssh_key ~/.ssh/id_rsa && \
+        chmod 600 ~/.ssh/id_rsa && \
+        make install-ci INSTALL_DEFAULTS=/tmp/install-defaults.yaml && \
+        rm -f ~/.ssh/id_rsa /tmp/temp_ssh_key; \
+    else \
+        make install-ci INSTALL_DEFAULTS=/tmp/install-defaults.yaml; \
+    fi
 
 FROM installer AS runtime
 ARG OPENCODE_SERVER_PASSWORD
@@ -34,30 +44,30 @@ ARG AGENT_UID=1000
 RUN SUDO_FORCE_REMOVE=yes apt-get purge -y sudo && rm -rf /etc/sudoers.d/*
 {% endif %}
 
-{% if certs %}
-COPY {{ certs }} /etc/ssl/ami/
+{% if certs and traefik_enabled %}
+COPY {{ certs }} /etc/ssl/workspace/
 {% endif %}
 
-RUN mkdir -p /workspace /transcripts /cache ~ami/.config/opencode \
-    && chown -R ami:ami /workspace /transcripts /cache ~ami
+RUN mkdir -p /workspace /transcripts /cache {{ container_home }}/.config/opencode \
+    && chown -R {{ container_user }}:{{ container_user }} /workspace /transcripts /cache {{ container_home }}
 
-COPY --chown=ami:ami {{ vm_opencode_json }} {{ container_home }}/.config/opencode/config.json
+COPY --chown={{ container_user }}:{{ container_user }} {{ vm_opencode_json }} {{ container_home }}/.config/opencode/config.json
 
 {% if credentials.mode == "clone" %}
-COPY --chown=ami:ami {{ home }}/.config/opencode/ {{ container_home }}/.config/opencode/
+COPY --chown={{ container_user }}:{{ container_user }} {{ home }}/.config/opencode/ {{ container_home }}/.config/opencode/
 {% endif %}
 
 COPY {{ vm_opencode_service }} /etc/systemd/system/opencode.service
 {% if traefik_enabled %}
+RUN mkdir -p /etc/traefik
 COPY {{ vm_traefik_service }} /etc/systemd/system/traefik.service
 COPY {{ vm_traefik_static }} /etc/traefik/traefik.yml
 COPY {{ vm_traefik_dynamic }} /etc/traefik/dynamic.yml
-RUN mkdir -p /etc/traefik
 {% endif %}
 {% if network_enabled %}
-COPY {{ vm_ami_network_service }} /etc/systemd/system/ami-network.service
-COPY res/systemd/ami-network-setup /usr/local/sbin/ami-network-setup
-RUN chmod +x /usr/local/sbin/ami-network-setup
+COPY {{ vm_workspace_network_service }} /etc/systemd/system/workspace-network.service
+COPY res/systemd/workspace-network-setup /usr/local/sbin/workspace-network-setup
+RUN chmod +x /usr/local/sbin/workspace-network-setup
 {% endif %}
 {% if openvpn_enabled %}
 COPY {{ vm_openvpn_service }} /etc/systemd/system/openvpn.service
@@ -66,9 +76,9 @@ COPY {{ vm_openvpn_service }} /etc/systemd/system/openvpn.service
 COPY {{ vpn_config }} /etc/openvpn/client.ovpn
 {% endif %}
 
-RUN systemctl enable opencode.service{% if traefik_enabled %} && systemctl enable traefik.service{% endif %}{% if network_enabled %} && systemctl enable ami-network.service{% endif %}{% if openvpn_enabled %} && systemctl enable openvpn.service{% endif %}
+RUN systemctl enable opencode.service{% if traefik_enabled %} && systemctl enable traefik.service{% endif %}{% if network_enabled %} && systemctl enable workspace-network.service{% endif %}{% if openvpn_enabled %} && systemctl enable openvpn.service{% endif %}
 
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
-    CMD curl -sf http://127.0.0.1:4096/ || exit 1
+    CMD curl -skf https://localhost:443/ || exit 1
 
-ENTRYPOINT ["/sbin/init"]
+ENTRYPOINT ["/lib/systemd/systemd"]

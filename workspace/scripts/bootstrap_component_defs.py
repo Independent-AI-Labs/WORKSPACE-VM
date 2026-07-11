@@ -17,6 +17,7 @@ This file is Layer 2: schemas + loader. Dep direction: this -> bootstrap_compone
 """
 
 import json
+import platform
 
 import yaml
 from pydantic import BaseModel, ConfigDict, Field
@@ -145,6 +146,29 @@ def _load_package_versions() -> dict[str, str]:
     return {str(k): str(v) for k, v in deps.items()}
 
 
+def _with_platform_boot_paths(entry: ComponentManifestEntry) -> ComponentManifestEntry:
+    """Replace .boot-linux with platform boot dir in path-bearing YAML fields."""
+    boot_name = ".boot-macos" if platform.system() == "Darwin" else ".boot-linux"
+    updates: dict[str, str | list[str]] = {}
+    if entry.detect_path is not None:
+        updates["detect_path"] = entry.detect_path.replace(".boot-linux", boot_name)
+    if entry.script_path is not None:
+        updates["script_path"] = entry.script_path.replace(".boot-linux", boot_name)
+    if entry.detect_cmd is not None:
+        updates["detect_cmd"] = [
+            item.replace(".boot-linux", boot_name) if isinstance(item, str) else item
+            for item in entry.detect_cmd
+        ]
+    if entry.version_cmd is not None:
+        updates["version_cmd"] = [
+            item.replace(".boot-linux", boot_name) if isinstance(item, str) else item
+            for item in entry.version_cmd
+        ]
+    if not updates:
+        return entry
+    return entry.model_copy(update=updates)
+
+
 def _load_components_yaml() -> tuple[list[Component], list[str]]:
     """Load bootstrap-components.yaml. Returns (components, group_order)."""
     if not COMPONENTS_YAML.exists():
@@ -155,7 +179,10 @@ def _load_components_yaml() -> tuple[list[Component], list[str]]:
 
     manifest = BootstrapManifest.model_validate(raw)
     pkg_versions = _load_package_versions()
-    components = [entry.to_component(pkg_versions) for entry in manifest.components]
+    components = [
+        _with_platform_boot_paths(entry).to_component(pkg_versions)
+        for entry in manifest.components
+    ]
     return components, manifest.groups
 
 

@@ -308,6 +308,16 @@ components:
     version_cmd: ['.boot-linux/bin/cloudflared', '--version']
     version_pattern: '(\d+\.\d+\.\d+)'
 
+  - name: openvpn
+    label: 'OpenVPN'
+    description: 'OpenVPN client'
+    type: script
+    group: 'Networking'
+    script: 'bootstrap_openvpn.sh'
+    detect_path: '.boot-linux/bin/openvpn'
+    version_cmd: ['.boot-linux/bin/openvpn', '--version']
+    version_pattern: 'OpenVPN (\d+\.\d+\.\d+)'
+
   # =========================================================================
   # Shell Utilities
   # =========================================================================

@@ -2,9 +2,17 @@
 
 from __future__ import annotations
 
+import posixpath
 from typing import Literal
 
 from pydantic import BaseModel, Field, model_validator
+
+VM_CONTAINER_USER = "workspace"
+VM_CONTAINER_HOME = posixpath.join("/", "home", VM_CONTAINER_USER)
+VM_IMAGE_PREFIX = "workspace-vm"
+VM_LABEL_PREFIX = "workspace"
+VM_NETWORK_NAME = "workspace-vm-net"
+VM_INSTALL_ROOT = "/opt/workspace"
 
 
 class _VMConfigError(ValueError):
@@ -80,7 +88,7 @@ class VMNetworkConfig(BaseModel):
     """Network isolation configuration."""
 
     mode: Literal["none", "bridge", "host", "openvpn"] = "none"
-    network_name: str = "ami-vm-net"
+    network_name: str = VM_NETWORK_NAME
     policy: Literal["none", "internet", "proxy", "unrestricted"] = "unrestricted"
     proxy_url: str = ""
     whitelist: list[str] = Field(default_factory=list)

@@ -80,7 +80,7 @@ class TestVMCreateFullCI:
         # can exit immediately. The key assertion is that the image built
         # with all 13 CI components.
         image_ok = subprocess.run(
-            ["podman", "image", "inspect", f"ami-vm:{uuid_val}"],
+            ["podman", "image", "inspect", f"workspace-vm:{uuid_val}"],
             capture_output=True,
             text=True,
             timeout=10,
@@ -95,7 +95,7 @@ class TestVMCreateFullCI:
                 "inspect",
                 "-f",
                 "{{.Config.Healthcheck}}",
-                f"ami-vm:{uuid_val}",
+                f"workspace-vm:{uuid_val}",
             ],
             capture_output=True,
             text=True,

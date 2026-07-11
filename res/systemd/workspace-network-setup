@@ -2,7 +2,7 @@
 set -euo pipefail
 CONTAINER_IP="{{ container_ip }}"
 
-case "${AMI_NETWORK_POLICY:-unrestricted}" in
+case "${WORKSPACE_NETWORK_POLICY:-unrestricted}" in
     internet)
         iptables -I FORWARD 1 -s "$CONTAINER_IP" -d "${GATEWAY:-10.89.0.1}" \
             -p udp --dport 53 -j ACCEPT
@@ -12,15 +12,15 @@ case "${AMI_NETWORK_POLICY:-unrestricted}" in
             -j DROP
         ;;
     proxy)
-        if [[ -n "${AMI_PROXY_URL:-}" ]]; then
-            PROXY_HOST="${AMI_PROXY_URL#*://}"
+        if [[ -n "${WORKSPACE_PROXY_URL:-}" ]]; then
+            PROXY_HOST="${WORKSPACE_PROXY_URL#*://}"
             PROXY_HOST="${PROXY_HOST%%:*}"
-            PROXY_PORT="${AMI_PROXY_URL##*:}"
+            PROXY_PORT="${WORKSPACE_PROXY_URL##*:}"
             iptables -I FORWARD 1 -s "$CONTAINER_IP" -d "$PROXY_HOST" \
                 -p tcp --dport "${PROXY_PORT:-3128}" -j ACCEPT
         fi
         iptables -I FORWARD 2 -s "$CONTAINER_IP" -j DROP
-        export HTTP_PROXY="$AMI_PROXY_URL"
-        export HTTPS_PROXY="$AMI_PROXY_URL"
+        export HTTP_PROXY="$WORKSPACE_PROXY_URL"
+        export HTTPS_PROXY="$WORKSPACE_PROXY_URL"
         ;;
 esac

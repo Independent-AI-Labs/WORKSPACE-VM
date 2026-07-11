@@ -10,6 +10,7 @@ import asyncio
 import json
 import os
 import subprocess
+import sys
 from pathlib import Path
 from typing import TypedDict
 
@@ -66,6 +67,19 @@ def run_openvpn_client(
     )
 
 
+def _check_tunnel_interface() -> bool:
+    """Check for active tun/utun tunnel interface, platform-aware."""
+    if sys.platform == "darwin":
+        result = subprocess.run(
+            ["ifconfig", "-l"], capture_output=True, text=True, check=False
+        )
+        return result.returncode == 0 and "utun" in (result.stdout or "")
+    result = subprocess.run(
+        ["ip", "addr", "show", "tun0"], capture_output=True, check=False
+    )
+    return result.returncode == 0
+
+
 def check_vpn_connection() -> bool:
     """Check if VPN is connected."""
     try:
@@ -74,13 +88,12 @@ def check_vpn_connection() -> bool:
         )
         if pgrep_result.returncode != 0:
             return False
-        ip_result = subprocess.run(
-            ["ip", "addr", "show", "tun0"], capture_output=True, check=False
-        )
+        if not _check_tunnel_interface():
+            return False
     except Exception:
         return False
     else:
-        return ip_result.returncode == 0
+        return True
 
 
 async def health_check() -> HealthCheckResult:

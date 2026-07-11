@@ -16,7 +16,14 @@ from workspace.cli.vm_core import (
     _podman,
     _render_template,
 )
-from workspace.types.vm import VMConfig
+from workspace.types.vm import (
+    VM_CONTAINER_HOME,
+    VM_CONTAINER_USER,
+    VM_IMAGE_PREFIX,
+    VM_INSTALL_ROOT,
+    VM_LABEL_PREFIX,
+    VMConfig,
+)
 
 
 class _VMExecError(RuntimeError):
@@ -38,6 +45,18 @@ def _get_uid() -> str:
     if not uid or not uid.isdigit():
         raise _InvalidUIDError
     return uid
+
+
+def _prepare_build_ssh_key(vm_dir: Path) -> str:
+    """Stage host SSH key for container build; return repo-relative COPY path."""
+    dest = vm_dir / "temp_ssh_key"
+    src = Path.home() / ".ssh" / "id_rsa"
+    if src.is_file():
+        shutil.copy2(src, dest)
+        dest.chmod(0o600)
+    else:
+        dest.touch()
+    return os.path.relpath(dest.resolve(), Path.cwd().resolve())
 
 
 def _derive_network_flags(config: VMConfig) -> list[str]:
@@ -120,11 +139,11 @@ def _build_run_args(config: VMConfig, uuid_str: str) -> list[str]:
         "--name",
         uuid_str,
         "--label",
-        "ami.type=vm",
+        f"{VM_LABEL_PREFIX}.type=vm",
         "--label",
-        f"ami.uuid={uuid_str}",
+        f"{VM_LABEL_PREFIX}.uuid={uuid_str}",
         "--label",
-        f"ami.config={_config_sha256(config)}",
+        f"{VM_LABEL_PREFIX}.config={_config_sha256(config)}",
         "-v",
         f"{uuid_str}-workspace:/workspace",
         "-v",
@@ -158,7 +177,7 @@ def _build_run_args(config: VMConfig, uuid_str: str) -> list[str]:
         run_args.extend(["-e", f"{env_key}={env_val}"])
     for mount_entry in config.mounts:
         run_args.extend(["--mount", f"type=bind,src={mount_entry},ro"])
-    run_args.append(f"ami-vm:{uuid_str}")
+    run_args.append(f"{VM_IMAGE_PREFIX}:{uuid_str}")
     return run_args
 
 
@@ -201,6 +220,7 @@ def _build_context(
     password: str,
     vm_dir: Path,
     install_defaults: Path,
+    vm_temp_ssh_key_relpath: str,
 ) -> Mapping[str, object]:
     net_enabled = cfg.network.mode != "none"
     return {
@@ -216,13 +236,19 @@ def _build_context(
         "password": password,
         "certs": str(vm_dir / "certs"),
         "vm_install_defaults": str(install_defaults),
+        "vm_temp_ssh_key_relpath": vm_temp_ssh_key_relpath,
         "vm_opencode_json": str(vm_dir / "vm-opencode.json"),
         "vm_opencode_service": str(vm_dir / "vm-opencode.service"),
         "vm_traefik_service": str(vm_dir / "vm-traefik.service"),
         "vm_traefik_static": str(vm_dir / "vm-traefik-static.yml"),
         "vm_traefik_dynamic": str(vm_dir / "vm-traefik-dynamic.yml"),
-        "vm_ami_network_service": str(vm_dir / "vm-ami-network.service"),
+        "vm_workspace_network_service": str(vm_dir / "vm-workspace-network.service"),
         "vm_openvpn_service": str(vm_dir / "vm-openvpn.service"),
+        "container_user": VM_CONTAINER_USER,
+        "container_home": VM_CONTAINER_HOME,
+        "container_install_root": VM_INSTALL_ROOT,
+        "policy": cfg.network.policy,
+        "proxy_url": cfg.network.proxy_url,
     }
 
 
@@ -234,22 +260,28 @@ def _render_and_build(
 ) -> None:
     (vm_dir / "Dockerfile").write_text(_render_template("Dockerfile.vm.j2", context))
     _generate_dockerignore(vm_dir)
-    _podman(
-        "build",
-        "--format",
-        "docker",
-        "--ssh",
-        "default",
-        "-t",
-        f"ami-vm:{uuid_str}",
-        "--build-arg",
-        f"AGENT_UID={_get_uid()}",
-        "--build-arg",
-        f"OPENCODE_SERVER_PASSWORD={password}",
-        "-f",
-        str(vm_dir / "Dockerfile"),
-        ".",
+    build_args = ["build", "--format", "docker"]
+    if sys.platform != "darwin":
+        build_args.extend(["--ssh", "default"])
+    build_args.extend(
+        [
+            "-t",
+            f"{VM_IMAGE_PREFIX}:{uuid_str}",
+            "--build-arg",
+            f"AGENT_UID={_get_uid()}",
+            "--build-arg",
+            f"OPENCODE_SERVER_PASSWORD={password}",
+            "-f",
+            str(vm_dir / "Dockerfile"),
+            ".",
+        ]
     )
+    ssh_key = vm_dir / "temp_ssh_key"
+    try:
+        _podman(*build_args)
+    finally:
+        if ssh_key.exists():
+            ssh_key.unlink()
 
 
 def _post_run_inspect(uuid_str: str, vm_dir: Path, cfg: VMConfig) -> None:
@@ -311,8 +343,8 @@ def _generate_companion_files(
             _render_template("traefik-dynamic.yml.j2", context)
         )
     if context.get("network_enabled"):
-        (vm_dir / "vm-ami-network.service").write_text(
-            _render_template("systemd-ami-network.service.j2", context)
+        (vm_dir / "vm-workspace-network.service").write_text(
+            _render_template("systemd-workspace-network.service.j2", context)
         )
     if context.get("openvpn_enabled"):
         (vm_dir / "vm-openvpn.service").write_text(

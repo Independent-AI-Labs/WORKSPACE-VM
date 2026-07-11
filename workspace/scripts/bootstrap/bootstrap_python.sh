@@ -7,9 +7,17 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 
-BOOT_LINUX_DIR="${BOOT_LINUX_DIR:-${PROJECT_ROOT}/.boot-linux}"
+_boot_platform="$(uname -s | tr 'A-Z' 'a-z')"
+case "$_boot_platform" in darwin) _boot_default=".boot-macos" ;; *) _boot_default=".boot-linux" ;; esac
+BOOT_LINUX_DIR="${BOOT_LINUX_DIR:-${BOOT_DIR:-${PROJECT_ROOT}/${_boot_default}}}"
 BIN_DIR="${BOOT_LINUX_DIR}/bin"
 PYTHON_ENV="${BOOT_LINUX_DIR}/python-env"
+
+_ci_boot_name=".boot-linux"
+if [[ "$_boot_platform" == "darwin" ]]; then
+    _ci_boot_name=".boot-macos"
+fi
+CI_UV="${PROJECT_ROOT}/projects/CI/${_ci_boot_name}/bin/uv"
 
 # Color output
 RED='\033[0;31m'
@@ -70,11 +78,13 @@ if [ -x "${PYTHON_ENV}/bin/python" ]; then
     rm -rf "${PYTHON_ENV}"
 fi
 
-# Find uv - must be in .boot-linux/bin
-if [ -x "${BIN_DIR}/uv" ]; then
+# Find uv: CI boot dir first (make core delegates uv to projects/CI), then workspace boot bin.
+if [ -x "${CI_UV}" ]; then
+    UV_CMD="${CI_UV}"
+elif [ -x "${BIN_DIR}/uv" ]; then
     UV_CMD="${BIN_DIR}/uv"
 else
-    log_error "uv not found at ${BIN_DIR}/uv. Run 'make core' first (delegates to CI install-boot-tools)."
+    log_error "uv not found at ${CI_UV} or ${BIN_DIR}/uv. Run 'make core' first."
     exit 1
 fi
 

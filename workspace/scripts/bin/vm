@@ -131,7 +131,7 @@ cmd_delete() {
     fi
     local _rmi_err
     _rmi_err="$(mktemp)"
-    if ! podman rmi -f "ami-vm:$uuid" 2>"$_rmi_err"; then
+    if ! podman rmi -f "workspace-vm:$uuid" 2>"$_rmi_err"; then
         if [[ -s "$_rmi_err" ]]; then cat "$_rmi_err" >&2; fi
         rm -f "$_rmi_err"
         die "delete: cannot remove image for VM '$uuid'"
@@ -169,7 +169,7 @@ cmd_shell() {
     local uuid="${1:-}"
     [[ -n "$uuid" ]] || die "shell: missing uuid argument"
     _running "$uuid" || die "shell: VM '$uuid' is not running"
-    exec podman exec -it -u ami "$uuid" /bin/bash
+    exec podman exec -it -u workspace "$uuid" /bin/bash
 }
 
 cmd_exec() {
@@ -192,7 +192,7 @@ cmd_logs() {
 }
 
 cmd_list() {
-    podman ps -a --filter "label=ami.type=vm" \
+    podman ps -a --filter "label=workspace.type=vm" \
         --format "table {{.Names}}\t{{.State}}\t{{.Status}}\t{{.Image}}"
 }
 

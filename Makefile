@@ -214,7 +214,7 @@ vm-exec: ## podman exec <id> -- <cmd>
 	@bash workspace/scripts/bin/vm exec $(filter-out $@,$(MAKECMDGOALS))
 vm-logs: ## podman logs <id>
 	@bash workspace/scripts/bin/vm logs $(filter-out $@,$(MAKECMDGOALS))
-vm-list: ## podman ps -a --filter label=ami.type=vm
+vm-list: ## podman ps -a --filter label=workspace.type=vm
 	@bash workspace/scripts/bin/vm list
 vm-status: ## podman inspect + stats for <id>
 	@bash workspace/scripts/bin/vm status $(filter-out $@,$(MAKECMDGOALS))

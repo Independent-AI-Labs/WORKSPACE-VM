@@ -93,7 +93,7 @@ class VMTracker:
             self._cleanup_volumes(uuid_val)
             try:
                 subprocess.run(
-                    ["podman", "rmi", "-f", f"ami-vm:{uuid_val}"],
+                    ["podman", "rmi", "-f", f"workspace-vm:{uuid_val}"],
                     capture_output=True,
                     text=True,
                     timeout=30,
@@ -166,7 +166,7 @@ def test_vm(podman_available, vm_tracker: VMTracker) -> str:
             "--name",
             uuid_val,
             "--label",
-            "ami.type=vm",
+            "workspace.type=vm",
             "--label",
             f"ami.uuid={uuid_val}",
             "--label",
