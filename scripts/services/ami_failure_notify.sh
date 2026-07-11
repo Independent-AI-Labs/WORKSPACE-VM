@@ -110,7 +110,7 @@ EOF
 
 # Dry-run mode: log what would have been sent and exit 0. Used by the
 # ami-failure-notify-test.service verification step so we don't actually
-# blast operator inboxes during smoke tests.
+# blast operator inboxes during sanity tests.
 if [[ "${WORKSPACE_FAILURE_NOTIFY_DRY_RUN:-0}" == "1" ]]; then
     log "DRY_RUN=1 - not invoking himalaya. would-send subject: ${SUBJECT}"
     log "DRY_RUN=1 - would-send body length: ${#message} bytes"

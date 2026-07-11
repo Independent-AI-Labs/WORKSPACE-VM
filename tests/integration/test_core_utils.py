@@ -12,9 +12,7 @@ from pathlib import Path
 from workspace.config_utils import (
     PROJECT_ROOT,
     _ProjectRootCache,
-    get_config_path,
     get_project_root,
-    get_vendor_config_path,
 )
 from workspace.scripts.register_extensions import (
     create_symlink,
@@ -43,14 +41,6 @@ class TestConfigUtils:
 
     def test_project_root_constant(self):
         assert (PROJECT_ROOT / "pyproject.toml").exists()
-
-    def test_get_config_path_ruff(self):
-        path = get_config_path("ruff.toml")
-        assert path.name == "ruff.toml"
-
-    def test_get_vendor_config_path(self):
-        path = get_vendor_config_path("sources-cuda.toml")
-        assert path.name == "sources-cuda.toml"
 
     def test_cache_reuse(self):
         _ProjectRootCache.set(None)

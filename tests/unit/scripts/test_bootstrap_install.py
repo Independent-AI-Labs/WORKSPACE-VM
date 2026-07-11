@@ -281,7 +281,7 @@ class TestInstallComponents:
                 description="Python package manager",
                 type=ComponentType.SCRIPT,
                 group="Core Dependencies",
-                script="bootstrap_uv.sh",
+                script_path="projects/CI/scripts/bootstrap-uv",
             ),
         ]
 

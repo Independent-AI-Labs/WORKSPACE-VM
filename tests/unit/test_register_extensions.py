@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import platform
 import stat
 from pathlib import Path
 from unittest.mock import patch
@@ -16,6 +17,8 @@ from workspace.scripts.register_extensions import (
     fix_stale_shebang,
     register_extensions,
 )
+
+_BOOT_NAME = ".boot-macos" if platform.system() == "Darwin" else ".boot-linux"
 
 
 class TestCreateWrapper:
@@ -121,8 +124,8 @@ class TestRegisterExtensions:
         # Create pyproject.toml so find_ami_root works
         (tmp_path / "pyproject.toml").write_text("[project]\nname='test'\n")
 
-        # Create .boot-linux/bin
-        boot_bin = tmp_path / ".boot-linux" / "bin"
+        # Create boot dir
+        boot_bin = tmp_path / _BOOT_NAME / "bin"
         boot_bin.mkdir(parents=True)
 
         # Create bashrc
@@ -142,7 +145,7 @@ class TestRegisterExtensions:
     ) -> None:
         """Test warning when no manifests found."""
         (tmp_path / "pyproject.toml").write_text("[project]\nname='t'\n")
-        boot_bin = tmp_path / ".boot-linux" / "bin"
+        boot_bin = tmp_path / _BOOT_NAME / "bin"
         boot_bin.mkdir(parents=True)
 
         with patch.dict(os.environ, {"AMI_ROOT": str(tmp_path)}):

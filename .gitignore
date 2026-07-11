@@ -139,6 +139,7 @@ user_app_token.pickle
 
 # Bootstrapped tools directory (like .venv, local only)
 .boot-linux/
+.boot-macos/
 
 # moon (moonrepo) local cache - content-hashed task outputs, never committed
 .moon/cache/
@@ -155,9 +156,6 @@ ami/config/automation.yaml
 ami/config/project_enforcement.yaml
 projects/
 
-# Linter config symlinks (point to res/config/)
-ruff.toml
-mypy.toml
 .qwen/
 
 CMakeFiles/

@@ -74,7 +74,7 @@ fi
 if [ -x "${BIN_DIR}/uv" ]; then
     UV_CMD="${BIN_DIR}/uv"
 else
-    log_error "uv not found at ${BIN_DIR}/uv. Run bootstrap_uv.sh first."
+    log_error "uv not found at ${BIN_DIR}/uv. Run 'make core' first (delegates to CI install-boot-tools)."
     exit 1
 fi
 

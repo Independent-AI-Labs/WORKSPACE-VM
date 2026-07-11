@@ -50,7 +50,7 @@ Fix the code or stop.
   - Bypasses CI/CD quality gates
   - Creates false sense of passing tests
   - Allows broken code to be committed and pushed
-  - Defeats purpose of comprehensive test suites
+  - Defeats purpose of complete test suites
 - **DETECTION**: Any modification to pytest markers, addopts, test decorators that reduces test coverage
 - **CORRECT APPROACH**:
   - Fix the actual test failures

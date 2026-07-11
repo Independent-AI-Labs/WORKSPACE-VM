@@ -7,6 +7,7 @@ import subprocess
 from pathlib import Path
 from unittest.mock import MagicMock
 
+import pytest
 import yaml as _yaml
 
 from workspace.cli.vm_build import (
@@ -212,6 +213,13 @@ class TestCLIDispatch:
 
 
 class TestPodman:
+    @pytest.mark.skipif(
+        subprocess.run(
+            ["podman", "version"], capture_output=True, text=True, check=False
+        ).returncode
+        != 0,
+        reason="podman socket not running",
+    )
     def test_podman_wrapper(self) -> None:
         result = _podman("version")
         assert result.returncode == 0

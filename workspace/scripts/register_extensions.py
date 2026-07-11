@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Create symlinks and wrappers in .boot-linux/bin/ for all extensions.
+Create symlinks and wrappers in the platform-appropriate boot dir for all extensions.
 
 Uses manifest discovery from extension_registry (extension.manifest.yaml
 files). Bashrc writing is handled by shell-setup, not here.
@@ -8,6 +8,7 @@ files). Bashrc writing is handled by shell-setup, not here.
 
 from __future__ import annotations
 
+import platform
 import re
 import stat
 import sys
@@ -107,9 +108,10 @@ def _register_one(ext: ResolvedExtension, bin_dir: Path, ami_root: Path) -> None
 
 
 def register_extensions() -> None:
-    """Register all extensions as symlinks/wrappers in .boot-linux/bin/."""
+    """Register all extensions as symlinks/wrappers in the boot dir."""
     ami_root = find_ami_root()
-    bin_dir = ami_root / ".boot-linux" / "bin"
+    boot_name = ".boot-macos" if platform.system() == "Darwin" else ".boot-linux"
+    bin_dir = ami_root / boot_name / "bin"
     bin_dir.mkdir(parents=True, exist_ok=True)
 
     manifests = discover_manifests(ami_root)

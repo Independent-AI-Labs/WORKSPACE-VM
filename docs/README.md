@@ -3,7 +3,7 @@
 **Date:** 2026-06-03
 **Status:** ACTIVE
 
-Active documentation for the AMI-Agents V3 workspace. Pre-V3 docs (V2 agent ecosystem, old specifications, research programme) are archived in [`archive/v2/`](archive/v2/).
+Active documentation for the AMI-Agents V3 workspace. Pre-V3 docs (V2 agent ecosystem, old specifications, research programme) have been removed from the repo and are preserved in git history.
 
 ---
 
@@ -19,4 +19,4 @@ Active documentation for the AMI-Agents V3 workspace. Pre-V3 docs (V2 agent ecos
 
 ## Archive
 
-All V2-era documentation is in [`archive/v2/`](archive/v2/): agent ecosystem architecture, specifications, requirements, architecture proposals, research programme (WS-1 through WS-7), audit trail, and incident postmortems.
+All V2-era documentation (agent ecosystem architecture, specifications, requirements, architecture proposals, research programme WS-1 through WS-7, audit trail, and incident postmortems) has been removed from the repo and is preserved in git history.

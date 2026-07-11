@@ -14,7 +14,7 @@
 #   Phase 13: update-walk topology - workspace:update graph
 #             includes ci:update + dataops:update nodes
 #
-# All phases skip cleanly when moon binary isn't on PATH (smoke-test
+# All phases skip cleanly when moon binary isn't on PATH (sanity-test
 # mode); hard-fail when moon IS available but produces broken output.
 
 # Resolve moon binary once for all phases.

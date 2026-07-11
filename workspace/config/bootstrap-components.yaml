@@ -43,9 +43,9 @@ components:
     description: 'Python package manager'
     type: script
     group: 'Core Dependencies'
-    script: 'bootstrap_uv.sh'
-    detect_path: '.boot-linux/bin/uv'
-    version_cmd: ['.boot-linux/bin/uv', '--version']
+    script_path: 'projects/CI/scripts/bootstrap-uv'
+    detect_path: 'projects/CI/.boot-linux/bin/uv'
+    version_cmd: ['projects/CI/.boot-linux/bin/uv', '--version']
     version_pattern: 'uv (\d+\.\d+\.\d+)'
 
   - name: python
@@ -83,9 +83,9 @@ components:
     description: 'Workspace task runner and dep-graph validator (moonrepo)'
     type: script
     group: 'Core Dependencies'
-    script: 'bootstrap_moon.sh'
-    detect_path: '.boot-linux/bin/moon'
-    version_cmd: ['.boot-linux/bin/moon', '--version']
+    script_path: 'projects/CI/scripts/bootstrap-moon'
+    detect_path: 'projects/CI/.boot-linux/bin/moon'
+    version_cmd: ['projects/CI/.boot-linux/bin/moon', '--version']
     version_pattern: 'moon (\d+\.\d+\.\d+)'
 
   - name: node
@@ -137,9 +137,9 @@ components:
     description: 'Rust language & Cargo'
     type: script
     group: 'Languages & Compilers'
-    script: 'bootstrap_rust.sh'
-    detect_path: '.boot-linux/rust/bin/cargo'
-    version_cmd: ['.boot-linux/rust/bin/rustc', '--version']
+    script_path: 'projects/CI/scripts/bootstrap-rust'
+    detect_path: 'projects/CI/.boot-linux/bin/cargo'
+    version_cmd: ['projects/CI/.boot-linux/bin/rustc', '--version']
     version_pattern: 'rustc (\d+\.\d+\.\d+)'
 
   # =========================================================================
@@ -176,9 +176,9 @@ components:
     description: 'Container runtime (rootless, daemonless)'
     type: script
     group: 'Infrastructure & Orchestration'
-    script: 'bootstrap_podman.sh'
-    detect_path: '.boot-linux/bin/podman'
-    version_cmd: ['.boot-linux/bin/podman', '--version']
+    script_path: 'projects/CI/scripts/bootstrap-podman'
+    detect_path: 'projects/CI/.boot-linux/bin/podman'
+    version_cmd: ['projects/CI/.boot-linux/bin/podman', '--version']
     version_pattern: 'podman version (\d+\.\d+\.\d+)'
 
   - name: traefik
@@ -206,9 +206,9 @@ components:
     description: 'Infrastructure as Code / config management'
     type: script
     group: 'Infrastructure & Orchestration'
-    script: 'bootstrap_ansible.sh'
-    detect_path: '.boot-linux/python-env/bin/ansible'
-    version_cmd: ['.boot-linux/python-env/bin/ansible', '--version']
+    script_path: 'projects/CI/scripts/bootstrap-ansible'
+    detect_path: 'projects/CI/.boot-linux/bin/ansible-playbook'
+    version_cmd: ['projects/CI/.boot-linux/bin/ansible', '--version']
     version_pattern: 'ansible.*?(\d+\.\d+\.\d+)'
 
   - name: cron

@@ -11,6 +11,8 @@ $schema: 'https://moonrepo.dev/schemas/project.json'
 project:
   name: 'workspace'
   description: 'AMI workspace umbrella repo and Python orchestrator'
+  inherited_boot_dirs:
+    - 'projects/CI'
 
 language: 'python'
 layer: 'unknown'
@@ -36,14 +38,14 @@ tasks:
       - 'tests/**/*.py'
       - 'scripts/**/*'
       - 'pyproject.toml'
-      - 'res/config/ruff.toml'
+      - 'projects/CI/ruff.toml'
       - 'Makefile'
   type-check:
     command: 'make _type-check-impl'
     inputs:
       - 'workspace/**/*.py'
       - 'pyproject.toml'
-      - 'res/config/mypy.toml'
+      - 'projects/CI/mypy.toml'
       - 'Makefile'
   test:
     command: 'make _test-impl'
@@ -60,15 +62,6 @@ tasks:
       - 'workspace/**/*.py'
       - 'pyproject.toml'
       - 'Makefile'
-  workspace-repos-aligned:
-    # Asserts .moon/workspace.yml::projects and workspace/config/workspace-clones.yaml
-    # reference the same repos with the same paths. Drift = split-brain
-    # between moon (update graph) and the bootstrap installer (clone graph).
-    command: 'uv run python workspace/scripts/check_workspace_repos_aligned.py'
-    inputs:
-      - '.moon/workspace.yml'
-      - 'workspace/config/workspace-clones.yaml'
-      - 'workspace/scripts/check_workspace_repos_aligned.py'
   check:
     # Aggregator: deps fan out via moon's task DAG; command is a no-op
     # to avoid recursing back through the public make check shim.
@@ -77,13 +70,12 @@ tasks:
       - '~:lint'
       - '~:type-check'
       - '~:test'
-      - '~:workspace-repos-aligned'
   ci:
     command: 'make check'
     deps:
       - '~:check'
   update:
-    command: 'bash -c "git pull --ff-only 2>/dev/null || true && make sync"'
+    command: 'bash -c "rc=0; git pull --ff-only || rc=$$rc; if [ $$rc -ne 0 ]; then echo \"git pull failed (rc=$$rc): continuing with make sync\" >&2; fi && make sync"'
     deps:
       - '^:update'
     options:

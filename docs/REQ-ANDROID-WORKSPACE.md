@@ -7,7 +7,7 @@
 ## 1. Introduction
 
 ### 1.1 Purpose
-This document defines the comprehensive enterprise requirements for "Project Viridian," a fully self-contained, native Android application that packages a complete QEMU-based virtualization environment with hardware-accelerated graphics. The system enables the execution of a pre-configured Ubuntu ARM64 virtual machine with an automated desktop environment, integrated configuration management (Ansible), and a minimal management UI, all without requiring root access, external terminal emulators, or per-device host setup 【turn0search2】.
+This document defines the complete enterprise requirements for "Project Viridian," a fully self-contained, native Android application that packages a complete QEMU-based virtualization environment with hardware-accelerated graphics. The system enables the execution of a pre-configured Ubuntu ARM64 virtual machine with an automated desktop environment, integrated configuration management (Ansible), and a minimal management UI, all without requiring root access, external terminal emulators, or per-device host setup 【turn0search2】.
 
 ### 1.2 Scope
 *   **In-Scope:** Native Android APK packaging, embedded QEMU TCG (software emulation) execution, VirGL GPU virtualization, automated Ubuntu image provisioning, automated desktop environment configuration, integration hooks for existing Ansible playbooks, and a management UI.
@@ -16,8 +16,8 @@ This document defines the comprehensive enterprise requirements for "Project Vir
 ### 1.3 Definitions, Acronyms, and References
 *   **AAB:** Android App Bundle. The required publishing format that enables on-demand delivery and reduces initial download size 【turn0search5】【turn0search8】.
 *   **TCG:** Tiny Code Generator. QEMU's software CPU emulation mode, which will be used as host KVM is not accessible from within an Android app's user-space sandbox 【turn0search10】【turn0search11】.
-*   **VirGL:** Virtual GL renderer. A project that allows a guest OS to utilize the host GPU for hardware-accelerated graphics via a virtual Virtio-GPU device 【turn0search16】.
-*   **Pockr Architecture:** A proven reference architecture for running Linux containers and binaries within a non-rooted Android APK by leveraging native libraries and specific packaging techniques 【turn0search2】.
+*   **VirGL:** Virtual GL renderer. A project that allows a guest OS to use the host GPU for hardware-accelerated graphics via a virtual Virtio-GPU device 【turn0search16】.
+*   **Pockr Architecture:** A proven reference architecture for running Linux containers and binaries within a non-rooted Android APK by using native libraries and specific packaging techniques 【turn0search2】.
 
 ## 2. Overall Description
 

@@ -5,6 +5,7 @@ safe commands through to real git.
 """
 
 import os
+import platform
 import stat as stat_mod
 import subprocess
 from pathlib import Path
@@ -25,6 +26,8 @@ def _find_project_root() -> Path:
 
 PROJECT_ROOT = _find_project_root()
 GIT_GUARD = PROJECT_ROOT / "workspace/scripts/utils/git-guard"
+
+_IS_DARWIN = platform.system() == "Darwin"
 
 
 class MockEnv(NamedTuple):
@@ -73,9 +76,13 @@ def run_git_cmd(cmd: str, env: dict) -> subprocess.CompletedProcess[str]:
     # and setting the foreground process group (tpgid == pgrp).
     # This ensures the git-guard's background check behaves as if in a real shell.
 
-    # -q: quiet, -c: command, -e: return exit code of command
+    # -q: quiet, -e: return exit code of child process
     # /dev/null: log output to null (we capture stdout via subprocess)
-    wrapped_cmd = f"script -q -e -c '{cmd}' /dev/null"
+    # GNU script (Linux) has -c <cmd>; BSD script (macOS) takes command as argv
+    if _IS_DARWIN:
+        wrapped_cmd = f"script -q -e /dev/null bash -c '{cmd}'"
+    else:
+        wrapped_cmd = f"script -q -e -c '{cmd}' /dev/null"
 
     return subprocess.run(
         ["bash", "-c", wrapped_cmd],

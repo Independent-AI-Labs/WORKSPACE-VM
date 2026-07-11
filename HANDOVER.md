@@ -1,7 +1,7 @@
 # WORKSPACE-VM Handover Document
 
 **Date:** 2025-06-13  
-**Status:** PARTIAL — Traefik integration incomplete, container crashes on startup, tests not fully working end-to-end
+**Status:** PARTIAL, Traefik integration incomplete, container crashes on startup, tests not fully working end-to-end
 
 ---
 
@@ -140,7 +140,7 @@ HEALTHCHECK CMD curl -sk https://localhost:443/ || exit 1
 - **Services enabled:** opencode, traefik, workspace-network
 - **Volumes:** /workspace, /transcripts, /cache
 - **Certs:** /etc/ssl/workspace/
-- **Config:** /home/workspace/.config/opencode/config.json
+- **Config:** ${HOME}/.config/opencode/config.json
 - **HEALTHCHECK:** ❌ Wrong - checks opencode directly, should check Traefik
 - **SSH key COPY:** ❌ Unconditional
 
@@ -173,7 +173,7 @@ HEALTHCHECK CMD curl -sk https://localhost:443/ || exit 1
 ## 5. Current Running State
 
 - **Podman machine:** Running (applehv on macOS arm64)
-- **Image:** `localhost/workspace-vm-ubuntu:latest` exists (4.13 GB)
+- **Image:** `localhost/workspace-vm-ubuntu:pinned` exists (4.13 GB)
 - **Container:** `workspace-vm-ubuntu` may or may not exist
 - **Volumes:** `workspace-vm-ubuntu-{workspace,transcripts,cache}` exist
 - **Network:** `workspace-vm-net` exists
@@ -214,7 +214,7 @@ pytest tests/host_vm/mac/ -k "not e2e" -v
 
 ## 7. The 8 Fixes Needed (Priority Order)
 
-### Fix 1: `launch-mac.sh:600-630` — `wait_for_healthy()`
+### Fix 1: `launch-mac.sh:600-630`, `wait_for_healthy()`
 Replace with:
 ```bash
 wait_for_healthy() {
@@ -245,14 +245,14 @@ wait_for_healthy() {
 }
 ```
 
-### Fix 2: `Dockerfile.vm.j2:81-82` — Healthcheck
+### Fix 2: `Dockerfile.vm.j2:81-82`, Healthcheck
 Change to:
 ```
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
     CMD curl -skf https://localhost:443/ || exit 1
 ```
 
-### Fix 3: `Dockerfile.vm.j2:26` — Conditional SSH key COPY
+### Fix 3: `Dockerfile.vm.j2:26`, Conditional SSH key COPY
 Wrap in Jinja2 conditional:
 ```
 {% if ssh_key_copy %}
@@ -260,19 +260,19 @@ COPY {{ vm_ssh_key }} /tmp/temp_ssh_key
 {% endif %}
 ```
 
-### Fix 4: `test_vm_functional.py:42-46` — Remove `podman rmi`
+### Fix 4: `test_vm_functional.py:42-46`, Remove `podman rmi`
 Delete the entire `subprocess.run` block for `podman rmi`.
 
-### Fix 5: `test_scripts_e2e.py:28-31` — Remove autouse cleanup
+### Fix 5: `test_scripts_e2e.py:28-31`, Remove autouse cleanup
 Change to session-scoped or remove entirely.
 
-### Fix 6: `launch-mac.sh:218-221` — `do_recreate()`
+### Fix 6: `launch-mac.sh:218-221`, `do_recreate()`
 Change `podman rmi -f` to `podman rmi` (no `-f`).
 
-### Fix 7: `launch-mac.sh:486-502` — SSH key cleanup trap
+### Fix 7: `launch-mac.sh:486-502`, SSH key cleanup trap
 Add `trap "rm -f '$temp_ssh_key'" EXIT` at the start of build_image.
 
-### Fix 8: `Dockerfile.vm.j2:47-48` — Conditional certs COPY
+### Fix 8: `Dockerfile.vm.j2:47-48`, Conditional certs COPY
 Wrap in `{% if traefik_enabled %}`:
 ```
 {% if traefik_enabled %}
@@ -316,7 +316,7 @@ podman exec workspace-vm-ubuntu systemctl status
 
 # Clean
 podman rm -f workspace-vm-ubuntu
-podman rmi localhost/workspace-vm-ubuntu:latest
+podman rmi localhost/workspace-vm-ubuntu:pinned
 podman volume rm workspace-vm-ubuntu-{workspace,transcripts,cache}
 podman network rm workspace-vm-net
 rm -rf .vms/workspace-vm-ubuntu
@@ -337,13 +337,13 @@ rm -rf .vms/workspace-vm-ubuntu
 
 ## 11. Critical Lessons Learned
 
-1. **Don't delete base images** — `podman rmi -f` cascades to parent layers
-2. **Don't run tests in health check loops** — wait for healthy first
-3. **Don't use `autouse=True` cleanup** — destroys state between tests
-4. **Always use traps for temp file cleanup** — handle all exit paths
-5. **Make Dockerfile COPYs conditional** — don't assume files exist
-6. **Check Traefik in healthcheck, not backend services** — verify the full chain
-7. **Rootless podman can't bind < 1024** — use `-p 8443:443` mapping
+1. **Don't delete base images**, `podman rmi -f` cascades to parent layers
+2. **Don't run tests in health check loops**, wait for healthy first
+3. **Don't use `autouse=True` cleanup**, destroys state between tests
+4. **Always use traps for temp file cleanup**, handle all exit paths
+5. **Make Dockerfile COPYs conditional**, don't assume files exist
+6. **Check Traefik in healthcheck, not backend services**, verify the full chain
+7. **Rootless podman can't bind < 1024**, use `-p 8443:443` mapping
 
 ---
 
