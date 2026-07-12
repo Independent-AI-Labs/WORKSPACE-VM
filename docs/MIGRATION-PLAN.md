@@ -1253,6 +1253,7 @@ and documents which existing facilities are reused.
 |----------|------|---------|
 | UUIDv7 generator | `workspace/utils/uuid_utils.py::uuid7()` | VM ID generation (RFC 9562, pure Python) |
 | Podman runtime | `.boot-linux/bin/podman` (v5.6.2, rootless, netavark) | Container lifecycle |
+| QEMU hypervisor | `workspace/cli/hypervisor/` + `docs/REQ-VM-HYPERVISOR.md` | Full Linux guest; authoritative WORKSPACE-GUARD E2E via `make test-vm-guard` |
 | Container types | `workspace/types/status.py` (PodmanContainer, PortMapping) | VM inspection results |
 | Bootstrap pattern | `workspace/scripts/bootstrap/bootstrap_*.sh` | Traefik installation script |
 | Component registry | `workspace/config/bootstrap-components.yaml` | Register traefik component |

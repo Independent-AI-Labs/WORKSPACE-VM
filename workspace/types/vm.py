@@ -153,6 +153,11 @@ def _default_guest_arch() -> Literal["aarch64", "x86_64"]:
     return "x86_64"
 
 
+def _default_qemu_image_name(guest_arch: Literal["aarch64", "x86_64"]) -> str:
+    suffix = "aarch64" if guest_arch == "aarch64" else "x86_64"
+    return f"workspace-vm-base-ubuntu-24.04-{suffix}.qcow2"
+
+
 class VMQemuConfig(BaseModel):
     """QEMU backend settings (ignored when isolation.backend is podman)."""
 
@@ -162,7 +167,21 @@ class VMQemuConfig(BaseModel):
     accel: Literal["auto", "kvm", "hvf", "whpx", "tcg"] = "auto"
     disk_gb: int = Field(default=20, ge=8, le=512)
     ssh_host_port: int = Field(default=0, ge=0, le=65535)
-    image: str = "workspace-vm-base-ubuntu-24.04-aarch64.qcow2"
+    image: str = ""
+    provision: Literal["none", "guard", "full-ci"] = "none"
+
+    @model_validator(mode="after")
+    def _sync_image_to_guest_arch(self) -> VMQemuConfig:
+        if not self.image:
+            self.image = _default_qemu_image_name(self.guest_arch)
+            return self
+        stale = {
+            "workspace-vm-base-ubuntu-24.04-aarch64.qcow2",
+            "workspace-vm-base-ubuntu-24.04-x86_64.qcow2",
+        }
+        if self.image in stale:
+            self.image = _default_qemu_image_name(self.guest_arch)
+        return self
 
 
 class VMIsolationConfig(BaseModel):

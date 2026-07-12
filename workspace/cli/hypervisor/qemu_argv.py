@@ -17,6 +17,7 @@ class QemuLaunchContext(BaseModel):
     accel: str
     ssh_port: int
     firmware: Path | None = None
+    workspace_root: Path | None = None
 
 
 _MEM_RE = re.compile(r"^(\d+)([gGmM])?$")
@@ -42,10 +43,11 @@ def build_qemu_argv(
 ) -> list[str]:
     q = cfg.isolation.qemu
     memory_mb = parse_memory_mb(cfg.resources.memory)
-    disk = vm_dir / "disk.qcow2"
-    seed = vm_dir / "cloud-init" / "seed.img"
-    pidfile = vm_dir / "qemu.pid"
-    log_file = vm_dir / "qemu.log"
+    vm_abs = vm_dir.resolve()
+    disk = vm_abs / "disk.qcow2"
+    seed = vm_abs / "cloud-init" / "seed.img"
+    pidfile = vm_abs / "qemu.pid"
+    log_file = vm_abs / "qemu.log"
     cpu = "host" if launch.accel == "kvm" else "max"
 
     argv: list[str] = [
@@ -79,7 +81,26 @@ def build_qemu_argv(
             "virtio-net-pci,netdev=net0",
             "-device",
             "virtio-rng-pci",
-            "-nographic",
+        ]
+    )
+
+    if launch.workspace_root is not None:
+        argv.extend(
+            [
+                "-fsdev",
+                (
+                    "local,id=ws0,path="
+                    f"{launch.workspace_root},security_model=none,readonly=on"
+                ),
+                "-device",
+                "virtio-9p-pci,fsdev=ws0,mount_tag=workspace",
+            ]
+        )
+
+    argv.extend(
+        [
+            "-display",
+            "none",
             "-pidfile",
             str(pidfile),
             "-daemonize",

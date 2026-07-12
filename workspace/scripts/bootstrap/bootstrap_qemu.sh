@@ -45,7 +45,7 @@ install_darwin() {
         echo "bootstrap-qemu: Homebrew required on macOS" >&2
         exit 1
     fi
-    brew install qemu cloud-utils
+    brew install qemu
 
     prefix="$(brew --prefix qemu)"
     for bin in qemu-system-aarch64 qemu-system-x86_64 qemu-img; do
@@ -58,6 +58,21 @@ install_darwin() {
     fw="${prefix}/share/qemu/edk2-aarch64-code.fd"
     if [[ -f "$fw" ]]; then
         ln -sf "$fw" "${FIRMWARE_DIR}/QEMU_EFI.fd"
+    fi
+
+    if ! command -v cloud-localds &>/dev/null; then
+        _vendor_url="https://raw.githubusercontent.com/canonical/cloud-utils/master/bin/cloud-localds"
+        if curl -fsSL "$_vendor_url" -o "${BIN_DIR}/cloud-localds"; then
+            chmod +x "${BIN_DIR}/cloud-localds"
+            log "vendored cloud-localds into ${BIN_DIR}"
+        else
+            warn "cloud-localds not found; install cloud-image-utils (Linux) or re-run bootstrap"
+        fi
+    fi
+
+    if ! command -v genisoimage &>/dev/null && command -v mkisofs &>/dev/null; then
+        ln -sf "$(command -v mkisofs)" "${BIN_DIR}/genisoimage"
+        log "linked genisoimage -> mkisofs in ${BIN_DIR}"
     fi
 }
 
@@ -79,7 +94,11 @@ write_notices() {
     source_url="https://download.qemu.org/qemu-${qemu_version}.tar.xz"
     if [[ -f "$PINS_FILE" ]]; then
         pinned=""
-        if pinned="$(python3 -c "import yaml; d=yaml.safe_load(open('${PINS_FILE}')); print(d.get('qemu',{}).get('source_url',''))")"; then
+        _py="${PROJECT_ROOT}/.venv/bin/python"
+        if [[ ! -x "$_py" ]]; then
+            _py="python3"
+        fi
+        if pinned="$("$_py" -c "import yaml; d=yaml.safe_load(open('${PINS_FILE}')); print(d.get('qemu',{}).get('source_url',''))")"; then
             if [[ -n "$pinned" ]]; then
                 source_url="$pinned"
             fi

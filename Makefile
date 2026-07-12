@@ -278,6 +278,28 @@ test: ## Run tests (delegates to moon for caching)
 test-e2e: ## Run end-to-end VM integration tests
 	@.venv/bin/python -m pytest tests/e2e/ -v -m e2e --timeout 600
 
+.PHONY: test-e2e-qemu
+test-e2e-qemu: ## QEMU poc + guard E2E (set TEST_QEMU_FULL=1 to include full-ci)
+	@.venv/bin/python -m pytest tests/e2e/test_vm_qemu_poc.py tests/e2e/test_vm_qemu_guard.py -v -m e2e --timeout 3600
+	@if [ "$${TEST_QEMU_FULL:-0}" = "1" ]; then \
+		.venv/bin/python -m pytest tests/e2e/test_vm_qemu_full_ci.py -v -m e2e --timeout 3600; \
+	fi
+
+.PHONY: test-e2e-qemu-full
+test-e2e-qemu-full: ## QEMU poc + full-ci + guard (authoritative, slow)
+	@.venv/bin/python -m pytest tests/e2e/test_vm_qemu_poc.py tests/e2e/test_vm_qemu_full_ci.py tests/e2e/test_vm_qemu_guard.py -v -m e2e --timeout 3600
+
+.PHONY: test-vm-guard
+test-vm-guard: ## Authoritative WORKSPACE-GUARD gate in QEMU guest
+	@.venv/bin/python -m pytest tests/e2e/test_vm_qemu_guard.py -v -m e2e --timeout 3600
+
+.PHONY: test-authoritative
+test-authoritative: test-e2e-qemu-full ## Pre-release QEMU + guard checklist
+
+.PHONY: clean-qemu-e2e
+clean-qemu-e2e: ## Remove orphaned QEMU per-VM overlays (keeps .vms/_base/)
+	@.venv/bin/python -c "from tests.e2e.qemu_cleanup import cleanup_orphan_qemu_vms; n=cleanup_orphan_qemu_vms(max_age_seconds=0); print(f'Removed {len(n)} QEMU VM dir(s)' if n else 'No QEMU VM dirs to remove')"
+
 .PHONY: lint
 lint: ## Run linters (delegates to moon for caching)
 	@moon run workspace:lint

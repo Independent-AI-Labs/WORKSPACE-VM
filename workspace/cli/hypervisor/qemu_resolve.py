@@ -8,6 +8,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+from workspace.cli import process as proc
 from workspace.cli.vpn_core import boot_name, find_workspace_root
 
 _GUEST_BIN = {
@@ -49,6 +50,17 @@ def resolve_qemu_system(guest_arch: str, *, allow_path: bool = True) -> Path:
     raise _QemuBinaryNotFoundError(binary_name)
 
 
+def resolve_cloud_localds(*, allow_path: bool = True) -> Path:
+    boot_bin = workspace_boot_dir() / "bin" / "cloud-localds"
+    if boot_bin.is_file():
+        return boot_bin
+    if allow_path:
+        found = shutil.which("cloud-localds")
+        if found:
+            return Path(found)
+    raise _QemuBinaryNotFoundError("cloud-localds")
+
+
 def resolve_qemu_img(*, allow_path: bool = True) -> Path:
     boot_bin = workspace_boot_dir() / "bin" / "qemu-img"
     if boot_bin.is_file():
@@ -86,24 +98,21 @@ def resolve_aarch64_firmware() -> Path | None:
 
 
 def probe_accel(qemu_bin: Path, accel: str) -> bool:
-    try:
-        subprocess.run(
-            [
-                str(qemu_bin),
-                "-accel",
-                accel,
-                "-machine",
-                "none",
-                "-display",
-                "none",
-            ],
-            capture_output=True,
-            timeout=10,
-            check=True,
-        )
-    except (subprocess.CalledProcessError, subprocess.TimeoutExpired, OSError):
-        return False
-    return True
+    return proc.run_ok(
+        [
+            str(qemu_bin),
+            "-accel",
+            accel,
+            "-machine",
+            "none",
+            "-display",
+            "none",
+        ],
+        capture_output=True,
+        text=True,
+        timeout=5,
+        reject_in_output="unknown accelerator",
+    )
 
 
 def resolve_accel(requested: str, qemu_bin: Path) -> str:

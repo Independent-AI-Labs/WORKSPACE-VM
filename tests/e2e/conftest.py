@@ -11,6 +11,9 @@ from pathlib import Path
 import pytest
 import yaml
 
+from tests.e2e.qemu_cleanup import QemuTracker, cleanup_orphan_qemu_vms
+from workspace.cli import process as proc
+
 _SUBPROCESS_ERRORS = (
     FileNotFoundError,
     subprocess.TimeoutExpired,
@@ -132,6 +135,25 @@ def vm_tracker(vm_build_capable) -> VMTracker:
     tracker.cleanup()
 
 
+@pytest.fixture(scope="session", autouse=True)
+def _qemu_e2e_storage_reclaim(request: pytest.FixtureRequest) -> None:
+    """After QEMU E2E tests, remove any leftover per-VM overlays (keeps _base/)."""
+    yield
+    ran_qemu = any(
+        "test_vm_qemu" in item.nodeid for item in getattr(request.session, "items", [])
+    )
+    if ran_qemu:
+        cleanup_orphan_qemu_vms(max_age_seconds=0)
+
+
+@pytest.fixture
+def qemu_tracker() -> QemuTracker:
+    """Automatic cleanup of QEMU VMs created during a test (pass or fail)."""
+    tracker = QemuTracker()
+    yield tracker
+    tracker.cleanup()
+
+
 # Lightweight test VM (no podman build, fast)
 
 
@@ -216,17 +238,12 @@ def temp_config(tmp_path: Path) -> Path:
 
 
 def vm_cmd(*args: str, timeout: int = 120) -> subprocess.CompletedProcess[str]:
-    """Run a vm subcommand and return the result.
-
-    Uses check=False because callers must inspect returncode -
-    many tests assert non-zero exit for error cases.
-    """
-    return subprocess.run(
+    """Run a vm subcommand; return CompletedProcess even on non-zero exit."""
+    return proc.run_result(
         ["bash", str(_VM_SCRIPT), *args],
         capture_output=True,
         text=True,
         timeout=timeout,
-        check=False,
     )
 
 

@@ -12,7 +12,10 @@ from pathlib import Path
 import yaml
 from pydantic import BaseModel, Field
 
-from workspace.cli.hypervisor.qemu_resolve import resolve_qemu_img
+from workspace.cli.hypervisor.qemu_resolve import (
+    resolve_cloud_localds,
+    resolve_qemu_img,
+)
 from workspace.cli.vpn_core import find_workspace_root
 from workspace.types.vm import VMConfig
 
@@ -76,8 +79,10 @@ def ensure_base_image(image_name: str, guest_arch: str) -> Path:
 
 def create_overlay(base: Path, overlay: Path, disk_gb: int) -> None:
     qemu_img = _resolve_qemu_img()
-    if overlay.exists():
-        overlay.unlink()
+    base_abs = base.resolve()
+    overlay_abs = overlay.resolve()
+    if overlay_abs.exists():
+        overlay_abs.unlink()
     subprocess.run(
         [
             str(qemu_img),
@@ -85,22 +90,53 @@ def create_overlay(base: Path, overlay: Path, disk_gb: int) -> None:
             "-f",
             "qcow2",
             "-b",
-            str(base),
+            str(base_abs),
             "-F",
             "qcow2",
-            str(overlay),
+            str(overlay_abs),
         ],
         check=True,
     )
     subprocess.run(
-        [str(qemu_img), "resize", str(overlay), f"{disk_gb}G"],
+        [str(qemu_img), "resize", str(overlay_abs), f"{disk_gb}G"],
         check=True,
     )
 
 
-def write_cloud_init(vm_dir: Path, pubkey: str) -> None:
+def write_cloud_init(vm_dir: Path, pubkey: str, *, mount_workspace: bool) -> None:
     ci = vm_dir / "cloud-init"
     ci.mkdir(parents=True, exist_ok=True)
+    packages = ["openssh-server"]
+    agent_user = ""
+    mount_runcmd = ""
+    if mount_workspace:
+        packages.extend(
+            [
+                "git",
+                "curl",
+                "rsync",
+                "make",
+                "sudo",
+                "ca-certificates",
+                "build-essential",
+            ]
+        )
+        agent_user = textwrap.dedent(
+            """\
+              - name: agent
+                uid: 1001
+                shell: /bin/bash
+                groups: users
+            """
+        )
+        mount_runcmd = textwrap.dedent(
+            """\
+              - mkdir -p /mnt/workspace-ro
+              - mount -t 9p -o trans=virtio,version=9p2000.L,ro workspace \
+                /mnt/workspace-ro
+            """
+        )
+    pkg_lines = "\n".join(f"          - {pkg}" for pkg in packages)
     user_data = textwrap.dedent(
         f"""\
         #cloud-config
@@ -110,28 +146,19 @@ def write_cloud_init(vm_dir: Path, pubkey: str) -> None:
             shell: /bin/bash
             ssh_authorized_keys:
               - {pubkey.strip()}
-        package_update: true
+        {agent_user}package_update: true
         packages:
-          - openssh-server
+{pkg_lines}
         runcmd:
           - systemctl enable --now ssh
-        """
+        {mount_runcmd}"""
     )
     (ci / "user-data").write_text(user_data)
     (ci / "meta-data").write_text(
         "instance-id: workspace-vm\nlocal-hostname: workspace-vm\n"
     )
     seed = ci / "seed.img"
-    cloud_localds = _resolve_cloud_localds()
-    subprocess.run(
-        [
-            str(cloud_localds),
-            str(seed),
-            str(ci / "user-data"),
-            str(ci / "meta-data"),
-        ],
-        check=True,
-    )
+    _build_seed_image(ci / "user-data", ci / "meta-data", seed)
 
 
 def generate_ssh_keypair(vm_dir: Path) -> tuple[Path, str]:
@@ -175,14 +202,40 @@ def _resolve_qemu_img() -> Path:
     return resolve_qemu_img()
 
 
-def _resolve_cloud_localds() -> Path:
-    found = shutil.which("cloud-localds")
-    if found:
-        return Path(found)
-    msg = (
-        "cloud-localds not found; install cloud-image-utils (apt) or cloud-utils (brew)"
-    )
+def _resolve_genisoimage() -> Path:
+    root = find_workspace_root()
+    for boot_name in (".boot-macos", ".boot-linux"):
+        vendored = root / boot_name / "bin" / "genisoimage"
+        if vendored.is_file():
+            return vendored
+    for name in ("genisoimage", "mkisofs"):
+        found = shutil.which(name)
+        if found:
+            return Path(found)
+    msg = "genisoimage not found; run make install-qemu or brew install cdrtools"
     raise FileNotFoundError(msg)
+
+
+def _build_seed_image(user_data: Path, meta_data: Path, seed: Path) -> None:
+    genisoimage = _resolve_genisoimage()
+    subprocess.run(
+        [
+            str(genisoimage),
+            "-output",
+            str(seed.resolve()),
+            "-volid",
+            "cidata",
+            "-joliet",
+            "-rock",
+            str(user_data.resolve()),
+            str(meta_data.resolve()),
+        ],
+        check=True,
+    )
+
+
+def _resolve_cloud_localds() -> Path:
+    return resolve_cloud_localds()
 
 
 def prepare_vm_storage(cfg: VMConfig, vm_dir: Path) -> str:
@@ -191,7 +244,8 @@ def prepare_vm_storage(cfg: VMConfig, vm_dir: Path) -> str:
     overlay = vm_dir / "disk.qcow2"
     create_overlay(base, overlay, q.disk_gb)
     _, pub = generate_ssh_keypair(vm_dir)
-    write_cloud_init(vm_dir, pub)
+    mount_workspace = q.provision != "none"
+    write_cloud_init(vm_dir, pub, mount_workspace=mount_workspace)
     port = allocate_ssh_port(q.ssh_host_port)
     (vm_dir / "ssh_port").write_text(str(port))
     return str(port)

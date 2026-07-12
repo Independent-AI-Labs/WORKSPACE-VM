@@ -1,0 +1,25 @@
+# WORKSPACE-GUARD authoritative E2E in QEMU guest (faster than full-ci).
+# See docs/SPEC-VM-HYPERVISOR.md §12 and make test-vm-guard
+
+components:
+  - uv
+  - python
+
+resources:
+  memory: "4g"
+  cpus: 2
+
+isolation:
+  backend: qemu
+  qemu:
+    accel: auto
+    disk_gb: 24
+    provision: guard
+
+network:
+  mode: none
+
+web_ui: false
+
+security:
+  purge_sudo: true

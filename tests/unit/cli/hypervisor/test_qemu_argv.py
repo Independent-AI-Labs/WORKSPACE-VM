@@ -42,3 +42,27 @@ def test_build_qemu_argv_aarch64() -> None:
     assert "tcg" in argv
     assert "-bios" in argv
     assert f"hostfwd=tcp:127.0.0.1:{_SSH_PORT}-:22" in " ".join(argv)
+
+
+def test_build_qemu_argv_includes_virtio9p_when_workspace_root_set() -> None:
+    cfg = VMConfig.model_validate(
+        {
+            "components": ["uv"],
+            "isolation": {
+                "backend": "qemu",
+                "qemu": {"guest_arch": "aarch64", "provision": "guard"},
+            },
+        }
+    )
+    root = Path("/tmp/workspace-vm-root-test")
+    launch = QemuLaunchContext(
+        qemu_bin=Path("/opt/qemu-system-aarch64"),
+        accel="tcg",
+        ssh_port=_SSH_PORT,
+        workspace_root=root,
+    )
+    argv = build_qemu_argv(cfg=cfg, vm_dir=Path("/tmp/vm-test"), launch=launch)
+    joined = " ".join(argv)
+    assert "virtio-9p-pci" in joined
+    assert f"path={root}" in joined
+    assert "readonly=on" in joined

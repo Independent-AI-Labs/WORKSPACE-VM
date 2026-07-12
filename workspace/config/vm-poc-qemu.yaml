@@ -14,6 +14,7 @@ isolation:
   qemu:
     accel: auto
     disk_gb: 12
+    provision: none
 
 network:
   mode: none

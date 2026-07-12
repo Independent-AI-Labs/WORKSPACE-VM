@@ -195,7 +195,7 @@ isolation:
 
 | Field | Podman | QEMU |
 |-------|--------|------|
-| `components`, `extra_apt` | install-ci in container build | cloud-init runcmd → install-ci |
+| `components`, `extra_apt` | install-ci in container build | SSH provision: rsync + `make install-ci` on guest disk |
 | `resources.memory`, `resources.cpus` | podman `--memory`, `--cpus` | QEMU `-m`, `-smp` |
 | `security.*` | podman run flags | cloud-init hardening (no direct mapping) |
 | `network.mode: openvpn` | supported | **not in POC** - use podman |
@@ -237,6 +237,7 @@ Podman also creates named volumes: `<uuid>-workspace`, `<uuid>-transcripts`, `<u
  meta-data
  seed.img # FAT seed for -drive file=seed.img
  qemu.log # optional stdout/stderr capture
+ provision.log # install-ci / rsync output from qemu_provision.py
 ```
 
 ### 4.4 Shared base cache
@@ -286,6 +287,7 @@ create(uuid, cfg, vm_dir):
  7. build_argv() → subprocess.Popen
  8. write qemu.pid
  9. wait_ssh_healthy(host, port) # reuse timeout pattern from vm_core._wait_healthy
+10. if cfg.components non-empty: qemu_provision.run_install_ci(...)
 ```
 
 ### 6.2 QEMU argv (POC - aarch64 Linux guest)
@@ -305,10 +307,15 @@ qemu-system-aarch64 \
  -netdev user,id=net0,hostfwd=tcp:127.0.0.1:<ssh_port>-:22 \
  -device virtio-net-pci,netdev=net0 \
  -device virtio-rng-pci \
- -nographic \
+ -fsdev local,id=ws0,path=<workspace_root>,security_model=none,readonly=on \
+ -device virtio-9p-pci,fsdev=ws0,mount_tag=workspace \
+ -display none \
  -pidfile .vms/<uuid>/qemu.pid \
  -daemonize
 ```
+
+`<workspace_root>` is `find_workspace_root()` (WORKSPACE-VM repo root). The 9p share
+is read-only on the host; guest writes go to `/opt/workspace` on the QCOW2 overlay only.
 
 - Linux + KVM: `-accel kvm`, `-cpu host` when `guest_arch` matches host
 - macOS: `-accel hvf`, `-cpu max` (no `host` CPU on HVF for aarch64 guest)
@@ -329,12 +336,25 @@ users:
 package_update: true
 packages:
  - openssh-server
+ - git
+ - curl
+ - rsync
+ - make
+ - build-essential
+users:
+ - name: agent
+   uid: 1001
+   shell: /bin/bash
+   groups: [workspace]
 runcmd:
  - systemctl enable --now ssh
- # stretch: clone WORKSPACE-VM and run make install-ci with cfg.components
+ - mkdir -p /mnt/workspace-ro
+ - mount -t 9p -o trans=virtio,version=9p2000.L,ro workspace /mnt/workspace-ro
 ```
 
 SSH key generation reuses `_prepare_build_ssh_key` pattern from `vm_build.py`.
+`make install-ci` is **not** run in cloud-init (timeouts); `qemu_provision.py` runs
+it over SSH after health check when `components` is non-empty.
 
 ### 6.4 Health check
 
@@ -351,6 +371,48 @@ Poll until success or timeout (same order of magnitude as existing `_wait_health
 
 - **stop:** `qemu-monitor` `system_powerdown` if monitor available; else SIGTERM to PID in `qemu.pid`; wait up to 30s; SIGKILL fallback
 - **destroy:** stop + `rm -rf .vms/<uuid>/` (preserve `_base/`)
+
+### 6.6 Guest provisioning and rsync profiles
+
+`workspace/cli/hypervisor/qemu_provision.py` orchestrates post-boot setup:
+
+1. Wait for `/mnt/workspace-ro` (cloud-init mount).
+2. Rsync selected paths from RO mount to `/opt/workspace` (guest disk).
+3. `cd /opt/workspace && make init && make install-ci INSTALL_DEFAULTS=...`
+4. Stream output to `.vms/<uuid>/provision.log`.
+
+| Profile | Config | Rsync scope | install-ci |
+|---------|--------|-------------|------------|
+| `poc` | `vm-poc-qemu.yaml` | None | No |
+| `guard` | `vm-guard-qemu.yaml` | Skeleton + `projects/CI` + `projects/WORKSPACE-GUARD` | Minimal (git, rust via init) |
+| `full-ci` | `vm-full-ci-qemu.yaml` | Skeleton + required `projects/*` | Yes (13 default components) |
+
+**Always excluded from rsync:** `.vms/`, `.venv/`, `node_modules/`, `__pycache__/`.
+
+**Optional (`QEMU_RSYNC_BOOT=1`, same host arch only):** copy host `.boot-linux/` into
+guest to skip cold downloads. macOS host `.boot-macos/` is never copied (wrong arch).
+
+Environment knobs:
+
+| Variable | Default | Effect |
+|----------|---------|--------|
+| `QEMU_PROVISION_PROFILE` | derived from config | `poc` / `guard` / `full-ci` |
+| `QEMU_RSYNC_BOOT` | `0` | Copy pre-built `.boot-linux/` when `1` |
+| `QEMU_PROVISION_TIMEOUT` | `3600` | Seconds for install-ci |
+
+Disk guidance: `disk_gb: 12` for POC; `48` for full-ci (base image + overlay + install artifacts).
+
+### 6.7 E2E storage cleanup
+
+QEMU E2E tests (`tests/e2e/test_vm_qemu_*.py`) MUST NOT persist per-VM overlays:
+
+| Artifact | After E2E | Rationale |
+|----------|-----------|-----------|
+| `.vms/<uuid>/` (overlay, cloud-init, logs) | **Deleted** | `qemu_tracker` fixture + session reclaim |
+| `.vms/_base/` (shared Ubuntu image) | **Retained** | Avoid re-downloading ~600MB per run |
+| Failed partial creates | **Reclaimed** | `cleanup_orphan_qemu_vms()` on session end |
+
+Debug only: set `QEMU_E2E_KEEP_VM=1` to skip destroy (not for CI).
 
 ---
 
@@ -605,27 +667,38 @@ Document in error text: `sudo usermod -aG kvm $USER` and re-login.
 | Policy matrix E2E on real caps | **QEMU guest only** | **Authoritative** |
 | Darwin Podman | - | **Not authoritative** for kernel guardrails |
 
-### 12.2 Post-POC hook (documented, not POC-blocking)
+### 12.2 Authoritative gate (host orchestration)
+
+From WORKSPACE-VM root:
 
 ```bash
-# Inside QEMU guest after install-ci:
-cd projects/WORKSPACE-GUARD
-sudo make install-lock-runtime # mutates guest / only
-make test-podman # or dedicated test-vm-guard target
+make install-qemu
+make test-vm-guard          # create vm-full-ci-qemu.yaml, provision, SSH e2e-guest.sh, destroy
+make test-e2e-qemu-full     # poc + full-ci + guard pytest suite
+make test-authoritative     # pre-release checklist (full-ci + guard + host git fingerprint)
 ```
 
-WORKSPACE-GUARD doc update (post-POC): add cross-reference from
-`docs/ROOT-ONLY-MODE.md` to this REQ.
+Inside the guest (after provision):
 
-### 12.3 Stretch: `make test-vm-guard`
+```bash
+sudo bash /opt/workspace/projects/WORKSPACE-GUARD/scripts/qemu/e2e-guest.sh
+```
 
-New WORKSPACE-VM Makefile target (stretch):
+Mutates **guest** `/usr/bin/git` only. Host `/usr/bin/git` fingerprint is verified
+before and after by `tests/e2e/qemu_host_isolation.py`.
+
+Cross-reference: [WORKSPACE-GUARD ROOT-ONLY-MODE](../projects/WORKSPACE-GUARD/docs/ROOT-ONLY-MODE.md).
+
+### 12.3 Makefile targets
 
 ```makefile
-test-vm-guard:
-	workspace/scripts/bin/vm create workspace/config/vm-poc-qemu.yaml
-	# SSH in, run guard sanity check, tear down
+test-e2e-qemu:       ## poc + guard (set TEST_QEMU_FULL=1 for full-ci)
+test-e2e-qemu-full:  ## poc + full-ci + guard (slow, authoritative)
+test-vm-guard:       ## SPEC §12.2 orchestration
+test-authoritative:  ## pre-release gate
 ```
+
+`make test-podman` in WORKSPACE-GUARD remains the fast dev sanity check (Podman container).
 
 ---
 
@@ -640,6 +713,8 @@ test-vm-guard:
 | 5 | Verify host `/usr/bin/git` unchanged | No guard artifacts on host |
 | 6 | `pytest tests/e2e/test_vm_qemu_poc.py` | Pass or skip with reason |
 | 7 | `pytest tests/e2e/test_vm_security.py` | Podman tests still pass |
+| 8 | `pytest tests/e2e/test_vm_qemu_full_ci.py` | 13 components on guest disk (macOS + Linux) |
+| 9 | `make test-vm-guard` | WORKSPACE-GUARD e2e-guest.sh in QEMU; host git unchanged |
 
 ---
 
@@ -693,4 +768,5 @@ for bundling in WORKSPACE-VM boot directories and the Android client app.
 4. Refactor `vm_manager.create` to dispatch on backend
 5. Add `bootstrap_qemu.sh` + `.vms/_base/` image fetch
 6. Add `vm-poc-qemu.yaml` + `test_vm_qemu_poc.py`
-7. (Stretch) Guest guard sanity check + `make test-vm-guard`
+7. Guest provision (`qemu_provision.py`) + virtio-9p RO mount
+8. `vm-full-ci-qemu.yaml` + `make test-vm-guard` + authoritative E2E suite

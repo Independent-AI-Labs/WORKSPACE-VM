@@ -73,6 +73,8 @@ env:
 # Default podman: rootless agent containers (existing behaviour).
 # Use qemu for a full Linux guest (WORKSPACE-GUARD cap/kernel E2E).
 # See docs/REQ-VM-HYPERVISOR.md and docs/SPEC-VM-HYPERVISOR.md.
+# QEMU configs: vm-poc-qemu.yaml (SSH only), vm-full-ci-qemu.yaml (install-ci),
+# vm-guard-qemu.yaml (guard E2E). RO virtio-9p + selective rsync per SPEC §6.6.
 isolation:
   backend: podman  # podman | qemu
   qemu:
@@ -80,7 +82,7 @@ isolation:
     accel: auto           # auto | kvm | hvf | whpx | tcg
     disk_gb: 20
     ssh_host_port: 0      # 0 = allocate a free localhost port
-    image: workspace-vm-base-ubuntu-24.04-aarch64.qcow2
+    image: workspace-vm-base-ubuntu-24.04-aarch64.qcow2  # default matches guest_arch
 
 # --- Security ---
 security:

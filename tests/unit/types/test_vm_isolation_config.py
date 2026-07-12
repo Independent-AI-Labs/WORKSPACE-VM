@@ -25,6 +25,16 @@ class TestVMIsolationConfig:
         with pytest.raises(ValidationError):
             VMQemuConfig(disk_gb=4)
 
+    def test_image_defaults_match_guest_arch(self) -> None:
+        arm = VMQemuConfig(guest_arch="aarch64")
+        assert arm.image.endswith("aarch64.qcow2")
+        x86 = VMQemuConfig(guest_arch="x86_64")
+        assert x86.image.endswith("x86_64.qcow2")
+
+    def test_provision_profile(self) -> None:
+        cfg = VMQemuConfig(provision="full-ci")
+        assert cfg.provision == "full-ci"
+
 
 class TestVMConfigIsolation:
     def test_minimal_includes_isolation(self) -> None:

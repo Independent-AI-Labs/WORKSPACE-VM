@@ -148,6 +148,12 @@ so the base remains pristine across VM lifecycles.
 **read-only** virtio-9p/virtfs shares. Writable host mounts SHALL NOT be used for
 guard-test surfaces in v1.
 
+**FR-3.6 (REQ-VMH-012)** Guest provisioning SHALL combine the RO virtio-9p share
+with **selective rsync** into guest disk (`/opt/workspace`). The host tree is
+never written through the mount; rsync copies only the paths required by the
+active profile (see SPEC §6.6). Full `install-ci` runs against the guest-local
+copy, not the RO mount.
+
 **FR-3.5** QEMU backend SHALL write lifecycle artifacts under `.vms/<uuid>/`:
 `qemu.pid`, `ssh_port`, `disk.qcow2`, `cloud-init/`, and `vm.yaml` (same as Podman).
 
@@ -160,8 +166,9 @@ guard-test surfaces in v1.
 `resources` fields SHALL remain in the shared schema. Backend-specific
 interpretation of `security` and `network` is documented in SPEC §4.
 
-**FR-4.3** POC MAY defer full `make install-ci` execution inside QEMU first boot;
-SSH + `uname -a` is the minimum acceptance bar.
+**FR-4.3** `vm-poc-qemu.yaml` MAY boot with SSH only (no `install-ci`). Full
+`install-ci` inside QEMU guests is required for `vm-full-ci-qemu.yaml` and the
+authoritative WORKSPACE-GUARD gate (`make test-vm-guard`).
 
 ### FR-5: QEMU Accelerator Selection
 
@@ -203,11 +210,12 @@ run only inside `isolation.backend: qemu` guests.
 **FR-7.2** WORKSPACE-GUARD `make test-podman` SHALL remain a **dev sanity check** gate
 (Rust unit/integration inside container). It SHALL NOT be demoted or removed.
 
-**FR-7.3** Post-POC, WORKSPACE-GUARD documentation SHALL reference WORKSPACE-VM
-QEMU gate as the authoritative cap/kernel sign-off path.
+**FR-7.3** WORKSPACE-GUARD documentation SHALL reference WORKSPACE-VM QEMU gate
+(`make test-vm-guard`) as the authoritative cap/kernel sign-off path.
 
-**FR-7.4 (stretch)** A guest SSH script MAY invoke WORKSPACE-GUARD install sanity check
-inside the QEMU guest; full policy-matrix E2E is deferred.
+**FR-7.4** A guest script (`WORKSPACE-GUARD/scripts/qemu/e2e-guest.sh`) SHALL run
+`e2e-capability.sh` and `e2e-policy-matrix.sh` inside QEMU guests. Podman Tier 3
+remains a dev sanity check only.
 
 ### FR-8: Lifecycle and CLI
 
@@ -357,10 +365,13 @@ workspace code that constructs argv and manages subprocess lifecycle.
 | AC-7 | `tests/e2e/test_vm_qemu_poc.py` passes on Linux/macOS with QEMU present; skips otherwise |
 | AC-8 | `tests/e2e/test_vm_security.py` Podman tests still pass |
 | AC-9 | Unit tests for `VMConfig` isolation schema pass |
-| AC-10 (stretch) | Guest runs WORKSPACE-GUARD install sanity check script without host side effects |
+| AC-10 | Guest runs WORKSPACE-GUARD `e2e-guest.sh` (capability + policy-matrix) without host side effects |
 | AC-11 | `make install-qemu` populates boot-dir binaries, firmware, and GPL NOTICE |
 | AC-12 | `res/qemu-pins.yaml` version matches installed `qemu-system-* --version` |
 | AC-13 | No workspace binary links `libqemu`; only subprocess invocation |
+| AC-14 | `make test-vm-guard` passes on macOS (HVF) and Linux (KVM) |
+| AC-15 | `tests/e2e/test_vm_qemu_full_ci.py` passes on macOS and Linux (13 components, guest disk) |
+| AC-16 | Host `/usr/bin/git` fingerprint unchanged after `make test-vm-guard` on both platforms |
 
 ---
 

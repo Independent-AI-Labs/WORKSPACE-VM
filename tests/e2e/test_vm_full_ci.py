@@ -14,6 +14,7 @@ import pytest
 import yaml
 
 from tests.e2e.conftest import VMTracker, extract_uuid, vm_cmd
+from workspace.types.vm import VM_INSTALL_ROOT
 
 pytestmark = pytest.mark.e2e
 
@@ -34,10 +35,10 @@ _FULL_CI_COMPONENTS = [
 ]
 
 _ESSENTIAL_BINARIES = [
-    ("uv", "/opt/ami-agents/.boot-linux/bin/uv"),
-    ("python3", "/opt/ami-agents/.boot-linux/bin/python3"),
-    ("node", "/opt/ami-agents/projects/CI/.boot-linux/bin/node"),
-    ("opencode", "/opt/ami-agents/.boot-linux/bin/opencode"),
+    ("uv", f"{VM_INSTALL_ROOT}/.boot-linux/bin/uv"),
+    ("python3", f"{VM_INSTALL_ROOT}/.boot-linux/bin/python3"),
+    ("node", f"{VM_INSTALL_ROOT}/projects/CI/.boot-linux/bin/node"),
+    ("opencode", f"{VM_INSTALL_ROOT}/.boot-linux/bin/opencode"),
     ("git", "/usr/bin/git"),
 ]
 

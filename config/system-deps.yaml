@@ -98,8 +98,7 @@ requires:
 
   - check_cmd: cloud-localds
     apt_package: cloud-image-utils
-    brew_package: cloud-utils
-    description: cloud-init seed builder for QEMU guests (cloud-localds)
+    description: cloud-init seed builder for QEMU guests (cloud-localds; vendored by make install-qemu on macOS)
     component: qemu
 
   - check_cmd: qemu-img

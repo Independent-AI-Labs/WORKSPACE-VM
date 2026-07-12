@@ -1,0 +1,37 @@
+# Full install-ci inside QEMU guest (authoritative data path).
+# Prerequisites: make install-qemu, cloud-localds, ~48GB guest disk, 45-90 min.
+# See docs/SPEC-VM-HYPERVISOR.md §6.6
+
+components:
+  - uv
+  - python
+  - node
+  - opencode
+  - podman
+  - gh
+  - go
+  - cloudflared
+  - playwright
+  - pandoc
+  - texlive
+  - adb
+  - ansible
+
+resources:
+  memory: "8g"
+  cpus: 4
+
+isolation:
+  backend: qemu
+  qemu:
+    accel: auto
+    disk_gb: 48
+    provision: full-ci
+
+network:
+  mode: none
+
+web_ui: false
+
+security:
+  purge_sudo: true

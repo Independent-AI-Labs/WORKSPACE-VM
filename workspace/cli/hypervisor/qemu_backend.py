@@ -12,12 +12,14 @@ import yaml
 
 from workspace.cli.hypervisor.qemu_argv import QemuLaunchContext, build_qemu_argv
 from workspace.cli.hypervisor.qemu_images import prepare_vm_storage
+from workspace.cli.hypervisor.qemu_provision import provision_guest
 from workspace.cli.hypervisor.qemu_resolve import (
     resolve_aarch64_firmware,
     resolve_accel,
     resolve_qemu_system,
 )
 from workspace.cli.vm_core import _VMS_DIR, _generate_password
+from workspace.cli.vpn_core import find_workspace_root
 from workspace.types.vm import VMConfig
 from workspace.utils.uuid_utils import uuid7
 
@@ -41,7 +43,13 @@ class QemuBackend:
         (vm_dir / "password").write_text(password)
         shutil.copy2(config_path, vm_dir / "vm.yaml")
 
+        install_defaults = vm_dir / "vm-install-defaults.yaml"
+        install_defaults.write_text(
+            yaml.dump({"components": cfg.components, "extra_apt": cfg.extra_apt})
+        )
+
         q = cfg.isolation.qemu
+        workspace_root = find_workspace_root() if q.provision != "none" else None
         qemu_bin = resolve_qemu_system(q.guest_arch)
         accel = resolve_accel(q.accel, qemu_bin)
         firmware = resolve_aarch64_firmware() if q.guest_arch == "aarch64" else None
@@ -58,10 +66,22 @@ class QemuBackend:
             accel=accel,
             ssh_port=ssh_port,
             firmware=firmware,
+            workspace_root=workspace_root,
         )
         argv = build_qemu_argv(cfg=cfg, vm_dir=vm_dir, launch=launch)
         subprocess.run(argv, check=True)
-        _wait_ssh(int(ssh_port), vm_dir / "qemu_ssh_ed25519")
+        ssh_key = vm_dir / "qemu_ssh_ed25519"
+        _wait_ssh(int(ssh_port), ssh_key)
+
+        if q.provision != "none":
+            print("vm: provisioning guest (rsync + install-ci)...", file=sys.stderr)
+            provision_guest(
+                cfg=cfg,
+                vm_dir=vm_dir,
+                ssh_port=int(ssh_port),
+                ssh_key=ssh_key,
+                install_defaults=install_defaults,
+            )
 
         print(f"VM {uuid_str} created (qemu)")
         print(f"  UUID:     {uuid_str}")
@@ -84,11 +104,13 @@ class QemuBackend:
         accel = resolve_accel(q.accel, qemu_bin)
         firmware = resolve_aarch64_firmware() if q.guest_arch == "aarch64" else None
         ssh_port = int((vm_dir / "ssh_port").read_text().strip())
+        workspace_root = find_workspace_root() if q.provision != "none" else None
         launch = QemuLaunchContext(
             qemu_bin=qemu_bin,
             accel=accel,
             ssh_port=ssh_port,
             firmware=firmware,
+            workspace_root=workspace_root,
         )
         argv = build_qemu_argv(cfg=cfg, vm_dir=vm_dir, launch=launch)
         subprocess.run(argv, check=True)
