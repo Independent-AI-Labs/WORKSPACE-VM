@@ -26,7 +26,7 @@ Maps to [SPEC §13](SPEC-VM-HYPERVISOR.md) and REQ AC-1 through AC-16.
 | 6 | `pytest tests/e2e/test_vm_qemu_poc.py` | Pass or skip with reason | Done (macOS, ~93s) |
 | 7 | `pytest tests/e2e/test_vm_security.py` | Podman tests still pass | Not verified |
 | 8 | `pytest tests/e2e/test_vm_qemu_full_ci.py` | 13 components on guest disk (macOS + Linux) | **TODO** |
-| 9 | `make test-vm-guard` | WORKSPACE-GUARD e2e-guest.sh in QEMU; host git unchanged | **In progress** (manual e2e-guest PASS 2026-07-12; full pytest re-run pending) |
+| 9 | `make test-vm-guard` | WORKSPACE-GUARD e2e-guest.sh in QEMU; host git unchanged | Done (macOS HVF, pytest PASS 2026-07-12, ~48 min; Linux KVM pending) |
 
 Step 9 is the authoritative release gate: capability install, policy-matrix live
 vectors on real guest caps, and host `/usr/bin/git` fingerprint unchanged.
@@ -47,7 +47,7 @@ Maps to [SPEC §16](SPEC-VM-HYPERVISOR.md).
 | 5 | Add `bootstrap_qemu.sh` + `.vms/_base/` image fetch | Done (SHA256 pinned, §3.1) |
 | 6 | Add `vm-poc-qemu.yaml` + `test_vm_qemu_poc.py` | Done (macOS HVF passed) |
 | 7 | Guest provision (`qemu_provision.py`) + virtio-9p RO mount | Done (cloud-init YAML + mount probe fixes) |
-| 8 | `vm-full-ci-qemu.yaml` + `make test-vm-guard` + authoritative E2E suite | In progress (provision path fixed; pytest gate pending re-run, §3) |
+| 8 | `vm-full-ci-qemu.yaml` + `make test-vm-guard` + authoritative E2E suite | Done (macOS guard gate; full-ci + Linux KVM pending, §3.3/§3.5) |
 
 ---
 
@@ -70,7 +70,7 @@ Maps to [SPEC §16](SPEC-VM-HYPERVISOR.md).
 
 **Tasks:**
 
-1. **macOS (HVF):** `make clean-qemu-e2e && make test-vm-guard` (~30+ min).
+1. **macOS (HVF):** `make clean-qemu-e2e && make test-vm-guard` (~30+ min). **Done** (2026-07-12).
    - Guest provisions `guard` profile (CI + WORKSPACE-GUARD rsync).
    - `e2e-guest.sh` runs `e2e-capability.sh` + `e2e-policy-matrix.sh` on guest `/usr/bin/git`.
    - `tests/e2e/qemu_host_isolation.py` confirms host git fingerprint unchanged.
