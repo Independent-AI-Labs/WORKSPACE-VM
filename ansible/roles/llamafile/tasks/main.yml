@@ -1,0 +1,98 @@
+---
+# Role: llamafile
+# Deploys a systemd user service that runs a pre-built server .llamafile bundle.
+#
+# The .llamafile binary reads its embedded .args manifest (server mode, host,
+# port, model path, context, gpu layers) when invoked with NO command-line
+# arguments. Passing any CLI arg disables .args parsing, so ExecStart runs the
+# bare binary and lets .args be the single source of truth for model/runtime
+# configuration. The EnvironmentFile carries an optional API key and
+# informational port/host values (used by health-check tooling) without
+# affecting the binary's behaviour.
+#
+# Per-model concrete service units (not a template @ unit) are generated:
+# llamafile-<model>.service. Each model ships a distinct .llamafile binary
+# name, so a pure @ template cannot derive ExecStart from %i alone.
+
+- name: Discover server .llamafile binary (exclude -chat bundles)
+  ansible.builtin.find:
+    paths: "{{ llamafile_dir }}"
+    patterns: '*.llamafile'
+    use_regex: false
+  register: llamafile_candidates
+
+- name: Select server bundle (non-chat)
+  ansible.builtin.set_fact:
+    llamafile_path: "{{ (llamafile_candidates.files | rejectattr('path', 'match', '.*-chat\\.llamafile$') | list | first).path }}"
+  when: llamafile_candidates.files | rejectattr('path', 'match', '.*-chat\\.llamafile$') | list | length > 0
+
+- name: Fail when no server .llamafile found
+  ansible.builtin.fail:
+    msg: >-
+      No server .llamafile (excluding *-chat.llamafile) found in {{ llamafile_dir }}.
+      Build it first: make build-llamafile MODEL={{ llama_model }} MODE=server
+  when: llamafile_path is not defined
+
+- name: Resolve .args manifest path
+  ansible.builtin.set_fact:
+    llamafile_args_path: "{{ llamafile_dir }}/.args"
+
+- name: Validate .args manifest exists
+  ansible.builtin.stat:
+    path: "{{ llamafile_args_path }}"
+  register: llamafile_args
+
+- name: Fail when .args manifest is missing
+  ansible.builtin.fail:
+    msg: >-
+      .args manifest not found at {{ llamafile_args_path }}.
+      Build it first: make build-llamafile MODEL={{ llama_model }} MODE=server
+  when: not llamafile_args.stat.exists
+
+- name: Ensure llamafile config directory exists
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/.config/llamafile"
+    state: directory
+    mode: '0755'
+
+- name: Ensure systemd user directory exists
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/.config/systemd/user"
+    state: directory
+    mode: '0755'
+
+- name: Load optional API key from .env
+  ansible.builtin.set_fact:
+    llamafile_api_key: "{{ lookup('env', 'LLAMAFILE_API_KEY') | default('', true) }}"
+
+- name: Deploy llamafile EnvironmentFile
+  ansible.builtin.copy:
+    content: |
+      # Optional API key for llamafile server auth (empty = no auth).
+      LLAMAFILE_API_KEY={{ llamafile_api_key }}
+      # Informational: port/host baked into the embedded .args manifest.
+      # Used by health-check tooling; the binary reads these from .args.
+      LLAMAFILE_PORT={{ llamafile_port }}
+      LLAMAFILE_HOST={{ llamafile_host }}
+    dest: "{{ ansible_env.HOME }}/.config/llamafile/llamafile-{{ llama_model }}.env"
+    mode: '0600'
+    backup: false
+
+- name: Deploy llamafile-{{ llama_model }}.service unit
+  ansible.builtin.template:
+    src: llamafile.service.j2
+    dest: "{{ ansible_env.HOME }}/.config/systemd/user/llamafile-{{ llama_model }}.service"
+    mode: '0644'
+    backup: false
+
+- name: Daemon-reload systemd user instance
+  ansible.builtin.systemd:
+    daemon_reload: true
+    scope: user
+
+- name: Enable and start llamafile-{{ llama_model }}.service
+  ansible.builtin.systemd:
+    name: "llamafile-{{ llama_model }}.service"
+    enabled: true
+    state: started
+    scope: user

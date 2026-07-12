@@ -10,17 +10,19 @@
 - cosmopolitan `tool/cosmocc/README.md` (cosmocc / cosmocross / apelink toolchain)
 - OpenBMB/MiniCPM `docs/deployment/llama_cpp.md`
 - Hugging Face model repo: `openbmb/MiniCPM5-1B-GGUF`
-- Workspace: `Makefile.llamaserver`, `scripts/setup/build-llama-cpu.sh`, `ansible/llamaserver.yml`
+- Workspace: `Makefile.llamaserver`, `Makefile.llamafile`, `scripts/setup/build-llama-cpu.sh`, `scripts/setup/build-llamafile-bundle.sh`, `ansible/llamaserver.yml`
 
 ---
 
 ## Overview
 
-This specification defines how to build a **CPU-only llamafile** - a single,
-self-contained, portable executable (APE format) that bundles the llamafile
+This specification defines how to build **CPU-only llamafiles** - single,
+self-contained, portable executables (APE format) that bundle the llamafile
 runtime, the MiniCPM5-1B model weights (GGUF, Q8_0), and a default argument
-manifest - so that MiniCPM5-1B can be run as an OpenAI-compatible HTTP server
-on any compatible CPU host with zero installation.
+manifest. Two bundles are produced from the same engine: a **server** bundle
+(defaults to an OpenAI-compatible HTTP server on port 8765) and a **chat**
+bundle (defaults to an interactive TUI). The mode is chosen by which `.args`
+manifest is embedded - no recompilation.
 
 A llamafile is produced by combining three ingredients with the `zipalign`
 tool:
@@ -155,7 +157,7 @@ Per llamafile `docs/support.md`. The fat APE covers the union; CPU-only mode
 ### ARM64 runtime prerequisites
 - **CPU:** ARMv8a+ (Apple Silicon, 64-bit Raspberry Pi 3B+/4/5, Graviton, etc.).
 - **APE loader (one-time, recommended):** On UNIX the fat APE self-extracts an
-  ~8 KB loader to `$TMPDIR/.ape` (or `$HOME/.ape`). For faster/reliable launch,
+  ~8 KB loader to `$TMPDIR/.ape` (or `$HOME/.ape`). For faster, more reliable launch,
   install it systemwide - **requires root**, so on the workspace this is an
   operator task, not an agent task:
   - Linux ARM64: copy `ape-aarch64.elf` → `/usr/bin/ape`, optionally register `binfmt_misc`.
@@ -207,7 +209,7 @@ pipelines that reject polyglot binaries. Not required for normal operation.
            └─────────────────────────────────────────────┘
                                 │
                                 ▼ on launch (default .args)
-                 OpenAI-compatible HTTP server (0.0.0.0:8080)
+                 OpenAI-compatible HTTP server (0.0.0.0:8765)
 ```
 
 ---
@@ -219,7 +221,8 @@ pipelines that reject polyglot binaries. Not required for normal operation.
 | Runtime binary | **Build from source** (cosmocc) | Guaranteed CPU-only APE; no GPU code compiled in |
 | Target architectures | **AMD64 + ARM64** (fat APE, default) | One file runs on both ISAs; ARM64 cross-compiled automatically from the x86_64 build host |
 | Quantization | **Q8_0** (1.15 GB) | Minimal quality drop vs F16; CPU-fast; sane footprint |
-| Default mode | **Server** (OpenAI HTTP) | One-file deployable API endpoint |
+| Default mode | **Server + Chat** (two bundles) | Server bundle = OpenAI HTTP endpoint; chat bundle = interactive TUI. Mode chosen by embedded `.args`, not by recompiling |
+| Server port | **8765** | Exotic port; avoids collision with workspace llamaserver flavors (8080/8081/8082) and the sandbox `rootlessport` on 8080 |
 | Decode mode | **No-think, temp 0** | Deterministic/greedy; latency-bound assistant default |
 
 ---
@@ -235,12 +238,18 @@ Aligned with existing workspace conventions (`projects/llama.cpp/`,
 | `projects/llamafile/.cosmocc/` | cosmocc compiler (downloaded by `make setup`) | Gitignored |
 | `projects/llamafile/o/` | build outputs (`llamafile`, `zipalign`) | Gitignored |
 | `models/minicpm5-1b/MiniCPM5-1B-Q8_0.gguf` | downloaded GGUF weights | Gitignored |
-| `models/minicpm5-1b/.args` | default-args manifest | **Git** |
-| `models/minicpm5-1b/MiniCPM5-1B-Q8_0.llamafile` | final distributable artifact | Gitignored (large) |
+| `models/minicpm5-1b/.args` | server default-args manifest | **Git** |
+| `models/minicpm5-1b/.args.chat` | chat default-args manifest | **Git** |
+| `models/minicpm5-1b/MiniCPM5-1B-Q8_0.llamafile` | server distributable artifact | Gitignored (large) |
+| `models/minicpm5-1b/MiniCPM5-1B-Q8_0-chat.llamafile` | chat distributable artifact | Gitignored (large) |
+| `Makefile.llamafile` | bundle build/clean targets | **Git** |
+| `scripts/setup/build-llamafile-bundle.sh` | bundle build script | **Git** |
 
-> The `.args` file is tracked because it is the single source of truth for the
-> llamafile's default behavior and is small, human-readable, and reviewable.
-> All binary/large artifacts are gitignored.
+> The `.args` / `.args.chat` files are tracked because they are the source of
+> truth for each bundle's default behavior - small, human-readable, reviewable.
+> All binary/large artifacts are gitignored. The `models/` tree is gitignored
+> but `.gitignore` re-includes `models/*/.args` and `models/*/.args.*` so the
+> manifests are trackable without `-f`.
 
 ---
 
@@ -290,11 +299,13 @@ huggingface-cli download openbmb/MiniCPM5-1B-GGUF \
 
 **Acceptance:** `models/minicpm5-1b/MiniCPM5-1B-Q8_0.gguf` present, ~1.15 GB.
 
-### Step 3 - Write the `.args` manifest
+### Step 3 - Write the `.args` manifests
 
-File: `models/minicpm5-1b/.args`. One argument per line; the `/zip/` prefix
-references files embedded inside the llamafile; the trailing `...` token
-injects any runtime CLI arguments the user passes.
+Two manifests are tracked, one per default mode. Both use one argument per
+line; the `/zip/` prefix references files embedded inside the llamafile; the
+trailing `...` token injects any runtime CLI arguments the user passes.
+
+**Server manifest** - `models/minicpm5-1b/.args` (HTTP server default):
 
 ```
 -m
@@ -304,7 +315,7 @@ injects any runtime CLI arguments the user passes.
 --host
 0.0.0.0
 --port
-8080
+8765
 -ngl
 0
 --temp
@@ -319,37 +330,85 @@ off
 ...
 ```
 
-### Step 4 - Bundle into a single file with zipalign
+**Chat manifest** - `models/minicpm5-1b/.args.chat` (interactive TUI default):
 
-```sh
-LF=projects/llamafile/o/llamafile/llamafile
-ZA=projects/llamafile/o/third_party/zipalign/zipalign
-OUT=models/minicpm5-1b/MiniCPM5-1B-Q8_0.llamafile
-
-cp "$LF" "$OUT"
-"$ZA" -j0 "$OUT" \
-  models/minicpm5-1b/MiniCPM5-1B-Q8_0.gguf \
-  models/minicpm5-1b/.args
-chmod +x "$OUT"
+```
+-m
+/zip/MiniCPM5-1B-Q8_0.gguf
+--jinja
+--chat
+-ngl
+0
+--temp
+0
+--top-p
+0.95
+-c
+8192
+--no-mmap
+--reasoning
+off
+...
 ```
 
-**Acceptance:** `unzip -vl "$OUT"` lists both the GGUF and `.args` as embedded
-entries.
+> The chat manifest omits `--server`, `--host`, and `--port` because those
+> flags are registered `LLAMA_EXAMPLE_SERVER`-only in llama.cpp's arg parser
+> (`common/arg.cpp`); in `--chat` mode the engine parses with
+> `LLAMA_EXAMPLE_CLI` (llamafile `main.cpp:139`), so server-only flags would
+> error. `--jinja` and `--reasoning` are valid in both examples and are kept.
+> The mode is chosen purely by which manifest is embedded - the engine binary
+> is identical across modes (no recompile). `args.cpp:69` checks `--server`
+> before `--chat`, so a bundle that embeds `--server` can never fall back to
+> chat at runtime; the chat bundle therefore embeds `--chat` and no
+> `--server`.
+
+### Step 4 - Bundle via build automation
+
+Bundling is automated by `Makefile.llamafile` + `scripts/setup/build-llamafile-bundle.sh`.
+The script reuses the prebuilt engine + zipalign (Step 1), stages the chosen
+manifest as the zip entry `.args` (required by `cosmo_args("/zip/.args")`),
+and runs `zipalign -j0` to embed the GGUF + manifest into a copy of the engine.
+No recompile; the engine is identical across modes.
+
+```sh
+# Server-default bundle  -> MiniCPM5-1B-Q8_0.llamafile
+make build-llamafile MODEL=minicpm5-1b MODE=server
+
+# Chat-default bundle    -> MiniCPM5-1B-Q8_0-chat.llamafile
+make build-llamafile MODEL=minicpm5-1b MODE=chat
+
+# Both
+make build-llamafile MODEL=minicpm5-1b            # MODE defaults to all
+
+# Remove built bundles
+make clean-llamafile MODEL=minicpm5-1b
+```
+
+**Acceptance:** `unzip -vl models/minicpm5-1b/MiniCPM5-1B-Q8_0.llamafile`
+lists both the GGUF and `.args` as embedded entries; the chat bundle lists
+`.args` containing `--chat` and no `--server`.
 
 ### Step 5 - Verify
 
 ```sh
+# --- Server bundle ---
 OUT=models/minicpm5-1b/MiniCPM5-1B-Q8_0.llamafile
 unzip -vl "$OUT"                       # confirm embedded gguf + .args
 file "$OUT"                            # polyglot: DOS/MBR + ELF (fat APE)
 "$OUT" --version                       # AMD64 slice launches on this host
-"$OUT" &                               # launch server on 0.0.0.0:8080
+"$OUT" &                               # launch server on 0.0.0.0:8765
 SERVER_PID=$!
 sleep 5
-curl -s http://127.0.0.1:8080/v1/chat/completions \
+curl -s http://127.0.0.1:8765/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{"model":"MiniCPM5-1B","messages":[{"role":"user","content":"1+1=?"}],"max_tokens":64}'
 kill "$SERVER_PID"
+
+# --- Chat bundle (no HTTP listener) ---
+CHAT=models/minicpm5-1B/MiniCPM5-1B-Q8_0-chat.llamafile
+unzip -vl "$CHAT"                      # .args has --chat, no --server
+printf 'What is 1+1? Reply with just the number.\n' | "$CHAT"
+# expect: a TUI reply (e.g. "2") and NO listener opened by the process
 ```
 
 > **ARM64 verification:** the AMD64 slice is exercised above on the build
@@ -370,7 +429,7 @@ kill "$SERVER_PID"
 | `--jinja` | - | Apply the chat template baked into the GGUF (MiniCPM5 chat format) |
 | `--server` | - | Run as OpenAI-compatible HTTP server (not TUI) |
 | `--host` | `0.0.0.0` | Bind all interfaces |
-| `--port` | `8080` | Listen port |
+| `--port` | `8765` | Listen port (server manifest only) |
 | `-ngl` | `0` | Zero GPU layers offloaded → force CPU (makes CPU-only intent explicit) |
 | `--temp` | `0` | Greedy decoding (No-think, deterministic) |
 | `--top-p` | `0.95` | Inert at temp 0; retained for clarity / easy mode switching |
@@ -382,8 +441,11 @@ kill "$SERVER_PID"
 **Mode switching at runtime** (the `...` token allows overrides):
 - Think mode: `./MiniCPM5-1B-Q8_0.llamafile --reasoning on --temp 0.9`
 - Different port: `./MiniCPM5-1B-Q8_0.llamafile --port 8081`
-- TUI instead of server: `./MiniCPM5-1B-Q8_0.llamafile` (server is a default
-  arg; to get TUI the user must override - see Notes).
+- TUI chat: use the chat-default bundle
+  `./MiniCPM5-1B-Q8_0-chat.llamafile` (embeds `--chat`, no `--server`).
+  The server-default bundle cannot be switched to chat at runtime because
+  `args.cpp:69` checks `--server` before `--chat` and the embedded `.args`
+  always supplies `--server`; the chat bundle is the supported path to TUI.
 
 ---
 
@@ -391,10 +453,11 @@ kill "$SERVER_PID"
 
 ### Port registry (workspace host co-location)
 The workspace `ansible/llamaserver.yml` reserves: cpu=8081, sycl=8082,
-vulkan=8080. The llamafile default port is **8080** for portability (it is
-intended to run on arbitrary hosts). When co-located on the workspace host
-with the vulkan `llamaserver@vulkan` service, override at launch:
-`./MiniCPM5-1B-Q8_0.llamafile --port 8081`.
+vulkan=8080. The llamafile server bundle defaults to **8765** - an exotic
+port chosen to avoid collision with any workspace llamaserver flavor and
+with the sandbox's `rootlessport` forwarder on 8080. Override at launch if
+needed: `./MiniCPM5-1B-Q8_0.llamafile --port <PORT>`. The chat bundle opens
+no listener at all.
 
 ### Temperature 0 & reasoning-off semantics
 At `--temp 0` decoding is greedy; `--top-p` has no effect. With `--reasoning off`
@@ -423,10 +486,15 @@ step requires root and must be requested from the operator.
 - [x] ARM64 slice cross-compiled from the x86_64 build host (no cross-gcc/QEMU used during build)
 - [x] `projects/llamafile/o/third_party/zipalign/zipalign` built
 - [x] `models/minicpm5-1b/MiniCPM5-1B-Q8_0.gguf` downloaded (~1.15 GB)
-- [x] `models/minicpm5-1b/.args` written with the exact manifest above
-- [x] `models/minicpm5-1b/MiniCPM5-1B-Q8_0.llamafile` produced and executable
-- [x] `unzip -vl` confirms GGUF + `.args` embedded
-- [x] AMD64 slice: launch serves HTTP on 0.0.0.0:8080 and answers `/v1/chat/completions` (`{"content":"1+1=2"}`, `--reasoning off`, no `reasoning_content`)
+- [x] `models/minicpm5-1b/.args` written (server manifest, port 8765)
+- [x] `models/minicpm5-1b/.args.chat` written (chat manifest, `--chat`, no server-only flags)
+- [x] `models/minicpm5-1b/MiniCPM5-1B-Q8_0.llamafile` produced and executable (server default)
+- [x] `models/minicpm5-1b/MiniCPM5-1B-Q8_0-chat.llamafile` produced and executable (chat default)
+- [x] `unzip -vl` confirms GGUF + `.args` embedded in both bundles
+- [x] Server bundle: embedded `.args` has `--server` + `--port 8765`
+- [x] Chat bundle: embedded `.args` has `--chat`, no `--server`/`--host`/`--port`
+- [x] AMD64 slice: server bundle serves HTTP on 0.0.0.0:8765 and answers `/v1/chat/completions`
+- [x] Chat bundle: TUI launches on piped prompt, produces a reply, opens NO listener
 - [ ] ARM64 slice: same `.llamafile` launches and serves on an ARM64 host (or under `qemu-aarch64`)
 
 ---
@@ -441,3 +509,4 @@ step requires root and must be requested from the operator.
 - MiniCPM5-1B llama.cpp deployment: https://github.com/OpenBMB/MiniCPM/blob/main/docs/deployment/llama_cpp.md
 - GGUF model repo: https://huggingface.co/openbmb/MiniCPM5-1B-GGUF
 - Workspace native CPU build (distinct): `scripts/setup/build-llama-cpu.sh`, `Makefile.llamaserver`
+- Workspace llamafile bundle automation: `Makefile.llamafile`, `scripts/setup/build-llamafile-bundle.sh`

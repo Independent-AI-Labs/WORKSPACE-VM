@@ -481,3 +481,8 @@ check-compliance-recursive: ensure-repos ## Audit every nested repo for CI contr
 # LlamaServer - multi-flavor build + deployment (cpu, sycl, vulkan)
 # ==============================================================================
 -include Makefile.llamaserver
+
+# ==============================================================================
+# Llamafile - CPU-only .llamafile bundle builder (server | chat | all)
+# ==============================================================================
+-include Makefile.llamafile

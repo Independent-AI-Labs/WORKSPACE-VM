@@ -160,7 +160,17 @@ projects/
 
 CMakeFiles/
 
-models/
+# Ignore the models/ tree (large GGUF weights, .llamafile binaries) but keep
+# tracked .args manifests (.args, .args.chat, ...) - small, human-readable,
+# reviewable sources of truth for each .llamafile bundle's default behavior.
+# NOTE: git cannot re-include a file inside an excluded *directory*, so we
+# exclude contents (models/*, models/*/*) and re-include subdirs (!models/*/)
+# so git descends and the .args negations below actually take effect.
+models/*
+!models/*/
+models/*/*
+!models/*/.args
+!models/*/.args.*
 
 # OpenAI-compatible provider config (machine-specific)
 opencode.json

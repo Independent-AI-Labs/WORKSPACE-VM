@@ -1,0 +1,110 @@
+# Llamafile bundle Makefile targets
+# Builds CPU-only .llamafile distributables from the prebuilt llamafile engine
+# (projects/llamafile/o/) + a GGUF model + a default-args manifest (.args).
+#
+# The mode is chosen purely by which .args manifest is embedded - the engine is
+# identical across modes (no recompile):
+#   server -> <gguf-stem>.llamafile        (OpenAI-compatible HTTP server default)
+#   chat   -> <gguf-stem>-chat.llamafile   (interactive TUI chat default)
+#   all    -> both
+#
+# Usage:
+#   make build-llamafile MODEL=minicpm5-1b                 # MODE=all (both bundles)
+#   make build-llamafile MODEL=minicpm5-1b MODE=chat
+#   make build-llamafile MODEL=minicpm5-1b MODE=server
+#   make clean-llamafile MODEL=minicpm5-1b                 # remove .llamafile outputs
+#
+# The engine + zipalign must already be built under projects/llamafile/o/
+# (see docs/SPEC-LLAMAFILE-MINICPM5-1B.md Step 1). This target reuses that
+# build and only re-bundles; it never recompiles or touches the upstream tree.
+
+# ==============================================================================
+# Build Targets - delegate to scripts/setup/build-llamafile-bundle.sh
+# ==============================================================================
+
+.PHONY: build-llamafile
+build-llamafile: ## Build .llamafile bundle(s): MODEL=<dir> MODE=(server|chat|all, default all)
+ifeq ($(MODEL),)
+	$(error MODEL is required. Usage: make build-llamafile MODEL=minicpm5-1b MODE=chat)
+endif
+	@bash scripts/setup/build-llamafile-bundle.sh --model $(MODEL) --mode $(or $(MODE),all)
+
+.PHONY: clean-llamafile
+clean-llamafile: ## Remove built .llamafile bundle(s) for MODEL=<dir>
+ifeq ($(MODEL),)
+	$(error MODEL is required. Usage: make clean-llamafile MODEL=minicpm5-1b)
+endif
+	@rm -fv models/$(MODEL)/*.llamafile
+	@echo "Removed .llamafile outputs under models/$(MODEL)/"
+
+# ==============================================================================
+# Service Targets - systemd user unit llamafile-<model>.service
+# The VM owns the llamafile server lifecycle via systemd. The server .llamafile
+# reads its embedded .args manifest (server mode, host, port, model, context,
+# gpu) when invoked bare. The gateway repo only references this server as a
+# route upstream (no server config lives in the gateway).
+#
+# Usage:
+#   make install-llamafile MODEL=minicpm5-1b    # deploy systemd service
+#   make uninstall-llamafile MODEL=minicpm5-1b
+#   make restart-llamafile MODEL=minicpm5-1b
+#   make status-llamafile MODEL=minicpm5-1b
+#   make logs-llamafile MODEL=minicpm5-1b LINES=100
+#   make list-llamafile                          # all installed llamafile-* units
+# ==============================================================================
+
+.PHONY: install-llamafile
+install-llamafile: ## Build (if needed) and deploy systemd unit for MODEL=<dir>
+ifeq ($(MODEL),)
+	$(error MODEL is required. Usage: make install-llamafile MODEL=minicpm5-1b)
+endif
+	@if ! ls models/$(MODEL)/*.llamafile >/dev/null 2>&1 || \
+			! ls models/$(MODEL)/*.llamafile | grep -vE '(-chat\.llamafile)$' >/dev/null 2>&1; then \
+		echo "No server .llamafile found. Building first..."; \
+		$(MAKE) build-llamafile MODEL=$(MODEL) MODE=server; \
+	fi
+	@cd ansible && \
+		export $$(grep -v '^\s*#' "$(CURDIR)/.env" 2>/dev/null | xargs) && \
+		ansible-playbook \
+			--diff \
+			-e "llama_model=$(MODEL)" \
+			llamafile.yml
+	@echo "✅ llamafile-$(MODEL) deployed"
+
+.PHONY: uninstall-llamafile
+uninstall-llamafile: ## Stop and disable llamafile-<model>
+ifeq ($(MODEL),)
+	$(error MODEL is required. Usage: make uninstall-llamafile MODEL=minicpm5-1b)
+endif
+	@systemctl --user stop llamafile-$(MODEL).service 2>/dev/null || true
+	@systemctl --user disable llamafile-$(MODEL).service 2>/dev/null || true
+	@rm -f "$(HOME)/.config/systemd/user/llamafile-$(MODEL).service"
+	@rm -f "$(HOME)/.config/llamafile/llamafile-$(MODEL).env"
+	@systemctl --user daemon-reload
+	@echo "✅ llamafile-$(MODEL) removed"
+
+.PHONY: restart-llamafile
+restart-llamafile: ## Restart llamafile-<model> (no rebuild)
+ifeq ($(MODEL),)
+	$(error MODEL is required. Usage: make restart-llamafile MODEL=minicpm5-1b)
+endif
+	@systemctl --user restart llamafile-$(MODEL).service
+	@echo "✅ llamafile-$(MODEL) restarted"
+
+.PHONY: status-llamafile
+status-llamafile: ## Show status of llamafile-<model>
+ifeq ($(MODEL),)
+	$(error MODEL is required. Usage: make status-llamafile MODEL=minicpm5-1b)
+endif
+	@systemctl --user status llamafile-$(MODEL).service --no-pager
+
+.PHONY: logs-llamafile
+logs-llamafile: ## Tail logs for llamafile-<model> (default 50 lines)
+ifeq ($(MODEL),)
+	$(error MODEL is required. Usage: make logs-llamafile MODEL=minicpm5-1b)
+endif
+	@journalctl --user -u llamafile-$(MODEL).service -n $(or $(LINES),50) -f
+
+.PHONY: list-llamafile
+list-llamafile: ## List all installed llamafile-* units
+	@systemctl --user --no-pager list-units 'llamafile-*.service'

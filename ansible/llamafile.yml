@@ -1,0 +1,13 @@
+---
+- name: Deploy Llamafile server (any model)
+  hosts: localhost
+  gather_facts: true
+
+  roles:
+    - role: llamafile
+
+  vars:
+    llama_model: minicpm5-1b
+    llamafile_dir: "{{ playbook_dir }}/../models/{{ llama_model }}"
+    llamafile_port: "{{ lookup('env', 'LLAMAFILE_PORT') | default('8765', true) }}"
+    llamafile_host: "{{ lookup('env', 'LLAMAFILE_HOST') | default('0.0.0.0', true) }}"
