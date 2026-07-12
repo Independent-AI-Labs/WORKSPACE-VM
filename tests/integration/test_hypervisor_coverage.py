@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import shutil
 import subprocess
 from pathlib import Path
 from unittest.mock import MagicMock
@@ -18,6 +19,14 @@ from workspace.cli.hypervisor import qemu_resolve as qr
 from workspace.cli.hypervisor.factory import get_backend
 from workspace.cli.hypervisor.qemu_argv import QemuLaunchContext, build_qemu_argv
 from workspace.types.vm import VMConfig
+
+_HAS_ISO_TOOL = (
+    shutil.which("genisoimage") is not None or shutil.which("mkisofs") is not None
+)
+_skip_no_iso_tool = pytest.mark.skipif(
+    not _HAS_ISO_TOOL,
+    reason="genisoimage/mkisofs not installed; run: sudo make install-qemu",
+)
 
 _TEST_SSH_PORT = 55111
 
@@ -80,6 +89,7 @@ def test_qemu_images_allocate_port() -> None:
     assert qi.allocate_ssh_port(_TEST_SSH_PORT) == _TEST_SSH_PORT
 
 
+@_skip_no_iso_tool
 def test_qemu_write_cloud_init_integration(tmp_path: Path) -> None:
     vm_dir = tmp_path / "vm"
     qi.write_cloud_init(vm_dir, "ssh-ed25519 AAA", mount_workspace=True)

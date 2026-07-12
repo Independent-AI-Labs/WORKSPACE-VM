@@ -8,7 +8,10 @@ files). Bashrc writing is handled by shell-setup, not here.
 
 from __future__ import annotations
 
+import grp
+import os
 import platform
+import pwd
 import re
 import stat
 import sys
@@ -24,6 +27,27 @@ from workspace.scripts.shell.extension_registry import (
 from workspace.scripts.shell.version_enforcer import enforce_versions
 
 
+def _maybe_chown(path: Path) -> None:
+    """If running under sudo, chown path back to SUDO_USER so future
+    agent-uid runs can refresh it without sudo. No-op when not under sudo.
+    Surfaces chown errors to stderr without aborting registration."""
+    sudo_user = os.environ.get("SUDO_USER")
+    if not sudo_user:
+        return
+    try:
+        pw = pwd.getpwnam(sudo_user)
+        gr = grp.getgrgid(pw.pw_gid)
+    except KeyError:
+        sys.stderr.write(
+            f"Warning: SUDO_USER={sudo_user!r} not found, skipping chown\n"
+        )
+        return
+    try:
+        os.chown(path, pw.pw_uid, gr.gr_gid, follow_symlinks=False)
+    except OSError as exc:
+        sys.stderr.write(f"Warning: chown {path} to {sudo_user} failed: {exc}\n")
+
+
 def create_wrapper(path: Path, ami_root: Path, script: str) -> None:
     """Create wrapper script that calls run with the script."""
     wrapper = f"""#!/usr/bin/env bash
@@ -32,6 +56,7 @@ exec "{ami_root}/workspace/scripts/bin/run" "{ami_root}/{script}" "$@"
     path.unlink(missing_ok=True)
     path.write_text(wrapper)
     path.chmod(path.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+    _maybe_chown(path)
 
 
 def fix_stale_shebang(binary: Path, ami_root: Path) -> None:
@@ -84,6 +109,7 @@ def create_symlink(link: Path, target: Path) -> None:
     """Create symlink, removing existing if present."""
     link.unlink(missing_ok=True)
     link.symlink_to(target)
+    _maybe_chown(link)
 
 
 def _register_one(ext: ResolvedExtension, bin_dir: Path, ami_root: Path) -> None:
@@ -113,6 +139,7 @@ def register_extensions() -> None:
     boot_name = ".boot-macos" if platform.system() == "Darwin" else ".boot-linux"
     bin_dir = ami_root / boot_name / "bin"
     bin_dir.mkdir(parents=True, exist_ok=True)
+    _maybe_chown(bin_dir)
 
     manifests = discover_manifests(ami_root)
     if not manifests:

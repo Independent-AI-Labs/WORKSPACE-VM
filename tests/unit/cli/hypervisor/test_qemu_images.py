@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -12,6 +13,14 @@ import yaml
 from workspace.cli.hypervisor import qemu_images as qi
 from workspace.cli.vpn_core import find_workspace_root
 from workspace.types.vm import VMConfig
+
+_HAS_ISO_TOOL = (
+    shutil.which("genisoimage") is not None or shutil.which("mkisofs") is not None
+)
+_skip_no_iso_tool = pytest.mark.skipif(
+    not _HAS_ISO_TOOL,
+    reason="genisoimage/mkisofs not installed; run: sudo make install-qemu",
+)
 
 _TEST_SHA = "ab" * 32
 _REQUESTED_PORT = 55222
@@ -177,6 +186,7 @@ def test_create_overlay_invokes_qemu_img(
     assert calls[1][1] == "resize"
 
 
+@_skip_no_iso_tool
 def test_write_cloud_init_mount_workspace(tmp_path: Path) -> None:
     vm_dir = tmp_path / "vm"
     qi.write_cloud_init(vm_dir, "ssh-rsa AAA", mount_workspace=True)
@@ -188,6 +198,7 @@ def test_write_cloud_init_mount_workspace(tmp_path: Path) -> None:
     assert (vm_dir / "cloud-init" / "seed.img").is_file()
 
 
+@_skip_no_iso_tool
 def test_write_cloud_init_no_mount(tmp_path: Path) -> None:
     vm_dir = tmp_path / "vm"
     qi.write_cloud_init(vm_dir, "ssh-rsa AAA", mount_workspace=False)

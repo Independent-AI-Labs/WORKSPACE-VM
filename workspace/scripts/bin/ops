@@ -7,7 +7,7 @@ AMI_ROOT="$("$SCRIPT_DIR/pwd")"
 export AMI_ROOT
 
 VENV_DIR="$AMI_ROOT/.venv"
-VENV_PYTHON="/Users/vladislavdonchev/WORKSPACE-VM/.venv/bin/python"
+VENV_PYTHON="$VENV_DIR/bin/python"
 BOOT_DIR="$AMI_ROOT/.boot-linux"
 
 if [[ -f "$AMI_ROOT/.env" ]]; then

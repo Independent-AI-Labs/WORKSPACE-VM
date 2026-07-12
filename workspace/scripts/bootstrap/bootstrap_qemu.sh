@@ -28,11 +28,17 @@ install_linux() {
         exit 1
     fi
     sudo apt-get update -qq
-    sudo apt-get install -y qemu-system-arm qemu-system-x86 qemu-utils qemu-efi-aarch64
+    sudo apt-get install -y qemu-system-arm qemu-system-x86 qemu-utils qemu-efi-aarch64 genisoimage cloud-image-utils
 
     for bin in qemu-system-aarch64 qemu-system-x86_64 qemu-img; do
         src="$(command -v "$bin")"
         ln -sf "$src" "${BIN_DIR}/${bin}"
+    done
+
+    for tool in genisoimage mkisofs cloud-localds; do
+        if src="$(command -v "$tool")"; then
+            ln -sf "$src" "${BIN_DIR}/${tool}"
+        fi
     done
 
     if [[ -f /usr/share/qemu-efi-aarch64/QEMU_EFI.fd ]]; then

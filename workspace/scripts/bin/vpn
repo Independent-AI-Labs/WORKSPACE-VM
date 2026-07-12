@@ -19,7 +19,7 @@ case "$_BOOT_PLATFORM" in
 esac
 BOOT_DIR="${AMI_ROOT}/${_BOOT_NAME}"
 OPENVPN_BIN="${BOOT_DIR}/bin/openvpn"
-PYTHON="/Users/vladislavdonchev/WORKSPACE-VM/.venv/bin/python"
+PYTHON="$AMI_ROOT/.venv/bin/python"
 VPN_PY="${AMI_ROOT}/workspace/scripts/bin/run_openvpn_client.py"
 VPN_CONFIG="${AMI_ROOT}/workspace/config/vpn/client.ovpn"
 SERVICE_SCRIPT="${AMI_ROOT}/workspace/scripts/bootstrap/bootstrap_openvpn_service.sh"
