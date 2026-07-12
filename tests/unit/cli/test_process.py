@@ -39,6 +39,12 @@ def test_run_ok_false_on_called_process_error() -> None:
         assert proc.run_ok(["qemu"]) is False
 
 
+def test_run_ok_true_on_success() -> None:
+    with patch("workspace.cli.process.subprocess.run") as mock_run:
+        mock_run.return_value = subprocess.CompletedProcess(["true"], 0, "ok", "")
+        assert proc.run_ok(["true"], capture_output=True, text=True) is True
+
+
 def test_run_ok_rejects_output_substring() -> None:
     with patch("workspace.cli.process.subprocess.run") as mock_run:
         mock_run.return_value = subprocess.CompletedProcess(
