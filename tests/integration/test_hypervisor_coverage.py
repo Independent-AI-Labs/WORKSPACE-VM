@@ -87,7 +87,7 @@ def test_qemu_write_cloud_init_integration(tmp_path: Path) -> None:
 
 
 def test_qemu_provision_scripts_integration() -> None:
-    assert "make install-ci" in qp._build_install_script()
+    assert "make install-ci" in qp._build_install_script("full-ci", [])
     assert "rsync" in qp._build_rsync_script("full-ci")
 
 

@@ -6,8 +6,8 @@ import hashlib
 import shutil
 import socket
 import subprocess
-import textwrap
 from pathlib import Path
+from typing import Any
 
 import yaml
 from pydantic import BaseModel, Field
@@ -106,10 +106,25 @@ def create_overlay(base: Path, overlay: Path, disk_gb: int) -> None:
 def write_cloud_init(vm_dir: Path, pubkey: str, *, mount_workspace: bool) -> None:
     ci = vm_dir / "cloud-init"
     ci.mkdir(parents=True, exist_ok=True)
+    users: list[Any] = [
+        {
+            "name": "workspace",
+            "sudo": "ALL=(ALL) NOPASSWD:ALL",
+            "shell": "/bin/bash",
+            "ssh_authorized_keys": [pubkey.strip()],
+        }
+    ]
     packages = ["openssh-server"]
-    agent_user = ""
-    mount_runcmd = ""
+    runcmd = ["systemctl enable --now ssh"]
     if mount_workspace:
+        users.append(
+            {
+                "name": "agent",
+                "uid": 1001,
+                "shell": "/bin/bash",
+                "groups": ["users"],
+            }
+        )
         packages.extend(
             [
                 "git",
@@ -121,37 +136,25 @@ def write_cloud_init(vm_dir: Path, pubkey: str, *, mount_workspace: bool) -> Non
                 "build-essential",
             ]
         )
-        agent_user = textwrap.dedent(
-            """\
-              - name: agent
-                uid: 1001
-                shell: /bin/bash
-                groups: users
-            """
+        runcmd.extend(
+            [
+                "mkdir -p /mnt/workspace-ro",
+                (
+                    "mount -t 9p -o trans=virtio,version=9p2000.L,ro "
+                    "workspace /mnt/workspace-ro"
+                ),
+            ]
         )
-        mount_runcmd = textwrap.dedent(
-            """\
-              - mkdir -p /mnt/workspace-ro
-              - mount -t 9p -o trans=virtio,version=9p2000.L,ro workspace \
-                /mnt/workspace-ro
-            """
-        )
-    pkg_lines = "\n".join(f"          - {pkg}" for pkg in packages)
-    user_data = textwrap.dedent(
-        f"""\
-        #cloud-config
-        users:
-          - name: workspace
-            sudo: ALL=(ALL) NOPASSWD:ALL
-            shell: /bin/bash
-            ssh_authorized_keys:
-              - {pubkey.strip()}
-        {agent_user}package_update: true
-        packages:
-{pkg_lines}
-        runcmd:
-          - systemctl enable --now ssh
-        {mount_runcmd}"""
+    config = {
+        "users": users,
+        "package_update": True,
+        "packages": packages,
+        "runcmd": runcmd,
+    }
+    user_data = "#cloud-config\n" + yaml.dump(
+        config,
+        default_flow_style=False,
+        sort_keys=False,
     )
     (ci / "user-data").write_text(user_data)
     (ci / "meta-data").write_text(

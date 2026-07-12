@@ -24,6 +24,7 @@ from workspace.types.vm import VMConfig
 from workspace.utils.uuid_utils import uuid7
 
 _HEALTH_TIMEOUT = 120
+_PROVISION_SSH_TIMEOUT = 600
 _HEALTH_POLL = 2
 _STOP_TIMEOUT = 30
 
@@ -71,7 +72,10 @@ class QemuBackend:
         argv = build_qemu_argv(cfg=cfg, vm_dir=vm_dir, launch=launch)
         subprocess.run(argv, check=True)
         ssh_key = vm_dir / "qemu_ssh_ed25519"
-        _wait_ssh(int(ssh_port), ssh_key)
+        ssh_timeout = (
+            _HEALTH_TIMEOUT if q.provision == "none" else _PROVISION_SSH_TIMEOUT
+        )
+        _wait_ssh(int(ssh_port), ssh_key, timeout=ssh_timeout)
 
         if q.provision != "none":
             print("vm: provisioning guest (rsync + install-ci)...", file=sys.stderr)
@@ -228,8 +232,8 @@ def _probe_ssh(port: int, identity: Path) -> bool:
     return True
 
 
-def _wait_ssh(port: int, identity: Path) -> None:
-    deadline = time.monotonic() + _HEALTH_TIMEOUT
+def _wait_ssh(port: int, identity: Path, *, timeout: int = _HEALTH_TIMEOUT) -> None:
+    deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         if _probe_ssh(port, identity):
             return

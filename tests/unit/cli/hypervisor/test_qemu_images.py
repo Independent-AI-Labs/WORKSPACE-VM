@@ -10,6 +10,7 @@ import pytest
 import yaml
 
 from workspace.cli.hypervisor import qemu_images as qi
+from workspace.cli.vpn_core import find_workspace_root
 from workspace.types.vm import VMConfig
 
 _TEST_SHA = "ab" * 32
@@ -180,7 +181,10 @@ def test_write_cloud_init_mount_workspace(tmp_path: Path) -> None:
     vm_dir = tmp_path / "vm"
     qi.write_cloud_init(vm_dir, "ssh-rsa AAA", mount_workspace=True)
     user_data = (vm_dir / "cloud-init" / "user-data").read_text()
-    assert "virtio-9p" in user_data or "9p" in user_data
+    assert user_data.startswith("#cloud-config\n")
+    config = yaml.safe_load(user_data.removeprefix("#cloud-config\n"))
+    assert any("9p" in cmd for cmd in config["runcmd"])
+    assert "rsync" in config["packages"]
     assert (vm_dir / "cloud-init" / "seed.img").is_file()
 
 
@@ -198,6 +202,19 @@ def test_generate_ssh_keypair_reuses_existing(tmp_path: Path) -> None:
     path, pub = qi.generate_ssh_keypair(tmp_path)
     assert path == key
     assert pub == "ssh-ed25519 AAA"
+
+
+def test_qemu_pins_no_pending_sha256() -> None:
+    """CI guard: res/qemu-pins.yaml image digests must be pinned."""
+    pins_path = find_workspace_root() / "res" / "qemu-pins.yaml"
+    data = yaml.safe_load(pins_path.read_text()) or {}
+    images = data.get("images") or {}
+    pending = [
+        key
+        for key, spec in images.items()
+        if str(spec.get("sha256", "")).startswith("pending")
+    ]
+    assert not pending, f"unpinned image sha256 in qemu-pins.yaml: {pending}"
 
 
 def test_load_pins_parses_manifest(

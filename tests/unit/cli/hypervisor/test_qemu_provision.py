@@ -74,11 +74,24 @@ def test_build_rsync_script_guard_profile() -> None:
     assert "projects/WORKSPACE-GUARD/" in script
     assert "projects/CI/" in script
     assert "rsync -a" in script
+    assert "mkdir -p /opt/workspace/projects" in script
+    assert "chown -R workspace:workspace /opt/workspace" in script
 
 
 def test_build_rsync_script_full_ci_profile() -> None:
     script = qp._build_rsync_script("full-ci")
     assert "projects/" in script
+
+
+def test_build_install_script_guard_skips_install_ci() -> None:
+    script = qp._build_install_script("guard", [])
+    assert "make init" in script
+    assert "install-ci" not in script
+
+
+def test_build_install_script_full_ci_runs_install_ci() -> None:
+    script = qp._build_install_script("full-ci", [])
+    assert "make install-ci" in script
 
 
 def test_wait_ro_mount_success(monkeypatch: pytest.MonkeyPatch) -> None:

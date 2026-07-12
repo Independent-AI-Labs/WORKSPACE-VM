@@ -5,6 +5,7 @@
 **Date:** 2026-07-11
 **Classification:** Internal - Enterprise
 **Specification:** [SPEC-VM-HYPERVISOR](SPEC-VM-HYPERVISOR.md)
+**Tracking:** [TRACK-VM-HYPERVISOR](TRACK-VM-HYPERVISOR.md) (execution status and remaining tasks)
 **Authors:** Workspace Engineering
 **References:**
 - [SPEC-VM-HYPERVISOR](SPEC-VM-HYPERVISOR.md) (Technical Specification)
@@ -47,12 +48,13 @@ The feature provides:
 - `PodmanBackend` thin wrapper (no behavioral change)
 - POC config `workspace/config/vm-poc-qemu.yaml`
 - E2E test: QEMU guest boots, SSH reachable, `uname -a` shows Linux kernel
+- Authoritative WORKSPACE-GUARD capability + policy-matrix E2E inside QEMU guests
+  (`make test-vm-guard`, `scripts/qemu/e2e-guest.sh`); Podman Tier 3 remains dev-only
 
 **Out of scope (v1):**
 
 - iOS host support
 - Replacing or demoting rootless Podman for everyday agent development
-- Full WORKSPACE-GUARD policy-matrix E2E inside QEMU (stretch goal post-POC)
 - Windows WHPX bundle and Android client integration (Phase 2 - documented in SPEC)
 - `vm rebuild` for QEMU backend (deferred)
 - Traefik / web UI parity for QEMU guests (partial in POC - SSH shell only)
@@ -372,6 +374,8 @@ workspace code that constructs argv and manages subprocess lifecycle.
 | AC-14 | `make test-vm-guard` passes on macOS (HVF) and Linux (KVM) |
 | AC-15 | `tests/e2e/test_vm_qemu_full_ci.py` passes on macOS and Linux (13 components, guest disk) |
 | AC-16 | Host `/usr/bin/git` fingerprint unchanged after `make test-vm-guard` on both platforms |
+
+Execution status: [TRACK-VM-HYPERVISOR](TRACK-VM-HYPERVISOR.md).
 
 ---
 

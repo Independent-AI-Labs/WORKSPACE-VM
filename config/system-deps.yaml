@@ -107,6 +107,29 @@ requires:
     component: qemu
     optional: true
 
+  - check_cmd: capsh
+    apt_package: libcap2-bin
+    description: libcap2-bin (setcap/getcap for WORKSPACE-GUARD)
+    platforms: [linux]
+    component: guard
+
+  - check_cmd: mke2fs
+    apt_package: e2fsprogs
+    description: e2fsprogs (chattr for WORKSPACE-GUARD)
+    platforms: [linux]
+    component: guard
+
+  - check_cmd: file
+    apt_package: file
+    description: file (file-type detection for WORKSPACE-GUARD)
+    component: guard
+
+  - check_type: apt-package
+    apt_package: dpkg-dev
+    description: dpkg-dev (dpkg-divert for WORKSPACE-GUARD install)
+    platforms: [linux]
+    component: guard
+
   - check_type: playwright-libs
     description: Playwright browser dependencies
     component: playwright

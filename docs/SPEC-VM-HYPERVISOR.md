@@ -5,6 +5,7 @@
 **Date:** 2026-07-11
 **Classification:** Internal - Enterprise
 **Requirements:** [REQ-VM-HYPERVISOR](REQ-VM-HYPERVISOR.md)
+**Tracking:** [TRACK-VM-HYPERVISOR](TRACK-VM-HYPERVISOR.md) (execution status and remaining tasks)
 **References:**
 - [REQ-VM-HYPERVISOR](REQ-VM-HYPERVISOR.md)
 - [REQ-BOOT-LAYOUT](REQ-BOOT-LAYOUT.md)
@@ -716,6 +717,12 @@ test-authoritative:  ## pre-release gate
 | 8 | `pytest tests/e2e/test_vm_qemu_full_ci.py` | 13 components on guest disk (macOS + Linux) |
 | 9 | `make test-vm-guard` | WORKSPACE-GUARD e2e-guest.sh in QEMU; host git unchanged |
 
+Step 9 is the authoritative release gate: capability install, policy-matrix live
+vectors on real guest caps, and host `/usr/bin/git` fingerprint unchanged. See
+§12.1 and REQ FR-7.
+
+Execution status and remaining tasks: [TRACK-VM-HYPERVISOR](TRACK-VM-HYPERVISOR.md).
+
 ---
 
 ## 14. Phase 2 (Deferred)
@@ -762,7 +769,7 @@ for bundling in WORKSPACE-VM boot directories and the Android client app.
 
 ## 16. Implementation Order
 
-1. ✅ `REQ-VM-HYPERVISOR.md` + `SPEC-VM-HYPERVISOR.md`
+1. `REQ-VM-HYPERVISOR.md` + `SPEC-VM-HYPERVISOR.md`
 2. Extend `VMConfig` + `vm-template.yaml` with `isolation` block
 3. Add `workspace/cli/hypervisor/` package
 4. Refactor `vm_manager.create` to dispatch on backend
@@ -770,3 +777,5 @@ for bundling in WORKSPACE-VM boot directories and the Android client app.
 6. Add `vm-poc-qemu.yaml` + `test_vm_qemu_poc.py`
 7. Guest provision (`qemu_provision.py`) + virtio-9p RO mount
 8. `vm-full-ci-qemu.yaml` + `make test-vm-guard` + authoritative E2E suite
+
+Progress and remaining tasks: [TRACK-VM-HYPERVISOR](TRACK-VM-HYPERVISOR.md).

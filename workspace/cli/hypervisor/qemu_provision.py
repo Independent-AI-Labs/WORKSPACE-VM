@@ -68,7 +68,8 @@ def provision_guest(
         log_path.write_text("\n".join(log_lines) + "\n")
 
     ssh = _SshSession(ssh_port, ssh_key)
-    _wait_ro_mount(ssh, timeout=120, log=_log)
+    ro_timeout = int(os.environ.get("QEMU_RO_MOUNT_TIMEOUT", "600"))
+    _wait_ro_mount(ssh, timeout=ro_timeout, log=_log)
 
     rsync_script = _build_rsync_script(profile)
     _ssh_run(ssh, rsync_script, timeout=timeout, log=_log)
@@ -79,7 +80,7 @@ def provision_guest(
         boot_rsync = _build_boot_rsync_script()
         _ssh_run(ssh, boot_rsync, timeout=600, log=_log)
 
-    install_script = _build_install_script()
+    install_script = _build_install_script(profile, cfg.extra_apt)
     _ssh_run(ssh, install_script, timeout=timeout, log=_log)
     _log("provision: complete")
 
@@ -91,7 +92,7 @@ def _wait_ro_mount(
     log: Callable[[str], None],
 ) -> None:
     deadline = time.monotonic() + timeout
-    probe = f"test -d {_RO_MOUNT}/Makefile"
+    probe = f"test -f {_RO_MOUNT}/Makefile"
     while time.monotonic() < deadline:
         result = _ssh_run(ssh, probe, timeout=30, log=log, raise_on_error=False)
         if result.returncode == 0:
@@ -117,7 +118,10 @@ def _build_rsync_script(profile: str) -> str:
     for path in _paths_for_profile(profile):
         src = f"{_RO_MOUNT}/{path}"
         dst = f"{_GUEST_ROOT}/{path}"
+        dst_parent = Path(dst.rstrip("/")).parent
+        lines.append(f"sudo mkdir -p {dst_parent}")
         lines.append(f"sudo rsync -a {exclude_args} {src} {dst}")
+    lines.append(f"sudo chown -R workspace:workspace {_GUEST_ROOT}")
     return "\n".join(lines) + "\n"
 
 
@@ -131,14 +135,16 @@ def _build_boot_rsync_script() -> str:
     )
 
 
-def _build_install_script() -> str:
-    guest_defaults = f"{_GUEST_ROOT}/vm-install-defaults.yaml"
-    return (
-        "set -euo pipefail\n"
-        f'cd "{_GUEST_ROOT}"\n'
-        "make init\n"
-        f"make install-ci INSTALL_DEFAULTS={guest_defaults}\n"
-    )
+def _build_install_script(profile: str, extra_apt: list[str]) -> str:
+    lines = [
+        "set -euo pipefail",
+        f'cd "{_GUEST_ROOT}"',
+        "make init",
+    ]
+    if profile != "guard":
+        guest_defaults = f"{_GUEST_ROOT}/vm-install-defaults.yaml"
+        lines.append(f"make install-ci INSTALL_DEFAULTS={guest_defaults}")
+    return "\n".join(lines) + "\n"
 
 
 def _scp_file(ssh: _SshSession, local: Path, remote: Path) -> None:

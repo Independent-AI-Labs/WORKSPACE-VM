@@ -38,7 +38,7 @@ def test_vm_qemu_guard_e2e_guest(qemu_tracker: QemuTracker) -> None:
     port = int((vm_dir / "ssh_port").read_text().strip())
     key = vm_dir / "qemu_ssh_ed25519"
 
-    guard = proc.run(
+    guard = proc.run_result(
         [
             "ssh",
             "-i",
@@ -58,7 +58,8 @@ def test_vm_qemu_guard_e2e_guest(qemu_tracker: QemuTracker) -> None:
         text=True,
         timeout=_GUARD_TIMEOUT,
     )
-    assert "PASS:" in guard.stdout
+    assert guard.returncode == 0, guard.stdout + guard.stderr
+    assert "PASS:" in guard.stdout, guard.stdout + guard.stderr
 
     after = snapshot_host_git()
     assert_host_git_unchanged(before, after)
