@@ -74,12 +74,22 @@ core: ## Bootstrap CI tools (uv + ansible + node) + VM-specific tools (python + 
 ci-install-deps: ensure-repos ## Install CI project deps (boot tools, Python venv, gitleaks) - delegates to CI
 	@$(MAKE) -C projects/CI install-deps
 
+# Guard targets require git over SSH (ensure-repos pulls every workspace
+# repo). When invoked under `sudo make build-guard`, bootstrap-repos
+# reconstructs SSH_AUTH_SOCK + HOME from its /proc ancestor chain so the
+# operator does not need --preserve-env=... flags. build-guard writes only
+# to WORKSPACE-GUARD/target/; under sudo the cargo chown block returns
+# that tree to SUDO_USER so future agent-uid rebuilds are unblocked.
+# sync-package is deliberately NOT a prerequisite: `uv sync` would create
+# a root-owned .venv/ under sudo, and the guard's cap-grant does NOT
+# reach uv/cargo (only /usr/bin/git is wrapped). Run `make sync-package`
+# as the agent (no sudo) when Python deps are needed.
 .PHONY: build-guard
-build-guard: ensure-repos sync-package ## Build git-guard binary (no root needed) - delegates to CI
+build-guard: ensure-repos ## Build git-guard binary (operator: sudo make build-guard) - delegates to CI
 	@$(MAKE) -C projects/CI build-guard
 
 .PHONY: install-guard
-install-guard: ## Install git-guard to /usr/bin/git (requires sudo, binary must be pre-built) - delegates to CI
+install-guard: ## Install git-guard to /usr/bin/git (operator: sudo make install-guard; binary must be pre-built) - delegates to CI
 	@$(MAKE) -C projects/CI install-guard
 
 .PHONY: install

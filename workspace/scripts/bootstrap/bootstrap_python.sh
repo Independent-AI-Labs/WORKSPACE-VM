@@ -68,10 +68,11 @@ if [ -x "${PYTHON_ENV}/bin/python" ]; then
     if [[ "$_current_ver" == "$PY_VERSION" ]]; then
         log_info "Python ${PY_VERSION} already installed at ${PYTHON_ENV}"
         "${PYTHON_ENV}/bin/python" --version
-        # Always recreate symlinks (fixes broken links after repo move)
-        mkdir -p "${BIN_DIR}"
-        ln -sf "${PYTHON_ENV}/bin/python" "${BIN_DIR}/python"
-        ln -sf "${PYTHON_ENV}/bin/pip" "${BIN_DIR}/pip"
+        # Symlink recreation belongs on the fresh-install path only.
+        # BIN_DIR (.boot-linux/bin) is root:root 0755 on provisioned VMs,
+        # so mkdir + ln -sf here would hit Permission denied for uid 1000.
+        # If a symlink is genuinely broken, re-running `make core` from
+        # the operator (or fixing the link as root) is the correct path.
         exit 0
     fi
     log_info "Python ${_current_ver} found at ${PYTHON_ENV}, upgrading to ${PY_VERSION}..."

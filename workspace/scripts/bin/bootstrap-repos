@@ -53,6 +53,56 @@ if [[ ! -x "$PYTHON" ]]; then
     fi
 fi
 
+# --- reconstruct SSH env when invoked under sudo ---
+# sudo's default env_keep excludes SSH_AUTH_SOCK and rewrites HOME to
+# /root, so any subsequent `git clone` / `git pull --ff-only` cannot
+# reach the operator's ssh-agent and fails with
+# "Permission denied (publickey)". When SUDO_USER is set and the env
+# is missing, walk the /proc ancestor chain to find the operator's
+# original login shell (which still carries both vars in its environ)
+# and re-export them. Lets `sudo make build-guard` work without the
+# operator having to pass --preserve-env flags.
+restore_ssh_env_under_sudo() {
+    if [[ -z "${SUDO_USER:-}" ]]; then
+        return 0
+    fi
+    if [[ -n "${SSH_AUTH_SOCK:-}" && "${HOME:-}" != "/root" ]]; then
+        return 0
+    fi
+    local pid=$$ next hops=0
+    local env_text=""
+    local found_sock="" found_home=""
+    while [[ "$pid" != "1" && $hops -lt 32 ]]; do
+        # /proc/<pid>/status: read into var first so a vanished pid is a
+        # soft warning, not a script-killing awk non-zero under set -e.
+        if [[ ! -r "/proc/$pid/status" ]]; then
+            break
+        fi
+        next=$(awk '/^PPid:/ {print $2}' "/proc/$pid/status")
+        if [[ -z "$next" || "$next" == "0" ]]; then
+            break
+        fi
+        if [[ -r "/proc/$next/environ" ]]; then
+            # Parse the ancestor environ in a single awk pass: no grep (no
+            # exit-1-on-no-match), no head (no SIGPIPE under pipefail).
+            # tr converts NUL to newline so awk sees one var per line.
+            env_text=$(tr '\0' '\n' < "/proc/$next/environ")
+            found_sock=$(awk -F= '/^SSH_AUTH_SOCK=/ {sub(/^SSH_AUTH_SOCK=/, ""); print; exit}' <<<"$env_text")
+            found_home=$(awk -F= '/^HOME=/ {sub(/^HOME=/, ""); print; exit}' <<<"$env_text")
+            if [[ -n "$found_sock" && -n "$found_home" ]]; then
+                export SSH_AUTH_SOCK="$found_sock"
+                export HOME="$found_home"
+                echo "[bootstrap-repos] restored SSH_AUTH_SOCK + HOME from ancestor pid=$next (SUDO_USER=$SUDO_USER) via /proc walk" >&2
+                return 0
+            fi
+        fi
+        pid=$next
+        hops=$((hops + 1))
+    done
+    echo "[bootstrap-repos] WARNING: SUDO_USER=$SUDO_USER but SSH_AUTH_SOCK not found in any ancestor environ; git pull/clone will fail with Permission denied (publickey)" >&2
+}
+restore_ssh_env_under_sudo
+
 # --- argument parsing ---
 INCLUDE_OPTIONAL=()
 PULL=0
@@ -177,7 +227,9 @@ while IFS='|' read -r entry_id remote path mandatory min_tag; do
         # Get the nearest tag reachable from HEAD.
         _bs_tag_err="$(mktemp)"
         nearest_tag="$( cd "$target" && git describe -tags -abbrev=0 2>"$_bs_tag_err" )" || {
-            [[ -s "$_bs_tag_err" ]] && echo "[bootstrap-repos] git describe failed for $entry_id: $(cat "$_bs_tag_err")" >&2
+            if [[ -s "$_bs_tag_err" ]]; then
+                echo "[bootstrap-repos] git describe failed for $entry_id: $(cat "$_bs_tag_err")" >&2
+            fi
         }
         rm -f "$_bs_tag_err"
         if [[ -z "$nearest_tag" ]]; then
@@ -188,7 +240,9 @@ while IFS='|' read -r entry_id remote path mandatory min_tag; do
             _bs_mb_rc=0
             ( cd "$target" && git merge-base -is-ancestor "$min_tag" HEAD 2>"$_bs_mb_err" ) || _bs_mb_rc=$?
             if [[ $_bs_mb_rc -ne 0 ]]; then
-                [[ -s "$_bs_mb_err" ]] && echo "[bootstrap-repos] merge-base check failed for $entry_id: $(cat "$_bs_mb_err")" >&2
+                if [[ -s "$_bs_mb_err" ]]; then
+                    echo "[bootstrap-repos] merge-base check failed for $entry_id: $(cat "$_bs_mb_err")" >&2
+                fi
                 echo "ERROR: $entry_id is at $nearest_tag, declared minTag is $min_tag - workspace too old" >&2
                 errors=$((errors + 1))
             fi
