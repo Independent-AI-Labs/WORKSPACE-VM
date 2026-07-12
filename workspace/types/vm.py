@@ -2,9 +2,19 @@
 
 from __future__ import annotations
 
+import platform
+import posixpath
+import sys
 from typing import Literal
 
 from pydantic import BaseModel, Field, model_validator
+
+VM_CONTAINER_USER = "workspace"
+VM_CONTAINER_HOME = posixpath.join("/", "home", VM_CONTAINER_USER)
+VM_IMAGE_PREFIX = "workspace-vm"
+VM_LABEL_PREFIX = "workspace"
+VM_NETWORK_NAME = "workspace-vm-net"
+VM_INSTALL_ROOT = "/opt/workspace"
 
 
 class _VMConfigError(ValueError):
@@ -24,6 +34,10 @@ class _OpenVPNRequiresConfigError(_VMConfigError):
 
 
 class _OpenVPNRequiresNetNSError(_VMConfigError):
+    pass
+
+
+class _OpenVPNNetnsUnsupportedOnDarwinError(_VMConfigError):
     pass
 
 
@@ -80,12 +94,13 @@ class VMNetworkConfig(BaseModel):
     """Network isolation configuration."""
 
     mode: Literal["none", "bridge", "host", "openvpn"] = "none"
-    network_name: str = "ami-vm-net"
+    network_name: str = VM_NETWORK_NAME
     policy: Literal["none", "internet", "proxy", "unrestricted"] = "unrestricted"
     proxy_url: str = ""
     whitelist: list[str] = Field(default_factory=list)
     vpn_type: Literal["container", "netns"] = "container"
     vpn_config: str = ""
+    vpn_auth: str = ""
     vpn_netns: str = ""
 
     @model_validator(mode="after")
@@ -110,6 +125,16 @@ class VMNetworkConfig(BaseModel):
             raise _OpenVPNRequiresNetNSError
         return self
 
+    @model_validator(mode="after")
+    def _reject_netns_on_darwin(self) -> VMNetworkConfig:
+        if (
+            self.mode == "openvpn"
+            and self.vpn_type == "netns"
+            and sys.platform == "darwin"
+        ):
+            raise _OpenVPNNetnsUnsupportedOnDarwinError
+        return self
+
 
 class VMSecurityConfig(BaseModel):
     """Container security hardening."""
@@ -119,6 +144,51 @@ class VMSecurityConfig(BaseModel):
     read_only_rootfs: bool = True
     cap_drop: list[str] = Field(default_factory=lambda: ["ALL"])
     cap_add: list[str] = Field(default_factory=list)
+
+
+def _default_guest_arch() -> Literal["aarch64", "x86_64"]:
+    machine = platform.machine().lower()
+    if machine in ("aarch64", "arm64"):
+        return "aarch64"
+    return "x86_64"
+
+
+def _default_qemu_image_name(guest_arch: Literal["aarch64", "x86_64"]) -> str:
+    suffix = "aarch64" if guest_arch == "aarch64" else "x86_64"
+    return f"workspace-vm-base-ubuntu-24.04-{suffix}.qcow2"
+
+
+class VMQemuConfig(BaseModel):
+    """QEMU backend settings (ignored when isolation.backend is podman)."""
+
+    guest_arch: Literal["aarch64", "x86_64"] = Field(
+        default_factory=_default_guest_arch
+    )
+    accel: Literal["auto", "kvm", "hvf", "whpx", "tcg"] = "auto"
+    disk_gb: int = Field(default=20, ge=8, le=512)
+    ssh_host_port: int = Field(default=0, ge=0, le=65535)
+    image: str = ""
+    provision: Literal["none", "guard", "full-ci"] = "none"
+
+    @model_validator(mode="after")
+    def _sync_image_to_guest_arch(self) -> VMQemuConfig:
+        if not self.image:
+            self.image = _default_qemu_image_name(self.guest_arch)
+            return self
+        stale = {
+            "workspace-vm-base-ubuntu-24.04-aarch64.qcow2",
+            "workspace-vm-base-ubuntu-24.04-x86_64.qcow2",
+        }
+        if self.image in stale:
+            self.image = _default_qemu_image_name(self.guest_arch)
+        return self
+
+
+class VMIsolationConfig(BaseModel):
+    """Hypervisor driver selection for make vm."""
+
+    backend: Literal["podman", "qemu"] = "podman"
+    qemu: VMQemuConfig = Field(default_factory=VMQemuConfig)
 
 
 class VMConfig(BaseModel):
@@ -140,6 +210,17 @@ class VMConfig(BaseModel):
     mounts: list[str] = Field(default_factory=list)
 
     network: VMNetworkConfig = Field(default_factory=VMNetworkConfig)
+    isolation: VMIsolationConfig = Field(default_factory=VMIsolationConfig)
     web_ui: bool = True
     env: dict[str, str] = Field(default_factory=dict)
     security: VMSecurityConfig = Field(default_factory=VMSecurityConfig)
+
+    @model_validator(mode="after")
+    def _ensure_openvpn_component(self) -> VMConfig:
+        if (
+            self.network.mode == "openvpn"
+            and self.network.vpn_type == "container"
+            and "openvpn" not in self.components
+        ):
+            self.components = [*self.components, "openvpn"]
+        return self

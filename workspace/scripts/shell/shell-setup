@@ -129,7 +129,9 @@ _strip_legacy_markers() {
 _install_to_bashrc() {
     local backup="${1:-true}"
     local force="${2:-false}"
-    local bin_dir="${BOOT_LINUX_DIR:-${AMI_ROOT}/.boot-linux}/bin"
+    local _boot_name=".boot-macos"
+    [[ "$(uname -s)" == "Darwin" ]] || _boot_name=".boot-linux"
+    local bin_dir="${BOOT_LINUX_DIR:-${AMI_ROOT}/${_boot_name}}/bin"
     local setup_script="$AMI_ROOT/workspace/scripts/shell/shell-setup"
     local candidates=("$HOME/.bashrc" "$HOME/.zshrc")
 
@@ -284,8 +286,11 @@ fi
 if ! source "$AGENTS_SCRIPTS/utils/env_setup.sh"; then echo "[shell-setup] failed to source $AGENTS_SCRIPTS/utils/env_setup.sh" >&2; return 1; fi
 setup_paths
 
-# Playwright browsers path (installed to .boot-linux/ instead of ~/.cache/)
-export PLAYWRIGHT_BROWSERS_PATH="$AMI_ROOT/.boot-linux/playwright-browsers"
+# Playwright browsers path (installed to boot dir instead of ~/.cache/)
+_playwright_boot=".boot-macos"
+[[ "$(uname -s)" == "Darwin" ]] || _playwright_boot=".boot-linux"
+export PLAYWRIGHT_BROWSERS_PATH="$AMI_ROOT/${_playwright_boot}/playwright-browsers"
+unset _playwright_boot
 
 # Headless X server for browser automation (Xvfb on display :99)
 export DISPLAY="${DISPLAY:-:99}"

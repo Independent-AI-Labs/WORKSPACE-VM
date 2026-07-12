@@ -67,8 +67,16 @@
 
 - name: Daemon-reload systemd user instance
   ansible.builtin.command: systemctl --user daemon-reload
+  register: _daemon_reload
   changed_when: true
+- name: Display daemon-reload result
+  ansible.builtin.debug:
+    var: _daemon_reload.stdout_lines
 
 - name: Enable and start llamaserver-vulkan user service
   ansible.builtin.command: systemctl --user enable --now {{ llama_service_name }}.service
+  register: _enable_start
   changed_when: true
+- name: Display enable-start result
+  ansible.builtin.debug:
+    var: _enable_start.stdout_lines

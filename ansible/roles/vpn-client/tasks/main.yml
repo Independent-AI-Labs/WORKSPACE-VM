@@ -1,0 +1,13 @@
+---
+- name: Install workspace OpenVPN host service
+  ansible.builtin.command:
+    argv:
+      - bash
+      - "{{ playbook_dir }}/../workspace/scripts/bootstrap/bootstrap_openvpn_service.sh"
+      - "{{ playbook_dir }}/.."
+  register: _openvpn_service_install
+  changed_when: true
+
+- name: Display OpenVPN service install output
+  ansible.builtin.debug:
+    var: _openvpn_service_install.stdout_lines

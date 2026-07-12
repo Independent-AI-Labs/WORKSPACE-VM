@@ -78,3 +78,15 @@ exceptions:
   # name and log message reference "legacy" as the thing being removed.
   - pattern: '\blegacy\b'
     paths: ['workspace/scripts/shell/shell-setup$']
+
+  # HANDOVER.md lists installed components (uv, python, node, etc.)
+  - pattern: '\bpython3?\b'
+    paths: ['HANDOVER\.md$']
+
+  # HANDOVER.md uses :latest for container image references
+  - pattern: ':latest\b'
+    paths: ['HANDOVER\.md$']
+
+  # HANDOVER.md uses em-dashes in prose
+  - pattern: '\u2014'
+    paths: ['HANDOVER\.md$']

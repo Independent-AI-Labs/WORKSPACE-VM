@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import contextlib
 import subprocess
+import sys
 from pathlib import Path
 from unittest.mock import MagicMock
 
+import pytest
 import yaml as _yaml
 
 from workspace.cli.vm_build import (
@@ -84,7 +86,7 @@ class TestDeriveNetworkFlags:
         )
         flags = _derive_network_flags(cfg)
         assert "--network" in flags
-        assert "ami-vm-net" in flags
+        assert "workspace-vm-net" in flags
 
     def test_host_mode(self) -> None:
         cfg = VMConfig.model_validate(
@@ -93,7 +95,8 @@ class TestDeriveNetworkFlags:
         flags = _derive_network_flags(cfg)
         assert flags == ["--network", "host"]
 
-    def test_openvpn_netns(self) -> None:
+    def test_openvpn_netns(self, monkeypatch) -> None:
+        monkeypatch.setattr(sys, "platform", "linux")
         cfg = VMConfig.model_validate(
             {
                 "components": ["opencode"],
@@ -101,6 +104,7 @@ class TestDeriveNetworkFlags:
                     "mode": "openvpn",
                     "vpn_type": "netns",
                     "vpn_netns": "myvpn",
+                    "vpn_config": "/tmp/client.ovpn",
                 },
             }
         )
@@ -212,6 +216,13 @@ class TestCLIDispatch:
 
 
 class TestPodman:
+    @pytest.mark.skipif(
+        subprocess.run(
+            ["podman", "version"], capture_output=True, text=True, check=False
+        ).returncode
+        != 0,
+        reason="podman socket not running",
+    )
     def test_podman_wrapper(self) -> None:
         result = _podman("version")
         assert result.returncode == 0
@@ -246,9 +257,9 @@ class TestBuildRunArgs:
         assert "run" in args
         assert "-d" in args
         assert "test-uuid" in args
-        assert "ami.type=vm" in args
-        assert "ami.uuid=test-uuid" in args
-        assert "ami.config=" in " ".join(args)
+        assert "workspace.type=vm" in args
+        assert "workspace.uuid=test-uuid" in args
+        assert "workspace.config=" in " ".join(args)
         assert "--network" in args
         assert "none" in args
         assert "--userns=keep-id" in args
@@ -286,7 +297,7 @@ class TestBuildRunArgs:
         )
         args = _build_run_args(cfg, "test-uuid")
         assert "--network" in args
-        assert "ami-vm-net" in args
+        assert "workspace-vm-net" in args
 
     def test_permissive_security_skips_flags(self) -> None:
         cfg = VMConfig.model_validate(
@@ -326,6 +337,10 @@ class TestVMMainDispatch:
     def test_create_with_config(self, tmp_path: Path, monkeypatch) -> None:
         monkeypatch.setattr(subprocess, "run", _fake_subprocess_run)
         monkeypatch.setattr("workspace.cli.vm_core._podman", _fake_podman_run)
+        monkeypatch.setattr(
+            "workspace.cli.hypervisor.podman_backend._ensure_podman_machine",
+            lambda: None,
+        )
         monkeypatch.setattr("workspace.cli.vm_build._get_uid", lambda: "1000")
         _patch_vms_dir(monkeypatch, tmp_path)
         cfg = tmp_path / "test.yaml"
@@ -337,6 +352,9 @@ class TestVMMainDispatch:
     def test_rebuild_with_uuid(self, tmp_path: Path, monkeypatch) -> None:
         monkeypatch.setattr(subprocess, "run", _fake_subprocess_run)
         monkeypatch.setattr("workspace.cli.vm_core._podman", _fake_podman_run)
+        monkeypatch.setattr(
+            "workspace.cli.vm_manager._ensure_podman_machine", lambda: None
+        )
         monkeypatch.setattr("workspace.cli.vm_build._get_uid", lambda: "1000")
         vms_dir = _patch_vms_dir(monkeypatch, tmp_path)
         vm_dir = vms_dir / "test-uuid"
@@ -350,7 +368,7 @@ class TestVMMainDispatch:
 
     def test_sync_with_uuid(self, tmp_path: Path, monkeypatch) -> None:
         monkeypatch.setattr(subprocess, "run", _fake_subprocess_run)
-        monkeypatch.setattr("workspace.cli.vm_manager._podman", _fake_podman_run)
+        monkeypatch.setattr("workspace.cli.vm_core._podman", _fake_podman_run)
         monkeypatch.setattr("workspace.cli.vm_core._podman", _fake_podman_run)
         vms_dir = _patch_vms_dir(monkeypatch, tmp_path)
         monkeypatch.setattr("workspace.cli.vm_core._VMS_DIR", vms_dir)
@@ -368,6 +386,10 @@ class TestVMManagerCreate:
     def test_create_monkeypatched(self, tmp_path: Path, monkeypatch) -> None:
         monkeypatch.setattr(subprocess, "run", _fake_subprocess_run)
         monkeypatch.setattr("workspace.cli.vm_core._podman", _fake_podman_run)
+        monkeypatch.setattr(
+            "workspace.cli.hypervisor.podman_backend._ensure_podman_machine",
+            lambda: None,
+        )
         monkeypatch.setattr("workspace.cli.vm_build._get_uid", lambda: "1000")
         _patch_vms_dir(monkeypatch, tmp_path)
         cfg = tmp_path / "test.yaml"
@@ -380,6 +402,9 @@ class TestVMManagerRebuild:
     def test_rebuild_monkeypatched(self, tmp_path: Path, monkeypatch) -> None:
         monkeypatch.setattr(subprocess, "run", _fake_subprocess_run)
         monkeypatch.setattr("workspace.cli.vm_core._podman", _fake_podman_run)
+        monkeypatch.setattr(
+            "workspace.cli.vm_manager._ensure_podman_machine", lambda: None
+        )
         monkeypatch.setattr("workspace.cli.vm_build._get_uid", lambda: "1000")
         vms_dir = _patch_vms_dir(monkeypatch, tmp_path)
         vm_dir = vms_dir / "test-uuid"
@@ -398,7 +423,7 @@ class TestVMManagerSync:
 
     def test_sync_monkeypatched(self, tmp_path: Path, monkeypatch) -> None:
         monkeypatch.setattr(subprocess, "run", _fake_subprocess_run)
-        monkeypatch.setattr("workspace.cli.vm_manager._podman", _fake_podman_run)
+        monkeypatch.setattr("workspace.cli.vm_core._podman", _fake_podman_run)
         monkeypatch.setattr("workspace.cli.vm_core._podman", _fake_podman_run)
         vms_dir = _patch_vms_dir(monkeypatch, tmp_path)
         monkeypatch.setattr("workspace.cli.vm_core._VMS_DIR", vms_dir)

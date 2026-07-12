@@ -16,14 +16,27 @@
 # `.boot-linux/` toolchain bootstrap; per-project `moon.yml` may set
 # language hints for the graph but moon will not auto-install runtimes.
 
-# Map of project IDs → relative paths (from this workspace root).
+# Project discovery: globs auto-discover any project with a moon.yml
+# under projects/. Optional repos (workspace-portal, ami-srp, etc.)
+# are only registered when actually cloned, avoiding "missing source"
+# errors for repos that workspace-clones.yaml declares optional.
+# Mandatory repos are listed explicitly in sources so their IDs stay
+# lowercase (matching dependsOn references) rather than inheriting the
+# uppercase folder name from globs. On collision, sources entries win
+# and the glob entry is skipped (documented moon behavior).
+# The umbrella repo (workspace) is in sources since its moon.yml lives
+# at the workspace root, not under projects/.
+# workspace-clones.yaml remains the authoritative source for git clone
+# orchestration (remote URLs, mandatory/optional, minTag): that is a
+# separate concern from project-graph discovery.
 projects:
-  workspace: '.'
-  ci: 'projects/CI'
-  dataops: 'projects/DATAOPS'
-  workspace-streams: 'projects/WORKSPACE-STREAMS'
-  workspace-portal: 'projects/WORKSPACE-PORTAL'
-  workspace-guard: 'projects/WORKSPACE-GUARD'
+  globs:
+    - 'projects/*/moon.yml'
+  sources:
+    workspace: '.'
+    ci: 'projects/CI'
+    dataops: 'projects/DATAOPS'
+    workspace-guard: 'projects/WORKSPACE-GUARD'
 
 vcs:
   client: 'git'

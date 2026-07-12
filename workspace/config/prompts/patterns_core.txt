@@ -50,7 +50,7 @@ Fix the code or stop.
   - Bypasses CI/CD quality gates
   - Creates false sense of passing tests
   - Allows broken code to be committed and pushed
-  - Defeats purpose of comprehensive test suites
+  - Defeats purpose of complete test suites
 - **DETECTION**: Any modification to pytest markers, addopts, test decorators that reduces test coverage
 - **CORRECT APPROACH**:
   - Fix the actual test failures
@@ -84,9 +84,9 @@ Fix the code or stop.
   - Creates technical debt (suppressed errors accumulate)
   - Defeats purpose of strict type checking
 - **ALLOWED ONLY FOR**:
-  - Third-party library imports without stubs (e.g., `[mypy-selenium.*]`, `[mypy-bs4.*]`)
+  - Third-party library imports without type packages (e.g., `[mypy-selenium.*]`, `[mypy-bs4.*]`)
   - Untyped decorator suppression ONLY for external libraries (e.g., FastMCP, FastAPI decorators)
-  - Subclassing Any ONLY for third-party classes without type stubs (e.g., pydantic-settings BaseSettings)
+  - Subclassing Any ONLY for third-party classes without type packages (e.g., pydantic-settings BaseSettings)
 - **DETECTION**: Any mypy override section targeting project modules (not third-party `.*` patterns) that disables strict checks
 - **CORRECT APPROACH**:
   - Fix the actual type errors in the code

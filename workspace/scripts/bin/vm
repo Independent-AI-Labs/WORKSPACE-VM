@@ -10,7 +10,7 @@ done
 export AMI_ROOT && cd "$AMI_ROOT"
 
 _VMS_DIR=".vms"
-_PYTHON="$AMI_ROOT/.venv/bin/python"
+_PYTHON="${AMI_ROOT}/.venv/bin/python"
 _CERTS_SCRIPT="workspace/scripts/bootstrap/bootstrap_certs.sh"
 _VM_MANAGER="workspace.cli.vm_main"
 
@@ -20,38 +20,6 @@ die() { echo "vm: ERROR: $*" >&2; exit 1; }
 _require_vm() {
     local uuid="$1"
     [[ -d "$_VMS_DIR/$uuid" ]] || die "VM '$uuid' not found (no .vms/$uuid/)"
-}
-
-_running() {
-    local uuid="$1"
-    local status
-    status="$(podman inspect -f '{{.State.Running}}' "$uuid")" || die "cannot inspect VM '$uuid'"
-    [[ "$status" == "true" ]]
-}
-
-_write_pid() {
-    local uuid="$1"
-    podman inspect -f '{{.State.Pid}}' "$uuid" > "$_VMS_DIR/$uuid/pid" \
-        || die "cannot write PID for VM '$uuid'"
-}
-
-_remove_hosts_entry() {
-    local uuid="$1"
-    local hosts_file="/etc/hosts"
-    if grep -q "$uuid.vm.local" "$hosts_file"; then
-        local tmp_hosts
-        tmp_hosts="$(mktemp)" || die "cannot create temp file for /etc/hosts edit"
-        grep -v "$uuid.vm.local" "$hosts_file" > "$tmp_hosts" || {
-            rm -f "$tmp_hosts"
-            die "cannot filter /etc/hosts for VM '$uuid'"
-        }
-        if cp "$tmp_hosts" "$hosts_file"; then
-            rm -f "$tmp_hosts"
-        else
-            rm -f "$tmp_hosts"
-            echo "vm: WARNING: could not write /etc/hosts (try sudo)" >&2
-        fi
-    fi
 }
 
 # --- Usage ---
@@ -65,12 +33,12 @@ subcommands:
   stop    <uuid>             Stop a running VM
   resume  <uuid>             Resume a stopped VM (alias for start)
   delete  <uuid> [--purge]   Remove a VM (--purge also removes volumes)
-  kill    <uuid>             SIGKILL via PID file (bypasses podman)
+  kill    <uuid>             SIGKILL via PID file
   shell   <uuid>             Open interactive bash shell in VM
   exec    <uuid> -- <cmd>    Run one-off command in VM
-  logs    <uuid> [--follow] [--tail N]  Show container logs
+  logs    <uuid> [--follow] [--tail N]  Show VM logs
   list                       List all VMs
-  status  <uuid>             Show VM inspect info and resource stats
+  status  <uuid>             Show VM status and backend info
   rebuild <uuid>             Rebuild VM from stored vm.yaml
   sync    <uuid>             File sync per config.sync rules
   config  <uuid>             Print the vm.yaml used to create this VM
@@ -95,20 +63,14 @@ cmd_start() {
     local uuid="${1:-}"
     [[ -n "$uuid" ]] || die "start: missing uuid argument"
     _require_vm "$uuid"
-    podman start "$uuid" || die "start: podman start failed for VM '$uuid'"
-    _write_pid "$uuid"
-    echo "VM $uuid started"
+    exec "$_PYTHON" -m "$_VM_MANAGER" start "$uuid"
 }
 
 cmd_stop() {
     local uuid="${1:-}"
     [[ -n "$uuid" ]] || die "stop: missing uuid argument"
     _require_vm "$uuid"
-    if _running "$uuid"; then
-        podman stop "$uuid" || die "stop: podman stop failed for VM '$uuid'"
-    fi
-    rm -f "$_VMS_DIR/$uuid/pid"
-    echo "VM $uuid stopped"
+    exec "$_PYTHON" -m "$_VM_MANAGER" stop "$uuid"
 }
 
 cmd_resume() {
@@ -117,70 +79,32 @@ cmd_resume() {
 
 cmd_delete() {
     local uuid="${1:-}"
-    local purge=false
     [[ -n "$uuid" ]] || die "delete: missing uuid argument"
-    shift
-    for arg in "$@"; do
-        [[ "$arg" == "--purge" ]] && purge=true
-    done
     _require_vm "$uuid"
-    if _running "$uuid"; then
-        podman rm -f "$uuid" || die "delete: cannot force-remove running VM '$uuid'"
-    else
-        podman rm "$uuid" || die "delete: cannot remove VM '$uuid'"
-    fi
-    local _rmi_err
-    _rmi_err="$(mktemp)"
-    if ! podman rmi -f "ami-vm:$uuid" 2>"$_rmi_err"; then
-        if [[ -s "$_rmi_err" ]]; then cat "$_rmi_err" >&2; fi
-        rm -f "$_rmi_err"
-        die "delete: cannot remove image for VM '$uuid'"
-    fi
-    rm -f "$_rmi_err"
-    _remove_hosts_entry "$uuid"
-    rm -f "$_VMS_DIR/$uuid/pid"
-    if $purge; then
-        local failed=false
-        for suffix in workspace transcripts cache; do
-            podman volume rm -f "${uuid}-${suffix}" 2>&1 || failed=true
-        done
-        if $failed; then
-            echo "vm: WARNING: some volumes for VM '$uuid' could not be removed" >&2
-        fi
-        echo "VM $uuid deleted (volumes purged)"
-    else
-        echo "VM $uuid deleted"
-    fi
+    shift
+    exec "$_PYTHON" -m "$_VM_MANAGER" delete "$uuid" "$@"
 }
 
 cmd_kill() {
     local uuid="${1:-}"
     [[ -n "$uuid" ]] || die "kill: missing uuid argument"
     _require_vm "$uuid"
-    local pid_file="$_VMS_DIR/$uuid/pid"
-    [[ -f "$pid_file" ]] || die "kill: no PID file for VM '$uuid'"
-    local pid
-    pid="$(cat "$pid_file")"
-    kill -SIGKILL "$pid" || die "kill: cannot send SIGKILL to PID '$pid' for VM '$uuid'"
-    echo "VM $uuid killed (SIGKILL sent to PID $pid)"
+    exec "$_PYTHON" -m "$_VM_MANAGER" kill "$uuid"
 }
 
 cmd_shell() {
     local uuid="${1:-}"
     [[ -n "$uuid" ]] || die "shell: missing uuid argument"
-    _running "$uuid" || die "shell: VM '$uuid' is not running"
-    exec podman exec -it -u ami "$uuid" /bin/bash
+    _require_vm "$uuid"
+    exec "$_PYTHON" -m "$_VM_MANAGER" shell "$uuid"
 }
 
 cmd_exec() {
     local uuid="${1:-}"
     [[ -n "$uuid" ]] || die "exec: missing uuid argument"
-    _running "$uuid" || die "exec: VM '$uuid' is not running"
+    _require_vm "$uuid"
     shift
-    if [[ "${1:-}" == "--" ]]; then
-        shift
-    fi
-    exec podman exec "$uuid" "$@"
+    exec "$_PYTHON" -m "$_VM_MANAGER" exec "$uuid" -- "$@"
 }
 
 cmd_logs() {
@@ -188,23 +112,18 @@ cmd_logs() {
     [[ -n "$uuid" ]] || die "logs: missing uuid argument"
     _require_vm "$uuid"
     shift
-    exec podman logs "$@" "$uuid"
+    exec "$_PYTHON" -m "$_VM_MANAGER" logs "$uuid" "$@"
 }
 
 cmd_list() {
-    podman ps -a --filter "label=ami.type=vm" \
-        --format "table {{.Names}}\t{{.State}}\t{{.Status}}\t{{.Image}}"
+    exec "$_PYTHON" -m "$_VM_MANAGER" list
 }
 
 cmd_status() {
     local uuid="${1:-}"
     [[ -n "$uuid" ]] || die "status: missing uuid argument"
     _require_vm "$uuid"
-    echo "=== Inspect ==="
-    podman inspect "$uuid"
-    echo ""
-    echo "=== Stats ==="
-    podman stats --no-stream "$uuid"
+    exec "$_PYTHON" -m "$_VM_MANAGER" status "$uuid"
 }
 
 cmd_rebuild() {

@@ -1,0 +1,16 @@
+[Unit]
+Description=Workspace VM network isolation
+Before=opencode.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+Environment=WORKSPACE_NETWORK_POLICY={{ policy }}
+{%- if proxy_url %}
+Environment=WORKSPACE_PROXY_URL={{ proxy_url }}
+{%- endif %}
+EnvironmentFile=/etc/workspace/network-whitelist
+ExecStart=/usr/local/sbin/workspace-network-setup
+
+[Install]
+WantedBy=multi-user.target

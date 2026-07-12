@@ -1,0 +1,9 @@
+# gitleaks config: path-based allowlist for boot dirs and VM dirs
+[allowlist]
+paths = [
+  '''\.boot-linux/''',
+  '''\.boot-macos/''',
+  '''\.venv/''',
+  '''\.vms/''',
+  '''node_modules/''',
+]

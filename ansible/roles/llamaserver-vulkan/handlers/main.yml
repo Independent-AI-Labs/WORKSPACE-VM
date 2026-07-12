@@ -1,3 +1,8 @@
 ---
 - name: reload systemd
   ansible.builtin.command: systemctl daemon-reload
+  register: _daemon_reload
+  changed_when: true
+- name: Display daemon-reload result
+  ansible.builtin.debug:
+    var: _daemon_reload.stdout_lines

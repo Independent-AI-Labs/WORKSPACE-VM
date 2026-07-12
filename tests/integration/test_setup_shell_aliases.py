@@ -3,6 +3,7 @@
 Verifies that all registered aliases/functions respond to -h calls.
 """
 
+import platform
 import subprocess
 from pathlib import Path
 
@@ -19,6 +20,7 @@ def _find_project_root() -> Path:
 
 # Find AMI_ROOT (agents/ directory)
 AMI_ROOT = _find_project_root()
+_BOOT_NAME = ".boot-macos" if platform.system() == "Darwin" else ".boot-linux"
 
 
 def test_aliases_exist_and_respond_to_help() -> None:
@@ -39,8 +41,8 @@ def test_aliases_exist_and_respond_to_help() -> None:
         bash_test_cmd = [
             "bash",
             "-c",
-            f'export PATH="{AMI_ROOT}/.venv/bin:{AMI_ROOT}/.boot-linux/bin:$PATH" && '
-            f"source {script_path} >/dev/null 2>&1 && type -t {func_name}",
+            f'export PATH="{AMI_ROOT}/.venv/bin:{AMI_ROOT}/{_BOOT_NAME}/bin:$PATH" && '
+            f"source {script_path} --quiet && type -t {func_name}",
         ]
 
         result = subprocess.run(
@@ -61,9 +63,9 @@ def test_aliases_exist_and_respond_to_help() -> None:
             test_script = rf"""
                 export AMI_ROOT="{AMI_ROOT}"
                 export PYTHONPATH="{AMI_ROOT}"
-                export PATH="{AMI_ROOT}/.venv/bin:{AMI_ROOT}/.boot-linux/bin:$PATH"
+                export PATH="{AMI_ROOT}/.venv/bin:{AMI_ROOT}/{_BOOT_NAME}/bin:$PATH"
 
-                source "{script_path}" >/dev/null 2>&1
+                source "{script_path}" --quiet
 
                 output=$( {func_name} -h 2>&1 )
                 exit_code=$?
@@ -103,7 +105,7 @@ def test_aliases_exist_and_respond_to_help() -> None:
         bash_test_cmd = [
             "bash",
             "-c",
-            f"source {script_path} >/dev/null 2>&1 && alias {alias_name}",
+            f"source {script_path} --quiet && alias {alias_name}",
         ]
 
         result = subprocess.run(

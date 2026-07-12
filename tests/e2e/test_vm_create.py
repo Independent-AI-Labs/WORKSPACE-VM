@@ -67,7 +67,7 @@ class TestVMCreate:
             check=True,
         )
         labels = json.loads(labels_raw.stdout.strip())
-        assert labels.get("ami.type") == "vm"
+        assert labels.get("workspace.type") == "vm"
         assert labels.get("ami.uuid") == uuid_val
         assert "ami.config" in labels
 

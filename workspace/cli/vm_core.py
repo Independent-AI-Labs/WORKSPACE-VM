@@ -90,6 +90,44 @@ def _wait_healthy(uuid_str: str) -> None:
     )
 
 
+class _PodmanMachineError(RuntimeError):
+    """macOS podman machine is missing or not running."""
+
+
+def _ensure_podman_machine() -> None:
+    """On Darwin, require podman-machine-default to exist and be running."""
+    if sys.platform != "darwin":
+        return
+    machine = "podman-machine-default"
+    try:
+        subprocess.run(
+            ["podman", "machine", "inspect", machine],
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=30,
+        )
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
+        msg = (
+            f"vm: podman machine '{machine}' is not configured. "
+            "Run: podman machine init && podman machine start"
+        )
+        raise _PodmanMachineError(msg) from exc
+    state = subprocess.run(
+        ["podman", "machine", "inspect", "--format", "{{.State}}", machine],
+        capture_output=True,
+        text=True,
+        check=True,
+        timeout=30,
+    )
+    if state.stdout.strip() != "running":
+        msg = (
+            f"vm: podman machine '{machine}' is not running "
+            f"(state={state.stdout.strip()}). Run: podman machine start"
+        )
+        raise _PodmanMachineError(msg)
+
+
 def _remove_hosts_entry(uuid_str: str) -> None:
     hosts_file = Path("/etc/hosts")
     if not hosts_file.exists():

@@ -1,4 +1,4 @@
-"""Integration smoke tests for workspace core modules."""
+"""Integration sanity tests for workspace core modules."""
 
 from pathlib import Path
 
@@ -43,7 +43,7 @@ from workspace.cli.status_utils import (
     run_cmd,
 )
 from workspace.cli.storage import _print_container_sizes, _print_root_disk, _remove_path
-from workspace.config_utils import get_config_path, get_project_root
+from workspace.config_utils import get_project_root
 from workspace.types.config import AgentConfig
 from workspace.types.events import StreamEvent, StreamEventType
 from workspace.types.results import LegendRender
@@ -78,11 +78,6 @@ def test_get_project_root_returns_path() -> None:
     root = get_project_root()
     assert isinstance(root, Path)
     assert root.is_dir()
-
-
-def test_get_config_path_returns_valid_path() -> None:
-    result = get_config_path("ruff.toml")
-    assert str(result).endswith("/res/config/ruff.toml")
 
 
 def test_format_bytes_all_branches() -> None:

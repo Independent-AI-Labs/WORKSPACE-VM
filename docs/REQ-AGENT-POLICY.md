@@ -15,8 +15,8 @@
 - NIST AI RMF 1.0 + NIST AI 600-1 (GenAI Profile)
 - OWASP Top 10 for LLM Applications (2025) & Agentic Top 10 (2026)
 - DORA (Digital Operational Resilience Act), NIS2 Directive
-- WS-1 through WS-7 research programme ([docs/archive/v2/research/](../docs/archive/v2/research/))
-- [REQ-HOOKS](../docs/archive/v2/requirements/REQ-HOOKS.md) (V2 Hook Validation Pipeline)
+- WS-1 through WS-7 research programme (removed from repo, preserved in git history)
+- REQ-HOOKS (V2 Hook Validation Pipeline, removed from repo, preserved in git history)
 - [REQUIREMENTS-A2A](REQUIREMENTS-A2A.md) (A2A Remote Agent Integration)
 - [GAP-ANALYSIS-A2A](GAP-ANALYSIS-A2A.md) (A2A Codebase Gap Analysis)
 
@@ -342,7 +342,7 @@ Logs SHALL be retained for a minimum of 6 months per Article 26(6).
 
 For policies governing high-risk operations, the system SHALL:
 - Provide clear information about the policy's identity, scope, and decision rationale (Art. 14(4)(a))
-- Display block/ask decisions to the user with actionable explanation (Art. 14(4)(b)-(c))
+- Display block/ask decisions to the user with error with remediation steps explanation (Art. 14(4)(b)-(c))
 - Support `action: ask` as a human-in-the-loop pause point before sensitive tool execution (Art. 14(4)(d))
 - Enable operators to disable or override policies at session level (Art. 14(4)(e) - "stop button" equivalent)
 - Log all human override events with timestamps and operator identity (Art. 14(5))
@@ -363,9 +363,9 @@ The system SHALL support classification documentation by:
 - Recording the specific agent use case and Annex III category (if applicable) in audit metadata for each policy decision
 - Flagging policy decisions that involve Annex III categories (employment, essential services, credit, education)
 - Enabling the deployer to document the Article 6(3) derogation assessment for policies claiming non-high-risk status
-- Maintaining the action inventory required for agentic system compliance assessment
+- Maintaining the action inventory required for autonomous system compliance assessment
 
-> Per the May 2026 Draft Guidelines: "interconnected and agentic AI systems coordinating linked actions serving a high-risk purpose are assessed as a whole."
+> Per the May 2026 Draft Guidelines: "interconnected and autonomous AI systems coordinating linked actions serving a high-risk purpose are assessed as a whole."
 
 #### REG-1.5 - Transparency (Article 50)
 

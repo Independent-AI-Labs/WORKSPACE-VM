@@ -1,0 +1,12 @@
+[Unit]
+Description=Workspace OpenVPN client
+After=network-online.target
+
+[Service]
+Type=simple
+ExecStart={{ openvpn_binary }} --config {{ vpn_config }}{% if vpn_auth %} --auth-user-pass {{ vpn_auth }}{% endif %}
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=default.target

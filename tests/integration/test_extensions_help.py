@@ -1,10 +1,11 @@
 """Integration tests for extensions discovered from extension.manifest.yaml files.
 
 Tests that extensions have valid metadata, binaries exist, and commands
-are properly installed in .boot-linux/bin/.
+are properly installed in the platform-appropriate boot directory.
 """
 
 import os
+import platform
 import re
 import subprocess
 from pathlib import Path
@@ -29,7 +30,8 @@ def _find_project_root() -> Path:
 
 
 PROJECT_ROOT = _find_project_root()
-BIN_DIR = PROJECT_ROOT / ".boot-linux" / "bin"
+_BOOT_NAME = ".boot-macos" if platform.system() == "Darwin" else ".boot-linux"
+BIN_DIR = PROJECT_ROOT / _BOOT_NAME / "bin"
 VALID_CATEGORIES = frozenset(
     ["core", "enterprise", "dev", "infra", "research", "docs", "agents"]
 )
@@ -146,11 +148,11 @@ def get_extension_by_name(name: str) -> ExtensionMetadata | None:
 
 @pytest.mark.integration
 class TestExtensionInstallation:
-    """Test that extensions are installed as symlinks/wrappers in .boot-linux/bin/."""
+    """Test that extensions are installed as symlinks/wrappers in the boot dir."""
 
     @pytest.mark.parametrize("ext_name", EXTENSION_NAMES)
     def test_command_exists_in_bin(self, ext_name: str):
-        """Test that extension command exists in .boot-linux/bin/."""
+        """Test that extension command exists in the boot dir."""
         cmd_path = BIN_DIR / ext_name
         assert cmd_path.exists(), (
             f"Extension {ext_name} not installed in {BIN_DIR}\n"
@@ -182,9 +184,9 @@ class TestExtensionInstallation:
             assert "run" in content, f"{ext_name} wrapper should call run"
         else:
             is_symlink = cmd_path.is_symlink()
-            is_in_place = str(ext.binary).startswith(".boot-linux/bin/")
+            is_in_place = str(ext.binary).startswith(f"{_BOOT_NAME}/bin/")
             assert is_symlink or is_in_place, (
-                f"{ext_name} should be symlink or in .boot-linux/bin/"
+                f"{ext_name} should be symlink or in {_BOOT_NAME}/bin/"
             )
 
 

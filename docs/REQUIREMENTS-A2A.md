@@ -33,7 +33,7 @@ This document specifies the hard functional, non-functional, and regulatory requ
 | Term | Definition |
 |------|------------|
 | A2A Client | An application or agent that initiates requests to an A2A Server on behalf of a user or another system. |
-| A2A Server (Remote Agent) | An agent or agentic system that exposes an A2A-compliant endpoint, processing tasks and providing responses. |
+| A2A Server (Remote Agent) | An agent or autonomous system that exposes an A2A-compliant endpoint, processing tasks and providing responses. |
 | Agent Card | A JSON metadata document published by an A2A Server, describing its identity, capabilities, skills, service endpoint, and authentication requirements. |
 | Task | The fundamental unit of work managed by A2A, identified by a unique ID. Tasks are stateful and progress through a defined lifecycle. |
 | Message | A communication turn between a client and a remote agent, having a role ("user" or "agent") and containing one or more Parts. |
@@ -338,7 +338,7 @@ The following OWASP entries are directly relevant to A2A remote agent integratio
 ### REG-5: DORA / NIS2 - Incident Reporting
 
 For deployments in financial services (DORA) or critical infrastructure (NIS2):
-- Remote agent invocation failures that disrupt services SHALL trigger incident classification
+- Remote agent invocation failures that change services SHALL trigger incident classification
 - Incident reports SHALL be structured to support 24h early warning / 72h notification / 1-month final report timelines (NIS2 Art. 20)
 - The system SHALL support detection and reporting of anomalous remote agent behaviour that could constitute an ICT incident (DORA Art. 10)
 

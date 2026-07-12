@@ -69,7 +69,7 @@ class TestVMNetworkBridge:
             "components": ["opencode"],
             "network": {
                 "mode": "bridge",
-                "network_name": "ami-vm-net",
+                "network_name": "workspace-vm-net",
                 "policy": "internet",
             },
         }
@@ -86,7 +86,7 @@ class TestVMNetworkBridge:
                 "podman",
                 "inspect",
                 "-f",
-                "{{.NetworkSettings.Networks.ami-vm-net.IPAddress}}",
+                "{{.NetworkSettings.Networks.workspace-vm-net.IPAddress}}",
                 uuid_val,
             ],
             capture_output=True,

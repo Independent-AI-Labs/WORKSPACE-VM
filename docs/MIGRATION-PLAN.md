@@ -794,11 +794,13 @@ network:
 
   # --- mode: openvpn ---
   # Container traffic routed through OpenVPN tunnel.
+  # Authoritative spec: docs/REQ-OPENVPN.md + docs/SPEC-OPENVPN.md
   # mode: openvpn
-  #   vpn_type: container               # container runs its own OpenVPN
-  #   vpn_config: "${HOME}/.ami/vpn/client.ovpn"  # absolute path, copied into image
-  #   vpn_type: netns                   # joins existing host netns
-  #     vpn_netns: "vpn-ns"             # netns name at /run/netns/<name>
+  #   vpn_type: container               # container runs its own OpenVPN (macOS + Linux)
+  #   vpn_config: "workspace/config/vpn/client.ovpn"  # staged into .vms/<uuid>/ at build
+  #   vpn_auth: "workspace/config/vpn/auth.txt"       # optional auth-user-pass file
+  #   vpn_type: netns                   # joins host netns (Linux host only; rejected on Darwin)
+  #     vpn_netns: "workspace-vpn"      # netns at /run/netns/<name>, auto-created before run
 
 # --- Runtime ---
 web_ui: true                   # start opencode web via systemd service (PID 1)
@@ -1052,7 +1054,7 @@ rules. `NET_ADMIN` capability is auto-derived from the mode:
 | `bridge: unrestricted` | `[]` | No | None |
 | `host` | `[]` | No (host stack) | None |
 | `openvpn: container` | `["NET_ADMIN"]` | VPN manages | `openvpn.service` |
-| `openvpn: netns` | `[]` | Inherits NS | None |
+| `openvpn: netns` | `[]` | Inherits NS | Host netns + `setup_vpn_netns.sh` (Linux only) |
 
 User overrides in `security.cap_add` take precedence.
 
@@ -1079,17 +1081,24 @@ iptables -A FORWARD -s $CONTAINER_IP -j DROP
 # HTTP_PROXY/HTTPS_PROXY env vars injected into container
 ```
 
-**OpenVPN (mode: `openvpn`):**
+**OpenVPN (mode: `openvpn`):** see [REQ-OPENVPN](REQ-OPENVPN.md) and [SPEC-OPENVPN](SPEC-OPENVPN.md).
 
 For `vpn_type: container`, the container needs `--device /dev/net/tun` +
-`NET_ADMIN`. The `openvpn.service` unit starts the VPN client at boot,
-routing all container traffic through the tunnel. The VPN config file
-is copied into the image at build time.
+`NET_ADMIN`. The `openvpn.service` unit starts the VPN client at boot
+using `/opt/workspace/.boot-linux/bin/openvpn`. VPN assets are staged
+from host paths into `.vms/<uuid>/` and copied into the image at build
+time (`/etc/openvpn/client.ovpn`, optional `/etc/openvpn/auth.txt`).
+The `openvpn` bootstrap component is auto-injected into VM `components`.
 
-For `vpn_type: netns`, the container joins an existing host network
-namespace via `--network ns:/run/netns/<name>`. The namespace must
-already have the VPN tunnel configured. No additional iptables or
-capabilities needed - the container inherits the existing setup.
+For `vpn_type: netns` (Linux host only; validation error on Darwin),
+`setup_vpn_netns.sh` creates `/run/netns/<vpn_netns>`, starts OpenVPN
+inside it, then the container joins via `--network ns:/run/netns/<name>`.
+No additional iptables or capabilities needed; the container inherits
+the namespace routing.
+
+**Host client (outside VM):** bootstrap installs CLI into `.boot-{platform}/bin/`;
+`vpn --action install-service` deploys systemd user unit (Linux) or
+LaunchAgent (macOS). OpenVPN Connect is not managed.
 
 #### 3.8 Build Process (What `make vm <config.yaml>` Does)
 
@@ -1200,8 +1209,14 @@ workspace/scripts/templates/systemd-ami-network.service.j2 # iptables systemd un
 workspace/scripts/templates/systemd-traefik.service.j2     # per-VM Traefik service template
 workspace/scripts/templates/traefik-static.yml.j2          # per-VM Traefik static config template
 workspace/scripts/templates/traefik-dynamic.yml.j2         # per-VM Traefik dynamic config template
-workspace/scripts/templates/systemd-openvpn.service.j2     # OpenVPN service template (when mode=openvpn)
-res/systemd/ami-network-setup                              # shell script called by ami-network.service
+workspace/scripts/templates/systemd-openvpn.service.j2     # VM container OpenVPN unit (mode=openvpn, vpn_type=container)
+workspace/scripts/templates/systemd-openvpn-client.service.j2  # Linux host user unit, see SPEC-OPENVPN.md
+workspace/scripts/templates/launchd-openvpn-client.plist.j2    # macOS host LaunchAgent, see SPEC-OPENVPN.md
+workspace/cli/vpn_core.py                                    # shared OpenVPN resolution + health
+workspace/cli/vpn_netns.py                                    # Linux netns preflight for VM
+workspace/scripts/bootstrap/bootstrap_openvpn_service.sh       # host service install
+workspace/scripts/bin/setup_vpn_netns.sh                       # ip netns + daemon start
+res/systemd/workspace-network-setup                            # shell script called by workspace-network.service
 .vms/.gitkeep                                               # gitkeep for .vms/ dir
 workspace/scripts/bootstrap/bootstrap_certs.sh             # certificate generation (CA + server + client)
 workspace/scripts/bootstrap/bootstrap_traefik.sh           # Traefik bootstrap (new component)
@@ -1238,6 +1253,7 @@ and documents which existing facilities are reused.
 |----------|------|---------|
 | UUIDv7 generator | `workspace/utils/uuid_utils.py::uuid7()` | VM ID generation (RFC 9562, pure Python) |
 | Podman runtime | `.boot-linux/bin/podman` (v5.6.2, rootless, netavark) | Container lifecycle |
+| QEMU hypervisor | `workspace/cli/hypervisor/` + `docs/REQ-VM-HYPERVISOR.md` | Full Linux guest; authoritative WORKSPACE-GUARD E2E via `make test-vm-guard` |
 | Container types | `workspace/types/status.py` (PodmanContainer, PortMapping) | VM inspection results |
 | Bootstrap pattern | `workspace/scripts/bootstrap/bootstrap_*.sh` | Traefik installation script |
 | Component registry | `workspace/config/bootstrap-components.yaml` | Register traefik component |

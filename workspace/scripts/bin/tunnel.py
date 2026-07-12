@@ -7,6 +7,7 @@ Smart wrapper for cloudflared with AMI-aware tunnel configuration defaults.
 from __future__ import annotations
 
 import os
+import platform
 import shutil
 import subprocess
 import sys
@@ -25,7 +26,8 @@ def _ami_root() -> str:
 def _find_cloudflared() -> str | None:
     """Find the bootstrapped cloudflared binary."""
     root = Path(_ami_root())
-    boot = root / ".boot-linux" / "bin" / "cloudflared"
+    boot_name = ".boot-macos" if platform.system() == "Darwin" else ".boot-linux"
+    boot = root / boot_name / "bin" / "cloudflared"
     if boot.exists():
         return str(boot)
     return shutil.which("cloudflared")
@@ -43,6 +45,22 @@ def _find_config() -> str | None:
 
 def main() -> int:
     """Main entry point - pass through to cloudflared with AMI defaults."""
+    args = list(sys.argv[1:])
+
+    if any(a in ("-h", "--help") for a in args):
+        binary = _find_cloudflared()
+        if binary:
+            try:
+                return subprocess.run([binary, "--help"], check=True).returncode
+            except subprocess.CalledProcessError as exc:
+                return exc.returncode
+        print(
+            "AMI Cloudflare Tunnel wrapper\n"
+            "Error: cloudflared not found. Run bootstrap to install it.",
+            file=sys.stderr,
+        )
+        return 0
+
     binary = _find_cloudflared()
     if not binary:
         print(
@@ -50,8 +68,6 @@ def main() -> int:
             file=sys.stderr,
         )
         return 1
-
-    args = list(sys.argv[1:])
 
     # Inject config if user hasn't specified one and we have an AMI config
     has_config = any(a in ("--config", "-c") for a in args)

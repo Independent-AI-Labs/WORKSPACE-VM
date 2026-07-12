@@ -1,12 +1,14 @@
 extensions:
   - name: vpn
-    binary: workspace/scripts/bin/run_openvpn_client.py
-    description: OpenVPN client with AMI config
+    binary: workspace/scripts/bin/vpn
+    description: Workspace OpenVPN host client (install/start/stop/health)
     category: infra
     features:
-      - --ovpn-file
-      - --action start/health
-      - --daemon
+      - install
+      - start/stop/restart
+      - persist-on/off/status
+      - PERSIST=1|0 on start/stop
+      - make vpn-install|vpn-start|vpn-health
     hidden: true
     bannerPriority: 310
     check:

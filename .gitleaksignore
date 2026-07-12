@@ -2,7 +2,7 @@
 # Format: <commit>:<path>:<rule-id>:<line>
 # Document each entry - drift in this file is how secrets leak through gates.
 
-# OIDC spec example tokens - placeholder JWTs in a documentation example
+# OIDC spec example tokens - sample JWTs in a documentation example
 # of the token response shape, not real credentials. The strings are
 # truncated example bytes ("eyJhbGciOiJSUzI1NiIsInR5cCI6...") used to
 # illustrate the OIDC response payload format. Verified 2026-05-05 in

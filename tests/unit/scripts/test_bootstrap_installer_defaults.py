@@ -125,7 +125,7 @@ class TestRunFromDefaults:
             description="x",
             type=ComponentType.SCRIPT,
             group="Core Dependencies",
-            script="bootstrap_uv.sh",
+            script_path="projects/CI/scripts/bootstrap-uv",
         )
         resolver_table = {
             "uv": uv_component,

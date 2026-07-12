@@ -12,7 +12,7 @@ PODMAN_REAL="$(dirname "$0")/real-podman"
 # Ensure real podman exists
 if [[ ! -x "$PODMAN_REAL" ]]; then
     echo "ERROR: real-podman not found at $PODMAN_REAL"
-    echo "Run bootstrap_podman.sh to fix installation"
+    echo "Run 'make core' to fix installation (CI bootstrap-podman)"
     exit 1
 fi
 

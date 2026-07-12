@@ -9,8 +9,8 @@
 - opencode Plugin Hooks Interface (`@opencode-ai/plugin`, 24 hook types)
 - A2A Protocol Specification v1.0
 - EU AI Act (Regulation (EU) 2024/1689)
-- [SPEC-HOOKS](../docs/archive/v2/specifications/SPEC-HOOKS.md) (V2 Hook Validation Pipeline)
-- [SPEC-EXTENSIONS](../docs/archive/v2/specifications/SPEC-EXTENSIONS.md) (Extension Registry)
+- SPEC-HOOKS (V2 Hook Validation Pipeline, removed from repo, preserved in git history)
+- SPEC-EXTENSIONS (Extension Registry, removed from repo, preserved in git history)
 
 ---
 
@@ -38,9 +38,9 @@ workspace/config/opencode/policies/
 ├── template/                         ← TRACKED in git (immutable, seeded on first use)
 │   ├── rules.template.yaml           ← 5 default context injection rules
 │   ├── guards.template.yaml          ← 1 default speculation-words guard
-│   ├── tool-guards.template.yaml     ← (empty) - placeholder for tool guardrails
-│   ├── shell-guards.template.yaml    ← (empty) - placeholder for shell guardrails
-│   ├── system-rules.template.yaml    ← (empty) - placeholder for system rules
+│   ├── tool-guards.template.yaml     ← (empty) - reserved slot for tool guardrails
+│   ├── shell-guards.template.yaml    ← (empty) - reserved slot for shell guardrails
+│   ├── system-rules.template.yaml    ← (empty) - reserved slot for system rules
 │   └── profiles/
 │       ├── standard.template.yaml    ← built-in standard profile
 │       ├── strict.template.yaml      ← built-in strict profile
@@ -1071,7 +1071,7 @@ The migration SHALL be backward compatible:
 - The deployed plugin has the same filename and deploy path.
 - opencode continues to load the plugin from `~/.config/opencode/plugins/`.
 - `make rules` and `make hooks` targets are updated (hooks → guards).
-- On first run, userfiles are auto-seeded from templates - seamless upgrade.
+- On first run, userfiles are auto-seeded from templates, easy upgrade.
 
 ### 6.3 Validation Checklist
 

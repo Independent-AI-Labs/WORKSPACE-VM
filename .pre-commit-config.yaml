@@ -9,13 +9,13 @@ repos:
         always_run: true
       - id: ruff-format
         name: ruff format
-        entry: uv run ruff format --config res/config/ruff.toml .
+        entry: uv run ruff format --config projects/CI/ruff.toml .
         language: system
         pass_filenames: false
         always_run: true
       - id: ruff
         name: ruff lint
-        entry: uv run ruff check --config res/config/ruff.toml --fix --exit-non-zero-on-fix .
+        entry: uv run ruff check --config projects/CI/ruff.toml --fix --exit-non-zero-on-fix .
         language: system
         pass_filenames: false
         always_run: true
@@ -26,8 +26,8 @@ repos:
         pass_filenames: false
         always_run: true
       - id: gitleaks
-        name: Block secrets in staged content (gitleaks)
-        entry: gitleaks protect --staged --redact --no-banner --verbose
+        name: Block secrets in all files (gitleaks)
+        entry: "bash -c '_boot=\"projects/CI/.boot-$(uname -s | tr '[:upper:]' '[:lower:]' | sed 's/darwin/macos/')/bin\"; export PATH=\"$_boot:$PATH\"; gitleaks dir . --no-banner --redact --verbose --log-level=error'"
         language: system
         pass_filenames: false
         always_run: true
@@ -39,14 +39,14 @@ repos:
         always_run: true
       - id: check-dependency-versions
         name: Check Dependency Versions (strict pinning + latest)
-        entry: bash -c 'uv run python -c "import ci" 2>/dev/null || { echo "FAILED: ci not installed - run: make sync" >&2; exit 1; }; exec uv run python -m ci.check_dependency_versions "$@"' --
+        entry: "bash -c 'uv run python -c \"import ci\" || { echo \"FAILED: ci not installed - run: make sync\" >&2; exit 1; }; exec uv run python -m ci.check_dependency_versions \"$@\"' --"
         language: system
         pass_filenames: false
         always_run: true
 
       - id: check-duplicate-dependencies
         name: Check Duplicate/Redundant Dependencies
-        entry: bash -c 'uv run python -c "import ci" 2>/dev/null || { echo "FAILED: ci not installed - run: make sync" >&2; exit 1; }; exec uv run python -m ci.check_duplicate_dependencies "$@"' --
+        entry: "bash -c 'uv run python -c \"import ci\" || { echo \"FAILED: ci not installed - run: make sync\" >&2; exit 1; }; exec uv run python -m ci.check_duplicate_dependencies \"$@\"' --"
         language: system
         pass_filenames: false
         always_run: true
@@ -97,11 +97,11 @@ repos:
         always_run: true
       - id: mypy
         name: mypy
-        entry: uv run python -m mypy
+        entry: make _type-check-impl
         language: system
         pass_filenames: false
         always_run: true
-        args: [ --config-file, res/config/mypy.toml, workspace ]
+
       - id: check-commit-message
         name: Check Commit Message Format
         entry: "bash -c 'source projects/CI/lib/checks.sh && ci_check_commit_message \"$1\"' --"

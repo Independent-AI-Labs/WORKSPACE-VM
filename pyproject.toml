@@ -18,7 +18,7 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
 ]
 dependencies = [
-    "uuid-utils==0.16.2",
+    "uuid-utils==0.17.0",
     "loguru==0.7.3",
     "pandas==2.2.3",
     "numpy==2.5.1",
@@ -26,20 +26,18 @@ dependencies = [
     "pydantic-settings==2.14.2",
     "click==8.4.2",
     "setuptools==80.10.2",
-    "matrix-nio==0.25.2",
-    "matrix-commander==8.0.6",
     "python-dotenv==1.2.2",
     "prometheus-client==0.25.0",
     "fastapi==0.139.0",
     "jinja2==3.1.6",
-    "uvicorn[standard]==0.50.2",
+    "uvicorn[standard]==0.51.0",
     "python-multipart==0.0.32",
     "psutil==7.2.2",
     "pyyaml==6.0.3",
     "nodeenv==1.10.0",
     "playwright==1.61.0",
     "synadm==0.49.2",
-    "google-auth==2.55.1",
+    "google-auth==2.55.2",
     "google-auth-oauthlib==1.4.0",
     "google-api-python-client==2.198.0",
     "tqdm==4.67.3",
@@ -74,12 +72,13 @@ include = ["workspace.*"]
 namespaces = true
 
 [tool.setuptools.package-data]
-ami = [
-    "res/config/*.toml",
-    "res/config/*.yaml",
-]
+ami = []
 
 [project.optional-dependencies]
+chat = [
+    "matrix-nio==0.25.2",
+    "matrix-commander==8.0.6",
+]
 dev = [
     "workspace-ci[dev]",
     "dataops",
@@ -93,10 +92,14 @@ workspace-ci = { path = "projects/CI", editable = true }
 dataops = { path = "projects/DATAOPS", editable = true }
 
 [tool.mypy]
-# Config is in res/config/mypy.toml - mypy will auto-discover it
-# NO CHEATING. All files must pass type checking.
+# Shared config at projects/CI/mypy.toml (passed via --config-file in
+# Makefile and .pre-commit-config.yaml). This section adds VM-specific
+# merge keys: exclude projects/ (nested repos have their own type-check).
+# MYPYPATH=".:projects/DATAOPS" is set in Makefile and .pre-commit-config.yaml
+# because mypy cannot resolve PEP 660 editable installs (mypy#12313).
 exclude = [
     "projects/",
+    "tests/",
 ]
 explicit_package_bases = true
 

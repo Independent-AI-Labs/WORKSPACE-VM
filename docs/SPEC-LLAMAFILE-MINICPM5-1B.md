@@ -155,7 +155,7 @@ Per llamafile `docs/support.md`. The fat APE covers the union; CPU-only mode
 ### ARM64 runtime prerequisites
 - **CPU:** ARMv8a+ (Apple Silicon, 64-bit Raspberry Pi 3B+/4/5, Graviton, etc.).
 - **APE loader (one-time, recommended):** On UNIX the fat APE self-extracts an
-  ~8 KB loader to `$TMPDIR/.ape` (or `$HOME/.ape`). For faster/robust launch,
+  ~8 KB loader to `$TMPDIR/.ape` (or `$HOME/.ape`). For faster/reliable launch,
   install it systemwide - **requires root**, so on the workspace this is an
   operator task, not an agent task:
   - Linux ARM64: copy `ape-aarch64.elf` → `/usr/bin/ape`, optionally register `binfmt_misc`.

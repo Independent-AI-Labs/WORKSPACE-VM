@@ -43,9 +43,9 @@ components:
     description: 'Python package manager'
     type: script
     group: 'Core Dependencies'
-    script: 'bootstrap_uv.sh'
-    detect_path: '.boot-linux/bin/uv'
-    version_cmd: ['.boot-linux/bin/uv', '--version']
+    script_path: 'projects/CI/scripts/bootstrap-uv'
+    detect_path: 'projects/CI/.boot-linux/bin/uv'
+    version_cmd: ['projects/CI/.boot-linux/bin/uv', '--version']
     version_pattern: 'uv (\d+\.\d+\.\d+)'
 
   - name: python
@@ -83,19 +83,19 @@ components:
     description: 'Workspace task runner and dep-graph validator (moonrepo)'
     type: script
     group: 'Core Dependencies'
-    script: 'bootstrap_moon.sh'
-    detect_path: '.boot-linux/bin/moon'
-    version_cmd: ['.boot-linux/bin/moon', '--version']
+    script_path: 'projects/CI/scripts/bootstrap-moon'
+    detect_path: 'projects/CI/.boot-linux/bin/moon'
+    version_cmd: ['projects/CI/.boot-linux/bin/moon', '--version']
     version_pattern: 'moon (\d+\.\d+\.\d+)'
 
   - name: node
     label: 'Node.js'
-    description: 'Node.js + npm (hermetic, via nodeenv)'
+    description: 'Node.js + npm (hermetic, official tarball)'
     type: script
     group: 'Core Dependencies'
-    script: 'bootstrap_node.sh'
-    detect_path: '.boot-linux/bin/node'
-    version_cmd: ['.boot-linux/bin/node', '--version']
+    script_path: 'projects/CI/scripts/bootstrap-node'
+    detect_path: 'projects/CI/.boot-linux/bin/node'
+    version_cmd: ['projects/CI/.boot-linux/bin/node', '--version']
     version_pattern: 'v(\d+\.\d+\.\d+)'
 
   - name: gitleaks
@@ -137,9 +137,9 @@ components:
     description: 'Rust language & Cargo'
     type: script
     group: 'Languages & Compilers'
-    script: 'bootstrap_rust.sh'
-    detect_path: '.boot-linux/rust/bin/cargo'
-    version_cmd: ['.boot-linux/rust/bin/rustc', '--version']
+    script_path: 'projects/CI/scripts/bootstrap-rust'
+    detect_path: 'projects/CI/.boot-linux/bin/cargo'
+    version_cmd: ['projects/CI/.boot-linux/bin/rustc', '--version']
     version_pattern: 'rustc (\d+\.\d+\.\d+)'
 
   # =========================================================================
@@ -176,9 +176,9 @@ components:
     description: 'Container runtime (rootless, daemonless)'
     type: script
     group: 'Infrastructure & Orchestration'
-    script: 'bootstrap_podman.sh'
-    detect_path: '.boot-linux/bin/podman'
-    version_cmd: ['.boot-linux/bin/podman', '--version']
+    script_path: 'projects/CI/scripts/bootstrap-podman'
+    detect_path: 'projects/CI/.boot-linux/bin/podman'
+    version_cmd: ['projects/CI/.boot-linux/bin/podman', '--version']
     version_pattern: 'podman version (\d+\.\d+\.\d+)'
 
   - name: traefik
@@ -206,10 +206,20 @@ components:
     description: 'Infrastructure as Code / config management'
     type: script
     group: 'Infrastructure & Orchestration'
-    script: 'bootstrap_ansible.sh'
-    detect_path: '.boot-linux/python-env/bin/ansible'
-    version_cmd: ['.boot-linux/python-env/bin/ansible', '--version']
+    script_path: 'projects/CI/scripts/bootstrap-ansible'
+    detect_path: 'projects/CI/.boot-linux/bin/ansible-playbook'
+    version_cmd: ['projects/CI/.boot-linux/bin/ansible', '--version']
     version_pattern: 'ansible.*?(\d+\.\d+\.\d+)'
+
+  - name: qemu
+    label: 'QEMU'
+    description: 'VM hypervisor for make vm qemu backend (GPL-2.0, subprocess only)'
+    type: script
+    group: 'Infrastructure & Orchestration'
+    script: 'bootstrap_qemu.sh'
+    detect_path: '.boot-linux/bin/qemu-system-aarch64'
+    version_cmd: ['.boot-linux/bin/qemu-system-aarch64', '--version']
+    version_pattern: 'QEMU emulator version (\d+\.\d+\.\d+)'
 
   - name: cron
     label: 'Cron'
@@ -307,6 +317,16 @@ components:
     detect_path: '.boot-linux/bin/cloudflared'
     version_cmd: ['.boot-linux/bin/cloudflared', '--version']
     version_pattern: '(\d+\.\d+\.\d+)'
+
+  - name: openvpn
+    label: 'OpenVPN'
+    description: 'OpenVPN CLI client + platform host service (see docs/SPEC-OPENVPN.md)'
+    type: script
+    group: 'Networking'
+    script: 'bootstrap_openvpn.sh'
+    detect_path: '.boot-linux/bin/openvpn'
+    version_cmd: ['.boot-linux/bin/openvpn', '--version']
+    version_pattern: 'OpenVPN (\d+\.\d+\.\d+)'
 
   # =========================================================================
   # Shell Utilities

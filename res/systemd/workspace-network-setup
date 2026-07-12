@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+set -euo pipefail
+CONTAINER_IP="{{ container_ip }}"
+
+case "${WORKSPACE_NETWORK_POLICY:-unrestricted}" in
+    internet)
+        iptables -I FORWARD 1 -s "$CONTAINER_IP" -d "${GATEWAY:-10.89.0.1}" \
+            -p udp --dport 53 -j ACCEPT
+        iptables -I FORWARD 2 -s "$CONTAINER_IP" -d "${GATEWAY:-10.89.0.1}" \
+            -p tcp --dport 53 -j ACCEPT
+        iptables -I FORWARD 3 -s "$CONTAINER_IP" -d "${GATEWAY:-10.89.0.1}" \
+            -j DROP
+        ;;
+    proxy)
+        if [[ -n "${WORKSPACE_PROXY_URL:-}" ]]; then
+            PROXY_HOST="${WORKSPACE_PROXY_URL#*://}"
+            PROXY_HOST="${PROXY_HOST%%:*}"
+            PROXY_PORT="${WORKSPACE_PROXY_URL##*:}"
+            iptables -I FORWARD 1 -s "$CONTAINER_IP" -d "$PROXY_HOST" \
+                -p tcp --dport "${PROXY_PORT:-3128}" -j ACCEPT
+        fi
+        iptables -I FORWARD 2 -s "$CONTAINER_IP" -j DROP
+        export HTTP_PROXY="$WORKSPACE_PROXY_URL"
+        export HTTPS_PROXY="$WORKSPACE_PROXY_URL"
+        ;;
+esac

@@ -7,8 +7,13 @@
 #                      (use check_cmd OR check_type, not both)
 #   apt_package      - Debian/Ubuntu package for apt-get install
 #                      (omit if hermetically bootstrapped via bootstrap_script)
+#   brew_package     - macOS ONLY. Homebrew formula for `brew install` on macOS.
+#                      If unset and the entry is not filtered by `platforms: [linux]`,
+#                      the entry is reported as missing on macOS.
 #   description      - human-readable description shown in check output
 #   optional         - if true, missing dep is non-fatal (default false)
+#   platforms         - list of supported platforms (e.g. [linux], [darwin]).
+#                      If set, entry is skipped on non-listed platforms.
 #   bootstrap_script - hermetic installer (apt phase skips these)
 #   component        - tag: which bootstrap component needs this dep
 #
@@ -22,6 +27,7 @@
 requires:
   - check_cmd: make
     apt_package: make
+    brew_package: make
     description: GNU Make
 
   - check_cmd: curl
@@ -46,6 +52,7 @@ requires:
   - check_cmd: dpkg-deb
     apt_package: dpkg
     description: dpkg-deb extractor
+    platforms: [linux]
 
   - check_cmd: unzip
     apt_package: unzip
@@ -58,21 +65,30 @@ requires:
     apt_package: xvfb
     description: X Virtual Framebuffer (headless display)
     optional: true
+    platforms: [linux]
 
   - check_cmd: newuidmap
     apt_package: uidmap
     description: newuidmap/newgidmap (rootless container UID mapping)
+    platforms: [linux]
 
   - check_cmd: slirp4netns
     apt_package: slirp4netns
     description: Rootless container networking
+    platforms: [linux]
 
   - check_type: libolm-headers
     apt_package: libolm-dev
     description: libolm development headers (python-olm build dependency)
 
+  - check_cmd: cmake
+    apt_package: cmake
+    brew_package: cmake
+    description: cmake (native build system for python-olm/C extensions)
+
   - check_cmd: rg
     apt_package: ripgrep
+    brew_package: ripgrep
     description: ripgrep (fast recursive search)
 
   - check_cmd: crontab
@@ -80,6 +96,41 @@ requires:
     description: System cron daemon
     optional: true
 
+  - check_cmd: cloud-localds
+    apt_package: cloud-image-utils
+    description: cloud-init seed builder for QEMU guests (cloud-localds; vendored by make install-qemu on macOS)
+    component: qemu
+
+  - check_cmd: qemu-img
+    apt_package: qemu-utils
+    description: QEMU disk tool (optional when qemu bootstrapped)
+    component: qemu
+    optional: true
+
+  - check_cmd: capsh
+    apt_package: libcap2-bin
+    description: libcap2-bin (setcap/getcap for WORKSPACE-GUARD)
+    platforms: [linux]
+    component: guard
+
+  - check_cmd: mke2fs
+    apt_package: e2fsprogs
+    description: e2fsprogs (chattr for WORKSPACE-GUARD)
+    platforms: [linux]
+    component: guard
+
+  - check_cmd: file
+    apt_package: file
+    description: file (file-type detection for WORKSPACE-GUARD)
+    component: guard
+
+  - check_type: apt-package
+    apt_package: dpkg-dev
+    description: dpkg-dev (dpkg-divert for WORKSPACE-GUARD install)
+    platforms: [linux]
+    component: guard
+
   - check_type: playwright-libs
     description: Playwright browser dependencies
     component: playwright
+    platforms: [linux]

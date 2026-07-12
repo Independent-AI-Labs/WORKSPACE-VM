@@ -1,5 +1,26 @@
 # Makefile for AMI Agents
-SHELL := /bin/bash
+# Platform detection. On macOS, prefer Homebrew bash 5.x over /bin/bash
+# (3.2) for nameref support. The Homebrew gnubin directories are
+# prepended to PATH so GNU coreutils, gnu-sed, and findutils shadow
+# the BSD equivalents.
+_OS := $(shell uname -s)
+_HB_PREFIX := $(if $(wildcard /opt/homebrew),/opt/homebrew,$(if $(wildcard /usr/local),/usr/local))
+SHELL := $(if $(wildcard $(_HB_PREFIX)/bin/bash),$(_HB_PREFIX)/bin/bash,/bin/bash)
+export PATH := $(_HB_PREFIX)/opt/coreutils/libexec/gnubin:$(_HB_PREFIX)/opt/gnu-sed/libexec/gnubin:$(_HB_PREFIX)/opt/findutils/libexec/gnubin:$(_HB_PREFIX)/bin:$(PATH)
+
+# CI provides shared configs (ruff.toml, mypy.toml) and bootstrapped
+# tools (uv, ansible, gitleaks). VM-root delegates to CI for these.
+CI_DIR := $(abspath projects/CI)
+CI_BOOT_NAME := $(if $(filter Darwin,$(_OS)),.boot-macos,.boot-linux)
+CI_BOOT_BIN := $(CI_DIR)/$(CI_BOOT_NAME)/bin
+CI_RUFF := $(CI_DIR)/ruff.toml
+CI_MYPY := $(CI_DIR)/mypy.toml
+UV := $(CI_BOOT_BIN)/uv
+
+# cmake 4.x dropped support for cmake_minimum_required < 3.5. python-olm
+# uses cmake_minimum_required(VERSION 2.x). Set policy version floor so the
+# build succeeds without patching upstream.
+export CMAKE_POLICY_VERSION_MINIMUM := 3.5
 
 # Contract compliance
 -include projects/CI/lib/makefile_contract.mk
@@ -9,7 +30,7 @@ SHELL := /bin/bash
 help: ## Show this help message
 	@echo "AMI Agents - Available targets:"
 	@echo ""
-	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  %%-28s %%s\n", $$1, $$2}' $(MAKEFILE_LIST)
+	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  %-28s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
 # --- Init - system dependencies ---
 
@@ -18,23 +39,32 @@ init-check: ## Check system dependencies (via CI resolver)
 	@bash projects/CI/scripts/install-system-deps --check
 
 .PHONY: init
-init: ## Install system dependencies (two-phase sudo via CI resolver)
+init: ## Install system dependencies (platform-aware: brew on macOS, two-phase sudo on Linux)
+ifeq ($(_OS),Darwin)
+	@echo "==> Installing Homebrew + GNU tools (macOS)..."
+	@bash $(CI_DIR)/scripts/bootstrap-homebrew
+	@echo "==> Installing system packages (from config/system-deps.yaml)..."
+	@bash $(CI_DIR)/scripts/install-system-deps --install
+	@echo "==> macOS system dependencies installed."
+else
+	@echo "==> Installing system packages (Linux, two-phase sudo)..."
 	@_missing=$$(mktemp); \
-	bash projects/CI/scripts/install-system-deps --export-missing "$$_missing"; \
-	bash projects/CI/scripts/install-system-deps --install-only "$$_missing"; \
+	bash $(CI_DIR)/scripts/install-system-deps --export-missing "$$_missing"; \
+	bash $(CI_DIR)/scripts/install-system-deps --install-only "$$_missing"; \
 	rm -f "$$_missing"
+endif
 
 # --- Core prereqs ---
 
 .PHONY: core
-core: ## Bootstrap uv + python + git-xet + node + ansible + playwright (prereq for sync-package)
-	@echo "🔧 Bootstrapping core tools..."
-	@mkdir -p .boot-linux/bin
-	@AMI_ROOT="$$(pwd)" bash workspace/scripts/bootstrap/bootstrap_uv.sh
+core: ## Bootstrap CI tools (uv + ansible + node) + VM-specific tools (python + git-xet + playwright)
+	@echo "🔧 Bootstrapping CI tools..."
+	@$(MAKE) -C projects/CI install-boot-tools
+	@$(MAKE) -C projects/CI install-ansible
+	@$(MAKE) -C projects/CI install-node
+	@echo "🔧 Bootstrapping VM-specific tools..."
 	@AMI_ROOT="$$(pwd)" bash workspace/scripts/bootstrap/bootstrap_python.sh
 	@AMI_ROOT="$$(pwd)" bash workspace/scripts/bootstrap/bootstrap_git_xet.sh
-	@AMI_ROOT="$$(pwd)" bash workspace/scripts/bootstrap/bootstrap_node.sh
-	@AMI_ROOT="$$(pwd)" bash workspace/scripts/bootstrap/bootstrap_ansible.sh
 	@AMI_ROOT="$$(pwd)" bash workspace/scripts/bootstrap/bootstrap_playwright.sh
 	@echo "✅ Core bootstrap complete"
 
@@ -73,6 +103,10 @@ install: init-check sync-package ## Interactive TUI to select and install compon
 	echo "    limiting) to prevent runaway processes from filling the root" && \
 	echo "    disk via /var/log/syslog. See INCIDENT-2026-07-05." && \
 	echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+.PHONY: install-qemu
+install-qemu: ## Install QEMU + firmware into platform boot directory (GPL-2.0)
+	bash workspace/scripts/bootstrap/bootstrap_qemu.sh
 
 .PHONY: install-ci
 install-ci: init-check sync-package ## Non-interactive component install (uses install-defaults.yaml)
@@ -113,33 +147,17 @@ ensure-repos: ## Clone every workspace repo per moon.yml metadata
 .PHONY: sync-package
 sync-package: core ensure-repos ## Sync package dependencies via uv
 	@echo "🔧 Syncing workspace..."
-	.boot-linux/bin/uv sync --extra dev
+	$(UV) sync --extra dev
 	@echo "✅ Package 'workspace' installed with dev dependencies"
+
+.PHONY: install-package
+install-package: ## Lightweight uv sync (dev extras only, no boot/repos)
+	$(UV) sync --extra dev
 
 # --- Config ---
 
 .PHONY: setup-config
-setup-config: setup-automation setup-linter-config ## Setup configuration files
-
-.PHONY: setup-linter-config
-setup-linter-config: ## Create symlinks for linter configs in project root
-	@echo "🔗 Setting up linter configuration symlinks..."
-	@if [ -f "res/config/ruff.toml" ] && [ ! -e "ruff.toml" ]; then \
-		ln -s res/config/ruff.toml ruff.toml; \
-		echo "✅ Created ruff.toml symlink"; \
-	elif [ -e "ruff.toml" ]; then \
-		echo "ℹ️  ruff.toml already exists"; \
-	else \
-		echo "⚠️  res/config/ruff.toml not found"; \
-	fi
-	@if [ -f "res/config/mypy.toml" ] && [ ! -e "mypy.toml" ]; then \
-		ln -s res/config/mypy.toml mypy.toml; \
-		echo "✅ Created mypy.toml symlink"; \
-	elif [ -e "mypy.toml" ]; then \
-		echo "ℹ️  mypy.toml already exists"; \
-	elif [ -f "res/config/mypy.toml" ]; then \
-		echo "ℹ️  mypy config exists in res/config/mypy.toml"; \
-	fi
+setup-config: setup-automation ## Setup configuration files
 
 .PHONY: setup-automation
 setup-automation: ## Setup automation configuration
@@ -200,7 +218,7 @@ vm-exec: ## podman exec <id> -- <cmd>
 	@bash workspace/scripts/bin/vm exec $(filter-out $@,$(MAKECMDGOALS))
 vm-logs: ## podman logs <id>
 	@bash workspace/scripts/bin/vm logs $(filter-out $@,$(MAKECMDGOALS))
-vm-list: ## podman ps -a --filter label=ami.type=vm
+vm-list: ## podman ps -a --filter label=workspace.type=vm
 	@bash workspace/scripts/bin/vm list
 vm-status: ## podman inspect + stats for <id>
 	@bash workspace/scripts/bin/vm status $(filter-out $@,$(MAKECMDGOALS))
@@ -260,6 +278,28 @@ test: ## Run tests (delegates to moon for caching)
 test-e2e: ## Run end-to-end VM integration tests
 	@.venv/bin/python -m pytest tests/e2e/ -v -m e2e --timeout 600
 
+.PHONY: test-e2e-qemu
+test-e2e-qemu: ## QEMU poc + guard E2E (set TEST_QEMU_FULL=1 to include full-ci)
+	@.venv/bin/python -m pytest tests/e2e/test_vm_qemu_poc.py tests/e2e/test_vm_qemu_guard.py -v -m e2e --timeout 3600
+	@if [ "$${TEST_QEMU_FULL:-0}" = "1" ]; then \
+		.venv/bin/python -m pytest tests/e2e/test_vm_qemu_full_ci.py -v -m e2e --timeout 3600; \
+	fi
+
+.PHONY: test-e2e-qemu-full
+test-e2e-qemu-full: ## QEMU poc + full-ci + guard (authoritative, slow)
+	@.venv/bin/python -m pytest tests/e2e/test_vm_qemu_poc.py tests/e2e/test_vm_qemu_full_ci.py tests/e2e/test_vm_qemu_guard.py -v -m e2e --timeout 3600
+
+.PHONY: test-vm-guard
+test-vm-guard: ## Authoritative WORKSPACE-GUARD gate in QEMU guest
+	@.venv/bin/python -m pytest tests/e2e/test_vm_qemu_guard.py -v -m e2e --timeout 3600
+
+.PHONY: test-authoritative
+test-authoritative: test-e2e-qemu-full ## Pre-release QEMU + guard checklist
+
+.PHONY: clean-qemu-e2e
+clean-qemu-e2e: ## Remove orphaned QEMU per-VM overlays (keeps .vms/_base/)
+	@.venv/bin/python -c "from tests.e2e.qemu_cleanup import cleanup_orphan_qemu_vms; n=cleanup_orphan_qemu_vms(max_age_seconds=0); print(f'Removed {len(n)} QEMU VM dir(s)' if n else 'No QEMU VM dirs to remove')"
+
 .PHONY: lint
 lint: ## Run linters (delegates to moon for caching)
 	@moon run workspace:lint
@@ -279,6 +319,31 @@ check-push: ## Pre-push gate: lint + type-check + test (single pass)
 .PHONY: dead-code
 dead-code: ## Run AST-based dead code analysis (delegates to moon for caching)
 	@moon run workspace:dead-code
+
+# Private implementation targets: invoked by moon's command: field.
+# Not part of the contract; do not call directly.
+
+.PHONY: _lint-impl
+_lint-impl: install-package
+ifdef CI
+	$(UV) run ruff check --config $(CI_RUFF) --check .
+	$(UV) run ruff format --config $(CI_RUFF) --check .
+else
+	$(UV) run ruff check --config $(CI_RUFF) --fix .
+	$(UV) run ruff format --config $(CI_RUFF) .
+endif
+
+.PHONY: _type-check-impl
+_type-check-impl: install-package
+	MYPYPATH=".:projects/DATAOPS" $(UV) run mypy --config-file $(CI_MYPY) workspace
+
+.PHONY: _test-impl
+_test-impl: install-package
+	$(UV) run pytest tests/unit tests/integration -v --timeout=30
+
+.PHONY: _dead-code-impl
+_dead-code-impl: install-package
+	$(UV) run ruff check --select F401,F811 --config $(CI_RUFF) .
 
 # --- Update ---
 
@@ -351,12 +416,12 @@ hooks-update: ## Update hook - make hooks-update NUM=3 REGEX="pattern" RULE="ins
 .PHONY: update-deps
 update-deps: ## Update Python dependencies only
 	@echo "🔄 Updating Python dependencies..."
-	.boot-linux/bin/uv update
+	$(UV) update
 
 .PHONY: uninstall
 uninstall: ## Uninstall workspace
 	@echo "🗑️  Uninstalling workspace..."
-	.boot-linux/bin/uv pip uninstall workspace -y
+	$(UV) pip uninstall workspace -y
 
 # --- Utility ---
 
@@ -396,6 +461,11 @@ check-compliance-recursive: ensure-repos ## Audit every nested repo for CI contr
 			|| _failed=$$((_failed + 1)); \
 	done; \
 	[ $$_failed -eq 0 ]
+
+# ==============================================================================
+# OpenVPN host client
+# ==============================================================================
+-include Makefile.vpn
 
 # ==============================================================================
 # LlamaServer - multi-flavor build + deployment (cpu, sycl, vulkan)
