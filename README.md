@@ -1,6 +1,8 @@
-# WORKSPACE-VM: Sovereign AI Workspace
+# Sovereign AI Workspace
 
-The WORKSPACE-VM workspace is a federated, hard-walled infrastructure for developing and running AI agents. It prioritizes **data sovereignty, system immutability, and workspace-wide compliance**.
+**WORKSPACE-VM** is a federated, hard-walled workspace for developing and running AI agents on infrastructure you control. The design centers on **data sovereignty**, **system immutability**, and **workspace-wide compliance**: agents run inside guarded sandboxes, quality gates apply before code ships, and sensitive services stay on your machines rather than a vendor cloud.
+
+You do not install everything with one command. Bootstrap, LLM/GPU setup, VM hypervisors, and VPN each have their own entrypoint and documentation. Pick the workflow below that matches what you are trying to do, then follow its guide. The sections later in this README cover VMs, inference, VPN, and benchmarks in more detail.
 
 ---
 
@@ -8,13 +10,13 @@ The WORKSPACE-VM workspace is a federated, hard-walled infrastructure for develo
 
 ### Prerequisites
 
-| Requirement | Notes |
-| :--- | :--- |
-| **OS** | Linux (x86_64) or macOS (Apple Silicon / Intel) |
-| **Permissions** | `sudo` for system packages (apt/brew), Intel GPU drivers, QEMU firmware |
-| **Boot directory** | `.boot-linux/` on Linux, `.boot-macos/` on macOS (populated by `make install` / `make core`) |
+Before cloning or running workspace installers, confirm your host can support the components you plan to use:
 
-Check system dependencies before installing workspace components:
+- **Operating system:** Linux (x86_64) or macOS (Apple Silicon or Intel). Most GPU and llama workflows are Linux-first; macOS is supported for general bootstrap and development.
+- **Elevated permissions:** `sudo` for system packages (apt/brew), Intel GPU drivers, QEMU firmware, logrotate limits, and optional `git-guard` installation. LLM/GPU prereqs are handled through `make llama-setup`, not the general bootstrap.
+- **Boot directory:** `.boot-linux/` on Linux or `.boot-macos/` on macOS. Created and populated when you run `make install` or `make core`; holds vendored binaries (OpenVPN, QEMU pins, and similar) used by CLI extensions.
+
+Check and install base system dependencies before workspace component installers:
 
 ```bash
 make init-check    # report missing apt/brew packages
@@ -23,18 +25,26 @@ sudo make init     # install from config/system-deps.yaml
 
 ### Installation paths
 
-Use the path that matches your goal. These are **separate TUIs**; do not expect `make install` to cover everything.
+Each major capability has a dedicated installer. They are intentionally separate so you only pull in what you need and so CI can run non-interactive variants without a TTY.
 
-| Goal | Command | Docs |
-| :--- | :--- | :--- |
-| General tools (uv, opencode, podman, ansible, …) | `make install` | [`workspace/config/bootstrap-components.yaml`](workspace/config/bootstrap-components.yaml) |
-| CI / non-interactive bootstrap | `make install-ci` | [`workspace/config/install-defaults.yaml`](workspace/config/install-defaults.yaml) |
-| **LLM + GPU + llamafile/llama.cpp lifecycle** | `make llama-setup` | [`docs/SPEC-LLAMA-SETUP-TUI.md`](docs/SPEC-LLAMA-SETUP-TUI.md) |
-| LLM setup (CI defaults) | `make llama-setup-ci` | [`workspace/config/llama-setup-defaults.yaml`](workspace/config/llama-setup-defaults.yaml) |
-| QEMU hypervisor binaries | `make install-qemu` | [`docs/SPEC-VM-HYPERVISOR.md`](docs/SPEC-VM-HYPERVISOR.md) |
-| Host OpenVPN client | `make vpn-install` | [`docs/SPEC-OPENVPN.md`](docs/SPEC-OPENVPN.md) |
+- **General development tools** (`uv`, OpenCode, Podman, Ansible, and the rest of the bootstrap catalog):  
+  `make install` (interactive TUI). Component list: [`workspace/config/bootstrap-components.yaml`](workspace/config/bootstrap-components.yaml)
 
-**Note:** Llama, Intel GPU, and xpu-smi are **not** in `make install`. Use `make llama-setup` for builds, bundles, systemd deploy, and GPU diagnostics.
+- **CI / unattended bootstrap** (same components, fixed defaults):  
+  `make install-ci`. Config: [`workspace/config/install-defaults.yaml`](workspace/config/install-defaults.yaml)
+
+- **LLM inference, Intel GPU, Vulkan, llamafile / llama.cpp** (builds, bundles, systemd deploy, diagnostics):  
+  `make llama-setup`. Operator guide: [`docs/SPEC-LLAMA-SETUP-TUI.md`](docs/SPEC-LLAMA-SETUP-TUI.md).  
+  Llama, GPU drivers, and `xpu-smi` are **not** part of `make install`; use this path instead.
+
+- **LLM setup in CI** (non-interactive defaults, no TTY):  
+  `make llama-setup-ci`. Defaults: [`workspace/config/llama-setup-defaults.yaml`](workspace/config/llama-setup-defaults.yaml)
+
+- **QEMU hypervisor** (binaries, firmware, cloud-image helpers for `make vm`):  
+  `make install-qemu`. Spec: [`docs/SPEC-VM-HYPERVISOR.md`](docs/SPEC-VM-HYPERVISOR.md)
+
+- **Host OpenVPN client** (tunnel to remote workspace networks):  
+  `make vpn-install`. Spec: [`docs/SPEC-OPENVPN.md`](docs/SPEC-OPENVPN.md)
 
 ### Quick start (general bootstrap)
 
