@@ -12,19 +12,11 @@
 #   ensure_cosmo_dlopen_helper
 set -euo pipefail
 
+# shellcheck source=gpu-toolchain-env.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/gpu-toolchain-env.sh" || exit 1
+
 llamafile_gpu_env_init() {
-    # System glibc toolchain must win over .boot-linux musl cc/g++.
-    local boot_prefix="${HOME}/.boot-linux/bin"
-    if [ -n "${PATH:-}" ]; then
-        PATH="/usr/bin:${PATH}"
-        PATH="${PATH//:${boot_prefix}/}"
-        PATH="${PATH//${boot_prefix}:/}"
-        export PATH
-    else
-        export PATH="/usr/bin"
-    fi
-    export CC="${CC:-/usr/bin/gcc}"
-    export CXX="${CXX:-/usr/bin/g++}"
+    gpu_toolchain_env_init
 }
 
 ensure_cosmo_dlopen_helper() {

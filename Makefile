@@ -118,6 +118,15 @@ install: init-check sync-package ## Interactive TUI to select and install compon
 install-qemu: ## Install QEMU + firmware into platform boot directory (GPL-2.0)
 	bash workspace/scripts/bootstrap/bootstrap_qemu.sh
 
+.PHONY: llama-setup
+llama-setup: init-check sync-package ## Interactive TUI for llama/hardware lifecycle
+	@.venv/bin/python workspace/scripts/llama_setup_installer.py
+
+.PHONY: llama-setup-ci
+llama-setup-ci: init-check sync-package ## Non-interactive llama/hardware setup (llama-setup-defaults.yaml)
+	@.venv/bin/python workspace/scripts/llama_setup_installer.py \
+		--defaults workspace/config/llama-setup-defaults.yaml
+
 .PHONY: install-ci
 install-ci: init-check sync-package ## Non-interactive component install (uses install-defaults.yaml)
 	@.venv/bin/python workspace/scripts/bootstrap_installer.py --defaults workspace/config/install-defaults.yaml && \
@@ -483,6 +492,6 @@ check-compliance-recursive: ensure-repos ## Audit every nested repo for CI contr
 -include Makefile.llamaserver
 
 # ==============================================================================
-# Llamafile - CPU-only .llamafile bundle builder (server | chat | all)
+# Llamafile - .llamafile bundles (CPU + Vulkan; server | chat | all)
 # ==============================================================================
 -include Makefile.llamafile

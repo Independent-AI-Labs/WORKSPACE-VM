@@ -4,10 +4,25 @@
     path: "{{ playbook_dir }}/../projects/llama.cpp/build-{{ llama_flavor }}/bin/llama-server"
   register: server_bin
 
+- name: Assert llama-server binary is built
+  ansible.builtin.assert:
+    that:
+      - server_bin.stat.exists
+      - server_bin.stat.executable
+    fail_msg: >-
+      llama-server not built for flavor {{ llama_flavor }}.
+      Run: make llama-setup  or  make build-llama FLAVOR={{ llama_flavor }}
+
 - name: Validate llama_model_path exists
   ansible.builtin.stat:
     path: "{{ llama_model_path }}"
   register: model_file
+
+- name: Assert GGUF model file exists
+  ansible.builtin.assert:
+    that:
+      - model_file.stat.exists
+    fail_msg: "GGUF model not found at {{ llama_model_path }}"
 
 - name: Ensure llamaserver config directory exists
   ansible.builtin.file:

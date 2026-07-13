@@ -40,8 +40,9 @@ fi
 
 echo "=== Step 3: Configuring CMake (Vulkan) ==="
 cd "$LLAMA_DIR"
-# Prepend /usr/bin so system ld is found before .boot-linux musl ld
-export PATH="/usr/bin:$PATH"
+# shellcheck source=lib/gpu-toolchain-env.sh
+source "$SCRIPT_DIR/lib/gpu-toolchain-env.sh" || exit 1
+gpu_toolchain_env_init
 cmake -B "$BUILD_DIR" \
     -DGGML_VULKAN=ON \
     -DGGML_SYCL=OFF \

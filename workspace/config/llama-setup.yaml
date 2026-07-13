@@ -1,0 +1,130 @@
+# Llama / hardware setup registry for make llama-setup TUI.
+# Stacks are guided profiles; steps invoke scripts/setup and Makefile delegates.
+
+stacks:
+  - id: llamafile_vulkan_server
+    label: 'Llamafile Vulkan server'
+    description: 'Portable .llamafile HTTP server with ggml-vulkan.so (recommended)'
+    prereqs: [intel_drivers, vulkan_dev]
+    build_steps:
+      - id: llamafile_engine
+        label: 'llamafile CPU engine'
+        script: scripts/setup/build-llamafile-engine.sh
+        detect_path: projects/llamafile/o/llamafile/llamafile
+      - id: llamafile_vulkan_dso
+        label: 'ggml-vulkan.so DSO'
+        script: scripts/setup/build-llamafile-vulkan.sh
+        detect_path: projects/llamafile/o/llamafile/ggml-vulkan.so
+      - id: llamafile_vulkan_bundle
+        label: 'Vulkan server .llamafile bundle'
+        make_target: build-llamafile-vulkan-bundle
+        make_vars: { MODEL: minicpm5-1b, MODE: server }
+        detect_glob: 'models/minicpm5-1b/*-vulkan.llamafile'
+    deploy:
+      kind: llamafile
+      model: minicpm5-1b
+      gpu: vulkan
+
+  - id: llama_cpp_vulkan
+    label: 'llama.cpp Vulkan'
+    description: 'Native llama-server with Vulkan backend'
+    prereqs: [vulkan_dev]
+    build_steps:
+      - id: llama_vulkan_build
+        label: 'llama.cpp Vulkan build'
+        script: scripts/setup/build-llama-vulkan.sh
+        detect_path: projects/llama.cpp/build-vulkan/bin/llama-server
+    deploy:
+      kind: llamaserver
+      flavor: vulkan
+
+  - id: llama_cpp_sycl
+    label: 'llama.cpp SYCL'
+    description: 'Native llama-server with Intel oneAPI SYCL backend'
+    prereqs: [intel_drivers, oneapi]
+    build_steps:
+      - id: llama_sycl_build
+        label: 'llama.cpp SYCL build'
+        script: scripts/setup/build-llama-sycl.sh
+        detect_path: projects/llama.cpp/build-sycl/bin/llama-server
+    deploy:
+      kind: llamaserver
+      flavor: sycl
+
+  - id: llama_cpp_cpu
+    label: 'llama.cpp CPU'
+    description: 'Native llama-server CPU-only backend'
+    prereqs: []
+    build_steps:
+      - id: llama_cpu_build
+        label: 'llama.cpp CPU build'
+        script: scripts/setup/build-llama-cpu.sh
+        detect_path: projects/llama.cpp/build-cpu/bin/llama-server
+    deploy:
+      kind: llamaserver
+      flavor: cpu
+
+  - id: llamafile_cpu_chat
+    label: 'Llamafile CPU chat'
+    description: 'Portable .llamafile interactive chat (CPU engine)'
+    prereqs: []
+    build_steps:
+      - id: llamafile_engine
+        label: 'llamafile CPU engine'
+        script: scripts/setup/build-llamafile-engine.sh
+        detect_path: projects/llamafile/o/llamafile/llamafile
+      - id: llamafile_cpu_bundle
+        label: 'CPU chat .llamafile bundle'
+        make_target: build-llamafile
+        make_vars: { MODEL: minicpm5-1b, MODE: chat, GPU: cpu }
+        detect_glob: 'models/minicpm5-1b/*-chat.llamafile'
+    deploy: null
+
+prereqs:
+  - id: intel_drivers
+    label: 'Intel GPU drivers'
+    description: 'Intel compute/media stack, render/video groups'
+    script: scripts/setup/install-intel-gpu.sh
+    script_args: ['--drivers']
+    detect_cmds:
+      - { cmd: ['clinfo'], expect_rc: 0 }
+      - { cmd: ['test', '-x', '/usr/bin/xpu-smi'], expect_rc: 0 }
+    needs_sudo: true
+
+  - id: intel_monitoring
+    label: 'Intel GPU monitoring'
+    description: 'xpu-smi and clinfo only'
+    script: scripts/setup/install-intel-gpu.sh
+    script_args: ['--monitoring-only']
+    detect_cmds:
+      - { cmd: ['test', '-x', '/usr/bin/xpu-smi'], expect_rc: 0 }
+    needs_sudo: true
+
+  - id: vulkan_dev
+    label: 'Vulkan development tools'
+    description: 'libvulkan-dev, glslc, vulkan-tools (vulkaninfo)'
+    script: scripts/setup/install-vulkan-dev.sh
+    detect_cmds:
+      - { cmd: ['vulkaninfo', '--summary'], expect_rc: 0 }
+    needs_sudo: true
+
+  - id: oneapi
+    label: 'Intel oneAPI SYCL/MKL'
+    description: 'DPC++ compiler and MKL for llama.cpp SYCL builds'
+    script: scripts/setup/install-intel-gpu.sh
+    script_args: ['--oneapi']
+    detect_cmds:
+      - { cmd: ['test', '-x', '/opt/intel/oneapi/compiler/latest/bin/icx'], expect_rc: 0 }
+    needs_sudo: true
+
+diagnostics:
+  - id: vulkan_probe
+    label: 'Vulkan GPU probe'
+    script: scripts/setup/lib/vulkan_gpu_probe.py
+  - id: xpu_smi_stats
+    label: 'xpu-smi stats'
+    cmd: [xpu-smi, stats]
+    optional: true
+  - id: test_llamafile_vulkan
+    label: 'llamafile Vulkan test suite'
+    script: scripts/setup/test-llamafile-vulkan.sh

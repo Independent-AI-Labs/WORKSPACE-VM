@@ -24,7 +24,6 @@
 groups:
   - 'Core Dependencies'
   - 'Languages & Compilers'
-  - 'Hardware Monitoring'
   - 'AI Coding Assistants'
   - 'Infrastructure & Orchestration'
   - 'Cloud & Service CLIs'
@@ -156,19 +155,6 @@ components:
     version_pattern: '(\d+\.\d+\.\d+)'
 
   # =========================================================================
-  # Hardware Monitoring
-  # =========================================================================
-  - name: intel_xpu_smi
-    label: 'Intel XPU-SMI'
-    description: 'Intel GPU monitoring & diagnostics (Arc A770, Flex, Max)'
-    type: script
-    group: 'Hardware Monitoring'
-    script: 'bootstrap_intel_xpu_smi.sh'
-    detect_path: '/usr/bin/xpu-smi'
-    version_cmd: ['/usr/bin/xpu-smi', '-v']
-    version_pattern: 'v?(\d+\.\d+\.\d+)'
-
-  # =========================================================================
   # Infrastructure & Orchestration
   # =========================================================================
   - name: podman
@@ -231,46 +217,6 @@ components:
     detect_path: '.boot-linux/bin/cron'
     version_cmd: ['dpkg-query', '-W', '-f=${Version}', 'cron']
     version_pattern: '(\d+\.\S+)'
-
-  - name: llama_cpu
-    label: 'llama.cpp (CPU)'
-    description: 'LLM inference server - CPU backend'
-    type: script
-    group: 'Infrastructure & Orchestration'
-    script: 'bootstrap_llama_cpu.sh'
-    detect_path: 'projects/llama.cpp/build-cpu/bin/llama-server'
-    version_cmd: ['projects/llama.cpp/build-cpu/bin/llama-server', '--version']
-    version_pattern: '(\d+\.\d+)'
-
-  - name: llama_sycl
-    label: 'llama.cpp (SYCL)'
-    description: 'LLM inference server - Intel oneAPI SYCL backend'
-    type: script
-    group: 'Infrastructure & Orchestration'
-    script: 'bootstrap_llama_sycl.sh'
-    detect_path: 'projects/llama.cpp/build-sycl/bin/llama-server'
-    version_cmd: ['projects/llama.cpp/build-sycl/bin/llama-server', '--version']
-    version_pattern: '(\d+\.\d+)'
-
-  - name: llama_vulkan
-    label: 'llama.cpp (Vulkan)'
-    description: 'LLM inference server - Vulkan compute backend'
-    type: script
-    group: 'Infrastructure & Orchestration'
-    script: 'bootstrap_llama_vulkan.sh'
-    detect_path: 'projects/llama.cpp/build-vulkan/bin/llama-server'
-    version_cmd: ['projects/llama.cpp/build-vulkan/bin/llama-server', '--version']
-    version_pattern: '(\d+\.\d+)'
-
-  - name: llamafile_vulkan
-    label: 'llamafile (Vulkan DSO)'
-    description: 'Portable llamafile ggml-vulkan.so backend (projects/llamafile/)'
-    type: script
-    group: 'Infrastructure & Orchestration'
-    script: 'bootstrap_llamafile_vulkan.sh'
-    detect_path: 'projects/llamafile/o/llamafile/ggml-vulkan.so'
-    version_cmd: ['ls', '-lh', 'projects/llamafile/o/llamafile/ggml-vulkan.so']
-    version_pattern: 'ggml-vulkan'
 
   # =========================================================================
   # Cloud & Service CLIs

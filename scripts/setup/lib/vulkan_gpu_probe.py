@@ -138,6 +138,42 @@ def run_vulkaninfo() -> str:
     return result.stdout
 
 
+def parse_shell_records(text: str) -> list[VulkanGpu]:
+    """Parse shell record blocks emitted by format_shell_records()."""
+    gpus: list[VulkanGpu] = []
+    current: dict[str, str] = {}
+    for raw_line in text.splitlines():
+        line = raw_line.strip()
+        if line == "---":
+            if current:
+                gpus.append(_gpu_from_record_fields(current))
+                current = {}
+            continue
+        if "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        current[key] = value
+    if current:
+        gpus.append(_gpu_from_record_fields(current))
+    return gpus
+
+
+def _gpu_from_record_fields(fields: dict[str, str]) -> VulkanGpu:
+    return VulkanGpu(
+        index=int(fields["GPU_INDEX"]),
+        free_bytes=int(fields["FREE_BYTES"]),
+        budget_bytes=int(fields["BUDGET_BYTES"]),
+        usage_bytes=int(fields["USAGE_BYTES"]),
+        device_name=fields.get("DEVICE_NAME", ""),
+        pci_slot=fields.get("PCI_SLOT", ""),
+        monitor_count=int(fields.get("MONITOR_COUNT", "0")),
+    )
+
+
+def load_cached_gpus(cache_path: Path) -> list[VulkanGpu]:
+    return parse_shell_records(cache_path.read_text(encoding="utf-8", errors="replace"))
+
+
 def probe_vulkan_gpus() -> list[VulkanGpu]:
     return parse_vulkan_discrete_gpus(run_vulkaninfo())
 
@@ -156,28 +192,56 @@ def format_shell_records(gpus: list[VulkanGpu]) -> str:
     return "\n".join(lines) + ("\n" if lines else "")
 
 
+def _resolve_cli_gpus(args: list[str]) -> list[VulkanGpu] | None:
+    cache_path = ""
+    idx = 0
+    while idx < len(args):
+        arg = args[idx]
+        if arg == "--select-best":
+            idx += 1
+            continue
+        if arg == "--cache-file":
+            idx += 1
+            if idx >= len(args):
+                return None
+            cache_path = args[idx]
+            idx += 1
+            continue
+        return None
+
+    if cache_path:
+        return load_cached_gpus(Path(cache_path))
+
+    return probe_vulkan_gpus()
+
+
+def _load_cli_gpus(args: list[str]) -> list[VulkanGpu] | None:
+    try:
+        return _resolve_cli_gpus(args)
+    except (OSError, RuntimeError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return None
+
+
 def main(argv: list[str] | None = None) -> int:
     args = argv if argv is not None else sys.argv[1:]
     if args and args[0] in ("-h", "--help"):
-        print("usage: vulkan_gpu_probe.py [--select-best]")
+        print("usage: vulkan_gpu_probe.py [--select-best] [--cache-file PATH]")
         return 0
 
-    try:
-        gpus = probe_vulkan_gpus()
-    except (OSError, RuntimeError):
+    gpus = _load_cli_gpus(args)
+    if gpus is None or not gpus:
+        if gpus is None and args:
+            print("error: invalid vulkan_gpu_probe arguments", file=sys.stderr)
         return 1
 
-    if not gpus:
-        return 1
-
-    if args and args[0] == "--select-best":
+    if "--select-best" in args:
         picked = select_best_gpu(gpus)
         if picked is None:
             return 1
         print(picked.index)
-        return 0
-
-    sys.stdout.write(format_shell_records(gpus))
+    else:
+        sys.stdout.write(format_shell_records(gpus))
     return 0
 
 

@@ -1,0 +1,11 @@
+# Non-interactive defaults for: make llama-setup-ci
+#
+# Recommended VM profile: llamafile Vulkan server for minicpm5-1b.
+
+stacks:
+  - llamafile_vulkan_server
+
+prereqs: []
+run_diagnostics: true
+deploy: true
+model: minicpm5-1b

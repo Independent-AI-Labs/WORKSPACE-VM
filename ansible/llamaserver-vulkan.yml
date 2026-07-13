@@ -1,4 +1,6 @@
 ---
+# DEPRECATED: use make llama-setup or make install-llamaserver FLAVOR=vulkan
+# with ansible/llamaserver.yml (llamaserver@ template) instead.
 - name: Deploy Vulkan LlamaServer with systemd
   hosts: localhost
   gather_facts: true

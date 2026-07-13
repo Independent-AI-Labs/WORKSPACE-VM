@@ -42,21 +42,41 @@ margin_mib="${LLAMAFILE_VRAM_MARGIN_MIB:-1024}"
 split_mode="${LLAMAFILE_SPLIT_MODE:-none}"
 model_gguf="${LLAMAFILE_MODEL_GGUF:-}"
 
-probe_vulkan_gpus() {
+PROBE_SCRIPT="$SCRIPT_DIR/lib/vulkan_gpu_probe.py"
+PROBE_CACHE=""
+
+llamafile_python() {
+    if command -v uv >/dev/null 2>&1; then
+        uv run python "$@"
+    else
+        python3 "$@"
+    fi
+}
+
+cache_vulkan_probe() {
+    if [ -n "$PROBE_CACHE" ] && [ -f "$PROBE_CACHE" ]; then
+        return 0
+    fi
     if ! command -v vulkaninfo >/dev/null 2>&1; then
         return 1
     fi
-    python3 "$SCRIPT_DIR/lib/vulkan_gpu_probe.py"
+    PROBE_CACHE="$(mktemp)"
+    if ! llamafile_python "$PROBE_SCRIPT" >"$PROBE_CACHE"; then
+        rm -f "$PROBE_CACHE"
+        PROBE_CACHE=""
+        return 1
+    fi
+    return 0
 }
 
 select_best_gpu_index() {
     local picked=""
-    picked="$(uv run python "$SCRIPT_DIR/lib/vulkan_gpu_probe.py" --select-best)"
-    pick_rc=$?
-    if [ "$pick_rc" -ne 0 ] || [ -z "$picked" ]; then
+    if ! cache_vulkan_probe; then
         return 1
     fi
-    if [ -z "$picked" ]; then
+    picked="$(llamafile_python "$PROBE_SCRIPT" --cache-file "$PROBE_CACHE" --select-best)"
+    pick_rc=$?
+    if [ "$pick_rc" -ne 0 ] || [ -z "$picked" ]; then
         return 1
     fi
     printf '%s\n' "$picked"
@@ -67,7 +87,7 @@ resolve_main_gpu() {
         auto|""|"-1")
             local picked
             if ! picked="$(select_best_gpu_index)"; then
-                printf 'warning: Vulkan GPU probe failed; using MAIN_GPU=0\n' >&2
+                printf 'error: Vulkan GPU probe failed; using MAIN_GPU=0 (verify render group + vulkaninfo)\n' >&2
                 printf '0\n'
                 return
             fi
@@ -98,7 +118,7 @@ resolve_main_gpu() {
                         ;;
                     ---) in_pick=0 ;;
                 esac
-            done < <(probe_vulkan_gpus)
+            done <"$PROBE_CACHE"
             printf 'info: auto-selected Vulkan GPU %s (%s pci=%s monitors=%s; headless preferred)\n' \
                 "$picked" "$picked_name" "$picked_pci" "${picked_monitors:-?}" >&2
             printf '%s\n' "$picked"
@@ -112,6 +132,9 @@ resolve_main_gpu() {
 gpu_free_mib() {
     local target="$1"
     local idx="" free_bytes=""
+    if ! cache_vulkan_probe; then
+        return 1
+    fi
     while IFS= read -r line; do
         case "$line" in
             GPU_INDEX=*) idx="${line#GPU_INDEX=}" ;;
@@ -123,7 +146,7 @@ gpu_free_mib() {
                 ;;
             ---) idx="" ;;
         esac
-    done < <(probe_vulkan_gpus)
+    done <"$PROBE_CACHE"
     if [ -z "$free_bytes" ]; then
         return 1
     fi
@@ -185,4 +208,8 @@ printf 'LLAMA_ARG_SPLIT_MODE=%s\n' "$split_mode"
 
 if [ -n "${LLAMAFILE_TENSOR_SPLIT:-}" ]; then
     printf 'LLAMA_ARG_TENSOR_SPLIT=%s\n' "$LLAMAFILE_TENSOR_SPLIT"
+fi
+
+if [ -n "$PROBE_CACHE" ] && [ -f "$PROBE_CACHE" ]; then
+    rm -f "$PROBE_CACHE"
 fi

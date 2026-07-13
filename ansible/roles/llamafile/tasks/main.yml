@@ -3,6 +3,36 @@
 # Deploys a systemd user service that runs a pre-built server .llamafile bundle
 # via scripts/setup/llamafile-server.sh (PATH, dlopen helper, GPU/parallel tuning).
 
+- name: Preflight - vulkaninfo available for GPU auto-select
+  ansible.builtin.command: command -v vulkaninfo
+  register: _vulkaninfo_cmd
+  changed_when: false
+  failed_when: _vulkaninfo_cmd.rc != 0
+  when: llamafile_gpu == 'vulkan'
+
+- name: Display vulkaninfo preflight result
+  ansible.builtin.debug:
+    msg: "vulkaninfo path: {{ _vulkaninfo_cmd.stdout | trim }}"
+  when: llamafile_gpu == 'vulkan'
+
+- name: Preflight - render group membership (GPU device access)
+  ansible.builtin.command: id -nG
+  register: _user_groups
+  changed_when: false
+
+- name: Display user group membership
+  ansible.builtin.debug:
+    msg: "groups: {{ _user_groups.stdout | trim }}"
+
+- name: Assert render group for Vulkan deploy
+  ansible.builtin.assert:
+    that:
+      - "'render' in _user_groups.stdout.split()"
+    fail_msg: >-
+      User is not in the render group. Run: sudo gpasswd -a $USER render
+      then newgrp render (or re-login). Or use: make llama-setup
+  when: llamafile_gpu == 'vulkan'
+
 - name: Discover .llamafile bundles
   ansible.builtin.find:
     paths: "{{ llamafile_dir }}"
@@ -105,7 +135,7 @@
       LLAMAFILE_PARALLEL_RESERVE=4
       LLAMAFILE_CTX=131072
       LLAMAFILE_VRAM_MARGIN_MIB=1024
-      # auto = pick discrete GPU with most free VRAM; use single GPU only.
+      # auto = headless discrete GPU first, then most free VRAM; single GPU only.
       LLAMAFILE_MAIN_GPU=auto
       LLAMAFILE_SPLIT_MODE=none
       LLAMAFILE_THREADS=0

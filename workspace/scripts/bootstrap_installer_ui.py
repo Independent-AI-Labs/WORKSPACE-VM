@@ -53,6 +53,7 @@ _BANNER_LINES = [
     _box_line(""),
     _box_line(f" {YELLOW}Bootstrap Component Installer{RESET}{CYAN}"),
     _box_line(f" {DIM}Select components to install{RESET}{CYAN}"),
+    _box_line(f" {DIM}GPU/LLM setup: make llama-setup{RESET}{CYAN}"),
     _box_line(""),
     f"╚{'═' * _BOX_WIDTH}╝{RESET}",
 ]
