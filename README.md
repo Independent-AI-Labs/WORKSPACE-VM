@@ -2,7 +2,7 @@
 
 **WORKSPACE-VM** is a federated, hard-walled workspace for developing and running AI agents on infrastructure you control. The design centers on **data sovereignty**, **system immutability**, and **workspace-wide compliance**: agents run inside guarded sandboxes, quality gates apply before code ships, and sensitive services stay on your machines rather than a vendor cloud.
 
-You do not install everything with one command. Bootstrap, LLM/GPU setup, VM hypervisors, and VPN each have their own entrypoint and documentation. Pick the workflow below that matches what you are trying to do, then follow its guide. The sections later in this README cover VMs, inference, VPN, and benchmarks in more detail.
+Clone the repository and run `make install` to set up the core developer toolchain (uv, OpenCode, Podman, Ansible, and the rest of the bootstrap catalog). For GPU-backed LLM inference, QEMU agent VMs, or a host VPN tunnel, use the matching installer listed under **Getting Started** below. Section 2 covers each subsystem in depth, including benchmarks and troubleshooting.
 
 ---
 
@@ -25,7 +25,7 @@ sudo make init     # install from config/system-deps.yaml
 
 ### Installation paths
 
-Each major capability has a dedicated installer. They are intentionally separate so you only pull in what you need and so CI can run non-interactive variants without a TTY.
+Choose the installer that matches what you are setting up. Each path has its own interactive TUI, CI-friendly non-interactive variant, and linked documentation.
 
 - **General development tools** (`uv`, OpenCode, Podman, Ansible, and the rest of the bootstrap catalog):  
   `make install` (interactive TUI). Component list: [`workspace/config/bootstrap-components.yaml`](workspace/config/bootstrap-components.yaml)
