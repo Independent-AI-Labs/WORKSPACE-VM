@@ -1,11 +1,11 @@
 # WORKSPACE-VM V3 - Complete Migration Plan
 
 **Document ID:** AMI-MIGRATION-V3-v1.1
-**Status:** Active - Phase 1 complete, Phase 2 in progress
-**Last Updated:** 2026-06-06
+**Status:** Active - Phase 2 largely complete, Phase 3 in progress
+**Last Updated:** 2026-07-13
 **Author:** AMI-Agents Engineering
 
-> **Current state (2026-06-06):** Phase 1 (code deletions) complete. Phase 2 ~80% done - `oc` wrapper exists, opencode installed, bootstrap_opencode.sh present, shell aliases active, extension manifest updated, agent tests nuked. Remaining Phase 2: Makefile targets (install-opencode/update-opencode), test_setup_shell_aliases.py update. Phase 3 redesigned (multi-VM `make vm` system replacing single docker-compose). Phases 3-6 not started.
+> **Current state (2026-07-13):** Phase 1 (code deletions) complete. Phase 2 largely done (opencode, shell aliases, platform boot dirs, CI-owned Node/bootstrap). Phase 3 **in progress**: `make vm` with Podman + QEMU backends, `make install-qemu`, OpenVPN host client (`make vpn-*`), and llama inference stack (`make llama-setup`, llamafile bundles, systemd deploy). Phases 4-6 (full Traefik/mTLS parity in QEMU guests, gateway integration, production hardening) not complete. For operator onboarding use [`README.md`](../README.md) and [`docs/README.md`](README.md) rather than this plan's historical phase labels alone.
 
 ---
 

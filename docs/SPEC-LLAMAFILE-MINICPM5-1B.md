@@ -1,9 +1,12 @@
-# Specification: CPU-Only llamafile for MiniCPM5-1B
+# Specification: llamafile for MiniCPM5-1B
 
 **Document ID:** WS-SPEC-LLAMAFILE-MINICPM5-v1.0
-**Status:** Draft
-**Date:** 2026-07-06
+**Status:** Active (CPU sections); Vulkan/systemd extensions documented below
+**Date:** 2026-07-06 (updated 2026-07-13)
 **Classification:** Internal - Enterprise
+
+> **Operator entrypoint (2026-07-13):** Use [`make llama-setup`](../README.md#llm-inference-llamafile-llama-cpp) for the full lifecycle (Intel/Vulkan prereqs, builds, bundles, systemd). This spec documents the **bundle format** and **CPU cosmocc build** in detail. Vulkan bundles, `ggml-vulkan.so`, and `install-llamafile` are covered in [`SPEC-LLAMA-SETUP-TUI.md`](SPEC-LLAMA-SETUP-TUI.md) and `Makefile.llamafile`.
+
 **References:**
 - mozilla-ai/llamafile `docs/source_installation.md`, `docs/creating_llamafiles.md`, `docs/technical_details.md`, `docs/support.md`
 - mozilla-ai/llamafile `Makefile`, `build/config.mk`, `build/rules.mk` (fat-APE dual-compile evidence)
@@ -16,22 +19,27 @@
 
 ## Overview
 
-This specification defines how to build **CPU-only llamafiles** - single,
-self-contained, portable executables (APE format) that bundle the llamafile
-runtime, the MiniCPM5-1B model weights (GGUF, Q8_0), and a default argument
-manifest. Two bundles are produced from the same engine: a **server** bundle
-(defaults to an OpenAI-compatible HTTP server on port 8765) and a **chat**
-bundle (defaults to an interactive TUI). The mode is chosen by which `.args`
-manifest is embedded - no recompilation.
+This specification defines how to build **llamafile bundles** for MiniCPM5-1B:
+single, self-contained, portable executables (APE format) that bundle the
+llamafile runtime, GGUF weights, and a default argument manifest.
 
-A llamafile is produced by combining three ingredients with the `zipalign`
-tool:
-1. The llamafile executable (built CPU-only from source via the cosmocc toolchain)
-2. MiniCPM5-1B weights in GGUF format
-3. A `.args` manifest of default runtime arguments
+Two **CPU** bundles are produced from the same engine: a **server** bundle
+(OpenAI-compatible HTTP on port 8765) and a **chat** bundle (interactive TUI).
+The mode is chosen by which `.args` manifest is embedded.
 
-**Build stack:** cosmocc (Cosmopolitan Libc) C compiler + GNU make + `zipalign`.
-No Python VM, no GPU toolchain, no root required for the build itself.
+A **Vulkan server** bundle (`*-vulkan.llamafile`) embeds `ggml-vulkan.so` and
+`.args.vulkan`; see `make build-llamafile-vulkan-bundle` and
+[`SPEC-LLAMA-SETUP-TUI.md`](SPEC-LLAMA-SETUP-TUI.md).
+
+A llamafile is produced by combining three ingredients with `zipalign`:
+
+1. The llamafile executable (cosmocc CPU engine under `projects/llamafile/o/`)
+2. MiniCPM5-1B weights in GGUF format (`models/minicpm5-1b/`)
+3. A `.args` manifest (`.args`, `.args.chat`, or `.args.vulkan`)
+
+**CPU build stack:** cosmocc + GNU make + `zipalign`. No root required for the
+engine/bundle build itself. **Vulkan** additionally requires `ggml-vulkan.so`
+(build script + host Vulkan dev packages).
 
 ---
 
@@ -46,21 +54,27 @@ No Python VM, no GPU toolchain, no root required for the build itself.
   `.llamafile` whose default action is to serve an OpenAI-compatible HTTP API.
 - Pin the default decoding mode to **No-think, temperature 0** (greedy).
 
-### Non-Goals (explicitly out of scope)
-- This is **not** a replacement for the workspace's native `llama.cpp` CPU
-  flavor (`make build-llama FLAVOR=cpu` → `projects/llama.cpp/build-cpu/`,
-  OpenBLAS + native gcc). That build produces a host-native `llama-server`
-  binary for the `llamaserver@cpu` systemd service. The llamafile here is a
-  **portable, distributable** single-file artifact built with a different
-  toolchain (cosmocc) for a different purpose (ship-and-run on any CPU host).
-- No systemd service unit is created for the llamafile in this spec.
-- No GPU acceleration (CUDA/SYCL/Vulkan) is compiled in or assumed at runtime.
+### Non-Goals (this document)
+- This is **not** a replacement for native `llama.cpp` builds (`make build-llama
+  FLAVOR=*` → `llamaserver@<flavor>`). Llamafile targets portable single-file
+  distribution; llama.cpp targets host-native `llama-server` binaries.
+- CUDA and SYCL backends for llamafile are out of scope (use `llamaserver@sycl`
+  or `make llama-setup` stack `llama_cpp_sycl` instead).
+
+### Extensions (implemented elsewhere; not detailed in original CPU sections)
+- **Vulkan GPU:** `make build-llamafile-vulkan-bundle`, headless GPU auto-select
+  via `scripts/setup/lib/vulkan_gpu_probe.py`. See `Makefile.llamafile` and
+  [`SPEC-LLAMA-SETUP-TUI.md`](SPEC-LLAMA-SETUP-TUI.md).
+- **systemd deploy:** `make install-llamafile MODEL=minicpm5-1b` deploys
+  `llamafile-<model>.service` (user unit) via `ansible/llamafile.yml`.
+- **Bootstrap:** llama/GPU components are **not** in `make install`; use
+  `make llama-setup`.
 
 ---
 
 ## Background
 
-### Why CPU-only is the default for a llamafile
+### Why CPU-only is the default cosmocc engine build
 llamafile combines `llama.cpp` with Cosmopolitan Libc. The cosmocc source
 build compiles **no GPU code**. The resulting APE binary performs pure CPU
 inference with runtime SIMD dispatch:

@@ -4,9 +4,24 @@ Replays OpenCode sessions turn-by-turn against a local llamafile server, simulat
 
 ## Prerequisites
 
-- Llamafile server running (default `http://127.0.0.1:8765`)
-- OpenCode SQLite DB at `~/.local/share/opencode/opencode.db`
-- Python 3 with project venv active
+1. **Llamafile server running** (default `http://127.0.0.1:8765`)
+
+   Set up via the hardware wizard (recommended):
+
+   ```bash
+   make llama-setup
+   ```
+
+   Or deploy manually after building:
+
+   ```bash
+   make -f Makefile.llamafile install-llamafile MODEL=minicpm5-1b GPU=vulkan
+   ```
+
+   See [`docs/SPEC-LLAMA-SETUP-TUI.md`](../../../docs/SPEC-LLAMA-SETUP-TUI.md).
+
+2. **OpenCode SQLite DB** at `~/.local/share/opencode/opencode.db`
+3. **Project venv** active (`make sync-package` or `uv sync`)
 
 ## Fixture extraction
 
@@ -45,6 +60,11 @@ bash scripts/benchmark/run-llamafile-transcript-classifier-all-backends.sh
 
 - **Rolling 32K window** (`replay.mode: rolling_window`): at each turn, the classifier sees the last n user/assistant pairs that fit under `max_context_tokens` (32768). Oldest turns drop when the transcript grows.
 - **KV cache**: pinned `id_slot` with `cache_prompt=true`; incremental steps reuse prefix tokens when the window only grows.
-- **Reports**: written to `docs/benchmarking/llamafile-transcript-classifier/<backend>/<timestamp>/` (gitignored). Includes cache hit ratio, TTFT growth, and per-session window curves.
+- **Reports**: written to `docs/benchmarking/llamafile-transcript-classifier/<backend>/<timestamp>/` (gitignored). Includes cache hit ratio, TTFT growth, and per-session window curves. Reports are local-only; commit logs or summaries separately if sharing results.
 
 Token counting during window selection calls the llamafile `/v1/chat/completions/input_tokens` endpoint once per trim step; this is intentional for accurate budgets.
+
+## Related docs
+
+- [`docs/SPEC-LLAMA-SETUP-TUI.md`](../../../docs/SPEC-LLAMA-SETUP-TUI.md): server setup
+- [`docs/SPEC-LLAMAFILE-MINICPM5-1B.md`](../../../docs/SPEC-LLAMAFILE-MINICPM5-1B.md): bundle format
