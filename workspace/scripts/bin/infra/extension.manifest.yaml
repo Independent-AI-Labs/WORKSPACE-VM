@@ -18,13 +18,15 @@ extensions:
 
   - name: tunnel
     binary: workspace/scripts/bin/tunnel.py
-    description: Cloudflare tunnel management
+    description: Cloudflare tunnel management (CLOUDFLARED_BIN, TUNNEL_CONFIG env)
     category: infra
     features:
       - tunnel
       - access
       - login
       - service
+      - CLOUDFLARED_BIN
+      - TUNNEL_CONFIG
     hidden: true
     bannerPriority: 320
     check:

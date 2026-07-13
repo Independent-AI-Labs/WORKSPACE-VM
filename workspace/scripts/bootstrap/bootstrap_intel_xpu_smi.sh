@@ -3,6 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
+INSTALL_SCRIPT="${PROJECT_ROOT}/scripts/setup/install-intel-pre-req.sh"
 
 echo "=== Intel XPU-SMI Bootstrap ==="
 
@@ -13,16 +14,13 @@ if command -v xpu-smi &>/dev/null; then
     exit 0
 fi
 
-echo "Installing xpu-smi..."
+if [ ! -f "$INSTALL_SCRIPT" ]; then
+    echo "ERROR: install script not found: $INSTALL_SCRIPT" >&2
+    exit 1
+fi
 
-sudo apt-get update
-sudo apt-get install -y \
-    libze-intel-gpu1 \
-    libze1 \
-    intel-metrics-discovery \
-    intel-metrics-library \
-    intel-opencl-icd \
-    xpu-smi
+echo "Delegating to ${INSTALL_SCRIPT} (adds Intel graphics PPA, then installs xpu-smi)..."
+sudo bash "$INSTALL_SCRIPT"
 
 echo "Verifying installation..."
 if command -v xpu-smi &>/dev/null; then
@@ -30,6 +28,6 @@ if command -v xpu-smi &>/dev/null; then
     xpu_ver="${xpu_ver%%$'\n'*}"
     echo "xpu-smi installed: $xpu_ver"
 else
-    echo "ERROR: xpu-smi command not found after installation"
+    echo "ERROR: xpu-smi command not found after installation" >&2
     exit 1
 fi

@@ -15,6 +15,7 @@ downloads/
 eggs/
 .eggs/
 lib/
+!scripts/setup/lib/
 !ux/
 !ux/cms/
 !ux/cms/app/
@@ -80,6 +81,7 @@ Thumbs.db
 config.yaml
 config.local.yaml
 config.test.yaml
+!benchmarks/**/benchmark.yaml
 .coverage
 htmlcov/
 .pytest_cache/
@@ -182,6 +184,15 @@ opencode.json
 # OpenVPN client config (machine-specific)
 workspace/config/vpn/*
 !workspace/config/vpn/.gitkeep
+
+# Auto-synced OpenCode transcript bodies (manifest + config stay tracked)
+benchmarks/llamafile/transcript_classifier/fixtures/*.txt
+benchmarks/llamafile/transcript_classifier/fixtures/manifest.yaml
+benchmarks/llamafile/context_audit/
+
+# Ephemeral llamafile benchmark run outputs
+docs/benchmarking/llamafile-transcript-classifier/
+docs/benchmarking/llamafile-context-audit/
 
 *.coverage.*
 .coverage.*

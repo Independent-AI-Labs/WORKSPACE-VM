@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Build a CPU-only llamafile distributable (.llamafile) from the prebuilt
-# llamafile engine + a GGUF model + a default-args manifest.
+# Build a llamafile distributable (.llamafile) from the prebuilt llamafile
+# engine + a GGUF model + a default-args manifest.
 #
 # Produces one .llamafile per MODE:
 #   server -> <gguf-stem>.llamafile        (HTTP server default)
@@ -15,29 +15,35 @@
 #
 # Usage:
 #   build-llamafile-bundle.sh --model <dir> --mode <server|chat|all> [--gguf <file>]
+#   build-llamafile-bundle.sh --model <dir> --mode server --gpu vulkan
 #
 # See docs/SPEC-LLAMAFILE-MINICPM5-1B.md for the full procedure.
 set -euo pipefail
 
 usage() {
     cat >&2 <<'EOF'
-Usage: build-llamafile-bundle.sh --model <dir> --mode <server|chat|all> [--gguf <file>]
+Usage: build-llamafile-bundle.sh --model <dir> --mode <server|chat|all> [--gpu cpu|vulkan] [--gguf <file>]
 
   --model   model directory under models/ (e.g. minicpm5-1b)
   --mode    server | chat | all (default: all)
+  --gpu     cpu (default) | vulkan: vulkan embeds ggml-vulkan.so from
+            projects/llamafile/o/llamafile/ and uses .args.vulkan[*] manifests
   --gguf    explicit GGUF filename inside the model dir (optional; auto-detected)
 
 Requires a prebuilt llamafile engine + zipalign under projects/llamafile/o/.
+For --gpu vulkan, run make build-llamafile-vulkan first.
 EOF
 }
 
 MODEL=""
 MODE="all"
+GPU="cpu"
 GGUF=""
 while [ "$#" -gt 0 ]; do
     case "$1" in
         --model) MODEL="${2:-}"; shift 2 ;;
         --mode) MODE="${2:-}"; shift 2 ;;
+        --gpu) GPU="${2:-}"; shift 2 ;;
         --gguf) GGUF="${2:-}"; shift 2 ;;
         -h|--help) usage; exit 0 ;;
         *) printf 'error: unknown argument: %s\n' "$1" >&2; usage; exit 2 ;;
@@ -53,12 +59,17 @@ case "$MODE" in
     server|chat|all) ;;
     *) printf 'error: --mode must be server, chat, or all (got: %s)\n' "$MODE" >&2; exit 2 ;;
 esac
+case "$GPU" in
+    cpu|vulkan) ;;
+    *) printf 'error: --gpu must be cpu or vulkan (got: %s)\n' "$GPU" >&2; exit 2 ;;
+esac
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 MODEL_DIR="$PROJECT_ROOT/models/$MODEL"
 ENGINE="$PROJECT_ROOT/projects/llamafile/o/llamafile/llamafile"
 ZIPALIGN="$PROJECT_ROOT/projects/llamafile/o/third_party/zipalign/zipalign"
+VULKAN_DSO="$PROJECT_ROOT/projects/llamafile/o/llamafile/ggml-vulkan.so"
 
 missing=0
 for p in "$ENGINE" "$ZIPALIGN"; do
@@ -69,6 +80,11 @@ for p in "$ENGINE" "$ZIPALIGN"; do
 done
 if [ ! -d "$MODEL_DIR" ]; then
     printf 'error: model directory not found: %s\n' "$MODEL_DIR" >&2
+    missing=1
+fi
+if [ "$GPU" = "vulkan" ] && [ ! -f "$VULKAN_DSO" ]; then
+    printf 'error: missing Vulkan DSO: %s\n' "$VULKAN_DSO" >&2
+    printf 'hint: run make build-llamafile-vulkan first\n' >&2
     missing=1
 fi
 if [ "$missing" -ne 0 ]; then
@@ -104,14 +120,30 @@ fi
 GGUF_STEM="$(basename "$GGUF" .gguf)"
 
 manifest_for_mode() {
-    case "$1" in
+    local mode="$1"
+    if [ "$GPU" = "vulkan" ]; then
+        case "$mode" in
+            server) printf '%s\n' "$MODEL_DIR/.args.vulkan" ;;
+            chat) printf '%s\n' "$MODEL_DIR/.args.vulkan.chat" ;;
+        esac
+        return
+    fi
+    case "$mode" in
         server) printf '%s\n' "$MODEL_DIR/.args" ;;
         chat) printf '%s\n' "$MODEL_DIR/.args.chat" ;;
     esac
 }
 
 suffix_for_mode() {
-    case "$1" in
+    local mode="$1"
+    if [ "$GPU" = "vulkan" ]; then
+        case "$mode" in
+            server) printf '%s\n' "-vulkan" ;;
+            chat) printf '%s\n' "-vulkan-chat" ;;
+        esac
+        return
+    fi
+    case "$mode" in
         server) printf '%s\n' "" ;;
         chat) printf '%s\n' "-chat" ;;
     esac
@@ -131,13 +163,18 @@ bundle_one() {
     # zipalign embeds each file by basename; /zip/.args lookup requires the
     # entry be named exactly ".args", so stage the manifest under that name.
     cp "$manifest" "$stage/.args"
-    printf '=== Bundling (mode=%s) ===\n' "$mode"
+    printf '=== Bundling (mode=%s gpu=%s) ===\n' "$mode" "$GPU"
     printf '  engine:   %s\n' "$ENGINE"
     printf '  gguf:     %s\n' "$GGUF"
     printf '  manifest: %s\n' "$manifest"
     printf '  output:   %s\n' "$out"
     cp "$ENGINE" "$out"
-    "$ZIPALIGN" -j0 "$out" "$GGUF" "$stage/.args"
+    if [ "$GPU" = "vulkan" ]; then
+        printf '  vulkan:   %s\n' "$VULKAN_DSO"
+        "$ZIPALIGN" -j0 "$out" "$GGUF" "$VULKAN_DSO" "$stage/.args"
+    else
+        "$ZIPALIGN" -j0 "$out" "$GGUF" "$stage/.args"
+    fi
     chmod +x "$out"
     rm -rf "$stage"
     if ! listing="$(unzip -l "$out" 2>&1)"; then
@@ -152,6 +189,11 @@ bundle_one() {
         rm -f "$out"
         exit 1
     fi
+    if [ "$GPU" = "vulkan" ] && ! printf '%s\n' "$listing" | grep -q 'ggml-vulkan\.so'; then
+        printf 'error: bundle missing ggml-vulkan.so entry in %s\n' "$out" >&2
+        rm -f "$out"
+        exit 1
+    fi
     printf 'OK (mode=%s) -> %s\n\n' "$mode" "$out"
 }
 
@@ -161,4 +203,4 @@ case "$MODE" in
     all) bundle_one server; bundle_one chat ;;
 esac
 
-printf '=== Bundle build complete (model=%s mode=%s) ===\n' "$MODEL" "$MODE"
+printf '=== Bundle build complete (model=%s mode=%s gpu=%s) ===\n' "$MODEL" "$MODE" "$GPU"

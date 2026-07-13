@@ -1,16 +1,12 @@
 [Unit]
-Description=Llamafile server (model: {{ llama_model }})
+Description=Llamafile server (model: {{ llama_model }}, gpu: {{ llamafile_gpu }})
 After=network.target
 
 [Service]
 Type=exec
-# Run the .llamafile via /bin/sh. The .llamafile is a cosmopolitan APE binary;
-# systemd's execve does not fall back to /bin/sh on ENOEXEC (status 203/EXEC)
-# so we exec /bin/sh (a proper ELF) which interprets the APE shell preamble as a
-# bootstrap script. The binary reads its embedded .args manifest for server
-# mode, host, port, model path, context size, and gpu layers. Passing any CLI
-# argument disables .args parsing, so do NOT append flags here.
-ExecStart=/bin/sh {{ llamafile_path }}
+# Wrapper sets PATH, dlopen helper, GPU selection, and LLAMA_ARG_* tuning.
+# The .llamafile must run bare (no CLI args) so embedded .args stays active.
+ExecStart={{ llamafile_server_script }} {{ llamafile_path }}
 EnvironmentFile=%h/.config/llamafile/llamafile-{{ llama_model }}.env
 StandardOutput=journal
 StandardError=journal

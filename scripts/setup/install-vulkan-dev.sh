@@ -14,7 +14,10 @@ sudo apt-get update
 sudo apt-get install -y \
     libvulkan-dev \
     mesa-vulkan-drivers \
-    libshaderc-dev
+    libshaderc-dev \
+    glslc \
+    spirv-headers \
+    vulkan-tools
 
 echo "========================================================================="
 echo " VULKAN SDK INSTALL COMPLETE "

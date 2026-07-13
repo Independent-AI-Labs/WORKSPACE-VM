@@ -1,5 +1,5 @@
 # Llamafile bundle Makefile targets
-# Builds CPU-only .llamafile distributables from the prebuilt llamafile engine
+# Builds .llamafile distributables from the prebuilt llamafile engine
 # (projects/llamafile/o/) + a GGUF model + a default-args manifest (.args).
 #
 # The mode is chosen purely by which .args manifest is embedded - the engine is
@@ -9,14 +9,41 @@
 #   all    -> both
 #
 # Usage:
+#   make build-llamafile-engine                              # cosmocc CPU engine
+#   make build-llamafile-vulkan                            # ggml-vulkan.so DSO
+#   make test-llamafile-vulkan                             # unit + GPU consistency tests
 #   make build-llamafile MODEL=minicpm5-1b                 # MODE=all (both bundles)
 #   make build-llamafile MODEL=minicpm5-1b MODE=chat
 #   make build-llamafile MODEL=minicpm5-1b MODE=server
+#   make build-llamafile-vulkan-bundle MODEL=minicpm5-1b # embed ggml-vulkan.so
 #   make clean-llamafile MODEL=minicpm5-1b                 # remove .llamafile outputs
 #
 # The engine + zipalign must already be built under projects/llamafile/o/
-# (see docs/SPEC-LLAMAFILE-MINICPM5-1B.md Step 1). This target reuses that
-# build and only re-bundles; it never recompiles or touches the upstream tree.
+# (see docs/SPEC-LLAMAFILE-MINICPM5-1B.md Step 1). Bundle targets reuse that
+# build and only re-bundle; they never recompile the upstream tree unless you
+# invoke build-llamafile-engine / build-llamafile-vulkan explicitly.
+
+# ==============================================================================
+# Engine + Vulkan DSO - delegate to scripts/setup/build-llamafile-*.sh
+# ==============================================================================
+
+.PHONY: build-llamafile-engine
+build-llamafile-engine: ## Build llamafile CPU engine (projects/llamafile/o/)
+	@bash scripts/setup/build-llamafile-engine.sh
+
+.PHONY: build-llamafile-vulkan
+build-llamafile-vulkan: ## Build ggml-vulkan.so from projects/llamafile/
+	@bash scripts/setup/build-llamafile-vulkan.sh
+
+.PHONY: test-llamafile-vulkan
+test-llamafile-vulkan: ## Test llamafile Vulkan (unit + backend_ops + runtime probe)
+	@bash scripts/setup/test-llamafile-vulkan.sh
+
+.PHONY: clean-llamafile-vulkan
+clean-llamafile-vulkan: ## Remove staged ggml-vulkan.so artifacts
+	@rm -fv projects/llamafile/o/llamafile/ggml-vulkan.so ~/ggml-vulkan.so
+	@rm -rfv ~/.cache/llamafile-vulkan-build
+	@echo "Removed llamafile Vulkan build artifacts"
 
 # ==============================================================================
 # Build Targets - delegate to scripts/setup/build-llamafile-bundle.sh
@@ -27,7 +54,14 @@ build-llamafile: ## Build .llamafile bundle(s): MODEL=<dir> MODE=(server|chat|al
 ifeq ($(MODEL),)
 	$(error MODEL is required. Usage: make build-llamafile MODEL=minicpm5-1b MODE=chat)
 endif
-	@bash scripts/setup/build-llamafile-bundle.sh --model $(MODEL) --mode $(or $(MODE),all)
+	@bash scripts/setup/build-llamafile-bundle.sh --model $(MODEL) --mode $(or $(MODE),all) --gpu $(or $(GPU),cpu)
+
+.PHONY: build-llamafile-vulkan-bundle
+build-llamafile-vulkan-bundle: build-llamafile-vulkan ## Build Vulkan .llamafile: MODEL=<dir> MODE=(server|chat|all)
+ifeq ($(MODEL),)
+	$(error MODEL is required. Usage: make build-llamafile-vulkan-bundle MODEL=minicpm5-1b)
+endif
+	@bash scripts/setup/build-llamafile-bundle.sh --model $(MODEL) --mode $(or $(MODE),server) --gpu vulkan
 
 .PHONY: clean-llamafile
 clean-llamafile: ## Remove built .llamafile bundle(s) for MODEL=<dir>
@@ -54,20 +88,31 @@ endif
 # ==============================================================================
 
 .PHONY: install-llamafile
-install-llamafile: ## Build (if needed) and deploy systemd unit for MODEL=<dir>
+install-llamafile: ## Build (if needed) and deploy systemd unit for MODEL=<dir> [GPU=vulkan]
 ifeq ($(MODEL),)
-	$(error MODEL is required. Usage: make install-llamafile MODEL=minicpm5-1b)
+	$(error MODEL is required. Usage: make install-llamafile MODEL=minicpm5-1b [GPU=vulkan])
 endif
-	@if ! ls models/$(MODEL)/*.llamafile >/dev/null 2>&1 || \
-			! ls models/$(MODEL)/*.llamafile | grep -vE '(-chat\.llamafile)$' >/dev/null 2>&1; then \
-		echo "No server .llamafile found. Building first..."; \
-		$(MAKE) build-llamafile MODEL=$(MODEL) MODE=server; \
+	@if [ "$(or $(GPU),cpu)" = "vulkan" ]; then \
+		if ! ls models/$(MODEL)/*-vulkan.llamafile >/dev/null 2>&1; then \
+			echo "No Vulkan server .llamafile found. Building first..."; \
+			$(MAKE) build-llamafile-vulkan-bundle MODEL=$(MODEL) MODE=server; \
+		fi; \
+	else \
+		if ! ls models/$(MODEL)/*.llamafile >/dev/null 2>&1 || \
+				! ls models/$(MODEL)/*.llamafile | grep -vE '(-chat|-vulkan)\.llamafile$$' >/dev/null 2>&1; then \
+			echo "No server .llamafile found. Building first..."; \
+			$(MAKE) build-llamafile MODEL=$(MODEL) MODE=server; \
+		fi; \
 	fi
 	@cd ansible && \
 		export $$(grep -v '^\s*#' "$(CURDIR)/.env" 2>/dev/null | xargs) && \
+		export LLAMAFILE_GPU="$(or $(GPU),vulkan)" && \
+		export LLAMAFILE_BUNDLE="$(LLAMAFILE_BUNDLE)" && \
 		ansible-playbook \
 			--diff \
 			-e "llama_model=$(MODEL)" \
+			-e "llamafile_gpu=$(or $(GPU),vulkan)" \
+			-e "llamafile_bundle=$(LLAMAFILE_BUNDLE)" \
 			llamafile.yml
 	@echo "✅ llamafile-$(MODEL) deployed"
 
@@ -108,3 +153,12 @@ endif
 .PHONY: list-llamafile
 list-llamafile: ## List all installed llamafile-* units
 	@systemctl --user --no-pager list-units 'llamafile-*.service'
+
+# ==============================================================================
+# Benchmark - incremental transcript classifier with KV cache reuse
+# ==============================================================================
+
+.PHONY: benchmark-llamafile-transcript-classifier
+benchmark-llamafile-transcript-classifier: ## Cached replay; SESSION env for subsets
+	@uv run -m scripts.benchmark.llamafile_transcript_classifier \
+		$(if $(SESSION),$(foreach s,$(SESSION),--session $(s)),)

@@ -1,53 +1,77 @@
 ---
 # Role: llamafile
-# Deploys a systemd user service that runs a pre-built server .llamafile bundle.
-#
-# The .llamafile binary reads its embedded .args manifest (server mode, host,
-# port, model path, context, gpu layers) when invoked with NO command-line
-# arguments. Passing any CLI arg disables .args parsing, so ExecStart runs the
-# bare binary and lets .args be the single source of truth for model/runtime
-# configuration. The EnvironmentFile carries an optional API key and
-# informational port/host values (used by health-check tooling) without
-# affecting the binary's behaviour.
-#
-# Per-model concrete service units (not a template @ unit) are generated:
-# llamafile-<model>.service. Each model ships a distinct .llamafile binary
-# name, so a pure @ template cannot derive ExecStart from %i alone.
+# Deploys a systemd user service that runs a pre-built server .llamafile bundle
+# via scripts/setup/llamafile-server.sh (PATH, dlopen helper, GPU/parallel tuning).
 
-- name: Discover server .llamafile binary (exclude -chat bundles)
+- name: Discover .llamafile bundles
   ansible.builtin.find:
     paths: "{{ llamafile_dir }}"
     patterns: '*.llamafile'
     use_regex: false
   register: llamafile_candidates
 
-- name: Select server bundle (non-chat)
+- name: Select explicit server bundle
   ansible.builtin.set_fact:
-    llamafile_path: "{{ (llamafile_candidates.files | rejectattr('path', 'match', '.*-chat\\.llamafile$') | list | first).path }}"
-  when: llamafile_candidates.files | rejectattr('path', 'match', '.*-chat\\.llamafile$') | list | length > 0
+    llamafile_path: "{{ llamafile_dir }}/{{ llamafile_bundle }}"
+  when:
+    - llamafile_bundle | length > 0
+
+- name: Select Vulkan server bundle
+  ansible.builtin.set_fact:
+    llamafile_path: "{{ (llamafile_candidates.files | selectattr('path', 'match', '.*-vulkan\\.llamafile$') | rejectattr('path', 'match', '.*-vulkan-chat\\.llamafile$') | list | first).path }}"
+  when:
+    - llamafile_path is not defined
+    - llamafile_gpu == 'vulkan'
+    - llamafile_candidates.files | selectattr('path', 'match', '.*-vulkan\\.llamafile$') | rejectattr('path', 'match', '.*-vulkan-chat\\.llamafile$') | list | length > 0
+
+- name: Select CPU server bundle (non-chat, non-vulkan)
+  ansible.builtin.set_fact:
+    llamafile_path: "{{ (llamafile_candidates.files | rejectattr('path', 'match', '.*-chat\\.llamafile$') | rejectattr('path', 'match', '.*-vulkan.*\\.llamafile$') | list | first).path }}"
+  when:
+    - llamafile_path is not defined
+    - llamafile_candidates.files | rejectattr('path', 'match', '.*-chat\\.llamafile$') | rejectattr('path', 'match', '.*-vulkan.*\\.llamafile$') | list | length > 0
 
 - name: Fail when no server .llamafile found
   ansible.builtin.fail:
     msg: >-
-      No server .llamafile (excluding *-chat.llamafile) found in {{ llamafile_dir }}.
-      Build it first: make build-llamafile MODEL={{ llama_model }} MODE=server
+      No server .llamafile found in {{ llamafile_dir }} for gpu={{ llamafile_gpu }}
+      bundle={{ llamafile_bundle | default('(auto)', true) }}.
+      Build it first:
+      {% if llamafile_gpu == 'vulkan' %}
+      make build-llamafile-vulkan-bundle MODEL={{ llama_model }} MODE=server
+      {% else %}
+      make build-llamafile MODEL={{ llama_model }} MODE=server
+      {% endif %}
   when: llamafile_path is not defined
 
-- name: Resolve .args manifest path
+- name: Resolve args manifest path
   ansible.builtin.set_fact:
-    llamafile_args_path: "{{ llamafile_dir }}/.args"
+    llamafile_args_path: >-
+      {{ llamafile_dir }}/{{ '.args.vulkan' if llamafile_gpu == 'vulkan' else '.args' }}
 
-- name: Validate .args manifest exists
+- name: Validate args manifest exists
   ansible.builtin.stat:
     path: "{{ llamafile_args_path }}"
   register: llamafile_args
 
-- name: Fail when .args manifest is missing
+- name: Fail when args manifest is missing
   ansible.builtin.fail:
     msg: >-
-      .args manifest not found at {{ llamafile_args_path }}.
-      Build it first: make build-llamafile MODEL={{ llama_model }} MODE=server
+      Args manifest not found at {{ llamafile_args_path }}.
+      Build the {{ llamafile_gpu }} bundle first.
   when: not llamafile_args.stat.exists
+
+- name: Resolve GGUF path for VRAM estimates
+  ansible.builtin.find:
+    paths: "{{ llamafile_dir }}"
+    patterns: '*.gguf'
+    use_regex: false
+  register: llamafile_gguf_candidates
+
+- name: Set model GGUF path
+  ansible.builtin.set_fact:
+    llamafile_model_gguf: "{{ llamafile_gguf_candidates.files[0].path }}"
+  when: llamafile_gguf_candidates.matched | int == 1
 
 - name: Ensure llamafile config directory exists
   ansible.builtin.file:
@@ -68,12 +92,26 @@
 - name: Deploy llamafile EnvironmentFile
   ansible.builtin.copy:
     content: |
+      # Bundle path (used by llamafile-server.sh wrapper).
+      LLAMAFILE_PATH={{ llamafile_path }}
+      LLAMAFILE_GPU={{ llamafile_gpu }}
       # Optional API key for llamafile server auth (empty = no auth).
       LLAMAFILE_API_KEY={{ llamafile_api_key }}
       # Informational: port/host baked into the embedded .args manifest.
-      # Used by health-check tooling; the binary reads these from .args.
       LLAMAFILE_PORT={{ llamafile_port }}
       LLAMAFILE_HOST={{ llamafile_host }}
+      # Runtime tuning (mapped to LLAMA_ARG_* by llamafile-server.sh).
+      LLAMAFILE_PARALLEL=auto
+      LLAMAFILE_PARALLEL_RESERVE=4
+      LLAMAFILE_CTX=131072
+      LLAMAFILE_VRAM_MARGIN_MIB=1024
+      # auto = pick discrete GPU with most free VRAM; use single GPU only.
+      LLAMAFILE_MAIN_GPU=auto
+      LLAMAFILE_SPLIT_MODE=none
+      LLAMAFILE_THREADS=0
+      {% if llamafile_model_gguf is defined %}
+      LLAMAFILE_MODEL_GGUF={{ llamafile_model_gguf }}
+      {% endif %}
     dest: "{{ ansible_env.HOME }}/.config/llamafile/llamafile-{{ llama_model }}.env"
     mode: '0600'
     backup: false

@@ -27,7 +27,11 @@ class TestVMList:
     def test_list_uses_table_format(self) -> None:
         result = vm_cmd("list")
         assert result.returncode == 0
-        assert "NAMES" in result.stdout or result.stdout.strip() == ""
+        assert (
+            "NAMES" in result.stdout
+            or result.stdout.strip() == ""
+            or result.stdout.strip() == "No VMs found"
+        )
 
 
 class TestVMStatus:

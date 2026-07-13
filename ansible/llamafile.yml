@@ -9,5 +9,10 @@
   vars:
     llama_model: minicpm5-1b
     llamafile_dir: "{{ playbook_dir }}/../models/{{ llama_model }}"
+    llamafile_gpu: "{{ lookup('env', 'LLAMAFILE_GPU') | default('vulkan', true) }}"
+    llamafile_bundle: "{{ lookup('env', 'LLAMAFILE_BUNDLE') | default('', true) }}"
     llamafile_port: "{{ lookup('env', 'LLAMAFILE_PORT') | default('8765', true) }}"
     llamafile_host: "{{ lookup('env', 'LLAMAFILE_HOST') | default('0.0.0.0', true) }}"
+    llamafile_project_root: "{{ playbook_dir }}/.."
+    llamafile_server_script: "{{ llamafile_project_root }}/scripts/setup/llamafile-server.sh"
+    llamafile_compute_script: "{{ llamafile_project_root }}/scripts/setup/compute-llamafile-parallel.sh"

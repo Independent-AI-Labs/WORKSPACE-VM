@@ -134,3 +134,23 @@ requires:
     description: Playwright browser dependencies
     component: playwright
     platforms: [linux]
+
+  - check_cmd: g++
+    apt_package: g++
+    description: C++ compiler (llamafile Vulkan DSO build)
+    component: llamafile_vulkan
+    platforms: [linux]
+
+  - check_cmd: glslc
+    apt_package: glslc
+    description: SPIR-V shader compiler (llamafile Vulkan DSO build)
+    component: llamafile_vulkan
+    platforms: [linux]
+    optional: true
+
+  - check_type: apt-package
+    apt_package: libvulkan-dev
+    description: Vulkan headers (llamafile Vulkan DSO build)
+    component: llamafile_vulkan
+    platforms: [linux]
+    optional: true

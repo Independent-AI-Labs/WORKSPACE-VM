@@ -262,6 +262,16 @@ components:
     version_cmd: ['projects/llama.cpp/build-vulkan/bin/llama-server', '--version']
     version_pattern: '(\d+\.\d+)'
 
+  - name: llamafile_vulkan
+    label: 'llamafile (Vulkan DSO)'
+    description: 'Portable llamafile ggml-vulkan.so backend (projects/llamafile/)'
+    type: script
+    group: 'Infrastructure & Orchestration'
+    script: 'bootstrap_llamafile_vulkan.sh'
+    detect_path: 'projects/llamafile/o/llamafile/ggml-vulkan.so'
+    version_cmd: ['ls', '-lh', 'projects/llamafile/o/llamafile/ggml-vulkan.so']
+    version_pattern: 'ggml-vulkan'
+
   # =========================================================================
   # Cloud & Service CLIs
   # =========================================================================
