@@ -91,12 +91,14 @@ build-guard: ensure-repos ## Build git-guard binary (operator: sudo make build-g
 
 .PHONY: install-guard install-guard-host-exec reconcile-guard-host-exec check-guard-host-exec
 .PHONY: uninstall-guard purge-guard-state install-host-stack-phase5
-.PHONY: guard-up guard-refresh guard-check guard-down guard-reset
+.PHONY: guard-up guard-refresh guard-check guard-down guard-reset refresh-guard
 install-guard: install-guard-host-exec ## Alias for install-guard-host-exec
+refresh-guard: ## Alias for guard-refresh (workspace root)
+	$(MAKE) -C $(GUARD_DIR) guard-refresh
 install-guard-host-exec reconcile-guard-host-exec check-guard-host-exec \
 uninstall-guard purge-guard-state install-host-stack-phase5 \
 guard-up guard-refresh guard-check guard-down guard-reset:
-	@$(MAKE) -C $(GUARD_DIR) $@
+	$(MAKE) -C $(GUARD_DIR) $@
 
 .PHONY: install
 install: init-check sync-package ## Interactive TUI to select and install components
@@ -231,7 +233,10 @@ provision-host install-host-stack provision-host-preflight:
 	@$(MAKE) -C $(GUARD_DIR) $@
 
 %::
-	@true
+	@echo "ERROR: unknown make target: '$@'" >&2
+	@echo "Guard ops: sudo make guard-up | guard-refresh | guard-check | guard-down | guard-reset" >&2
+	@echo "(alias: refresh-guard -> guard-refresh)" >&2
+	@exit 1
 
 vm-start: ## podman start <id> + write PID
 	@bash workspace/scripts/bin/vm start $(filter-out $@,$(MAKECMDGOALS))
