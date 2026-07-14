@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
-# Reports git status for all repositories under projects/
+# Reports git status for workspace repositories under projects/.
+# By default, skips vendored nested repos whose origin remote does not
+# match an org namespace from workspace-clones.yaml or the umbrella root.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 PROJECTS_DIR="${PROJECT_ROOT}/projects"
+CLONES_YAML="${PROJECT_ROOT}/workspace/config/workspace-clones.yaml"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -13,8 +16,48 @@ CYAN='\033[0;36m'
 BOLD='\033[1m'
 NC='\033[0m'
 
+usage() {
+    cat <<EOF
+Usage: git-status-all [OPTIONS]
+
+Report git status for workspace repositories.
+
+By default, vendored nested repos (third-party origin remotes) are
+hidden. Only repos whose origin owner matches an org from
+workspace/config/workspace-clones.yaml or the umbrella root are shown.
+
+Options:
+  --all-repos   Include vendored/third-party nested repositories
+  -h, --help    Show this help and exit
+EOF
+}
+
+FILTER_VENDORED=1
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --all-repos)
+            FILTER_VENDORED=0
+            shift
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            echo "Error: unknown argument '$1'" >&2
+            usage >&2
+            exit 1
+            ;;
+    esac
+done
+
 if [[ ! -d "$PROJECTS_DIR" ]]; then
     echo -e "${RED}ERROR: ${PROJECTS_DIR} not found${NC}"
+    exit 1
+fi
+
+if [[ ! -f "$CLONES_YAML" ]]; then
+    echo -e "${RED}ERROR: ${CLONES_YAML} not found${NC}"
     exit 1
 fi
 
@@ -27,18 +70,160 @@ if [[ ! -x "$REAL_GIT" ]]; then
     rm -f "$_git_err"
 fi
 
+_org_from_remote() {
+    local url="$1"
+    python3 - "$url" <<'PY'
+import re
+import sys
+
+url = sys.argv[1]
+if not url:
+    sys.exit(0)
+match = re.match(r"[^@]+@[^:]+:([^/]+)/", url)
+if match:
+    print(match.group(1))
+    sys.exit(0)
+match = re.match(r"https?://[^/]+/([^/]+)/", url)
+if match:
+    print(match.group(1))
+PY
+}
+
+_umbrella_origin=""
+_umbrella_origin_err="$(mktemp)"
+if ! _umbrella_origin=$("$REAL_GIT" -C "$PROJECT_ROOT" remote get-url origin 2>"$_umbrella_origin_err"); then
+    if [[ -s "$_umbrella_origin_err" ]]; then cat "$_umbrella_origin_err" >&2; fi
+    _umbrella_origin=""
+fi
+rm -f "$_umbrella_origin_err"
+
+_allowed_orgs_err="$(mktemp)"
+if ! _allowed_orgs_raw=$(python3 - "$CLONES_YAML" "$_umbrella_origin" 2>"$_allowed_orgs_err" <<'PY'
+import re
+import sys
+
+clones_yaml = sys.argv[1]
+umbrella_origin = sys.argv[2]
+
+def org_from_remote(url: str) -> str | None:
+    if not url:
+        return None
+    match = re.match(r"[^@]+@[^:]+:([^/]+)/", url)
+    if match:
+        return match.group(1)
+    match = re.match(r"https?://[^/]+/([^/]+)/", url)
+    if match:
+        return match.group(1)
+    return None
+
+orgs: set[str] = set()
+
+with open(clones_yaml) as handle:
+    text = handle.read()
+
+in_clones = False
+current_id = None
+for raw in text.splitlines():
+    line = raw.rstrip()
+    if not line or line.lstrip().startswith("#"):
+        continue
+    indent = len(line) - len(line.lstrip())
+    stripped = line.strip()
+
+    if indent == 0:
+        in_clones = stripped == "workspaceClones:"
+        current_id = None
+        continue
+    if in_clones and indent == 2 and stripped.endswith(":"):
+        current_id = stripped[:-1].strip()
+        continue
+    if in_clones and indent == 4 and current_id and ":" in stripped:
+        key, _, value = stripped.partition(":")
+        value = value.strip()
+        if (value.startswith("'") and value.endswith("'")) or (
+            value.startswith('"') and value.endswith('"')
+        ):
+            value = value[1:-1]
+        if key.strip() == "remote":
+            org = org_from_remote(value)
+            if org:
+                orgs.add(org)
+        continue
+
+umbrella_org = org_from_remote(umbrella_origin)
+if umbrella_org:
+    orgs.add(umbrella_org)
+
+if not orgs:
+    sys.exit(1)
+
+for org in sorted(orgs):
+    print(org)
+PY
+); then
+    if [[ -s "$_allowed_orgs_err" ]]; then cat "$_allowed_orgs_err" >&2; fi
+    echo -e "${RED}ERROR: could not derive allowed org namespaces from ${CLONES_YAML}${NC}" >&2
+    rm -f "$_allowed_orgs_err"
+    exit 1
+fi
+rm -f "$_allowed_orgs_err"
+
+ALLOWED_ORGS=()
+while IFS= read -r _org_line; do
+    [[ -n "$_org_line" ]] && ALLOWED_ORGS+=("$_org_line")
+done <<< "$_allowed_orgs_raw"
+
+if [[ ${#ALLOWED_ORGS[@]} -eq 0 ]]; then
+    echo -e "${RED}ERROR: no allowed org namespaces found in ${CLONES_YAML}${NC}" >&2
+    exit 1
+fi
+
+_origin_is_ours() {
+    local origin="$1"
+    local org
+    org="$(_org_from_remote "$origin")"
+    if [[ -z "$org" ]]; then
+        return 1
+    fi
+    local allowed
+    for allowed in "${ALLOWED_ORGS[@]}"; do
+        if [[ "$org" == "$allowed" ]]; then
+            return 0
+        fi
+    done
+    return 1
+}
+
 clean_count=0
 dirty_count=0
 total_count=0
+skipped_vendored=0
 
 _branch_err="$(mktemp)"
 _status_err="$(mktemp)"
 _ab_err="$(mktemp)"
 _find_err="$(mktemp)"
+_remote_err="$(mktemp)"
 
 while IFS= read -r git_dir; do
     repo_dir="$(dirname "$git_dir")"
     repo_name="${repo_dir#"${PROJECT_ROOT}/"}"
+    if [[ "$repo_dir" == "$PROJECT_ROOT" ]]; then
+        repo_name="."
+    fi
+
+    if [[ "$FILTER_VENDORED" -eq 1 && "$repo_dir" != "$PROJECT_ROOT" ]]; then
+        origin=""
+        : > "$_remote_err"
+        if ! origin=$("$REAL_GIT" -C "$repo_dir" remote get-url origin 2>"$_remote_err"); then
+            origin=""
+        fi
+        if ! _origin_is_ours "$origin"; then
+            skipped_vendored=$((skipped_vendored + 1))
+            continue
+        fi
+    fi
+
     total_count=$((total_count + 1))
 
     if ! branch=$("$REAL_GIT" -C "$repo_dir" branch --show-current 2>"$_branch_err"); then
@@ -89,7 +274,11 @@ while IFS= read -r git_dir; do
     fi
 done < <({ echo "$PROJECT_ROOT/.git"; find "$PROJECTS_DIR" -name .git \( -type d -o -type f \) 2>"$_find_err"; } | sort)
 if [[ -s "$_find_err" ]]; then cat "$_find_err" >&2; fi
-rm -f "$_branch_err" "$_status_err" "$_ab_err" "$_find_err"
+rm -f "$_branch_err" "$_status_err" "$_ab_err" "$_find_err" "$_remote_err"
 
 echo ""
-echo -e "${BOLD}${total_count}${NC} repos: ${GREEN}${clean_count} clean${NC}, ${RED}${dirty_count} dirty${NC}"
+if [[ "$FILTER_VENDORED" -eq 1 && "$skipped_vendored" -gt 0 ]]; then
+    echo -e "${BOLD}${total_count}${NC} repos: ${GREEN}${clean_count} clean${NC}, ${RED}${dirty_count} dirty${NC} (${skipped_vendored} vendored skipped)"
+else
+    echo -e "${BOLD}${total_count}${NC} repos: ${GREEN}${clean_count} clean${NC}, ${RED}${dirty_count} dirty${NC}"
+fi

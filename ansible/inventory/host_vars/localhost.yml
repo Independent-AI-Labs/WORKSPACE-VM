@@ -7,6 +7,10 @@ compose_services:
   ami-compose:
     compose_file: projects/AMI-DATAOPS/res/docker/docker-compose.yml
     profiles: [data, secrets, dev]
+  gateway-compose:
+    compose_file: projects/WORKSPACE-GATEWAY/res/docker/docker-compose.yml
+  wiki-prod-compose:
+    compose_file: projects/CI/web/compose.prod.yaml
 
 local_services:
   workspace-openvpn: {}

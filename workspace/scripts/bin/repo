@@ -16,6 +16,9 @@ if [[ "$#" -gt 0 && ("$1" == "-h" || "$1" == "--help") ]]; then
     echo "Usage: repo [subcommand] [args...]"
     echo ""
     echo "Subcommands: git, gh, hf, glab, status-all, gitd, serve"
+    echo ""
+    echo "  status-all    Git status for workspace repos (vendored nested repos"
+    echo "                hidden by default; pass --all-repos to include them)"
     exit 0
 fi
 
@@ -41,6 +44,9 @@ elif [[ $# -eq 0 ]]; then
     echo "Usage: repo [subcommand] [args...]"
     echo ""
     echo "Subcommands: git, gh, hf, glab, status-all, gitd, serve"
+    echo ""
+    echo "  status-all    Git status for workspace repos (vendored nested repos"
+    echo "                hidden by default; pass --all-repos to include them)"
     exit 0
 else
     echo "Error: Unknown subcommand '$1'" >&2
