@@ -69,8 +69,9 @@ Applies logrotate and journald rate limits on `/var/log/syslog` so runaway loggi
 Optional operator steps:
 
 ```bash
-sudo make build-guard      # build git-guard (SSH agent forwarded under sudo automatically)
-sudo make install-guard    # install git-guard to /usr/bin/git
+sudo make guard-up         # idempotent fleet bring-up (provision + guard install)
+sudo make guard-refresh    # after pulling guard code
+make guard-check           # read-only health
 ```
 
 ---

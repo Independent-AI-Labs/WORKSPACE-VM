@@ -11,6 +11,7 @@ export PATH := $(_HB_PREFIX)/opt/coreutils/libexec/gnubin:$(_HB_PREFIX)/opt/gnu-
 # CI provides shared configs (ruff.toml, mypy.toml) and bootstrapped
 # tools (uv, ansible, gitleaks). VM-root delegates to CI for these.
 CI_DIR := $(abspath projects/CI)
+GUARD_DIR := $(abspath projects/WORKSPACE-GUARD)
 CI_BOOT_NAME := $(if $(filter Darwin,$(_OS)),.boot-macos,.boot-linux)
 CI_BOOT_BIN := $(CI_DIR)/$(CI_BOOT_NAME)/bin
 CI_RUFF := $(CI_DIR)/ruff.toml
@@ -88,9 +89,14 @@ ci-install-deps: ensure-repos ## Install CI project deps (boot tools, Python ven
 build-guard: ensure-repos ## Build git-guard binary (operator: sudo make build-guard) - delegates to CI
 	@$(MAKE) -C projects/CI build-guard
 
-.PHONY: install-guard
-install-guard: ## Install git-guard to /usr/bin/git (operator: sudo make install-guard; binary must be pre-built) - delegates to CI
-	@$(MAKE) -C projects/CI install-guard
+.PHONY: install-guard install-guard-host-exec reconcile-guard-host-exec check-guard-host-exec
+.PHONY: uninstall-guard purge-guard-state install-host-stack-phase5
+.PHONY: guard-up guard-refresh guard-check guard-down guard-reset
+install-guard: install-guard-host-exec ## Alias for install-guard-host-exec
+install-guard-host-exec reconcile-guard-host-exec check-guard-host-exec \
+uninstall-guard purge-guard-state install-host-stack-phase5 \
+guard-up guard-refresh guard-check guard-down guard-reset:
+	@$(MAKE) -C $(GUARD_DIR) $@
 
 .PHONY: install
 install: init-check sync-package ## Interactive TUI to select and install components
@@ -101,7 +107,7 @@ install: init-check sync-package ## Interactive TUI to select and install compon
 	$(MAKE) install-deps-recursive && \
 	$(MAKE) install-hooks-recursive && \
 	if ! $(MAKE) build-guard; then echo "⚠️  Git guard build failed - continuing without guard"; fi && \
-	if ! $(MAKE) install-guard; then echo "⚠️  Git guard installation skipped (needs sudo)"; fi && \
+	if ! $(MAKE) install-guard-host-exec; then echo "⚠️  Git guard installation skipped (needs sudo)"; fi && \
 	bash workspace/scripts/shell/shell-setup --welcome && \
 	echo "" && \
 	echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" && \
@@ -137,7 +143,7 @@ install-ci: init-check sync-package ## Non-interactive component install (uses i
 	$(MAKE) install-hooks-recursive && \
 	if ! $(MAKE) build-guard; then echo "⚠️  Git guard build failed - continuing without guard"; fi && \
 	echo "✨ Installation complete (CI mode)!" && \
-	echo "⚠️  Git guard binary built but not installed - run: sudo make install-guard" && \
+	echo "⚠️  Git guard binary built but not installed - run: sudo make guard-up" && \
 	echo "" && \
 	echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" && \
 	echo "⚠️  POST-INSTALL ACTION REQUIRED (needs sudo):" && \
@@ -219,8 +225,7 @@ uninstall-shell: ## Remove AMI shell environment from ~/.bashrc
 vm: ## Build and start a VM from config file
 	@bash workspace/scripts/bin/vm create "$(filter-out $@,$(MAKECMDGOALS))"
 
-# Delegate host provision to WORKSPACE-GUARD (avoid vm catch-all swallowing these targets).
-GUARD_DIR := $(abspath projects/WORKSPACE-GUARD)
+# Delegate host provision to WORKSPACE-GUARD (avoid vm catch-all swallowing targets).
 .PHONY: provision-host install-host-stack provision-host-preflight
 provision-host install-host-stack provision-host-preflight:
 	@$(MAKE) -C $(GUARD_DIR) $@
