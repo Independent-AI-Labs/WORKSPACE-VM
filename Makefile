@@ -218,6 +218,13 @@ uninstall-shell: ## Remove AMI shell environment from ~/.bashrc
 
 vm: ## Build and start a VM from config file
 	@bash workspace/scripts/bin/vm create "$(filter-out $@,$(MAKECMDGOALS))"
+
+# Delegate host provision to WORKSPACE-GUARD (avoid vm catch-all swallowing these targets).
+GUARD_DIR := $(abspath projects/WORKSPACE-GUARD)
+.PHONY: provision-host install-host-stack provision-host-preflight
+provision-host install-host-stack provision-host-preflight:
+	@$(MAKE) -C $(GUARD_DIR) $@
+
 %::
 	@true
 
