@@ -91,4 +91,10 @@ security:
   read_only_rootfs: true
   cap_drop:
     - "ALL"
-  cap_add: []
+  # Git-guard ambient caps (required with no_new_privileges; no file caps on /usr/bin/git).
+  cap_add:
+    - "SETPCAP"
+    - "CHOWN"
+    - "DAC_OVERRIDE"
+    - "FOWNER"
+    - "FSETID"
