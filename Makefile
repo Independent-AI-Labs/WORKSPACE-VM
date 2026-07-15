@@ -26,14 +26,19 @@ export CMAKE_POLICY_VERSION_MINIMUM := 3.5
 # Contract compliance
 -include projects/CI/lib/makefile_contract.mk
 
-# Default target
+# =============================================================================
+# Help
+# =============================================================================
+
 .PHONY: help
 help: ## Show this help message
 	@echo "AMI Agents - Available targets:"
 	@echo ""
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  %-28s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
-# --- Init - system dependencies ---
+# =============================================================================
+# Init & System Dependencies
+# =============================================================================
 
 .PHONY: init-check
 init-check: ## Check system dependencies (via CI resolver)
@@ -55,7 +60,9 @@ else
 	rm -f "$$_missing"
 endif
 
-# --- Core prereqs ---
+# =============================================================================
+# Core Bootstrap
+# =============================================================================
 
 .PHONY: core
 core: ## Bootstrap CI tools (uv + ansible + node) + VM-specific tools (python + git-xet + playwright)
@@ -69,36 +76,13 @@ core: ## Bootstrap CI tools (uv + ansible + node) + VM-specific tools (python + 
 	@AMI_ROOT="$$(pwd)" bash workspace/scripts/bootstrap/bootstrap_playwright.sh
 	@echo "✅ Core bootstrap complete"
 
-# --- Install - component selection ---
+# =============================================================================
+# Installation
+# =============================================================================
 
 .PHONY: ci-install-deps
 ci-install-deps: ensure-repos ## Install CI project deps (boot tools, Python venv, gitleaks) - delegates to CI
 	@$(MAKE) -C projects/CI install-deps
-
-# Guard targets require git over SSH (ensure-repos pulls every workspace
-# repo). When invoked under `sudo make build-guard`, bootstrap-repos
-# reconstructs SSH_AUTH_SOCK + HOME from its /proc ancestor chain so the
-# operator does not need --preserve-env=... flags. build-guard writes only
-# to WORKSPACE-GUARD/target/; under sudo the cargo chown block returns
-# that tree to SUDO_USER so future agent-uid rebuilds are unblocked.
-# sync-package is deliberately NOT a prerequisite: `uv sync` would create
-# a root-owned .venv/ under sudo, and the guard's cap-grant does NOT
-# reach uv/cargo (only /usr/bin/git is wrapped). Run `make sync-package`
-# as the agent (no sudo) when Python deps are needed.
-.PHONY: build-guard
-build-guard: ensure-repos ## Build git-guard binary (operator: sudo make build-guard) - delegates to CI
-	@$(MAKE) -C projects/CI build-guard
-
-.PHONY: install-guard install-guard-host-exec reconcile-guard-host-exec check-guard-host-exec
-.PHONY: uninstall-guard purge-guard-state install-host-stack-phase5
-.PHONY: guard-up guard-refresh guard-check guard-down guard-reset refresh-guard
-install-guard: install-guard-host-exec ## Alias for install-guard-host-exec
-refresh-guard: ## Alias for guard-refresh (workspace root)
-	$(MAKE) -C $(GUARD_DIR) guard-refresh
-install-guard-host-exec reconcile-guard-host-exec check-guard-host-exec \
-uninstall-guard purge-guard-state install-host-stack-phase5 \
-guard-up guard-refresh guard-check guard-down guard-reset:
-	$(MAKE) -C $(GUARD_DIR) $@
 
 .PHONY: install
 install: init-check sync-package ## Interactive TUI to select and install components
@@ -157,19 +141,55 @@ install-ci: init-check sync-package ## Non-interactive component install (uses i
 	echo "    disk via /var/log/syslog. See INCIDENT-2026-07-05." && \
 	echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-# --- System hardening (requires sudo -- run after install) ---
+# WORKSPACE-GUARD: git protection (delegates to CI + WORKSPACE-GUARD)
+# Guard targets require git over SSH (ensure-repos pulls every workspace
+# repo). When invoked under `sudo make build-guard`, bootstrap-repos
+# reconstructs SSH_AUTH_SOCK + HOME from its /proc ancestor chain so the
+# operator does not need --preserve-env=... flags. build-guard writes only
+# to WORKSPACE-GUARD/target/; under sudo the cargo chown block returns
+# that tree to SUDO_USER so future agent-uid rebuilds are unblocked.
+# sync-package is deliberately NOT a prerequisite: `uv sync` would create
+# a root-owned .venv/ under sudo, and the guard's cap-grant does NOT
+# reach uv/cargo (only /usr/bin/git is wrapped). Run `make sync-package`
+# as the agent (no sudo) when Python deps are needed.
+# =============================================================================
+# WORKSPACE-GUARD
+# =============================================================================
+
+.PHONY: build-guard
+build-guard: ensure-repos ## Build git-guard binary (operator: sudo make build-guard) - delegates to CI
+	@$(MAKE) -C projects/CI build-guard
+
+.PHONY: install-guard install-guard-host-exec reconcile-guard-host-exec check-guard-host-exec
+.PHONY: uninstall-guard purge-guard-state install-host-stack-phase5
+.PHONY: guard-up guard-refresh guard-check guard-down guard-reset refresh-guard
+install-guard: install-guard-host-exec ## Alias for install-guard-host-exec
+refresh-guard: ## Alias for guard-refresh (workspace root)
+	$(MAKE) -C $(GUARD_DIR) guard-refresh
+install-guard-host-exec reconcile-guard-host-exec check-guard-host-exec \
+uninstall-guard purge-guard-state install-host-stack-phase5 \
+guard-up guard-refresh guard-check guard-down guard-reset:
+	$(MAKE) -C $(GUARD_DIR) $@
+
+# =============================================================================
+# System Hardening
+# =============================================================================
 
 .PHONY: enforce-syslog-limits
 enforce-syslog-limits: ## Enforce system-level log ceilings (needs sudo) - delegates to CI
 	@$(MAKE) -C projects/CI enforce-syslog-limits
 
-# --- Repos ---
+# =============================================================================
+# Repos
+# =============================================================================
 
 .PHONY: ensure-repos
 ensure-repos: ## Clone every workspace repo per moon.yml metadata
 	@bash workspace/scripts/bin/bootstrap-repos --pull
 
-# --- Package sync ---
+# =============================================================================
+# Package Sync
+# =============================================================================
 
 .PHONY: sync-package
 sync-package: core ensure-repos ## Sync package dependencies via uv
@@ -181,7 +201,9 @@ sync-package: core ensure-repos ## Sync package dependencies via uv
 install-package: ## Lightweight uv sync (dev extras only, no boot/repos)
 	$(UV) sync --extra dev
 
-# --- Config ---
+# =============================================================================
+# Configuration
+# =============================================================================
 
 .PHONY: setup-config
 setup-config: setup-automation ## Setup configuration files
@@ -200,14 +222,18 @@ setup-automation: ## Setup automation configuration
 		echo "ℹ️  Automation configuration already exists at workspace/config/automation.yaml"; \
 	fi
 
-# --- Extensions ---
+# =============================================================================
+# Extensions
+# =============================================================================
 
 .PHONY: register-extensions
 register-extensions: ## Register extensions in .boot-linux/bin
 	@echo "🔌 Registering extensions in ~/.bashrc..."
 	@uv run python workspace/scripts/register_extensions.py
 
-# --- Shell ---
+# =============================================================================
+# Shell
+# =============================================================================
 
 .PHONY: install-shell
 install-shell: ## Install AMI shell environment to ~/.bashrc
@@ -219,7 +245,9 @@ install-shell: ## Install AMI shell environment to ~/.bashrc
 uninstall-shell: ## Remove AMI shell environment from ~/.bashrc
 	@bash workspace/scripts/shell/shell-setup --uninstall
 
-# --- VM Management ---
+# =============================================================================
+# VM Management
+# =============================================================================
 
 .PHONY: vm vm-start vm-stop vm-resume vm-delete vm-kill vm-shell vm-exec \
 	vm-logs vm-list vm-status vm-rebuild vm-sync vm-config vm-cert
@@ -267,7 +295,9 @@ vm-config: ## print the vm.yaml used to create <id>
 vm-cert: ## generate or print client cert for <id>
 	@bash workspace/scripts/bin/vm cert $(filter-out $@,$(MAKECMDGOALS))
 
-# --- Hooks ---
+# =============================================================================
+# Git Hooks
+# =============================================================================
 
 .PHONY: install-hooks
 install-hooks: ensure-repos ## Install native git hooks
@@ -304,7 +334,9 @@ install-hooks-recursive: ensure-repos ## Install hooks in workspace + every nest
 check-hooks: ensure-repos ## Preview generated hooks (dry-run)
 	bash projects/CI/scripts/generate-hooks --dry-run
 
-# --- Quality & Test ---
+# =============================================================================
+# Quality & Test
+# =============================================================================
 
 .PHONY: test
 test: ## Run tests (delegates to moon for caching)
@@ -381,7 +413,9 @@ _test-impl: install-package
 _dead-code-impl: install-package
 	$(UV) run ruff check --select F401,F811 --config $(CI_RUFF) .
 
-# --- Update ---
+# =============================================================================
+# Update & Maintenance
+# =============================================================================
 
 .PHONY: update
 update: ## Update workspace via moon - walks every project topologically (^:update)
@@ -403,7 +437,19 @@ update-oc: ## Update opencode to latest version via npm
 			exit 1; \
 		fi
 
-# --- Rules ---
+.PHONY: update-deps
+update-deps: ## Update Python dependencies only
+	@echo "🔄 Updating Python dependencies..."
+	$(UV) update
+
+.PHONY: uninstall
+uninstall: ## Uninstall workspace
+	@echo "🗑️  Uninstalling workspace..."
+	$(UV) pip uninstall workspace -y
+
+# =============================================================================
+# Context Rules & Assistant Hooks
+# =============================================================================
 
 .PHONY: rules
 rules: ## List context rules and redeploy plugin
@@ -449,17 +495,9 @@ hooks-update: ## Update hook - make hooks-update NUM=3 REGEX="pattern" RULE="ins
 	@test -n "$$RULE" || { echo "ERROR: RULE required" >&2; exit 1; }
 	@bash workspace/scripts/bin/rules hooks update "$$NUM" -r "$$REGEX" -t "$$RULE"
 
-.PHONY: update-deps
-update-deps: ## Update Python dependencies only
-	@echo "🔄 Updating Python dependencies..."
-	$(UV) update
-
-.PHONY: uninstall
-uninstall: ## Uninstall workspace
-	@echo "🗑️  Uninstalling workspace..."
-	$(UV) pip uninstall workspace -y
-
-# --- Utility ---
+# =============================================================================
+# Utility
+# =============================================================================
 
 .PHONY: clean
 clean: ## Clean build artifacts
@@ -498,17 +536,17 @@ check-compliance-recursive: ensure-repos ## Audit every nested repo for CI contr
 	done; \
 	[ $$_failed -eq 0 ]
 
-# ==============================================================================
-# OpenVPN host client
-# ==============================================================================
+# =============================================================================
+# OpenVPN Host Client
+# =============================================================================
 -include Makefile.vpn
 
-# ==============================================================================
-# LlamaServer - multi-flavor build + deployment (cpu, sycl, vulkan)
-# ==============================================================================
+# =============================================================================
+# LlamaServer
+# =============================================================================
 -include Makefile.llamaserver
 
-# ==============================================================================
-# Llamafile - .llamafile bundles (CPU + Vulkan; server | chat | all)
-# ==============================================================================
+# =============================================================================
+# Llamafile
+# =============================================================================
 -include Makefile.llamafile
