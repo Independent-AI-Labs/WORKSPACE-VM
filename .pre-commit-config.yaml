@@ -39,14 +39,14 @@ repos:
         always_run: true
       - id: check-dependency-versions
         name: Check Dependency Versions (strict pinning + latest)
-        entry: "bash -c 'uv run python -c \"import ci\" || { echo \"FAILED: ci not installed - run: make sync\" >&2; exit 1; }; exec uv run python -m ci.check_dependency_versions \"$@\"' --"
+        entry: "bash -c 'source projects/CI/lib/checks.sh && CI_CONFIG_DIR=\"$CI_CONFIG_DIR\" CI_PROJECT_ROOT=\"$CI_PROJECT_ROOT\" exec uv run --project projects/CI --no-sync python -m ci.check_dependency_versions \"$@\"' --"
         language: system
         pass_filenames: false
         always_run: true
 
       - id: check-duplicate-dependencies
         name: Check Duplicate/Redundant Dependencies
-        entry: "bash -c 'uv run python -c \"import ci\" || { echo \"FAILED: ci not installed - run: make sync\" >&2; exit 1; }; exec uv run python -m ci.check_duplicate_dependencies \"$@\"' --"
+        entry: "bash -c 'source projects/CI/lib/checks.sh && CI_CONFIG_DIR=\"$CI_CONFIG_DIR\" CI_PROJECT_ROOT=\"$CI_PROJECT_ROOT\" exec uv run --project projects/CI --no-sync python -m ci.check_duplicate_dependencies \"$@\"' --"
         language: system
         pass_filenames: false
         always_run: true
@@ -72,7 +72,7 @@ repos:
         always_run: true
       - id: check-markdown-docs
         name: Check Markdown Documentation References
-        entry: "uv run python -m ci.check_markdown_docs --all-md --check-remote"
+        entry: "bash -c 'source projects/CI/lib/checks.sh && CI_CONFIG_DIR=\"$CI_CONFIG_DIR\" CI_PROJECT_ROOT=\"$CI_PROJECT_ROOT\" exec uv run --project projects/CI --no-sync python -m ci.check_markdown_docs --all-md --check-remote \"$@\"' --"
         language: system
         pass_filenames: false
         always_run: true

@@ -10,7 +10,7 @@ done
 export AMI_ROOT && cd "$AMI_ROOT"
 
 _VMS_DIR=".vms"
-_PYTHON="$AMI_ROOT/.venv/bin/python"
+_VM_RUN=(uv run python)
 _CERTS_SCRIPT="workspace/scripts/bootstrap/bootstrap_certs.sh"
 _VM_MANAGER="workspace.cli.vm_main"
 
@@ -56,21 +56,21 @@ cmd_create() {
     local config_file="${1:-}"
     [[ -n "$config_file" ]] || die "create: missing config file argument"
     [[ -f "$config_file" ]] || die "create: config file '$config_file' not found"
-    exec "$_PYTHON" -m "$_VM_MANAGER" create "$config_file"
+    exec "${_VM_RUN[@]}" -m "$_VM_MANAGER" create "$config_file"
 }
 
 cmd_start() {
     local uuid="${1:-}"
     [[ -n "$uuid" ]] || die "start: missing uuid argument"
     _require_vm "$uuid"
-    exec "$_PYTHON" -m "$_VM_MANAGER" start "$uuid"
+    exec "${_VM_RUN[@]}" -m "$_VM_MANAGER" start "$uuid"
 }
 
 cmd_stop() {
     local uuid="${1:-}"
     [[ -n "$uuid" ]] || die "stop: missing uuid argument"
     _require_vm "$uuid"
-    exec "$_PYTHON" -m "$_VM_MANAGER" stop "$uuid"
+    exec "${_VM_RUN[@]}" -m "$_VM_MANAGER" stop "$uuid"
 }
 
 cmd_resume() {
@@ -82,21 +82,21 @@ cmd_delete() {
     [[ -n "$uuid" ]] || die "delete: missing uuid argument"
     _require_vm "$uuid"
     shift
-    exec "$_PYTHON" -m "$_VM_MANAGER" delete "$uuid" "$@"
+    exec "${_VM_RUN[@]}" -m "$_VM_MANAGER" delete "$uuid" "$@"
 }
 
 cmd_kill() {
     local uuid="${1:-}"
     [[ -n "$uuid" ]] || die "kill: missing uuid argument"
     _require_vm "$uuid"
-    exec "$_PYTHON" -m "$_VM_MANAGER" kill "$uuid"
+    exec "${_VM_RUN[@]}" -m "$_VM_MANAGER" kill "$uuid"
 }
 
 cmd_shell() {
     local uuid="${1:-}"
     [[ -n "$uuid" ]] || die "shell: missing uuid argument"
     _require_vm "$uuid"
-    exec "$_PYTHON" -m "$_VM_MANAGER" shell "$uuid"
+    exec "${_VM_RUN[@]}" -m "$_VM_MANAGER" shell "$uuid"
 }
 
 cmd_exec() {
@@ -104,7 +104,7 @@ cmd_exec() {
     [[ -n "$uuid" ]] || die "exec: missing uuid argument"
     _require_vm "$uuid"
     shift
-    exec "$_PYTHON" -m "$_VM_MANAGER" exec "$uuid" -- "$@"
+    exec "${_VM_RUN[@]}" -m "$_VM_MANAGER" exec "$uuid" -- "$@"
 }
 
 cmd_logs() {
@@ -112,32 +112,32 @@ cmd_logs() {
     [[ -n "$uuid" ]] || die "logs: missing uuid argument"
     _require_vm "$uuid"
     shift
-    exec "$_PYTHON" -m "$_VM_MANAGER" logs "$uuid" "$@"
+    exec "${_VM_RUN[@]}" -m "$_VM_MANAGER" logs "$uuid" "$@"
 }
 
 cmd_list() {
-    exec "$_PYTHON" -m "$_VM_MANAGER" list
+    exec "${_VM_RUN[@]}" -m "$_VM_MANAGER" list
 }
 
 cmd_status() {
     local uuid="${1:-}"
     [[ -n "$uuid" ]] || die "status: missing uuid argument"
     _require_vm "$uuid"
-    exec "$_PYTHON" -m "$_VM_MANAGER" status "$uuid"
+    exec "${_VM_RUN[@]}" -m "$_VM_MANAGER" status "$uuid"
 }
 
 cmd_rebuild() {
     local uuid="${1:-}"
     [[ -n "$uuid" ]] || die "rebuild: missing uuid argument"
     _require_vm "$uuid"
-    exec "$_PYTHON" -m "$_VM_MANAGER" rebuild "$uuid"
+    exec "${_VM_RUN[@]}" -m "$_VM_MANAGER" rebuild "$uuid"
 }
 
 cmd_sync() {
     local uuid="${1:-}"
     [[ -n "$uuid" ]] || die "sync: missing uuid argument"
     _require_vm "$uuid"
-    exec "$_PYTHON" -m "$_VM_MANAGER" sync "$uuid"
+    exec "${_VM_RUN[@]}" -m "$_VM_MANAGER" sync "$uuid"
 }
 
 cmd_config() {

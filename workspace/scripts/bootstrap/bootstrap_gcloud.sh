@@ -64,10 +64,11 @@ echo
 # Check if already installed
 if [ -f "$GCLOUD_SDK_DIR/bin/gcloud" ]; then
     _gv_err="$(mktemp)"
-    CURRENT_VERSION=$("$GCLOUD_SDK_DIR/bin/gcloud" version -format="value(Google Cloud SDK)" 2>"$_gv_err") || {
+    CURRENT_VERSION=$("$GCLOUD_SDK_DIR/bin/gcloud" version -format="value(Google Cloud SDK)" 2>"$_gv_err") || _gv_rc=$?
+    if [[ ${_gv_rc:-0} -ne 0 ]]; then
         echo "[bootstrap-gcloud] gcloud version check failed: $(cat "$_gv_err")" >&2
         CURRENT_VERSION="unknown"
-    }
+    fi
     rm -f "$_gv_err"
     echo "gcloud CLI already installed (version: $CURRENT_VERSION)"
 
@@ -137,10 +138,11 @@ echo
 GCLOUD_BIN="$GCLOUD_SDK_DIR/bin/gcloud"
 if [ -x "$GCLOUD_BIN" ]; then
     _gv_err="$(mktemp)"
-    VERSION=$("$GCLOUD_BIN" version -format="value(Google Cloud SDK)" 2>"$_gv_err") || {
+    VERSION=$("$GCLOUD_BIN" version -format="value(Google Cloud SDK)" 2>"$_gv_err") || _gv_rc=$?
+    if [[ ${_gv_rc:-0} -ne 0 ]]; then
         echo "[bootstrap-gcloud] gcloud version check failed: $(cat "$_gv_err")" >&2
         VERSION="unknown"
-    }
+    fi
     rm -f "$_gv_err"
     echo "Installed version: $VERSION"
     echo "gcloud path: $GCLOUD_BIN"

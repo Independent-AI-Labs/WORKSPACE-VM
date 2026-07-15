@@ -100,11 +100,7 @@ write_notices() {
     source_url="https://download.qemu.org/qemu-${qemu_version}.tar.xz"
     if [[ -f "$PINS_FILE" ]]; then
         pinned=""
-        _py="${PROJECT_ROOT}/.venv/bin/python"
-        if [[ ! -x "$_py" ]]; then
-            _py="python3"
-        fi
-        if pinned="$("$_py" -c "import yaml; d=yaml.safe_load(open('${PINS_FILE}')); print(d.get('qemu',{}).get('source_url',''))")"; then
+        if pinned="$(cd "${PROJECT_ROOT}" && uv run python -c "import yaml; d=yaml.safe_load(open('${PINS_FILE}')); print(d.get('qemu',{}).get('source_url',''))")"; then
             if [[ -n "$pinned" ]]; then
                 source_url="$pinned"
             fi

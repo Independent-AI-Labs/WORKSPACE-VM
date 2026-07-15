@@ -142,9 +142,7 @@ if "$probe_dir/llamafile" --verbose --gpu vulkan --version >"$probe_log" 2>&1; t
     else
         # --version skips GPU init; probe load with a missing-model argv parse.
         rm -f "$probe_log"
-        if ! "$probe_dir/llamafile" --verbose --gpu vulkan -m /nonexistent.gguf 2>"$probe_log"; then
-            :
-        fi
+        "$probe_dir/llamafile" --verbose --gpu vulkan -m /nonexistent.gguf 2>"$probe_log" || probe_rc=$?
         if grep -qi 'Vulkan GPU support successfully loaded' "$probe_log"; then
             pass "llamafile --gpu vulkan loaded ggml-vulkan.so"
         elif grep -qi "dlopen() isn't supported" "$probe_log"; then

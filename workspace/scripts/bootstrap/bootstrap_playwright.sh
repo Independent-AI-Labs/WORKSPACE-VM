@@ -32,10 +32,11 @@ export PLAYWRIGHT_BROWSERS_PATH="$BROWSERS_DIR"
 # the expected version is missing or outdated. If no such line, we're up to date.
 if [[ -d "$BROWSERS_DIR" ]] && ! "$PLAYWRIGHT" install --dry-run chromium chrome 2>&1 | grep -q 'Install location:.*chromium-[0-9]'; then
     _pw_err="$(mktemp)"
-    EXISTING=$("$PLAYWRIGHT" -version 2>"$_pw_err") || {
+    EXISTING=$("$PLAYWRIGHT" -version 2>"$_pw_err") || _pw_rc=$?
+    if [[ ${_pw_rc:-0} -ne 0 ]]; then
         echo "[bootstrap-playwright] playwright version check failed: $(cat "$_pw_err")" >&2
         EXISTING="unknown"
-    }
+    fi
     rm -f "$_pw_err"
     log_success "Playwright browsers already installed and up to date ($EXISTING)"
     log_success "  Path: $BROWSERS_DIR"

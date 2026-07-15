@@ -19,7 +19,7 @@ case "$_BOOT_PLATFORM" in
 esac
 BOOT_DIR="${AMI_ROOT}/${_BOOT_NAME}"
 OPENVPN_BIN="${BOOT_DIR}/bin/openvpn"
-PYTHON="$AMI_ROOT/.venv/bin/python"
+VPN_RUN=(uv run python)
 VPN_PY="${AMI_ROOT}/workspace/scripts/bin/run_openvpn_client.py"
 VPN_CONFIG="${AMI_ROOT}/workspace/config/vpn/client.ovpn"
 SERVICE_SCRIPT="${AMI_ROOT}/workspace/scripts/bootstrap/bootstrap_openvpn_service.sh"
@@ -36,7 +36,7 @@ _require_config() {
 }
 
 _require_python() {
-    [[ -x "$PYTHON" ]] || die "missing .venv; run: make sync-package"
+    command -v uv >/dev/null 2>&1 || die "missing uv; run: make sync-package"
 }
 
 _ensure_launchdaemon() {
@@ -104,14 +104,14 @@ cmd_start() {
     echo "vpn: starting..." >&2
     _ensure_launchdaemon
     _apply_persist_flag
-    "$PYTHON" "$VPN_PY" --action start --daemon
+    "${VPN_RUN[@]}" "$VPN_PY" --action start --daemon
 }
 
 cmd_stop() {
     _require_python
     echo "vpn: stopping..." >&2
     _apply_persist_flag
-    "$PYTHON" "$VPN_PY" --action stop
+    "${VPN_RUN[@]}" "$VPN_PY" --action stop
 }
 
 cmd_restart() {
@@ -120,24 +120,24 @@ cmd_restart() {
     _ensure_launchdaemon
     _apply_persist_flag
     _stop_rc=0
-    "$PYTHON" "$VPN_PY" --action stop || _stop_rc=$?
+    "${VPN_RUN[@]}" "$VPN_PY" --action stop || _stop_rc=$?
     if [ "$_stop_rc" -ne 0 ]; then
         echo "vpn: stop exited ${_stop_rc} (continuing restart)" >&2
     fi
     echo "vpn: restarting..." >&2
-    "$PYTHON" "$VPN_PY" --action start --daemon
+    "${VPN_RUN[@]}" "$VPN_PY" --action start --daemon
 }
 
 cmd_status() {
     _require_python
-    "$PYTHON" "$VPN_PY" --action status
+    "${VPN_RUN[@]}" "$VPN_PY" --action status
     source "${SERVICE_SCRIPT}" || exit 1
     echo "persist: $(openvpn_persist_status)"
 }
 
 cmd_health() {
     _require_python
-    exec "$PYTHON" "$VPN_PY" --action health
+    exec "${VPN_RUN[@]}" "$VPN_PY" --action health
 }
 
 cmd_logs() {

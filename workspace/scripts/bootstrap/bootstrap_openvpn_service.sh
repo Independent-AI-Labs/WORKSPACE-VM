@@ -18,10 +18,6 @@ log_warn()  { echo -e "${YELLOW}[WARN]${NC} $*"; }
 log_error() { echo -e "${RED}[ERROR]${NC} $*"; }
 
 _workspace_python() {
-    if [[ -x "${PROJECT_ROOT}/.venv/bin/python" ]]; then
-        echo "${PROJECT_ROOT}/.venv/bin/python"
-        return 0
-    fi
     if command -v uv &>/dev/null; then
         echo "uv run python"
         return 0
@@ -36,7 +32,7 @@ _workspace_python() {
 _run_workspace_python() {
     local py
     if ! py="$(_workspace_python)"; then
-        log_error "No Python runtime found (.venv/bin/python, uv, or python3)"
+        log_error "No Python runtime found (uv or python3)"
         return 1
     fi
     (

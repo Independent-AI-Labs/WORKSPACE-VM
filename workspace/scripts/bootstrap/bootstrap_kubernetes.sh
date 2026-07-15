@@ -32,10 +32,11 @@ log_step() { echo -e "${GREEN}[>>>>]${NC} $*"; }
 _file_type() {
     local _ft_err _ft_out
     _ft_err="$(mktemp)"
-    _ft_out="$(file -b "$1" 2>"$_ft_err")" || {
+    _ft_out="$(file -b "$1" 2>"$_ft_err")" || _ft_rc=$?
+    if [[ ${_ft_rc:-0} -ne 0 ]]; then
         echo "[bootstrap-k8s] file type check failed for $1: $(cat "$_ft_err")" >&2
         _ft_out="missing"
-    }
+    fi
     rm -f "$_ft_err"
     echo "$_ft_out"
 }
@@ -43,10 +44,11 @@ _file_type() {
 _file_size() {
     local _fs_err _fs_out
     _fs_err="$(mktemp)"
-    _fs_out="$(stat -c%s "$1" 2>"$_fs_err")" || _fs_out="$(stat -f%z "$1" 2>"$_fs_err")" || {
+    _fs_out="$(stat -c%s "$1" 2>"$_fs_err")" || _fs_out="$(stat -f%z "$1" 2>"$_fs_err")" || _fs_rc=$?
+    if [[ ${_fs_rc:-0} -ne 0 ]]; then
         echo "[bootstrap-k8s] stat size check failed for $1: $(cat "$_fs_err")" >&2
         _fs_out=0
-    }
+    fi
     rm -f "$_fs_err"
     echo "$_fs_out"
 }

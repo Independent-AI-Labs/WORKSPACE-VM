@@ -78,15 +78,17 @@ make guard-check           # read-only health
 
 ## 2. Subsystems
 
+Beyond the bootstrap toolchain in §1, WORKSPACE-VM ships four operator-facing capabilities: **on-prem LLM inference**, **isolated agent runtimes**, **secure remote connectivity**, and **reproducible inference benchmarks**. Each subsystem uses the same boot-directory layout, Makefile entrypoints, and quality-gate model as the rest of the workspace.
+
+Diagram nodes use Unicode symbols so they render on GitHub without external icon font packs.
+
 ### LLM inference (llamafile / llama.cpp)
 
-Recommended entrypoint:
+WORKSPACE-VM supports **local, sovereign LLM inference** on hardware you control (Intel GPU/SYCL, Vulkan, or CPU), so agent loops and benchmarks never depend on a vendor API. The unified entrypoint is `make llama-setup`, an interactive wizard that detects hardware, installs prerequisites, builds one stack profile, bundles weights, deploys a systemd service (or runs a local binary), and runs diagnostics. Stack profiles live in [`workspace/config/llama-setup.yaml`](workspace/config/llama-setup.yaml); GGUF weights and `.args` manifests live under `models/`. Two engine families are supported: **llamafile** (single portable `.llamafile` binary) and **llama.cpp** (compiled `llama-server` with per-backend flavors).
 
 ```bash
 make llama-setup
 ```
-
-[`workspace/config/llama-setup.yaml`](workspace/config/llama-setup.yaml) defines stack profiles. `make llama-setup` reads one profile, builds that stack, and leaves a single HTTP inference server on the host. Weights live in `models/` (GGUF + `.args`). The `llamafile_cpu_chat` profile skips systemd deploy and runs as a local binary (see table).
 
 ```mermaid
 flowchart TB
@@ -97,29 +99,29 @@ flowchart TB
 
   legOngoing ~~~ operator
 
-  operator([Operator or automation])
-  launch([Run make llama-setup])
-  profiles[/Stack profiles in llama-setup.yaml/]
+  operator(["👤 Operator or automation"])
+  launch(["🧠 Run make llama-setup"])
+  profiles[/"📋 Stack profiles in llama-setup.yaml"/]
 
   pick{Llamafile bundle or llama.cpp server?}
 
-  subgraph llamafileStack [Llamafile stack]
+  subgraph llamafileStack ["📦 Llamafile stack"]
     direction TB
     bundleLf[Build portable .llamafile from models/]
     deployLf[Install llamafile systemd unit]
     bundleLf --> deployLf
   end
 
-  subgraph llamaCppStack [llama.cpp stack]
+  subgraph llamaCppStack ["⚙️ llama.cpp stack"]
     direction TB
     buildCpp[Compile llama-server for chosen backend]
     deployCpp[Install llamaserver systemd unit]
     buildCpp --> deployCpp
   end
 
-  weights[(models/ GGUF weights and .args)]
-  server(HTTP inference server on host)
-  clients([HTTP clients])
+  weights[("🗄️ models/ GGUF weights and .args")]
+  server("🌐 HTTP inference server on host")
+  clients(["🔌 HTTP clients"])
 
   operator --> launch --> profiles --> pick
   pick -->|one profile| llamafileStack
@@ -131,7 +133,7 @@ flowchart TB
   server --> clients
 ```
 
-The wizard runs **one** profile per invocation; the other stack is not built or deployed.
+The wizard runs **one** profile per invocation; the other stack is not built or deployed. The `llamafile_cpu_chat` profile skips systemd deploy and runs as a local binary (see table).
 
 Bundle zipalign detail: [`docs/SPEC-LLAMAFILE-MINICPM5-1B.md`](docs/SPEC-LLAMAFILE-MINICPM5-1B.md).
 
@@ -156,7 +158,7 @@ Specs: [`docs/SPEC-LLAMA-SETUP-TUI.md`](docs/SPEC-LLAMA-SETUP-TUI.md), [`docs/SP
 
 ### Agent VMs (`make vm`)
 
-One settings file picks the isolation backend; both paths leave a per-VM folder on the host that day-2 commands reuse.
+**Agent VMs** are isolated Linux environments where AI coding agents (OpenCode, Cursor-class tools, and similar) execute workloads without direct access to the host kernel or a writable copy of your workspace tree. `make vm` provisions a per-agent sandbox from a single YAML settings file ([`workspace/config/vm-template.yaml`](workspace/config/vm-template.yaml)); lifecycle state persists under `.vms/<uuid>/` on the host for day-2 start, stop, shell, and exec commands. The default backend is **rootless Podman**: fast to spin up and air-gapped by default. **QEMU** adds a full hardware VM boundary when you need host-kernel isolation or authoritative WORKSPACE-GUARD capability testing.
 
 ```mermaid
 flowchart TB
@@ -167,20 +169,20 @@ flowchart TB
 
   legOngoing ~~~ operator
 
-  operator([Operator or automation])
-  launch[/Run make vm with a config file/]
-  settings[/VM settings YAML on disk/]
+  operator(["👤 Operator or automation"])
+  launch[/"🤖 Run make vm with a config file"/]
+  settings[/"📄 VM settings YAML on disk"/]
 
   pick{Podman container or QEMU virtual machine?}
 
-  subgraph podmanPath [Podman container sandbox]
+  subgraph podmanPath ["🐳 Podman container sandbox"]
     direction TB
     buildImage[Build agent image from templates]
     runContainer[Start isolated Podman container]
     buildImage --> runContainer
   end
 
-  subgraph qemuPath [QEMU full virtual machine]
+  subgraph qemuPath ["🖥️ QEMU full virtual machine"]
     direction TB
     prepareDisk[Prepare base disk overlay and cloud-init]
     bootVm[Boot VM with SSH port forward on host]
@@ -188,8 +190,8 @@ flowchart TB
     prepareDisk --> bootVm --> copyWorkspace
   end
 
-  persisted[(Per-VM folder under .vms on host)]
-  dayTwo(Day-2 start stop shell and exec)
+  persisted[("🗄️ Per-VM folder under .vms on host")]
+  dayTwo("🤖 Day-2 start stop shell and exec")
 
   operator --> launch --> settings --> pick
   pick -->|Podman default| podmanPath --> persisted
@@ -197,7 +199,7 @@ flowchart TB
   persisted --> dayTwo
 ```
 
-`rebuild` and file sync are Podman-only today. Module map: [`docs/SPEC-VM-HYPERVISOR.md#1-architecture`](docs/SPEC-VM-HYPERVISOR.md#1-architecture).
+Pick **Podman** for everyday agent development (seconds to boot, rootless, default `network.mode: none`). Pick **QEMU** when the guest must have its own kernel so host guardrails cannot be bypassed, or when running authoritative guard E2E (`make test-e2e-qemu-full`). `rebuild` and file sync are Podman-only today. Module map: [`docs/SPEC-VM-HYPERVISOR.md#1-architecture`](docs/SPEC-VM-HYPERVISOR.md#1-architecture).
 
 **QEMU provision** ([`qemu_provision.py`](workspace/cli/hypervisor/qemu_provision.py)): host tree is virtio-9p **read-only** at `/mnt/workspace-ro`; profile selects what rsyncs to `/opt/workspace` before guest `make install-ci`. Host tree is never written by the guest.
 
@@ -222,7 +224,18 @@ Specs: [`docs/REQ-VM-HYPERVISOR.md`](docs/REQ-VM-HYPERVISOR.md), [`docs/SPEC-VM-
 
 ### Host VPN
 
-Architecture: [`docs/SPEC-OPENVPN.md#architecture`](docs/SPEC-OPENVPN.md#architecture).
+When workspace services (DATAOPS Postgres, Keycloak, staging networks) run on a remote host, WORKSPACE-VM installs a **boot-directory OpenVPN client** so your machine joins that network without the commercial OpenVPN Connect app. Automation spans three layers documented in [`docs/SPEC-OPENVPN.md`](docs/SPEC-OPENVPN.md): bootstrap the binary into `.boot-linux/` or `.boot-macos/`, run a persistent host tunnel (`make vpn-start`), and optionally attach VPN routing to agent VMs or containers that need egress through the tunnel.
+
+```mermaid
+flowchart LR
+  operator(["👤 Operator"])
+  install(["🔒 make vpn-install"])
+  hostSvc(["🌐 Host tunnel"])
+  vmNet(["🤖 Agent VM egress"])
+  remote(["🗄️ Remote workspace network"])
+  operator --> install --> hostSvc --> remote
+  hostSvc -.-> vmNet --> remote
+```
 
 ```bash
 make vpn-install
@@ -230,11 +243,22 @@ make vpn-start             # PERSIST=1 for reboot auto-start
 make vpn-status
 ```
 
-Spec: [`docs/SPEC-OPENVPN.md`](docs/SPEC-OPENVPN.md)
+Full architecture: [`docs/SPEC-OPENVPN.md#architecture`](docs/SPEC-OPENVPN.md#architecture)
 
 ### Benchmarks
 
-Llamafile transcript classifier: replays OpenCode SQLite sessions turn-by-turn against a running llamafile server, using a rolling 32K context window with pinned `id_slot` and `cache_prompt`. Requires server up first (`make llama-setup` or `make -f Makefile.llamafile install-llamafile`).
+Config-driven benchmarks under `benchmarks/` measure inference quality and latency on **your** stack, not a cloud API baseline. The flagship **transcript classifier** replays real OpenCode SQLite sessions turn-by-turn against a running llamafile server, simulating a rolling-window moderator with KV-cache reuse (`id_slot` + `cache_prompt`). Use it to regression-test model and server changes before agents depend on them.
+
+```mermaid
+flowchart LR
+  bench(["📊 make benchmark-llamafile-transcript-classifier"])
+  server(["🧠 llamafile HTTP server"])
+  fixtures[("🗄️ OpenCode SQLite fixtures")]
+  bench --> server
+  fixtures -.-> bench
+```
+
+Requires a server up first (`make llama-setup` or `make -f Makefile.llamafile install-llamafile`):
 
 ```bash
 make -f Makefile.llamafile benchmark-llamafile-transcript-classifier
@@ -246,17 +270,17 @@ README: [`benchmarks/llamafile/transcript_classifier/README.md`](benchmarks/llam
 
 ## 3. Workspace Philosophy
 
-Multiple independent git repos live under `projects/` ([`workspace/config/workspace-clones.yaml`](workspace/config/workspace-clones.yaml)). `projects/CI` and `projects/DATAOPS` are mandatory; others opt in via `bootstrap-repos`.
+WORKSPACE-VM is an **umbrella repo** that orchestrates multiple independent git clones under `projects/` ([`workspace/config/workspace-clones.yaml`](workspace/config/workspace-clones.yaml)). `projects/CI` and `projects/DATAOPS` are mandatory; other projects (PORTAL, TRADING, GUARD, etc.) opt in via `bootstrap-repos`. Agents, hooks, and guard policy apply workspace-wide; compliance is not optional per nested repo.
 
-- **Fail-Closed Security:** Agent VMs default to air-gapped Podman. `git-guard` wraps `/usr/bin/git` (blocks `--no-verify`, history rewrite). `podman-guard` enforces container policy.
+- **Fail-Closed Security:** Agent VMs default to air-gapped Podman (`network.mode: none`). `git-guard` wraps `/usr/bin/git` at the syscall boundary, blocking `--no-verify` and history rewrite. `podman-guard` enforces container egress and capability policy before a container starts.
 - **Compliance as Code:** WORKSPACE-CI (`projects/CI/`) generates native git hooks from `.pre-commit-config.yaml` and installs them recursively across nested repos. Hook stages and checks: [`projects/CI/README.md`](projects/CI/README.md).
-- **Topological Orchestration:** Prefer `moon` tasks. Resync clones with `moon run :update`.
-
-Hook stages and checks: [`projects/CI/README.md`](projects/CI/README.md).
+- **Topological Orchestration:** Prefer `moon` tasks for cross-repo builds and tests. Resync clones with `moon run :update`.
 
 ---
 
 ## 4. Navigation Map
+
+Use this table as a route map when onboarding. It shows where agent logic, enforcement, infrastructure, model weights, and specifications live relative to the umbrella root.
 
 | Purpose | Path | Description |
 | :--- | :--- | :--- |
@@ -274,7 +298,7 @@ Hook stages and checks: [`projects/CI/README.md`](projects/CI/README.md).
 
 ## 5. Contribution Contract
 
-Before opening a PR:
+Quality gates are mandatory and, when WORKSPACE-GUARD is installed, enforced at the git syscall boundary. There is no `--no-verify` escape hatch. Before opening a PR:
 
 1. **Pass the contract:** `make contract-check` (Makefile targets) and `make check` (lint + type-check + test via moon). Run `make check-push` locally to mirror the pre-push gate.
 2. **Install hooks:** `make install-hooks` (or `make install`, which runs `install-hooks-recursive` across the workspace and nested `projects/*` repos). Hooks are mandatory; there is no `--no-verify` escape when git-guard is installed.
