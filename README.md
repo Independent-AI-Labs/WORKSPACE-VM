@@ -91,43 +91,49 @@ make llama-setup
 ```
 
 ```mermaid
+%%{init: {'flowchart': {'nodeSpacing': 8, 'rankSpacing': 36, 'padding': 4}, 'themeVariables': {'fontSize': '11px'}}}%%
 flowchart TB
   subgraph legend [Legend]
     direction LR
-    legTrigger([Trigger]) ~~~ legInput[/Input file/] ~~~ legDecision{Decision} ~~~ legAction[Action] ~~~ legStore[(Persisted state)] ~~~ legOngoing(Ongoing ops)
+    legTrigger([Trigger]) ~~~ legInput[/Input/] ~~~ legAction[Action] ~~~ legStore[(State)] ~~~ legOngoing(Ongoing)
   end
+  classDef legendItem font-size:10px,stroke-width:1px
+  class legTrigger,legInput,legAction,legStore,legOngoing legendItem
+  style legend fill:transparent,stroke:#ccc,stroke-width:1px
 
   legOngoing ~~~ operator
 
   operator(["👤 Operator or automation"])
-  launch(["🧠 Run make llama-setup"])
-  profiles[/"📋 Stack profiles in llama-setup.yaml"/]
+  launch(["🧠 Run make llama-setup wizard"])
 
-  pick{Llamafile bundle or llama.cpp server?}
+  subgraph diskInputs ["Wizard reads from disk"]
+    direction LR
+    profileConfig[/"📋 Profile catalog: workspace/config/llama-setup.yaml"/]
+    weights[("🗄️ models/: GGUF weights and .args manifests")]
+  end
 
-  subgraph llamafileStack ["📦 Llamafile stack"]
+  subgraph llamafileStack ["📦 Llamafile stack: single portable .llamafile binary"]
     direction TB
-    bundleLf[Build portable .llamafile from models/]
+    bundleLf[Bundle GGUF from models/ into .llamafile]
     deployLf[Install llamafile systemd unit]
     bundleLf --> deployLf
   end
 
-  subgraph llamaCppStack ["⚙️ llama.cpp stack"]
+  subgraph llamaCppStack ["⚙️ llama.cpp stack: compiled llama-server per backend"]
     direction TB
-    buildCpp[Compile llama-server for chosen backend]
+    buildCpp[Build llama-server for Vulkan, SYCL, or CPU]
     deployCpp[Install llamaserver systemd unit]
     buildCpp --> deployCpp
   end
 
-  weights[("🗄️ models/ GGUF weights and .args")]
   server("🌐 HTTP inference server on host")
   clients(["🔌 HTTP clients"])
 
-  operator --> launch --> profiles --> pick
-  pick -->|one profile| llamafileStack
-  pick -->|one profile| llamaCppStack
-  weights -.-> bundleLf
-  weights -.-> buildCpp
+  operator --> launch --> diskInputs
+  profileConfig -->|llamafile profile| llamafileStack
+  profileConfig -->|llama.cpp profile| llamaCppStack
+  weights -.->|embed in bundle| bundleLf
+  weights -.->|load at deploy| buildCpp
   deployLf --> server
   deployCpp --> server
   server --> clients
@@ -158,56 +164,76 @@ Specs: [`docs/SPEC-LLAMA-SETUP-TUI.md`](docs/SPEC-LLAMA-SETUP-TUI.md), [`docs/SP
 
 ### Agent VMs (`make vm`)
 
-**Agent VMs** are isolated Linux environments where AI coding agents (OpenCode, Cursor-class tools, and similar) execute workloads without direct access to the host kernel or a writable copy of your workspace tree. `make vm` provisions a per-agent sandbox from a single YAML settings file ([`workspace/config/vm-template.yaml`](workspace/config/vm-template.yaml)); lifecycle state persists under `.vms/<uuid>/` on the host for day-2 start, stop, shell, and exec commands. The default backend is **rootless Podman**: fast to spin up and air-gapped by default. **QEMU** adds a full hardware VM boundary when you need host-kernel isolation or authoritative WORKSPACE-GUARD capability testing.
+**Agent VMs** are isolated Linux environments where AI coding agents (OpenCode, Cursor-class tools, and similar) execute workloads without direct access to the host kernel or writable access to the host workspace tree. `make vm` provisions a per-agent sandbox from a single YAML settings file ([`workspace/config/vm-template.yaml`](workspace/config/vm-template.yaml)); lifecycle state persists under `.vms/<uuid>/` on the host for day-2 start, stop, shell, and exec commands. The default backend is **rootless Podman**: fast to spin up and air-gapped by default. **QEMU** adds a full hardware VM boundary when you need host-kernel isolation or authoritative WORKSPACE-GUARD capability testing.
 
 ```mermaid
+%%{init: {'flowchart': {'nodeSpacing': 8, 'rankSpacing': 36, 'padding': 4}, 'themeVariables': {'fontSize': '11px'}}}%%
 flowchart TB
   subgraph legend [Legend]
     direction LR
-    legTrigger([Trigger]) ~~~ legInput[/Input file/] ~~~ legDecision{Decision} ~~~ legAction[Action] ~~~ legStore[(Persisted state)] ~~~ legOngoing(Ongoing ops)
+    legTrigger([Trigger]) ~~~ legInput[/Input/] ~~~ legAction[Action] ~~~ legStore[(State)] ~~~ legOngoing(Ongoing)
   end
+  classDef legendItem font-size:10px,stroke-width:1px
+  class legTrigger,legInput,legAction,legStore,legOngoing legendItem
+  style legend fill:transparent,stroke:#ccc,stroke-width:1px
 
   legOngoing ~~~ operator
 
   operator(["👤 Operator or automation"])
   launch[/"🤖 Run make vm with a config file"/]
-  settings[/"📄 VM settings YAML on disk"/]
 
-  pick{Podman container or QEMU virtual machine?}
-
-  subgraph podmanPath ["🐳 Podman container sandbox"]
-    direction TB
-    buildImage[Build agent image from templates]
-    runContainer[Start isolated Podman container]
-    buildImage --> runContainer
+  subgraph diskInputs ["Wizard reads from disk"]
+    direction LR
+    settings[/"📄 VM settings YAML: workspace/config/vm-template.yaml"/]
+    hostWorkspace[("🗄️ Host workspace repo on disk")]
   end
 
-  subgraph qemuPath ["🖥️ QEMU full virtual machine"]
+  subgraph podmanPath ["🐳 Podman: container shares host kernel"]
     direction TB
-    prepareDisk[Prepare base disk overlay and cloud-init]
-    bootVm[Boot VM with SSH port forward on host]
-    copyWorkspace[Optionally copy workspace into guest]
-    prepareDisk --> bootVm --> copyWorkspace
+    buildImage[Bake toolchain into image via install-ci]
+    seedVolume[Seed /workspace volume from host paths]
+    runContainer[Start container with named volumes]
+    buildImage --> seedVolume --> runContainer
   end
 
-  persisted[("🗄️ Per-VM folder under .vms on host")]
-  dayTwo("🤖 Day-2 start stop shell and exec")
+  subgraph qemuPath ["🖥️ QEMU: guest runs its own Linux kernel"]
+    direction TB
+    overlayDisk[Create per-VM QCOW2 overlay from base image]
+    bootGuest[Boot guest: virtio-9p RO repo share + SSH on localhost]
+    provisionGuest[SSH provision: rsync subset to /opt/workspace, install-ci]
+    overlayDisk --> bootGuest --> provisionGuest
+  end
 
-  operator --> launch --> settings --> pick
-  pick -->|Podman default| podmanPath --> persisted
-  pick -->|QEMU| qemuPath --> persisted
+  persisted[("🗄️ Per-VM state under .vms on host")]
+  dayTwo("🤖 Day-2: start, stop, shell, exec")
+
+  operator --> launch --> diskInputs
+  settings -->|Podman default| podmanPath
+  settings -->|QEMU| qemuPath
+  hostWorkspace -.->|files, sync, RO binds| seedVolume
+  hostWorkspace -.->|virtio-9p read-only| bootGuest
+  hostWorkspace -.->|rsync on provision| provisionGuest
+  podmanPath --> persisted
+  qemuPath --> persisted
   persisted --> dayTwo
 ```
 
-Pick **Podman** for everyday agent development (seconds to boot, rootless, default `network.mode: none`). Pick **QEMU** when the guest must have its own kernel so host guardrails cannot be bypassed, or when running authoritative guard E2E (`make test-e2e-qemu-full`). `rebuild` and file sync are Podman-only today. Module map: [`docs/SPEC-VM-HYPERVISOR.md#1-architecture`](docs/SPEC-VM-HYPERVISOR.md#1-architecture).
+Pick **Podman** for everyday agent development (seconds to boot, rootless, default `network.mode: none`). Pick **QEMU** when the guest must have its own kernel so host guardrails cannot be bypassed, or when running authoritative guard E2E (`make test-e2e-qemu-full`). Module map: [`docs/SPEC-VM-HYPERVISOR.md#1-architecture`](docs/SPEC-VM-HYPERVISOR.md#1-architecture).
 
-**QEMU provision** ([`qemu_provision.py`](workspace/cli/hypervisor/qemu_provision.py)): host tree is virtio-9p **read-only** at `/mnt/workspace-ro`; profile selects what rsyncs to `/opt/workspace` before guest `make install-ci`. Host tree is never written by the guest.
+**Workspace sharing:** both backends copy host workspace content into an isolated writable tree; neither mounts the host repo writable.
 
-| `provision` | Rsync scope |
+- **Podman** ([`vm_build.py`](workspace/cli/vm_build.py), [`vm_sync.py`](workspace/cli/vm_sync.py)): `files:` pre-copies host paths into the `<uuid>-workspace` volume at create; `make vm sync` rsyncs per `sync:` rules; optional read-only `mounts:` bind host paths into the container. Agent writes go to `/workspace` inside the volume.
+- **QEMU** ([`qemu_provision.py`](workspace/cli/hypervisor/qemu_provision.py)): host repo is virtio-9p **read-only** at `/mnt/workspace-ro`; provision rsyncs a profile-selected subset to `/opt/workspace` on the guest QCOW2, then runs `install-ci`. Host tree is never written by the guest.
+
+Podman shares the host kernel, so a named volume plus copy/sync is enough. QEMU runs a separate kernel and cannot use Podman volumes: virtio-9p exposes the host tree read-only, then rsync creates a writable guest-disk copy.
+
+| `provision` | Rsync scope (QEMU) |
 | :--- | :--- |
 | `poc` | Workspace core layout only |
 | `guard` | Skeleton + `projects/CI/` + `projects/WORKSPACE-GUARD/` |
 | `full-ci` | Skeleton + entire `projects/` |
+
+**Day-2 commands:** `vm rebuild` and `make vm sync` are Podman-only. QEMU provision runs once at create.
 
 **Podman network** ([`vm_build.py`](workspace/cli/vm_build.py)): default `network.mode: none` (`--network none`). `NET_ADMIN` is added only for bridge + `internet`/`proxy` policy, or OpenVPN with `vpn_type: container`. QEMU POC defers most network modes.
 
@@ -248,15 +274,6 @@ Full architecture: [`docs/SPEC-OPENVPN.md#architecture`](docs/SPEC-OPENVPN.md#ar
 ### Benchmarks
 
 Config-driven benchmarks under `benchmarks/` measure inference quality and latency on **your** stack, not a cloud API baseline. The flagship **transcript classifier** replays real OpenCode SQLite sessions turn-by-turn against a running llamafile server, simulating a rolling-window moderator with KV-cache reuse (`id_slot` + `cache_prompt`). Use it to regression-test model and server changes before agents depend on them.
-
-```mermaid
-flowchart LR
-  bench(["📊 make benchmark-llamafile-transcript-classifier"])
-  server(["🧠 llamafile HTTP server"])
-  fixtures[("🗄️ OpenCode SQLite fixtures")]
-  bench --> server
-  fixtures -.-> bench
-```
 
 Requires a server up first (`make llama-setup` or `make -f Makefile.llamafile install-llamafile`):
 
