@@ -4,17 +4,16 @@
 **Status:** Draft
 **Date:** 2026-07-11
 **Classification:** Internal - Enterprise
-**Requirements:** [REQ-VM-HYPERVISOR](REQ-VM-HYPERVISOR.md)
-**Tracking:** [TRACK-VM-HYPERVISOR](TRACK-VM-HYPERVISOR.md) (execution status and remaining tasks)
+**Requirements:** [REQ-VM-HYPERVISOR](../requirements/REQ-VM-HYPERVISOR.md)
 **References:**
-- [REQ-VM-HYPERVISOR](REQ-VM-HYPERVISOR.md)
-- [REQ-BOOT-LAYOUT](REQ-BOOT-LAYOUT.md)
-- [REQ-OPENVPN](REQ-OPENVPN.md)
-- [REQ-ANDROID-WORKSPACE](REQ-ANDROID-WORKSPACE.md)
-- [workspace/types/vm.py](../workspace/types/vm.py)
-- [workspace/cli/vm_manager.py](../workspace/cli/vm_manager.py)
-- [workspace/cli/vm_build.py](../workspace/cli/vm_build.py)
-- [workspace/config/vm-template.yaml](../workspace/config/vm-template.yaml)
+- [REQ-VM-HYPERVISOR](../requirements/REQ-VM-HYPERVISOR.md)
+- [REQ-BOOT-LAYOUT](../requirements/REQ-BOOT-LAYOUT.md)
+- [REQ-OPENVPN](../requirements/REQ-OPENVPN.md)
+- [REQ-ANDROID-WORKSPACE](../requirements/REQ-ANDROID-WORKSPACE.md)
+- [workspace/types/vm.py](../../workspace/types/vm.py)
+- [workspace/cli/vm_manager.py](../../workspace/cli/vm_manager.py)
+- [workspace/cli/vm_build.py](../../workspace/cli/vm_build.py)
+- [workspace/config/vm-template.yaml](../../workspace/config/vm-template.yaml)
 
 ---
 
@@ -688,7 +687,7 @@ sudo bash /opt/workspace/projects/WORKSPACE-GUARD/scripts/qemu/e2e-guest.sh
 Mutates **guest** `/usr/bin/git` only. Host `/usr/bin/git` fingerprint is verified
 before and after by `tests/e2e/qemu_host_isolation.py`.
 
-Cross-reference: [WORKSPACE-GUARD ROOT-ONLY-MODE](../projects/WORKSPACE-GUARD/docs/ROOT-ONLY-MODE.md).
+Cross-reference: [WORKSPACE-GUARD ROOT-ONLY-MODE](../../projects/WORKSPACE-GUARD/docs/ROOT-ONLY-MODE.md).
 
 ### 12.3 Makefile targets
 
@@ -721,7 +720,8 @@ Step 9 is the authoritative release gate: capability install, policy-matrix live
 vectors on real guest caps, and host `/usr/bin/git` fingerprint unchanged. See
 §12.1 and REQ FR-7.
 
-Execution status and remaining tasks: [TRACK-VM-HYPERVISOR](TRACK-VM-HYPERVISOR.md).
+Execution status per step: [REQ-VM-HYPERVISOR §10](../requirements/REQ-VM-HYPERVISOR.md);
+component status and remaining tasks: §17.
 
 ---
 
@@ -735,7 +735,7 @@ Execution status and remaining tasks: [TRACK-VM-HYPERVISOR](TRACK-VM-HYPERVISOR.
 
 ### 14.2 Android client
 
-Align with [REQ-ANDROID-WORKSPACE](REQ-ANDROID-WORKSPACE.md):
+Align with [REQ-ANDROID-WORKSPACE](../requirements/REQ-ANDROID-WORKSPACE.md):
 
 - Bundled `qemu-system-aarch64` as `.so` in `jniLibs/` (W^X workaround)
 - Forced `-accel tcg`
@@ -778,4 +778,52 @@ for bundling in WORKSPACE-VM boot directories and the Android client app.
 7. Guest provision (`qemu_provision.py`) + virtio-9p RO mount
 8. `vm-full-ci-qemu.yaml` + `make test-vm-guard` + authoritative E2E suite
 
-Progress and remaining tasks: [TRACK-VM-HYPERVISOR](TRACK-VM-HYPERVISOR.md).
+---
+
+## 17. Implementation Status
+
+Status as of 2026-07-12 (folded from the former operational tracking checklist).
+
+| Component | Status | Evidence |
+|-----------|--------|----------|
+| `VMConfig` + `vm-template.yaml` `isolation` block | Implemented | `workspace/types/vm.py` |
+| `workspace/cli/hypervisor/` package | Implemented | `IsolationBackend` protocol |
+| `vm_manager.create` backend dispatch | Implemented | `workspace/cli/vm_manager.py` |
+| `bootstrap_qemu.sh` + `.vms/_base/` image fetch | Implemented | SHA256 pinned (§10.2) |
+| `vm-poc-qemu.yaml` + `test_vm_qemu_poc.py` | Implemented | Passed on macOS (HVF) |
+| Guest provision (`qemu_provision.py`) + virtio-9p RO mount | Implemented | Cloud-init YAML + mount probe fixes |
+| `res/qemu-pins.yaml` SHA256 image pins | Implemented | arm64 + x86_64 pinned 2026-07-12 |
+| `vm-full-ci-qemu.yaml` + `test_vm_qemu_full_ci.py` | Partial | Provision path fixed; pytest gate pending re-run |
+| `make test-vm-guard` authoritative guard E2E | Partial | Manual `e2e-guest.sh` PASS 2026-07-12 (macOS); full pytest re-run and Linux KVM pending |
+
+### 17.1 Remaining work
+
+1. **Authoritative guard E2E** (REQ FR-7, AC-10/14/16): run
+   `make clean-qemu-e2e && make test-vm-guard` on macOS (HVF, ~30+ min) and on a
+   Linux host with `/dev/kvm`. On failure inspect `.vms/<uuid>/provision.log`,
+   guest `qemu.log`, and SSH output from the guard run.
+2. **Full-CI guest provision E2E** (REQ AC-15): run
+   `pytest tests/e2e/test_vm_qemu_full_ci.py -v -m e2e --timeout 3600` on macOS
+   and Linux; verify essential binaries on guest disk (`uv`, `python3`, `node`,
+   `opencode`).
+3. **Pre-release checklist**: after 1 and 2 pass individually, run
+   `make test-authoritative` end-to-end (POC + full-ci + guard in one pytest
+   invocation) and confirm `tests/e2e/qemu_host_isolation.py` before/after host
+   git checks.
+4. **Linux KVM accelerator parity** (REQ FR-5): confirm `resolve_accel` selects
+   `kvm` when `/dev/kvm` is present; verify `accel: auto` falls back to `tcg`
+   with warning and explicit `accel: kvm` fails with a `usermod -aG kvm` hint
+   when `/dev/kvm` is missing (§11.4).
+5. **x86_64 guest architecture** (REQ FR-6.4): boot + SSH sanity check
+   (`uname -m` -> `x86_64`) on an x86_64 host; re-run guard E2E if the release
+   matrix requires it.
+6. **Podman regression** (REQ AC-3/AC-8): run
+   `pytest tests/e2e/test_vm_security.py -v -m e2e` on a Podman host; confirm
+   existing Podman `vm create` is unchanged.
+7. **`make install-qemu` boot bundle** (REQ AC-11): on a fresh host confirm
+   `.boot-*/bin/qemu-system-*`, firmware, and GPL NOTICE are populated and
+   `res/qemu-pins.yaml#qemu.version` matches `qemu-system-aarch64 --version`.
+
+Phase 2 items in §14 (`vm rebuild`/`vm sync` for QEMU, Traefik/web UI in QEMU
+guests, Windows WHPX bundle, Android client TCG `.so` bundle) are explicitly
+deferred and do not block v1 sign-off.

@@ -4,8 +4,9 @@
 **Status:** Active (CPU sections); Vulkan/systemd extensions documented below
 **Date:** 2026-07-06 (updated 2026-07-13)
 **Classification:** Internal - Enterprise
+**Requirements:** [REQ-LLAMAFILE-MINICPM5-1B](../requirements/REQ-LLAMAFILE-MINICPM5-1B.md)
 
-> **Operator entrypoint (2026-07-13):** Use [`make llama-setup`](../README.md#llm-inference-llamafile-llama-cpp) for the full lifecycle (Intel/Vulkan prereqs, builds, bundles, systemd). This spec documents the **bundle format** and **CPU cosmocc build** in detail. Vulkan bundles, `ggml-vulkan.so`, and `install-llamafile` are covered in [`SPEC-LLAMA-SETUP-TUI.md`](SPEC-LLAMA-SETUP-TUI.md) and `Makefile.llamafile`.
+> **Operator entrypoint (2026-07-13):** Use [`make llama-setup`](../../README.md#llm-inference-llamafile-llama-cpp) for the full lifecycle (Intel/Vulkan prereqs, builds, bundles, systemd). This spec documents the **bundle format** and **CPU cosmocc build** in detail. Vulkan bundles, `ggml-vulkan.so`, and `install-llamafile` are covered in [`SPEC-LLAMA-SETUP-TUI.md`](SPEC-LLAMA-SETUP-TUI.md) and `Makefile.llamafile`.
 
 **References:**
 - mozilla-ai/llamafile `docs/source_installation.md`, `docs/creating_llamafiles.md`, `docs/technical_details.md`, `docs/support.md`

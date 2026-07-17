@@ -4,15 +4,15 @@
 **Status:** Draft
 **Date:** 2026-07-11
 **Classification:** Internal - Enterprise
-**Specification:** [SPEC-OPENVPN](SPEC-OPENVPN.md)
+**Specification:** [SPEC-OPENVPN](../specifications/SPEC-OPENVPN.md)
 **Authors:** Workspace Engineering
 **References:**
-- [SPEC-OPENVPN](SPEC-OPENVPN.md) (Technical Specification)
+- [SPEC-OPENVPN](../specifications/SPEC-OPENVPN.md) (Technical Specification)
 - [REQ-BOOT-LAYOUT](REQ-BOOT-LAYOUT.md) (Platform boot directory resolution)
-- [SPEC-BOOT-LAYOUT](SPEC-BOOT-LAYOUT.md) (Boot layout implementation)
-- [workspace/config/vm-template.yaml](../workspace/config/vm-template.yaml) (VM config reference)
-- [workspace/config/bootstrap-components.yaml](../workspace/config/bootstrap-components.yaml) (openvpn bootstrap entry)
-- [AGENTS.md](../AGENTS.md) (Universal Agent Rules)
+- [SPEC-BOOT-LAYOUT](../specifications/SPEC-BOOT-LAYOUT.md) (Boot layout implementation)
+- [workspace/config/vm-template.yaml](../../workspace/config/vm-template.yaml) (VM config reference)
+- [workspace/config/bootstrap-components.yaml](../../workspace/config/bootstrap-components.yaml) (openvpn bootstrap entry)
+- [AGENTS.md](../../AGENTS.md) (Universal Agent Rules)
 
 ---
 

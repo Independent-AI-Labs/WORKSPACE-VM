@@ -4,11 +4,12 @@
 **Status:** Draft
 **Date:** 2026-07-06
 **Classification:** Internal
+**Specification:** [SPEC-ANDROID-WORKSPACE](../specifications/SPEC-ANDROID-WORKSPACE.md)
 **Authors:** Workspace Engineering
 **References:**
 - [REQ-VM-HYPERVISOR](REQ-VM-HYPERVISOR.md) (desktop QEMU backend - shared patterns, Phase 2)
 - [REQ-BOOT-LAYOUT](REQ-BOOT-LAYOUT.md) (boot directory conventions on other platforms)
-- [AGENTS.md](../AGENTS.md) (Universal Agent Rules)
+- [AGENTS.md](../../AGENTS.md) (Universal Agent Rules)
 
 ---
 

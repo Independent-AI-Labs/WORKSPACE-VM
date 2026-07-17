@@ -4,13 +4,13 @@
 **Status:** Draft
 **Date:** 2026-07-10
 **Classification:** Internal - Enterprise
-**Specification:** [SPEC-BOOT-LAYOUT](SPEC-BOOT-LAYOUT.md)
+**Specification:** [SPEC-BOOT-LAYOUT](../specifications/SPEC-BOOT-LAYOUT.md)
 **Authors:** AMI-Agents Engineering
 **References:**
-- [config/boot_layout.yaml](../config/boot_layout.yaml) (current boot-path declaration)
-- [SPEC-BOOT-LAYOUT](SPEC-BOOT-LAYOUT.md) (Technical Specification)
+- [config/boot_layout.yaml](../../config/boot_layout.yaml) (current boot-path declaration)
+- [SPEC-BOOT-LAYOUT](../specifications/SPEC-BOOT-LAYOUT.md) (Technical Specification)
 - [REQ-AGENT-POLICY](REQ-AGENT-POLICY.md) (Agent Policy Engine, references boot-path resolver)
-- [AGENTS.md](../AGENTS.md) (Universal Agent Rules: shell-first, no-root, 512-line limit)
+- [AGENTS.md](../../AGENTS.md) (Universal Agent Rules: shell-first, no-root, 512-line limit)
 - POSIX.1-2017 (Shell Command Language)
 - GNU Core Utilities (`realpath`, `readlink`, `dirname`, `basename`)
 - BSD/macOS System Calls (`uname(2)`, `readlink(2)`)

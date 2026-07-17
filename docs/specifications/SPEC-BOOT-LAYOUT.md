@@ -4,11 +4,11 @@
 **Status:** Draft
 **Date:** 2026-07-10
 **Classification:** Internal - Enterprise
-**Requirements:** [REQ-BOOT-LAYOUT](REQ-BOOT-LAYOUT.md)
+**Requirements:** [REQ-BOOT-LAYOUT](../requirements/REQ-BOOT-LAYOUT.md)
 **References:**
-- [config/boot_layout.yaml](../config/boot_layout.yaml) (boot-path declaration)
-- [REQ-BOOT-LAYOUT](REQ-BOOT-LAYOUT.md) (Requirements Document)
-- [AGENTS.md](../AGENTS.md) (Universal Agent Rules)
+- [config/boot_layout.yaml](../../config/boot_layout.yaml) (boot-path declaration)
+- [REQ-BOOT-LAYOUT](../requirements/REQ-BOOT-LAYOUT.md) (Requirements Document)
+- [AGENTS.md](../../AGENTS.md) (Universal Agent Rules)
 - POSIX.1-2017 Shell Command Language
 - GNU Core Utilities (`realpath`, `readlink`)
 - BSD/macOS System Calls (`uname(2)`)
@@ -461,7 +461,7 @@ The migration SHALL be fully backward compatible:
 
 ### 10.2 Implementation Order
 
-See [REQ-BOOT-LAYOUT Section 8 (Success Criteria)](REQ-BOOT-LAYOUT.md#8-success-criteria) for the phase-by-phase implementation plan and validation checklist.
+See [REQ-BOOT-LAYOUT Section 8 (Success Criteria)](../requirements/REQ-BOOT-LAYOUT.md#8-success-criteria) for the phase-by-phase implementation plan and validation checklist.
 
 ### 10.3 Validation Checklist
 

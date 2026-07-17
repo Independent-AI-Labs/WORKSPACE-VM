@@ -4,18 +4,17 @@
 **Status:** Draft
 **Date:** 2026-07-11
 **Classification:** Internal - Enterprise
-**Specification:** [SPEC-VM-HYPERVISOR](SPEC-VM-HYPERVISOR.md)
-**Tracking:** [TRACK-VM-HYPERVISOR](TRACK-VM-HYPERVISOR.md) (execution status and remaining tasks)
+**Specification:** [SPEC-VM-HYPERVISOR](../specifications/SPEC-VM-HYPERVISOR.md)
 **Authors:** Workspace Engineering
 **References:**
-- [SPEC-VM-HYPERVISOR](SPEC-VM-HYPERVISOR.md) (Technical Specification)
+- [SPEC-VM-HYPERVISOR](../specifications/SPEC-VM-HYPERVISOR.md) (Technical Specification)
 - [REQ-BOOT-LAYOUT](REQ-BOOT-LAYOUT.md) (Platform boot directory resolution)
-- [SPEC-BOOT-LAYOUT](SPEC-BOOT-LAYOUT.md) (Boot layout implementation)
+- [SPEC-BOOT-LAYOUT](../specifications/SPEC-BOOT-LAYOUT.md) (Boot layout implementation)
 - [REQ-OPENVPN](REQ-OPENVPN.md) (VM network modes - Podman backend)
 - [REQ-ANDROID-WORKSPACE](REQ-ANDROID-WORKSPACE.md) (Android client - QEMU TCG bundle, Phase 2)
-- [workspace/config/vm-template.yaml](../workspace/config/vm-template.yaml) (VM config reference)
-- [projects/WORKSPACE-GUARD/docs/requirements/REQ-SANDBOX.md](../projects/WORKSPACE-GUARD/docs/requirements/REQ-SANDBOX.md) (Guard install / cap E2E authority)
-- [AGENTS.md](../AGENTS.md) (Universal Agent Rules)
+- [workspace/config/vm-template.yaml](../../workspace/config/vm-template.yaml) (VM config reference)
+- [projects/WORKSPACE-GUARD/docs/requirements/REQ-SANDBOX.md](../../projects/WORKSPACE-GUARD/docs/requirements/REQ-SANDBOX.md) (Guard install / cap E2E authority)
+- [AGENTS.md](../../AGENTS.md) (Universal Agent Rules)
 
 ---
 
@@ -375,7 +374,7 @@ workspace code that constructs argv and manages subprocess lifecycle.
 | AC-15 | `tests/e2e/test_vm_qemu_full_ci.py` passes on macOS and Linux (13 components, guest disk) |
 | AC-16 | Host `/usr/bin/git` fingerprint unchanged after `make test-vm-guard` on both platforms |
 
-Execution status: [TRACK-VM-HYPERVISOR](TRACK-VM-HYPERVISOR.md).
+Execution status for each criterion is tracked in §10.
 
 ---
 
@@ -412,4 +411,33 @@ evaluated:
 | Cloud Hypervisor | Apache-2.0 | KVM/MSHV only | Not POC |
 | Rootless Podman | Apache-2.0 | Container, not VM | Retained default backend |
 
-Full comparison table: [SPEC-VM-HYPERVISOR §15](SPEC-VM-HYPERVISOR.md).
+Full comparison table: [SPEC-VM-HYPERVISOR §15](../specifications/SPEC-VM-HYPERVISOR.md).
+
+---
+
+## 10. Implementation Status
+
+Status as of 2026-07-12 (folded from the former operational tracking checklist).
+
+| Item | Status | Evidence |
+|------|--------|----------|
+| AC-1 REQ/SPEC committed, cross-linked | Implemented | This document pair |
+| AC-2 `isolation` block in `vm-template.yaml`, default `podman` | Implemented | `workspace/config/vm-template.yaml` |
+| AC-3 Podman `vm create` unchanged | Partial | Podman regression (§AC-8) not yet re-verified |
+| AC-4 QEMU guest boots from `vm-poc-qemu.yaml` | Implemented | Passed on macOS (HVF) |
+| AC-5 SSH to forwarded port, Linux guest kernel | Implemented | Passed on macOS (HVF) |
+| AC-6 Host `/` unmodified by guest | Implemented | POC path verified |
+| AC-7 `tests/e2e/test_vm_qemu_poc.py` | Implemented | Passed on macOS (~93s) |
+| AC-8 `tests/e2e/test_vm_security.py` Podman tests | Not verified | Re-run on Podman host pending |
+| AC-9 `VMConfig` isolation schema unit tests | Implemented | `make test` |
+| AC-10 Guest runs guard `e2e-guest.sh` without host side effects | Partial | Manual `e2e-guest.sh` PASS 2026-07-12; full pytest gate pending |
+| AC-11 `make install-qemu` boot bundle | Not verified | Fresh-host run pending |
+| AC-12 `res/qemu-pins.yaml` matches installed version | Implemented | SHA256 pins recorded 2026-07-12; guard `test_qemu_pins_no_pending_sha256` |
+| AC-13 No `libqemu` linkage | Implemented | Subprocess-only invocation |
+| AC-14 `make test-vm-guard` on macOS (HVF) and Linux (KVM) | Partial | macOS manual pass; Linux KVM run pending |
+| AC-15 `tests/e2e/test_vm_qemu_full_ci.py` (13 components) | Not implemented | TODO on macOS and Linux |
+| AC-16 Host `/usr/bin/git` fingerprint unchanged after guard E2E | Partial | Awaits AC-14 completion on both platforms |
+
+Release gate: AC-14/AC-16 (`make test-vm-guard`) is authoritative; v1 sign-off requires
+both macOS (HVF) and Linux (KVM) passes. Remaining work detail lives in
+[SPEC-VM-HYPERVISOR §17](../specifications/SPEC-VM-HYPERVISOR.md).

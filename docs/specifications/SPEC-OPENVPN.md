@@ -4,12 +4,12 @@
 **Status:** Draft
 **Date:** 2026-07-11
 **Classification:** Internal - Enterprise
-**Requirements:** [REQ-OPENVPN](REQ-OPENVPN.md)
+**Requirements:** [REQ-OPENVPN](../requirements/REQ-OPENVPN.md)
 **References:**
-- [REQ-OPENVPN](REQ-OPENVPN.md)
-- [REQ-BOOT-LAYOUT](REQ-BOOT-LAYOUT.md)
-- [workspace/cli/vpn_core.py](../workspace/cli/vpn_core.py)
-- [workspace/types/vm.py](../workspace/types/vm.py)
+- [REQ-OPENVPN](../requirements/REQ-OPENVPN.md)
+- [REQ-BOOT-LAYOUT](../requirements/REQ-BOOT-LAYOUT.md)
+- [workspace/cli/vpn_core.py](../../workspace/cli/vpn_core.py)
+- [workspace/types/vm.py](../../workspace/types/vm.py)
 
 ---
 

@@ -1,10 +1,26 @@
-# A2A Remote Agent Integration - Enterprise Requirements Specification
+# REQ-A2A: A2A Remote Agent Integration
 
-**Document ID:** AMI-REQ-A2A-v1.0
-**Status:** Draft
 **Date:** 2026-06-01
+**Status:** Draft
+**Type:** Requirements
+**Specification:** [SPEC-A2A](../specifications/SPEC-A2A.md)
 **Classification:** Internal - Enterprise
-**Authors:** AMI-Agents Engineering
+**Document ID:** AMI-REQ-A2A-v1.0
+
+> Contract for integrating Agent-to-Agent (A2A) protocol client support into
+> AMI-Agents: discover, authenticate to, and delegate tasks to remote A2A
+> agents, with EU AI Act / GDPR / OWASP regulatory controls. This document is
+> the single source of truth for A2A client requirements. Explicitly excluded:
+> hosting an A2A Server endpoint and implementation/stack choices. Not yet
+> implemented; see the companion gap analysis for the closed-PR state.
+
+---
+
+**Cross-references:**
+- [SPEC-A2A](../specifications/SPEC-A2A.md): companion specification (Draft)
+- [GAP-ANALYSIS-A2A](../audits/GAP-ANALYSIS-A2A.md): point-in-time gap analysis of the closed PR #10452
+- [REQ-AGENT-POLICY](REQ-AGENT-POLICY.md): policy engine requirements governing remote-agent invocation
+
 **References:**
 - A2A Protocol Specification v1.0 (a2aproject/A2A, Linux Foundation)
 - EU AI Act (Regulation (EU) 2024/1689), Articles 6, 12, 14, 26, 99
@@ -426,6 +442,26 @@ The system SHALL respect data residency requirements:
 > **EU AI Act Article 99(2):** "Non-compliance with any of the requirements or obligations under Articles 12 to 26 shall be subject to administrative fines of up to 15,000,000 EUR or, if the offender is a company, up to 3% of its total worldwide annual turnover for the preceding financial year, whichever is higher." - WS-4 §3.1.6
 
 > **Agents and the EU AI Act:** "Any agent making decisions in employment, credit, education, or essential services (Annex III categories 3-5) is automatically high-risk unless it passes the narrow procedural task derogation. Document the decision." - WS-4 §7
+
+---
+
+## 10. Implementation Status
+
+This feature is not implemented. An unmerged implementation exists in the
+closed PR #10452 (`origin/pr/feat-remote-agents`), analysed in
+[GAP-ANALYSIS-A2A](../audits/GAP-ANALYSIS-A2A.md); that code targets a pre-Effect
+codebase and requires rewrite before it can satisfy these requirements.
+
+| Item | Status | Evidence |
+|------|--------|----------|
+| FR-1 Agent discovery (Agent Card fetch/validate/cache) | Not implemented | No `src/a2a/` module on `dev` |
+| FR-2 Agent communication (send/stream/task lifecycle) | Not implemented | Closed PR only |
+| FR-3 Authentication (OAuth2 PKCE, token refresh, bearer) | Not implemented | Closed PR only |
+| FR-4 Trust & permission model (`remote_agent` rules) | Not implemented | PermissionNext deleted upstream; PermissionV2 rewrite required |
+| FR-5 Capability representation (skills, modalities, artifacts) | Not implemented | Closed PR only |
+| FR-6 Observability & audit | Not implemented | Closed PR only |
+| NFR-1..5 (performance, security, reliability, scalability, privacy) | Not implemented | - |
+| REG-1..6 (EU AI Act, GDPR, ISO 42001, OWASP, DORA/NIS2, residency) | Not implemented | - |
 
 ---
 

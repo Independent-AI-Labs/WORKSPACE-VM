@@ -6,6 +6,7 @@
 **Target Branch:** `dev` (commit `fd2278eef`)
 **PR Source Branch:** `origin/pr/feat-remote-agents` (PR #10452, closed not merged)
 **Analysis By:** Codebase investigation of both branches + manual file reads
+**Requirements:** [REQ-A2A](../requirements/REQ-A2A.md) (current requirements contract)
 
 ---
 

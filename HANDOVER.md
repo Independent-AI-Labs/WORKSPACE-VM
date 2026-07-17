@@ -11,9 +11,9 @@ This document previously described an early macOS Traefik / `launch-mac.sh` inte
 | :--- | :--- |
 | Onboarding | [`README.md`](README.md) |
 | Doc index | [`docs/README.md`](docs/README.md) |
-| VM / QEMU | [`docs/SPEC-VM-HYPERVISOR.md`](docs/SPEC-VM-HYPERVISOR.md), [`docs/TRACK-VM-HYPERVISOR.md`](docs/TRACK-VM-HYPERVISOR.md) |
-| OpenVPN | [`docs/SPEC-OPENVPN.md`](docs/SPEC-OPENVPN.md) |
-| LLM / GPU setup | [`docs/SPEC-LLAMA-SETUP-TUI.md`](docs/SPEC-LLAMA-SETUP-TUI.md) |
+| VM / QEMU | [`docs/specifications/SPEC-VM-HYPERVISOR.md`](docs/specifications/SPEC-VM-HYPERVISOR.md) |
+| OpenVPN | [`docs/specifications/SPEC-OPENVPN.md`](docs/specifications/SPEC-OPENVPN.md) |
+| LLM / GPU setup | [`docs/specifications/SPEC-LLAMA-SETUP-TUI.md`](docs/specifications/SPEC-LLAMA-SETUP-TUI.md) |
 
 ## Historical detail
 

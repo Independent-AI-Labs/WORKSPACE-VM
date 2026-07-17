@@ -18,7 +18,7 @@ Replays OpenCode sessions turn-by-turn against a local llamafile server, simulat
    make -f Makefile.llamafile install-llamafile MODEL=minicpm5-1b GPU=vulkan
    ```
 
-   See [`docs/SPEC-LLAMA-SETUP-TUI.md`](../../../docs/SPEC-LLAMA-SETUP-TUI.md).
+   See [`docs/specifications/SPEC-LLAMA-SETUP-TUI.md`](../../../docs/specifications/SPEC-LLAMA-SETUP-TUI.md).
 
 2. **OpenCode SQLite DB** at `~/.local/share/opencode/opencode.db`
 3. **Project venv** active (`make sync-package` or `uv sync`)
@@ -66,5 +66,5 @@ Token counting during window selection calls the llamafile `/v1/chat/completions
 
 ## Related docs
 
-- [`docs/SPEC-LLAMA-SETUP-TUI.md`](../../../docs/SPEC-LLAMA-SETUP-TUI.md): server setup
-- [`docs/SPEC-LLAMAFILE-MINICPM5-1B.md`](../../../docs/SPEC-LLAMAFILE-MINICPM5-1B.md): bundle format
+- [`docs/specifications/SPEC-LLAMA-SETUP-TUI.md`](../../../docs/specifications/SPEC-LLAMA-SETUP-TUI.md): server setup
+- [`docs/specifications/SPEC-LLAMAFILE-MINICPM5-1B.md`](../../../docs/specifications/SPEC-LLAMAFILE-MINICPM5-1B.md): bundle format

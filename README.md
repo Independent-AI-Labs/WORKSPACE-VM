@@ -16,7 +16,7 @@ Before cloning or running workspace installers, confirm your host can support th
 
 - **Operating system:** Linux (x86_64) or macOS (Apple Silicon or Intel). Most GPU and llama workflows are Linux-first; macOS is supported for general bootstrap and development.
 - **Elevated permissions:** `sudo` for system packages (apt/brew), Intel GPU drivers, QEMU firmware, logrotate limits, and optional `git-guard` installation. LLM/GPU prereqs are handled through `make llama-setup`, not the general bootstrap.
-- **Boot directory:** `.boot-linux/` on Linux or `.boot-macos/` on macOS. Created and populated when you run `make install` or `make core`; holds vendored binaries (OpenVPN, QEMU pins, and similar) used by CLI extensions. Layout: [`docs/SPEC-BOOT-LAYOUT.md`](docs/SPEC-BOOT-LAYOUT.md).
+- **Boot directory:** `.boot-linux/` on Linux or `.boot-macos/` on macOS. Created and populated when you run `make install` or `make core`; holds vendored binaries (OpenVPN, QEMU pins, and similar) used by CLI extensions. Layout: [`docs/specifications/SPEC-BOOT-LAYOUT.md`](docs/specifications/SPEC-BOOT-LAYOUT.md).
 
 Install base system packages once per host (before or alongside your first workspace installer). `make install`, `make install-ci`, and `make llama-setup` all run `init-check` automatically; run the steps below manually only when you want to resolve apt/brew gaps ahead of time:
 
@@ -36,17 +36,17 @@ Choose the installer that matches what you are setting up. Each path has its own
   `make install-ci`. Config: [`workspace/config/install-defaults.yaml`](workspace/config/install-defaults.yaml)
 
 - **LLM inference, Intel GPU, Vulkan, llamafile / llama.cpp** (builds, bundles, systemd deploy, diagnostics):  
-  `make llama-setup`. Operator guide: [`docs/SPEC-LLAMA-SETUP-TUI.md`](docs/SPEC-LLAMA-SETUP-TUI.md).  
+  `make llama-setup`. Operator guide: [`docs/specifications/SPEC-LLAMA-SETUP-TUI.md`](docs/specifications/SPEC-LLAMA-SETUP-TUI.md).  
   Llama, GPU drivers, and `xpu-smi` are **not** part of `make install`; use this path instead.
 
 - **LLM setup in CI** (non-interactive defaults, no TTY):  
   `make llama-setup-ci`. Defaults: [`workspace/config/llama-setup-defaults.yaml`](workspace/config/llama-setup-defaults.yaml)
 
 - **QEMU hypervisor** (binaries, firmware, cloud-image helpers for `make vm`):  
-  `make install-qemu`. Spec: [`docs/SPEC-VM-HYPERVISOR.md`](docs/SPEC-VM-HYPERVISOR.md)
+  `make install-qemu`. Spec: [`docs/specifications/SPEC-VM-HYPERVISOR.md`](docs/specifications/SPEC-VM-HYPERVISOR.md)
 
 - **Host OpenVPN client** (tunnel to remote workspace networks):  
-  `make vpn-install`. Spec: [`docs/SPEC-OPENVPN.md`](docs/SPEC-OPENVPN.md)
+  `make vpn-install`. Spec: [`docs/specifications/SPEC-OPENVPN.md`](docs/specifications/SPEC-OPENVPN.md)
 
 ### Quick start (general bootstrap)
 
@@ -141,7 +141,7 @@ flowchart TB
 
 The wizard runs **one** profile per invocation; the other stack is not built or deployed. The `llamafile_cpu_chat` profile skips systemd deploy and runs as a local binary (see table).
 
-Bundle zipalign detail: [`docs/SPEC-LLAMAFILE-MINICPM5-1B.md`](docs/SPEC-LLAMAFILE-MINICPM5-1B.md).
+Bundle zipalign detail: [`docs/specifications/SPEC-LLAMAFILE-MINICPM5-1B.md`](docs/specifications/SPEC-LLAMAFILE-MINICPM5-1B.md).
 
 Stack profiles:
 
@@ -160,7 +160,7 @@ make -f Makefile.llamafile help
 make -f Makefile.llamaserver help
 ```
 
-Specs: [`docs/SPEC-LLAMA-SETUP-TUI.md`](docs/SPEC-LLAMA-SETUP-TUI.md), [`docs/SPEC-LLAMAFILE-MINICPM5-1B.md`](docs/SPEC-LLAMAFILE-MINICPM5-1B.md)
+Specs: [`docs/specifications/SPEC-LLAMA-SETUP-TUI.md`](docs/specifications/SPEC-LLAMA-SETUP-TUI.md), [`docs/specifications/SPEC-LLAMAFILE-MINICPM5-1B.md`](docs/specifications/SPEC-LLAMAFILE-MINICPM5-1B.md)
 
 ### Agent VMs (`make vm`)
 
@@ -218,7 +218,7 @@ flowchart TB
   persisted --> dayTwo
 ```
 
-Pick **Podman** for everyday agent development (seconds to boot, rootless, default `network.mode: none`). Pick **QEMU** when the guest must have its own kernel so host guardrails cannot be bypassed, or when running authoritative guard E2E (`make test-e2e-qemu-full`). Module map: [`docs/SPEC-VM-HYPERVISOR.md#1-architecture`](docs/SPEC-VM-HYPERVISOR.md#1-architecture).
+Pick **Podman** for everyday agent development (seconds to boot, rootless, default `network.mode: none`). Pick **QEMU** when the guest must have its own kernel so host guardrails cannot be bypassed, or when running authoritative guard E2E (`make test-e2e-qemu-full`). Module map: [`docs/specifications/SPEC-VM-HYPERVISOR.md#1-architecture`](docs/specifications/SPEC-VM-HYPERVISOR.md#1-architecture).
 
 **Workspace sharing:** both backends copy host workspace content into an isolated writable tree; neither mounts the host repo writable.
 
@@ -237,7 +237,7 @@ Podman shares the host kernel, so a named volume plus copy/sync is enough. QEMU 
 
 **Podman network** ([`vm_build.py`](workspace/cli/vm_build.py)): default `network.mode: none` (`--network none`). `NET_ADMIN` is added only for bridge + `internet`/`proxy` policy, or OpenVPN with `vpn_type: container`. QEMU POC defers most network modes.
 
-**Guard E2E:** authoritative capability tests run inside a provisioned QEMU guest (`make test-e2e-qemu-full`, `make test-authoritative`). See [`docs/SPEC-VM-HYPERVISOR.md` section 12](docs/SPEC-VM-HYPERVISOR.md#12-workspace-guard-integration).
+**Guard E2E:** authoritative capability tests run inside a provisioned QEMU guest (`make test-e2e-qemu-full`, `make test-authoritative`). See [`docs/specifications/SPEC-VM-HYPERVISOR.md` section 12](docs/specifications/SPEC-VM-HYPERVISOR.md#12-workspace-guard-integration).
 
 ```bash
 make install-qemu          # once per host (QEMU + genisoimage + cloud-localds)
@@ -246,11 +246,11 @@ make vm-list
 make test-e2e-qemu         # guard E2E in QEMU guest
 ```
 
-Specs: [`docs/REQ-VM-HYPERVISOR.md`](docs/REQ-VM-HYPERVISOR.md), [`docs/SPEC-VM-HYPERVISOR.md`](docs/SPEC-VM-HYPERVISOR.md), [`docs/TRACK-VM-HYPERVISOR.md`](docs/TRACK-VM-HYPERVISOR.md)
+Specs: [`docs/requirements/REQ-VM-HYPERVISOR.md`](docs/requirements/REQ-VM-HYPERVISOR.md), [`docs/specifications/SPEC-VM-HYPERVISOR.md`](docs/specifications/SPEC-VM-HYPERVISOR.md)
 
 ### Host VPN
 
-When workspace services (DATAOPS Postgres, Keycloak, staging networks) run on a remote host, WORKSPACE-VM installs a **boot-directory OpenVPN client** so your machine joins that network without the commercial OpenVPN Connect app. Automation spans three layers documented in [`docs/SPEC-OPENVPN.md`](docs/SPEC-OPENVPN.md): bootstrap the binary into `.boot-linux/` or `.boot-macos/`, run a persistent host tunnel (`make vpn-start`), and optionally attach VPN routing to agent VMs or containers that need egress through the tunnel.
+When workspace services (DATAOPS Postgres, Keycloak, staging networks) run on a remote host, WORKSPACE-VM installs a **boot-directory OpenVPN client** so your machine joins that network without the commercial OpenVPN Connect app. Automation spans three layers documented in [`docs/specifications/SPEC-OPENVPN.md`](docs/specifications/SPEC-OPENVPN.md): bootstrap the binary into `.boot-linux/` or `.boot-macos/`, run a persistent host tunnel (`make vpn-start`), and optionally attach VPN routing to agent VMs or containers that need egress through the tunnel.
 
 ```mermaid
 flowchart LR
@@ -269,7 +269,7 @@ make vpn-start             # PERSIST=1 for reboot auto-start
 make vpn-status
 ```
 
-Full architecture: [`docs/SPEC-OPENVPN.md#architecture`](docs/SPEC-OPENVPN.md#architecture)
+Full architecture: [`docs/specifications/SPEC-OPENVPN.md#architecture`](docs/specifications/SPEC-OPENVPN.md#architecture)
 
 ### Benchmarks
 

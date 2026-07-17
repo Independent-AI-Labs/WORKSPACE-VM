@@ -4,7 +4,7 @@
 **Status:** Draft
 **Date:** 2026-06-08
 **Classification:** Internal - Enterprise
-**Specification:** [SPEC-AGENT-POLICY](SPEC-AGENT-POLICY.md)
+**Specification:** [SPEC-AGENT-POLICY](../specifications/SPEC-AGENT-POLICY.md)
 **Authors:** AMI-Agents Engineering
 **References:**
 - A2A Protocol Specification v1.0 (a2aproject/A2A, Linux Foundation)
@@ -17,8 +17,8 @@
 - DORA (Digital Operational Resilience Act), NIS2 Directive
 - WS-1 through WS-7 research programme (removed from repo, preserved in git history)
 - REQ-HOOKS (V2 Hook Validation Pipeline, removed from repo, preserved in git history)
-- [REQUIREMENTS-A2A](REQUIREMENTS-A2A.md) (A2A Remote Agent Integration)
-- [GAP-ANALYSIS-A2A](GAP-ANALYSIS-A2A.md) (A2A Codebase Gap Analysis)
+- [REQ-A2A](REQ-A2A.md) (A2A Remote Agent Integration)
+- [GAP-ANALYSIS-A2A](../audits/GAP-ANALYSIS-A2A.md) (A2A Codebase Gap Analysis)
 
 ---
 
@@ -39,7 +39,7 @@ The policy engine provides:
 **Out of scope:**
 - Runtime policy enforcement engine (the static plugin evaluates policies at runtime via opencode's hook pipeline)
 - LLM-based policy evaluation (Phase 2, referenced from V2 REQ-HOOKS-050-057)
-- A2A Server endpoint hosting (covered by REQUIREMENTS-A2A.md)
+- A2A Server endpoint hosting (covered by [REQ-A2A](REQ-A2A.md))
 - Containerized agent isolation policy (covered by REQ-AGENT-CONTAINERS.md)
 - MCP protocol governance (separate requirement track)
 
@@ -424,7 +424,7 @@ The policy engine SHALL support ISO/IEC 42001 alignment:
 
 ### REG-5: A2A Protocol Governance Requirements
 
-The policy engine SHALL support A2A governance requirements identified in REQUIREMENTS-A2A.md and the A2A Protocol Specification v1.0:
+The policy engine SHALL support A2A governance requirements identified in [REQ-A2A](REQ-A2A.md) and the A2A Protocol Specification v1.0:
 
 #### REG-5.1 - Pre-Action Authorization (A2A Community Consensus)
 

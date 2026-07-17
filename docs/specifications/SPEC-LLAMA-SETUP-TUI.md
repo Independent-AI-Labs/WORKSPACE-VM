@@ -1,6 +1,8 @@
 # SPEC: Llama / Hardware Setup TUI
 
 **Status:** Active
+**Type:** Specification
+**Requirements:** [REQ-LLAMA-SETUP-TUI](../requirements/REQ-LLAMA-SETUP-TUI.md)
 **Entrypoints:** `make llama-setup` (interactive), `make llama-setup-ci` (defaults YAML)
 
 ## Motivation
@@ -16,8 +18,8 @@ make llama-setup          # interactive wizard
 make llama-setup-ci       # non-interactive (llamafile Vulkan server profile)
 ```
 
-Registry: [`workspace/config/llama-setup.yaml`](../workspace/config/llama-setup.yaml)
-CI defaults: [`workspace/config/llama-setup-defaults.yaml`](../workspace/config/llama-setup-defaults.yaml)
+Registry: [`workspace/config/llama-setup.yaml`](../../workspace/config/llama-setup.yaml)
+CI defaults: [`workspace/config/llama-setup-defaults.yaml`](../../workspace/config/llama-setup-defaults.yaml)
 
 ## Wizard phases
 
@@ -88,4 +90,4 @@ make -f Makefile.llamaserver install-llamaserver FLAVOR=vulkan
 ## Related
 
 - [SPEC-LLAMAFILE-MINICPM5-1B.md](SPEC-LLAMAFILE-MINICPM5-1B.md): bundle format and CPU build background
-- [../benchmarks/llamafile/transcript_classifier/README.md](../benchmarks/llamafile/transcript_classifier/README.md): benchmark (requires running server)
+- [../benchmarks/llamafile/transcript_classifier/README.md](../../benchmarks/llamafile/transcript_classifier/README.md): benchmark (requires running server)

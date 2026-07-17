@@ -5,7 +5,7 @@
 **Last Updated:** 2026-07-13
 **Author:** AMI-Agents Engineering
 
-> **Current state (2026-07-13):** Phase 1 (code deletions) complete. Phase 2 largely done (opencode, shell aliases, platform boot dirs, CI-owned Node/bootstrap). Phase 3 **in progress**: `make vm` with Podman + QEMU backends, `make install-qemu`, OpenVPN host client (`make vpn-*`), and llama inference stack (`make llama-setup`, llamafile bundles, systemd deploy). Phases 4-6 (full Traefik/mTLS parity in QEMU guests, gateway integration, production hardening) not complete. For operator onboarding use [`README.md`](../README.md) and [`docs/README.md`](README.md) rather than this plan's historical phase labels alone.
+> **Current state (2026-07-13):** Phase 1 (code deletions) complete. Phase 2 largely done (opencode, shell aliases, platform boot dirs, CI-owned Node/bootstrap). Phase 3 **in progress**: `make vm` with Podman + QEMU backends, `make install-qemu`, OpenVPN host client (`make vpn-*`), and llama inference stack (`make llama-setup`, llamafile bundles, systemd deploy). Phases 4-6 (full Traefik/mTLS parity in QEMU guests, gateway integration, production hardening) not complete. For operator onboarding use [`README.md`](../../README.md) and [`docs/README.md`](../README.md) rather than this plan's historical phase labels alone.
 
 ---
 
@@ -103,7 +103,7 @@ docs/archive/v2/
 
 | Action | Items |
 |--------|-------|
-| **Archive** (move to `docs/archive/v2/`) | All doc files in `docs/` except `REQUIREMENTS-A2A.md`, `GAP-ANALYSIS-A2A.md`, and this plan |
+| **Archive** (move to `docs/archive/v2/`) | All doc files in `docs/` except `requirements/REQ-A2A.md`, `audits/GAP-ANALYSIS-A2A.md`, and this plan |
 | **Delete** | All Python agent orchestration code: `ami/cli/`, `ami/core/`, `ami/tools/` |
 | **Keep** | `ami/cli_components/` - status/storage/legend files (ops extension entry points) |
 | **Keep** | `ami/types/` - needed by surviving cli_components (LegendRender, ContainerStatusDisplay, etc.) |
@@ -1081,7 +1081,7 @@ iptables -A FORWARD -s $CONTAINER_IP -j DROP
 # HTTP_PROXY/HTTPS_PROXY env vars injected into container
 ```
 
-**OpenVPN (mode: `openvpn`):** see [REQ-OPENVPN](REQ-OPENVPN.md) and [SPEC-OPENVPN](SPEC-OPENVPN.md).
+**OpenVPN (mode: `openvpn`):** see [REQ-OPENVPN](../requirements/REQ-OPENVPN.md) and [SPEC-OPENVPN](../specifications/SPEC-OPENVPN.md).
 
 For `vpn_type: container`, the container needs `--device /dev/net/tun` +
 `NET_ADMIN`. The `openvpn.service` unit starts the VPN client at boot

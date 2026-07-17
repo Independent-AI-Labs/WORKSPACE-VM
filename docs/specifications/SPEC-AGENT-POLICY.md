@@ -4,7 +4,7 @@
 **Status:** Draft
 **Date:** 2026-06-08
 **Classification:** Internal - Enterprise
-**Requirements:** [REQ-AGENT-POLICY](REQ-AGENT-POLICY.md)
+**Requirements:** [REQ-AGENT-POLICY](../requirements/REQ-AGENT-POLICY.md)
 **References:**
 - opencode Plugin Hooks Interface (`@opencode-ai/plugin`, 24 hook types)
 - A2A Protocol Specification v1.0
@@ -1287,4 +1287,4 @@ profile-delete: ## Delete a profile: make profile-delete NAME=my-profile
 
 ---
 
-*This specification implements the requirements defined in [REQ-AGENT-POLICY](REQ-AGENT-POLICY.md). Architecture: bash + yq for YAML processing and CLI management; static JavaScript for the opencode runtime plugin (loaded once, not generated). Zero Python VMs in the rendering pipeline. Industry standards referenced: A2A Protocol v1.0, opencode Plugin Hooks Interface (@opencode-ai/plugin), EU AI Act (Regulation (EU) 2024/1689), ISO/IEC 42001:2023, NIST AI RMF 1.0, OWASP Top 10 for LLM Applications (2025), and design patterns observed across 10+ AI agent policy engines.*
+*This specification implements the requirements defined in [REQ-AGENT-POLICY](../requirements/REQ-AGENT-POLICY.md). Architecture: bash + yq for YAML processing and CLI management; static JavaScript for the opencode runtime plugin (loaded once, not generated). Zero Python VMs in the rendering pipeline. Industry standards referenced: A2A Protocol v1.0, opencode Plugin Hooks Interface (@opencode-ai/plugin), EU AI Act (Regulation (EU) 2024/1689), ISO/IEC 42001:2023, NIST AI RMF 1.0, OWASP Top 10 for LLM Applications (2025), and design patterns observed across 10+ AI agent policy engines.*
