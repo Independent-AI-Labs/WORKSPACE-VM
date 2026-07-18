@@ -46,13 +46,13 @@ fi
 # Check for key system dependencies BEFORE downloading
 MISSING_LIBS=()
 for lib in libnss3 libgbm1 libatk-bridge2.0-0t64 libatk-bridge2.0-0; do
-    if ! dpkg -s "${lib}" &>/dev/null 2>&1; then
+    if ! dpkg -s "${lib}" ; then
         # Only mark as missing if no variant of the family is installed
         case "$lib" in
             libatk-bridge2.0-0)
-                dpkg -s libatk-bridge2.0-0t64 &>/dev/null 2>&1 && continue ;;
+                dpkg -s libatk-bridge2.0-0t64  && continue ;;
             libatk-bridge2.0-0t64)
-                dpkg -s libatk-bridge2.0-0   &>/dev/null 2>&1 && continue ;;
+                dpkg -s libatk-bridge2.0-0    && continue ;;
         esac
         MISSING_LIBS+=("$lib")
     fi

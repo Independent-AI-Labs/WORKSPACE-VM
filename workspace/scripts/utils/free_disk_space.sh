@@ -6,7 +6,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 echo "--- DISK CLEANUP STARTED ---"
 
-if command -v uv &> /dev/null; then
+if command -v uv ; then
     echo "[1/2] Cleaning 'uv' package cache (~24GB)..."
     uv cache clean
 else

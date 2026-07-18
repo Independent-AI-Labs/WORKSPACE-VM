@@ -73,9 +73,9 @@ WKHTMLTOPDF_URL="https://github.com/wkhtmltopdf/packaging/releases/download/${WK
 
 log_info "Downloading wkhtmltopdf from ${WKHTMLTOPDF_URL}"
 
-if command -v curl &> /dev/null; then
+if command -v curl ; then
     curl -fL -o "${WKHTMLTOPDF_DIR}/wkhtmltox.deb" "${WKHTMLTOPDF_URL}"
-elif command -v wget &> /dev/null; then
+elif command -v wget ; then
     wget -O "${WKHTMLTOPDF_DIR}/wkhtmltox.deb" "${WKHTMLTOPDF_URL}"
 else
     log_error "Neither curl nor wget found. Please install one of them."

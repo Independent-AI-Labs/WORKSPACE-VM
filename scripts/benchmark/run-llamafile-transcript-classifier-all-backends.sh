@@ -16,7 +16,7 @@ run_bench() {
     local backend="$1"
     local log_file="$LOG_DIR/bench-${backend}-$(date -u +%Y%m%dT%H%M%SZ).log"
     printf '[%s] starting %s benchmark (log: %s)\n' "$(date -u +%H:%M:%S)" "$backend" "$log_file"
-    if ! curl -sf "${BASE_URL}/health" >/dev/null 2>&1; then
+    if ! curl -sSf "${BASE_URL}/health"; then
         printf 'error: llamafile not healthy at %s before %s run\n' "$BASE_URL" "$backend" >&2
         return 1
     fi
@@ -35,7 +35,7 @@ deploy_backend() {
     printf '[%s] deploying llamafile backend=%s model=%s\n' "$(date -u +%H:%M:%S)" "$backend" "$MODEL"
     make -f "$MAKEFILE" install-llamafile MODEL="$MODEL" GPU="$backend"
     local waited=0
-    while ! curl -sf "${BASE_URL}/health" >/dev/null 2>&1; do
+    while ! curl -sSf "${BASE_URL}/health"; do
         sleep 2
         waited=$((waited + 2))
         if [ "$waited" -ge 120 ]; then

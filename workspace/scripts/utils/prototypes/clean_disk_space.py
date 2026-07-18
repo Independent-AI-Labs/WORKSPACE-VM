@@ -235,7 +235,8 @@ class DiskCleaner:
         ]
         try:
             result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-        except subprocess.CalledProcessError:
+        except subprocess.CalledProcessError as exc:
+            print(f"find failed rc={exc.returncode}: {exc.stderr}", file=sys.stderr)
             return []
         output = result.stdout.strip()
         return output.splitlines() if output else []

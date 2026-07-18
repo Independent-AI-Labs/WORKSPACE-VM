@@ -1,44 +1,5 @@
 # Per-project error-swallow exceptions for WORKSPACE-VM root repo.
-#
-# These paths contain PRE-EXISTING patterns surfaced when the CI
-# error-swallow checker was tightened (projects/CI 5e7e7ce, 2026-07-15)
-# after the last code change in this repo. The patterns exist identically
-# on origin/main. They are exempted here so unrelated commits are not
-# blocked; the underlying code MUST be fixed in a dedicated change, after
-# which the corresponding entries MUST be removed. Do not add new entries
-# for new code.
+# Entries require operator approval. See projects/CI docs:
+# docs/audits/SECURITY-AUDIT-2026-07-18-EXEMPTION-TAMPERING.md
 
-exceptions:
-  - paths:
-      - 'Makefile'
-      - 'ansible/roles/llamafile/templates/llamafile.service.j2'
-      - 'ansible/roles/llamaserver/templates/llamaserver.service.j2'
-      - 'ansible/roles/llamaserver-vulkan/templates/llamaserver-vulkan.service.j2'
-      - 'scripts/benchmark/run-llamafile-transcript-classifier-all-backends.sh'
-      - 'scripts/services/ami_failure_notify.sh'
-      - 'scripts/setup/build-llama-cpu.sh'
-      - 'scripts/setup/build-llamafile-vulkan.sh'
-      - 'scripts/setup/build-llama-sycl.sh'
-      - 'scripts/setup/build-llama-vulkan.sh'
-      - 'scripts/setup/compute-llamafile-parallel.sh'
-      - 'scripts/setup/install-intel-gpu.sh'
-      - 'scripts/setup/install-oneapi-dev.sh'
-      - 'scripts/setup/test_install_e2e_moon_phases.sh'
-      - 'scripts/setup/test_install_e2e.sh'
-      - 'scripts/setup/test-llamafile-vulkan.sh'
-      - 'workspace/cli/hypervisor/qemu_backend.py'
-      - 'workspace/cli/storage.py'
-      - 'workspace/cli/vm_build.py'
-      - 'workspace/cli/vm_lifecycle.py'
-      - 'workspace/cli/vm_manager.py'
-      - 'workspace/scripts/bin/setup_vpn_netns.sh'
-      - 'workspace/scripts/bootstrap/'
-      - 'workspace/scripts/bootstrap_install.py'
-      - 'workspace/scripts/llama_setup_detect.py'
-      - 'workspace/scripts/llama_setup_install.py'
-      - 'workspace/scripts/setup/bootstrap.sh'
-      - 'workspace/scripts/shell/extension_registry.py'
-      - 'workspace/scripts/shell/shell-setup'
-      - 'workspace/scripts/templates/'
-      - 'workspace/scripts/utils/free_disk_space.sh'
-      - 'workspace/scripts/utils/prototypes/clean_disk_space.py'
+exceptions: []

@@ -53,9 +53,9 @@ trap 'rm -rf "$TEMP_DIR"' EXIT
 cd "$TEMP_DIR"
 
 log_info "Downloading $URL..."
-if command -v curl >/dev/null 2>&1; then
+if command -v curl ; then
     curl -L --fail --retry 3 -o "$TARBALL" "$URL"
-elif command -v wget >/dev/null 2>&1; then
+elif command -v wget ; then
     wget -q -O "$TARBALL" "$URL"
 else
     log_error "Neither curl nor wget found."
@@ -72,7 +72,7 @@ if [ -d "$GO_DEST" ]; then
 fi
 
 mv go "$GO_DEST"
-cd - >/dev/null
+cd -
 
 log_success "Go installed to $GO_DEST"
 "$GO_DEST/bin/go" version

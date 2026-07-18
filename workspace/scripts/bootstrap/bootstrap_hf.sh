@@ -54,7 +54,7 @@ else
 fi
 
 # Verify
-if "${BIN_DIR}/hf" version > /dev/null 2>&1; then
+if "${BIN_DIR}/hf" version; then
     _hfver="$("${BIN_DIR}/hf" version 2>&1)"
     _hfver="${_hfver%%$'\n'*}"
     log_info "huggingface-cli installed successfully: ${_hfver}"

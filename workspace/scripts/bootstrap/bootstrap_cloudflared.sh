@@ -72,9 +72,9 @@ log_info "Downloading from ${DOWNLOAD_URL}..."
 TEMP_DIR=$(mktemp -d)
 trap 'rm -rf "$TEMP_DIR"' EXIT
 
-if command -v curl &> /dev/null; then
+if command -v curl ; then
     curl -L -o "${TEMP_DIR}/${BINARY_NAME}" "${DOWNLOAD_URL}"
-elif command -v wget &> /dev/null; then
+elif command -v wget ; then
     wget -O "${TEMP_DIR}/${BINARY_NAME}" "${DOWNLOAD_URL}"
 else
     log_error "Neither curl nor wget found."
@@ -93,7 +93,7 @@ fi
 chmod +x "${TARGET_PATH}"
 
 # Verify
-if "${TARGET_PATH}" --version > /dev/null 2>&1; then
+if "${TARGET_PATH}" --version; then
     _cver="$("${TARGET_PATH}" --version 2>&1)"
     _cver="${_cver%%$'\n'*}"
     log_info "cloudflared installed successfully: ${_cver}"

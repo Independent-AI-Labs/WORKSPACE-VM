@@ -61,7 +61,7 @@ mv "${TEMP_DIR}/platform-tools/fastboot" "${BIN_DIR}/"
 chmod +x "${BIN_DIR}/adb" "${BIN_DIR}/fastboot"
 
 # Verify
-if "${BIN_DIR}/adb" version > /dev/null 2>&1; then
+if "${BIN_DIR}/adb" version; then
     _adb_ver="$("${BIN_DIR}/adb" version 2>&1)"
     _adb_ver="${_adb_ver%%$'\n'*}"
     log_info "ADB installed successfully: ${_adb_ver}"

@@ -9,7 +9,7 @@ LLAMA_DIR="$PROJECT_ROOT/projects/llama.cpp"
 BUILD_DIR="$LLAMA_DIR/build-cpu"
 
 echo "=== Checking prerequisites ==="
-if ! command -v cmake &>/dev/null; then
+if ! command -v cmake ; then
     echo "ERROR: cmake not found. Install with: sudo apt-get install -y cmake"
     exit 1
 fi

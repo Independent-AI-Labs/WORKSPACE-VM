@@ -120,7 +120,7 @@ fi
 
 if [[ ! -x "${HIMALAYA_BIN}" ]]; then
     # Fall back to PATH lookup before giving up.
-    if ! command -v himalaya >/dev/null 2>&1; then
+    if ! command -v himalaya ; then
         die 3 "himalaya binary not found at ${HIMALAYA_BIN} or on PATH"
     fi
 fi

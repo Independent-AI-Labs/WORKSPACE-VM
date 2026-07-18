@@ -11,7 +11,12 @@ echo ""
 
 echo "=== Step 1: Adding Intel oneAPI Repository ==="
 sudo rm -f /etc/apt/sources.list.d/oneAPI.list
-wget -qO - https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB | gpg --yes --dearmor | sudo tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null
+wget -qO - https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB | gpg --yes --dearmor | sudo tee /usr/share/keyrings/oneapi-archive-keyring.gpg
+_ps=("${PIPESTATUS[@]}")
+[[ "${_ps[0]}" -eq 0 && "${_ps[1]}" -eq 0 && "${_ps[2]}" -eq 0 ]] || {
+    echo "ERROR: oneAPI key pipeline failed (wget=${_ps[0]} gpg=${_ps[1]} tee=${_ps[2]})" >&2
+    exit 1
+}
 echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list
 sudo apt-get update
 

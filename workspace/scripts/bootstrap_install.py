@@ -78,16 +78,16 @@ def run_bootstrap_script(script_name: str) -> bool:
     try:
         env = get_bootstrap_env()
 
-        # stdin=DEVNULL so bootstrap scripts that probe `[ -t 0 ]` see a
-        # non-TTY and take the non-interactive code path. The TUI itself owns
-        # the user's terminal - bootstrap scripts running underneath must
-        # never prompt (would freeze `make install` mid-walk; INCIDENT-2026-05-08
-        # gcloud "Reinstall? (y/N)" hang).
+        # input=b"" (stdin=PIPE, immediate EOF) so bootstrap scripts that
+        # probe `[ -t 0 ]` see a non-TTY and take the non-interactive code
+        # path. The TUI itself owns the user's terminal - bootstrap scripts
+        # running underneath must never prompt (would freeze `make install`
+        # mid-walk; INCIDENT-2026-05-08 gcloud "Reinstall? (y/N)" hang).
         subprocess.run(
             ["bash", str(script_path)],
             cwd=str(_PROJECT_ROOT),
             env=env,
-            stdin=subprocess.DEVNULL,
+            input=b"",
             check=True,
         )
     except (OSError, subprocess.SubprocessError, subprocess.CalledProcessError) as exc:
@@ -130,7 +130,7 @@ def _run_script_path(script_rel: str) -> bool:
             ["bash", str(script_path)],
             cwd=str(_PROJECT_ROOT),
             env=env,
-            stdin=subprocess.DEVNULL,
+            input=b"",
             check=True,
         )
     except (OSError, subprocess.SubprocessError, subprocess.CalledProcessError) as exc:
@@ -151,7 +151,7 @@ def _pull_workspace_repo(component: Component) -> None:
             subprocess.run(
                 ["git", "pull", "--ff-only"],
                 cwd=repo_path,
-                stdin=subprocess.DEVNULL,
+                input=b"",
                 check=True,
             )
         except subprocess.CalledProcessError as exc:
@@ -171,7 +171,7 @@ def _pull_workspace_repo(component: Component) -> None:
                 component.name,
             ],
             cwd=str(_PROJECT_ROOT),
-            stdin=subprocess.DEVNULL,
+            input=b"",
             check=True,
         )
     except subprocess.CalledProcessError as exc:

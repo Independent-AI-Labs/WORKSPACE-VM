@@ -109,9 +109,15 @@ install_oneapi_packages() {
     rm -f /etc/apt/sources.list.d/oneAPI.list
     wget -qO - https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB \
         | gpg --yes --dearmor \
-        | tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null
+        | tee /usr/share/keyrings/oneapi-archive-keyring.gpg
+    _ps=("${PIPESTATUS[@]}")
+    [[ "${_ps[0]}" -eq 0 && "${_ps[1]}" -eq 0 && "${_ps[2]}" -eq 0 ]] || {
+        echo "ERROR: oneAPI key pipeline failed (wget=${_ps[0]} gpg=${_ps[1]} tee=${_ps[2]})" >&2
+        exit 1
+    }
     echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" \
         | tee /etc/apt/sources.list.d/oneAPI.list
+    [[ "${PIPESTATUS[0]}" -eq 0 ]] || { echo "ERROR: failed to write oneAPI.list" >&2; exit 1; }
     apt-get update
     apt-get install -y \
         intel-oneapi-compiler-dpcpp-cpp \
@@ -123,7 +129,7 @@ install_oneapi_packages() {
 case "$MODE" in
     monitoring)
         echo "=== Intel GPU monitoring-only install ==="
-        if ! command -v xpu-smi >/dev/null 2>&1; then
+        if ! command -v xpu-smi ; then
             ensure_intel_graphics_ppa
         fi
         install_monitoring_packages
@@ -140,7 +146,12 @@ case "$MODE" in
         rm -f /etc/apt/sources.list.d/oneAPI.list
         wget -qO - https://repositories.intel.com/gpu/intel-graphics.key \
             | gpg --yes --dearmor \
-            | tee /usr/share/keyrings/intel-graphics.gpg > /dev/null
+            | tee /usr/share/keyrings/intel-graphics.gpg
+        _ps=("${PIPESTATUS[@]}")
+        [[ "${_ps[0]}" -eq 0 && "${_ps[1]}" -eq 0 && "${_ps[2]}" -eq 0 ]] || {
+            echo "ERROR: intel-graphics key pipeline failed (wget=${_ps[0]} gpg=${_ps[1]} tee=${_ps[2]})" >&2
+            exit 1
+        }
         ensure_intel_graphics_ppa
         install_driver_packages
         install_oneapi_packages

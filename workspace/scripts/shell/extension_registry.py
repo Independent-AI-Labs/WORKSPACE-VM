@@ -303,20 +303,14 @@ def check_container(name: str) -> bool:
         return False
     try:
         result = subprocess.run(
-            [
-                runtime,
-                "ps",
-                "--filter",
-                f"name={name}",
-                "--format",
-                "{{.Names}}",
-            ],
+            [runtime, "ps", "--filter", f"name={name}", "--format", "{{.Names}}"],
             capture_output=True,
             text=True,
             timeout=_MAX_CHECK_TIMEOUT,
             check=True,
         )
-    except (subprocess.TimeoutExpired, subprocess.CalledProcessError, OSError):
+    except (subprocess.TimeoutExpired, subprocess.CalledProcessError, OSError) as exc:
+        sys.stderr.write(f"container check for {name} failed: {exc}\n")
         return False
     return name in result.stdout
 

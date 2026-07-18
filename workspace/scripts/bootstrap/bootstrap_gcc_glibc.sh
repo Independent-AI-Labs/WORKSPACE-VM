@@ -47,9 +47,9 @@ mkdir -p "${GCC_GLIBC_DIR}"
 TARBALL_PATH="${GCC_GLIBC_DIR}/${TOOLCHAIN_TARBALL}"
 
 log_info "Downloading from ${TOOLCHAIN_URL} (~89MB)..."
-if command -v curl &> /dev/null; then
+if command -v curl ; then
     curl -fSL -o "${TARBALL_PATH}" "${TOOLCHAIN_URL}"
-elif command -v wget &> /dev/null; then
+elif command -v wget ; then
     wget -O "${TARBALL_PATH}" "${TOOLCHAIN_URL}"
 else
     log_error "Neither curl nor wget found."
@@ -63,7 +63,7 @@ rm -f "${TARBALL_PATH}"
 
 # Verify gcc works
 GCC_BIN="${GCC_GLIBC_DIR}/${TOOLCHAIN_DIR_NAME}/bin/${GCC_BIN_NAME}"
-if ! "${GCC_BIN}" --version &> /dev/null; then
+if ! "${GCC_BIN}" --version; then
     log_error "Extracted gcc failed to execute"
     exit 1
 fi
@@ -86,7 +86,7 @@ chmod +x "${BIN_DIR}/gcc-glibc"
 log_info "  Created gcc-glibc wrapper (musl gcc/cc unchanged)"
 
 # Verify
-if "${BIN_DIR}/gcc-glibc" --version &> /dev/null; then
+if "${BIN_DIR}/gcc-glibc" --version; then
     _glibcver="$("${BIN_DIR}/gcc-glibc" --version 2>&1)"
     _glibcver="${_glibcver%%$'\n'*}"
     log_info "✓ GCC/glibc bootstrapped: ${_glibcver}"

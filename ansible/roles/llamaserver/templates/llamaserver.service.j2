@@ -17,8 +17,8 @@ ExecStart={{ playbook_dir }}/../projects/llama.cpp/build-%i/bin/llama-server \
     --threads-http 1
 Environment=LD_LIBRARY_PATH=/opt/intel/oneapi/compiler/latest/lib:{{ playbook_dir }}/../projects/llama.cpp/build-%i/lib
 EnvironmentFile=%h/.config/llamaserver/llamaserver-%i.env
-StandardOutput=journal
-StandardError=journal
+StandardOutput=inherit
+StandardError=inherit
 Restart=always
 RestartSec=5
 

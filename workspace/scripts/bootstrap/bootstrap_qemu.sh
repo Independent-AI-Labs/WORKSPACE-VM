@@ -23,7 +23,7 @@ log() { echo "[bootstrap-qemu] $*"; }
 warn() { echo "[bootstrap-qemu] WARNING: $*" >&2; }
 
 install_linux() {
-    if ! command -v apt-get &>/dev/null; then
+    if ! command -v apt-get ; then
         echo "bootstrap-qemu: apt-get required on Linux" >&2
         exit 1
     fi
@@ -47,7 +47,7 @@ install_linux() {
 }
 
 install_darwin() {
-    if ! command -v brew &>/dev/null; then
+    if ! command -v brew ; then
         echo "bootstrap-qemu: Homebrew required on macOS" >&2
         exit 1
     fi
@@ -66,7 +66,7 @@ install_darwin() {
         ln -sf "$fw" "${FIRMWARE_DIR}/QEMU_EFI.fd"
     fi
 
-    if ! command -v cloud-localds &>/dev/null; then
+    if ! command -v cloud-localds ; then
         _vendor_url="https://raw.githubusercontent.com/canonical/cloud-utils/master/bin/cloud-localds"
         if curl -fsSL "$_vendor_url" -o "${BIN_DIR}/cloud-localds"; then
             chmod +x "${BIN_DIR}/cloud-localds"
@@ -76,7 +76,7 @@ install_darwin() {
         fi
     fi
 
-    if ! command -v genisoimage &>/dev/null && command -v mkisofs &>/dev/null; then
+    if ! command -v genisoimage  && command -v mkisofs ; then
         ln -sf "$(command -v mkisofs)" "${BIN_DIR}/genisoimage"
         log "linked genisoimage -> mkisofs in ${BIN_DIR}"
     fi

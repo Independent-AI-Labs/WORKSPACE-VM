@@ -66,9 +66,9 @@ PANDOC_TARBALL="${PANDOC_DIR}/pandoc.tar.gz"
 
 log_info "Downloading Pandoc from ${PANDOC_URL}"
 
-if command -v curl &> /dev/null; then
+if command -v curl ; then
     curl -L -o "${PANDOC_TARBALL}" "${PANDOC_URL}"
-elif command -v wget &> /dev/null; then
+elif command -v wget ; then
     wget -O "${PANDOC_TARBALL}" "${PANDOC_URL}"
 else
     log_error "Neither curl nor wget found. Please install one of them."

@@ -8,8 +8,8 @@ User={{ container_user }}
 ExecStart={{ container_install_root }}/.boot-linux/bin/traefik --configfile=/etc/traefik/traefik.yml
 Restart=on-failure
 RestartSec=5
-StandardOutput=journal
-StandardError=journal
+StandardOutput=inherit
+StandardError=inherit
 
 [Install]
 WantedBy=multi-user.target

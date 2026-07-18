@@ -31,6 +31,9 @@ from workspace.types.vm import (
 class _VMExecError(RuntimeError):
     """Host PID or IP inspection failed for a VM."""
 
+    def __init__(self, detail: str | None) -> None:
+        super().__init__(f"podman inspect failed: {detail}")
+
 
 class _InvalidUIDError(RuntimeError):
     """id -u returned a non-numeric UID."""
@@ -180,23 +183,21 @@ def _pre_copy_files(config: VMConfig, uuid_str: str) -> None:
     if not config.files:
         return
     try:
+        args = [
+            "podman",
+            "volume",
+            "inspect",
+            "-f",
+            "{{.Mountpoint}}",
+            f"{uuid_str}-workspace",
+        ]
         result = subprocess.run(
-            [
-                "podman",
-                "volume",
-                "inspect",
-                "-f",
-                "{{.Mountpoint}}",
-                f"{uuid_str}-workspace",
-            ],
-            capture_output=True,
-            text=True,
-            timeout=30,
-            check=True,
+            args, capture_output=True, text=True, timeout=30, check=True
         )
-    except subprocess.CalledProcessError:
+    except subprocess.CalledProcessError as exc:
         print(
-            "vm: WARNING: cannot inspect volume mountpoint, skipping pre-copy",
+            f"vm: WARNING: cannot inspect volume mountpoint: {exc.stderr}; "
+            "skipping pre-copy",
             file=sys.stderr,
         )
         return
@@ -272,12 +273,17 @@ def _ensure_bridge_network(cfg: VMConfig) -> None:
             check=True,
             timeout=30,
         )
-    except subprocess.CalledProcessError:
+    except subprocess.CalledProcessError as exc:
+        print(
+            f"vm: network {cfg.network.network_name} missing: {exc.stderr}; creating",
+            file=sys.stderr,
+        )
         subprocess.run(
             ["podman", "network", "create", cfg.network.network_name],
             check=True,
             timeout=30,
         )
+        print(f"vm: network {cfg.network.network_name} created", file=sys.stderr)
 
 
 def _ensure_volume(vol_name: str) -> None:
@@ -288,7 +294,8 @@ def _ensure_volume(vol_name: str) -> None:
             check=True,
             timeout=30,
         )
-    except subprocess.CalledProcessError:
+    except subprocess.CalledProcessError as exc:
+        print(f"vm: volume {vol_name} missing: {exc.stderr}; creating", file=sys.stderr)
         subprocess.run(
             ["podman", "volume", "create", vol_name],
             check=True,
@@ -367,34 +374,34 @@ def _render_and_build(
             ssh_key.unlink()
 
 
+def _inspect(uuid_str: str, fmt: str) -> str:
+    out = subprocess.run(
+        ["podman", "inspect", "-f", fmt, uuid_str],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    if out.stderr:
+        sys.stderr.write(out.stderr)
+    return out.stdout.strip()
+
+
 def _post_run_inspect(uuid_str: str, vm_dir: Path, cfg: VMConfig) -> None:
     try:
-        pid = subprocess.run(
-            ["podman", "inspect", "-f", "{{.State.Pid}}", uuid_str],
-            capture_output=True,
-            text=True,
-            check=True,
-        )
-        (vm_dir / "pid").write_text(pid.stdout.strip())
+        pid = _inspect(uuid_str, "{{.State.Pid}}")
+        (vm_dir / "pid").write_text(pid)
         if cfg.network.mode == "bridge":
-            ip = subprocess.run(
-                [
-                    "podman",
-                    "inspect",
-                    "-f",
-                    f"{{{{.NetworkSettings.Networks.{cfg.network.network_name}.IPAddress}}}}",
-                    uuid_str,
-                ],
-                capture_output=True,
-                text=True,
-                check=True,
+            net = cfg.network.network_name
+            container_ip = _inspect(
+                uuid_str, f"{{{{.NetworkSettings.Networks.{net}.IPAddress}}}}"
             )
-            container_ip = ip.stdout.strip()
-            if container_ip:
+            if not container_ip:
+                print(f"vm: WARNING: no bridge IP for {uuid_str}", file=sys.stderr)
+            else:
                 with open("/etc/hosts", "a") as f:
                     f.write(f"{container_ip} {uuid_str}.vm.local\n")
     except subprocess.CalledProcessError as exc:
-        raise _VMExecError from exc
+        raise _VMExecError(exc.stderr) from exc
 
 
 def _generate_companion_files(

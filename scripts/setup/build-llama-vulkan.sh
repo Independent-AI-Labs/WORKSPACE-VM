@@ -9,7 +9,7 @@ LLAMA_DIR="$PROJECT_ROOT/projects/llama.cpp"
 BUILD_DIR="$LLAMA_DIR/build-vulkan"
 
 echo "=== Checking prerequisites ==="
-if ! command -v cmake &>/dev/null; then
+if ! command -v cmake ; then
     echo "ERROR: cmake not found. Install with: sudo apt-get install -y cmake"
     exit 1
 fi
@@ -18,7 +18,7 @@ cmake_ver="${cmake_ver%%$'\n'*}"
 echo "  cmake: $cmake_ver"
 
 echo "=== Step 1: Checking Vulkan SDK ==="
-if ! dpkg -l libvulkan-dev &>/dev/null; then
+if ! dpkg -l libvulkan-dev ; then
     echo "Vulkan headers not found. Install with:"
     echo "  sudo apt-get install -y libvulkan-dev"
     echo ""

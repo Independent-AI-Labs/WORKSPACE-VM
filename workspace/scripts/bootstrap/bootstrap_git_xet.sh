@@ -60,13 +60,13 @@ install_git_lfs() {
         cp "git-lfs" "${BIN_DIR}/git-lfs"
     else
         log_error "Could not find git-lfs binary"
-        cd - > /dev/null
+        cd -
         rm -rf "$TEMP_DIR"
         return 1
     fi
 
     chmod +x "${BIN_DIR}/git-lfs"
-    cd - > /dev/null
+    cd -
     rm -rf "$TEMP_DIR"
 
     log_info "git-lfs installed successfully"
@@ -113,13 +113,13 @@ install_git_xet() {
     else
         log_error "Could not find git-xet binary"
         ls -la
-        cd - > /dev/null
+        cd -
         rm -rf "$TEMP_DIR"
         return 1
     fi
 
     chmod +x "${BIN_DIR}/git-xet"
-    cd - > /dev/null
+    cd -
     rm -rf "$TEMP_DIR"
 
     log_info "git-xet installed successfully"

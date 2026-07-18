@@ -117,7 +117,11 @@ class QemuBackend:
             workspace_root=workspace_root,
         )
         argv = build_qemu_argv(cfg=cfg, vm_dir=vm_dir, launch=launch)
-        subprocess.run(argv, check=True)
+        try:
+            subprocess.run(argv, check=True)
+        except subprocess.CalledProcessError as exc:
+            sys.stderr.write(f"qemu launch failed rc={exc.returncode}\n")
+            raise
         _wait_ssh(ssh_port, vm_dir / "qemu_ssh_ed25519")
 
     def stop(self, uuid: str) -> None:
@@ -198,7 +202,9 @@ class QemuBackend:
 def _process_alive(pid: int) -> bool:
     try:
         subprocess.run(["kill", "-0", str(pid)], capture_output=True, check=True)
-    except subprocess.CalledProcessError:
+    except subprocess.CalledProcessError as exc:
+        if exc.stderr:
+            sys.stderr.write(exc.stderr)
         return False
     return True
 

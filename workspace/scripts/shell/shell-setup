@@ -299,7 +299,7 @@ export DISPLAY="${DISPLAY:-:99}"
 _ami_ssh_setup() {
     local ssh_dir="$AMI_ROOT/.ssh"
     [[ -d "$ssh_dir" ]] || return 0
-    command -v ssh-add &>/dev/null || return 0
+    command -v ssh-add  || return 0
     for key in "$ssh_dir"/*; do
         [[ -f "$key" ]] || continue
         [[ "$key" = *.pub ]] && continue

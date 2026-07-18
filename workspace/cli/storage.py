@@ -91,7 +91,8 @@ def _remove_path(item: Path) -> bool:
             )
         else:
             item.unlink(missing_ok=True)
-    except (OSError, subprocess.CalledProcessError):
+    except (OSError, subprocess.CalledProcessError) as exc:
+        sys.stderr.write(f"error removing {item}: {exc}\n")
         return False
     else:
         return True

@@ -15,8 +15,8 @@ Environment=OPENCODE_SERVER_PASSWORD={{ password }}
 ExecStart={{ container_install_root }}/.boot-linux/bin/opencode web --port 4096
 Restart=on-failure
 RestartSec=5
-StandardOutput=journal
-StandardError=journal
+StandardOutput=inherit
+StandardError=inherit
 
 [Install]
 WantedBy=multi-user.target

@@ -52,9 +52,9 @@ echo " BUILD SUCCESSFUL! "
 echo " Binary: $BUILD_DIR/bin/llama-server"
 echo "================================================================"
 _dev_out=""
-if "$BUILD_DIR/bin/llama-ls-sycl-device" &>/dev/null; then
+if "$BUILD_DIR/bin/llama-ls-sycl-device"; then
     _dev_out="$("$BUILD_DIR/bin/llama-ls-sycl-device" 2>&1)"
-elif "$BUILD_DIR/bin/ls-sycl-device" &>/dev/null; then
+elif "$BUILD_DIR/bin/ls-sycl-device"; then
     _dev_out="$("$BUILD_DIR/bin/ls-sycl-device" 2>&1)"
 fi
 if [[ -n "$_dev_out" ]]; then

@@ -50,13 +50,17 @@ def rebuild(uuid_str: str) -> None:
     vm_dir = _VMS_DIR / uuid_str
     password = (vm_dir / "password").read_text().strip()
 
-    subprocess.run(
-        ["podman", "rm", "-f", "--time", "1", uuid_str],
-        capture_output=True,
-        text=True,
-        timeout=30,
-        check=True,
-    )
+    try:
+        subprocess.run(
+            ["podman", "rm", "-f", "--time", "1", uuid_str],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=True,
+        )
+    except subprocess.CalledProcessError as exc:
+        sys.stderr.write(f"vm: podman rm failed rc={exc.returncode}: {exc.stderr}\n")
+        raise
     _remove_hosts_entry(uuid_str)
 
     install_defaults = vm_dir / "vm-install-defaults.yaml"

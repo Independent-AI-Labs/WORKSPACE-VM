@@ -15,7 +15,7 @@ if [[ -x "$TARGET" ]]; then
     exit 0
 fi
 
-if ! command -v curl >/dev/null; then
+if ! command -v curl ; then
     echo "[${OP}] curl is required but not available"
     exit 1
 fi
@@ -34,7 +34,7 @@ TARBALL="traefik_v${TRAEFIK_VERSION}_linux_${TRAEFIK_ARCH}.tar.gz"
 URL="https://github.com/traefik/traefik/releases/download/v${TRAEFIK_VERSION}/${TARBALL}"
 
 echo "[${OP}] Downloading traefik v${TRAEFIK_VERSION} (${TRAEFIK_ARCH})..."
-if ! HTTP_CODE=$(curl -sLo "${TMPDIR}/${TARBALL}" -w "%{http_code}" "$URL"); then
+if ! HTTP_CODE=$(curl -sSLo "${TMPDIR}/${TARBALL}" -w "%{http_code}" "$URL"); then
     echo "[${OP}] curl failed - check network connectivity"
     exit 1
 fi

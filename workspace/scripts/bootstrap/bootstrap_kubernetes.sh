@@ -111,9 +111,9 @@ log_step "Downloading kubectl v${KUBECTL_VERSION}..."
 log_debug "URL: ${KUBECTL_URL}"
 log_debug "Dest: ${KUBECTL_BIN}"
 _dl_start=$(date +%s)
-if command -v curl &> /dev/null; then
+if command -v curl ; then
     curl -fSL --connect-timeout 30 --max-time 120 -o "${KUBECTL_BIN}" "${KUBECTL_URL}"
-elif command -v wget &> /dev/null; then
+elif command -v wget ; then
     wget --timeout=30 -O "${KUBECTL_BIN}" "${KUBECTL_URL}"
 else
     log_error "Neither curl nor wget found. Please install one of them."
@@ -154,9 +154,9 @@ log_step "Downloading Helm v${HELM_VERSION}..."
 log_debug "URL: ${HELM_URL}"
 log_debug "Dest: ${HELM_TARBALL}"
 _dl_start=$(date +%s)
-if command -v curl &> /dev/null; then
+if command -v curl ; then
     curl -fSL --connect-timeout 30 --max-time 120 -o "${HELM_TARBALL}" "${HELM_URL}"
-elif command -v wget &> /dev/null; then
+elif command -v wget ; then
     wget --timeout=30 -O "${HELM_TARBALL}" "${HELM_URL}"
 else
     log_error "Neither curl nor wget found."

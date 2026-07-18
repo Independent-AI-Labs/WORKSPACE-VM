@@ -8,8 +8,8 @@ Type=exec
 # The .llamafile must run bare (no CLI args) so embedded .args stays active.
 ExecStart={{ llamafile_server_script }} {{ llamafile_path }}
 EnvironmentFile=%h/.config/llamafile/llamafile-{{ llama_model }}.env
-StandardOutput=journal
-StandardError=journal
+StandardOutput=inherit
+StandardError=inherit
 Restart=always
 RestartSec=5
 

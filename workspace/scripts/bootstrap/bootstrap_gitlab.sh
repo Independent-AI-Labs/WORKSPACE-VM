@@ -50,9 +50,9 @@ log_info "Downloading from ${DOWNLOAD_URL}..."
 TEMP_DIR=$(mktemp -d)
 trap 'rm -rf "$TEMP_DIR"' EXIT
 
-if command -v curl &> /dev/null; then
+if command -v curl ; then
     curl -fSL -o "${TEMP_DIR}/${ARCHIVE_NAME}" "${DOWNLOAD_URL}"
-elif command -v wget &> /dev/null; then
+elif command -v wget ; then
     wget -O "${TEMP_DIR}/${ARCHIVE_NAME}" "${DOWNLOAD_URL}"
 else
     log_error "Neither curl nor wget found."
@@ -75,7 +75,7 @@ chmod +x "${GLAB_DIR}/bin/glab"
 
 ln -sf "../glab/bin/glab" "${BIN_DIR}/glab"
 
-if "${BIN_DIR}/glab" --version > /dev/null 2>&1; then
+if "${BIN_DIR}/glab" --version; then
     GLAB_VER="$("${BIN_DIR}/glab" --version 2>&1)"
     GLAB_VER="${GLAB_VER%%$'\n'*}"
     log_info "glab installed successfully: $GLAB_VER"

@@ -60,9 +60,9 @@ log_info "Downloading from ${DOWNLOAD_URL}..."
 TEMP_DIR=$(mktemp -d)
 trap 'rm -rf "$TEMP_DIR"' EXIT
 
-if command -v curl &> /dev/null; then
+if command -v curl ; then
     curl -L -o "${TEMP_DIR}/${ARCHIVE_NAME}" "${DOWNLOAD_URL}"
-elif command -v wget &> /dev/null; then
+elif command -v wget ; then
     wget -O "${TEMP_DIR}/${ARCHIVE_NAME}" "${DOWNLOAD_URL}"
 else
     log_error "Neither curl nor wget found."
@@ -82,7 +82,7 @@ chmod +x "${GH_DIR}/bin/gh"
 ln -sf "../gh/bin/gh" "${BIN_DIR}/gh"
 
 # Verify
-if "${BIN_DIR}/gh" --version > /dev/null 2>&1; then
+if "${BIN_DIR}/gh" --version; then
     _ghver="$("${BIN_DIR}/gh" --version 2>&1)"
     _ghver="${_ghver%%$'\n'*}"
     log_info "gh installed successfully: ${_ghver}"

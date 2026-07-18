@@ -28,12 +28,16 @@ def backend_for_uuid(uuid: str) -> PodmanBackend | QemuBackend:
 
 
 def _write_podman_pid(uuid: str) -> None:
-    result = subprocess.run(
-        ["podman", "inspect", "-f", "{{.State.Pid}}", uuid],
-        capture_output=True,
-        text=True,
-        check=True,
-    )
+    try:
+        result = subprocess.run(
+            ["podman", "inspect", "-f", "{{.State.Pid}}", uuid],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+    except subprocess.CalledProcessError as exc:
+        sys.stderr.write(f"vm: podman inspect failed: {exc.stderr}\n")
+        raise
     (_VMS_DIR / uuid / "pid").write_text(result.stdout.strip())
 
 

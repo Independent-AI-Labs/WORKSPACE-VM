@@ -98,7 +98,7 @@ if [ ! -f "$DSO" ]; then
 fi
 
 printf '\n=== Phase 3: backend_ops_test (Vulkan numerical consistency) ===\n'
-if ! command -v vulkaninfo >/dev/null 2>&1; then
+if ! command -v vulkaninfo ; then
     fail "vulkaninfo not found; install vulkan-tools"
 else
     if "$COSMO_MAKE" o//tests/backend_ops_test; then

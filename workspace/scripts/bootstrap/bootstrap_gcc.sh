@@ -40,9 +40,9 @@ DOWNLOAD_URL="https://musl.cc/x86_64-linux-musl-native.tgz"
 TARBALL="${GCC_MUSL_DIR}/musl-native.tgz"
 
 log_info "Downloading from ${DOWNLOAD_URL}..."
-if command -v curl &> /dev/null; then
+if command -v curl ; then
     curl -fSL -o "${TARBALL}" "${DOWNLOAD_URL}"
-elif command -v wget &> /dev/null; then
+elif command -v wget ; then
     wget -O "${TARBALL}" "${DOWNLOAD_URL}"
 else
     log_error "Neither curl nor wget found."
@@ -66,7 +66,7 @@ else
 fi
 
 # Verify gcc works
-if ! "${GCC_BIN_DIR}/gcc" --version &> /dev/null; then
+if ! "${GCC_BIN_DIR}/gcc" --version; then
     log_error "Extracted gcc failed to execute"
     exit 1
 fi
@@ -107,7 +107,7 @@ for bin in ar as ld nm objdump ranlib strip size strings addr2line; do
 done
 
 # Verify the symlinked cc works
-if "${BIN_DIR}/cc" --version &> /dev/null; then
+if "${BIN_DIR}/cc" --version; then
     _ccver="$("${BIN_DIR}/cc" --version 2>&1)"
     _ccver="${_ccver%%$'\n'*}"
     log_info "✓ C compiler bootstrapped successfully: ${_ccver}"

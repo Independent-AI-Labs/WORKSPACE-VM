@@ -46,7 +46,7 @@ PROBE_SCRIPT="$SCRIPT_DIR/lib/vulkan_gpu_probe.py"
 PROBE_CACHE=""
 
 llamafile_python() {
-    if command -v uv >/dev/null 2>&1; then
+    if command -v uv ; then
         uv run python "$@"
     else
         python3 "$@"
@@ -57,7 +57,7 @@ cache_vulkan_probe() {
     if [ -n "$PROBE_CACHE" ] && [ -f "$PROBE_CACHE" ]; then
         return 0
     fi
-    if ! command -v vulkaninfo >/dev/null 2>&1; then
+    if ! command -v vulkaninfo ; then
         return 1
     fi
     PROBE_CACHE="$(mktemp)"

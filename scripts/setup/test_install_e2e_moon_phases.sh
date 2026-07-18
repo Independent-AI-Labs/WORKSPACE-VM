@@ -20,7 +20,7 @@
 # Resolve moon binary once for all phases.
 if [ -x ".boot-linux/bin/moon" ]; then
     MOON=".boot-linux/bin/moon"
-elif command -v moon &> /dev/null; then
+elif command -v moon ; then
     MOON="moon"
 else
     MOON=""

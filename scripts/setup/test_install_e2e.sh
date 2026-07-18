@@ -27,6 +27,8 @@ echo "=========================================="
 
 CREATE_LOG=$(mktemp)
 bash workspace/scripts/bin/vm create workspace/config/vm-template.yaml 2>&1 | tee "$CREATE_LOG"
+_vm_rc="${PIPESTATUS[0]}"
+[[ "$_vm_rc" -eq 0 ]] || { echo "[FAIL] vm create exited $_vm_rc"; exit 1; }
 VM_UUID=$(grep 'UUID:' "$CREATE_LOG" | awk '{print $NF}')
 rm -f "$CREATE_LOG"
 if [[ -z "$VM_UUID" ]]; then
@@ -93,7 +95,7 @@ podman run --rm --entrypoint bash --network none "ami-vm:$VM_UUID" -c '
 cd /opt/ami-agents
 test -d .boot-linux && echo "[PASS] .boot-linux directory exists" || { echo "[FAIL] .boot-linux missing"; exit 1; }
 test -d .boot-linux/bin && echo "[PASS] .boot-linux/bin exists"
-if command -v .boot-linux/bin/uv >/dev/null 2>&1; then echo "[PASS] uv bootstrapped"; else echo "[WARN] uv not found in boot-linux"; fi
+if command -v .boot-linux/bin/uv ; then echo "[PASS] uv bootstrapped"; else echo "[WARN] uv not found in boot-linux"; fi
 '
 echo "[PASS] Bootstrap environment verified"
 

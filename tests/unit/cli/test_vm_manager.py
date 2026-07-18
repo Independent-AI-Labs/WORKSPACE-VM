@@ -445,6 +445,7 @@ def _fake_subprocess_run(*args, **kwargs):
     class _Result:
         returncode = 0
         stdout = "12345\n"
+        stderr = ""
 
     return _Result()
 
@@ -453,6 +454,7 @@ def _fake_podman_run(*args, **kwargs):
     class _Result:
         returncode = 0
         stdout = "healthy\n"
+        stderr = ""
 
     return _Result()
 

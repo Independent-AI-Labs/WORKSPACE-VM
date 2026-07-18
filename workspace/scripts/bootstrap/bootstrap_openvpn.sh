@@ -26,7 +26,7 @@ OS="$(uname -s)"
 case "${OS}" in
     Darwin)
         log_info "Installing OpenVPN on macOS via Homebrew..."
-        if ! command -v brew &>/dev/null; then
+        if ! command -v brew ; then
             log_error "Homebrew is required. Install from https://brew.sh"
             exit 1
         fi
@@ -41,7 +41,7 @@ case "${OS}" in
         ;;
     Linux)
         log_info "Installing OpenVPN via apt..."
-        if ! command -v apt-get &>/dev/null; then
+        if ! command -v apt-get ; then
             log_error "apt-get not found. Cannot install openvpn on this Linux distribution."
             exit 1
         fi

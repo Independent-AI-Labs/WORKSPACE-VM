@@ -11,7 +11,7 @@ fi
 VM_UUID="$1"
 CERT_DIR="$2"
 
-if ! command -v openssl >/dev/null; then
+if ! command -v openssl ; then
     echo "[${OP}] openssl is required but not available"
     exit 1
 fi

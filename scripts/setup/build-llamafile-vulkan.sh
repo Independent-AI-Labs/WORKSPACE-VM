@@ -45,7 +45,7 @@ DSO_NAME="ggml-vulkan.so"
 VERSION_H="$LLAMAFILE_DIR/llamafile/version.h"
 
 require_cmd() {
-    if ! command -v "$1" >/dev/null 2>&1; then
+    if ! command -v "$1" ; then
         printf 'error: %s not found\n' "$1" >&2
         return 1
     fi

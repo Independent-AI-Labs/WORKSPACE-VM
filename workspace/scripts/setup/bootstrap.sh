@@ -54,7 +54,7 @@ create_bootstrap_environment() {
             ;;
         *)
             log_error "Unsupported platform: $OS"
-            cd - > /dev/null
+            cd -
             rm -rf "$TEMP_DIR"
             return 1
             ;;
@@ -69,7 +69,7 @@ create_bootstrap_environment() {
             ;;
         *)
             log_error "Unsupported architecture: $ARCH"
-            cd - > /dev/null
+            cd -
             rm -rf "$TEMP_DIR"
             return 1
             ;;
@@ -86,7 +86,7 @@ create_bootstrap_environment() {
             # If latest doesn't work, try using a specific version
             log_info "Latest version failed, trying stable version..."
             # Get the latest release tag
-            VERSION=$(curl -s https://api.github.com/repos/astral-sh/uv/releases/latest | grep '"tag_name"' | sed -E 's/.*"tag_name": "([^"]+)",.*/\1/')
+            VERSION=$(curl -sS https://api.github.com/repos/astral-sh/uv/releases/latest | grep '"tag_name"' | sed -E 's/.*"tag_name": "([^"]+)",.*/\1/')
             # Remove the 'v' prefix if it exists
             VERSION=${VERSION#v}
             curl -LsSf "https://github.com/astral-sh/uv/releases/download/$VERSION/$UV_FILE_NAME" -o "$UV_FILE_NAME"
@@ -107,7 +107,7 @@ create_bootstrap_environment() {
             # If latest doesn't work, try using a specific version
             log_info "Latest version failed, trying stable version..."
             # Get the latest release tag
-            VERSION=$(curl -s https://api.github.com/repos/astral-sh/uv/releases/latest | grep '"tag_name"' | sed -E 's/.*"tag_name": "([^"]+)",.*/\1/')
+            VERSION=$(curl -sS https://api.github.com/repos/astral-sh/uv/releases/latest | grep '"tag_name"' | sed -E 's/.*"tag_name": "([^"]+)",.*/\1/')
             # Remove the 'v' prefix if it exists
             VERSION=${VERSION#v}
             curl -LsSf "https://github.com/astral-sh/uv/releases/download/$VERSION/$UV_FILE_NAME" -o "$UV_FILE_NAME"
@@ -130,20 +130,20 @@ create_bootstrap_environment() {
     # Verify essential tools are available in the bootstrap environment
     if [ ! -x "$BOOT_DIR/bin/python" ]; then
         log_error "Python not available in bootstrap environment"
-        cd - > /dev/null
+        cd -
         rm -rf "$TEMP_DIR"
         return 1
     fi
 
     if [ ! -x "$BOOT_DIR/bin/uv" ]; then
         log_error "uv not available in bootstrap environment"
-        cd - > /dev/null
+        cd -
         rm -rf "$TEMP_DIR"
         return 1
     fi
 
     # Clean up
-    cd - > /dev/null
+    cd -
     rm -rf "$TEMP_DIR"
 
     log_success "Bootstrap environment created successfully at $BOOT_DIR"

@@ -16,8 +16,8 @@ ExecStart={{ llama_server_path }} \
     --port {{ llama_server_port }} \
     -t 4
 Environment=LD_LIBRARY_PATH={{ vulkan_build_lib }}:{{ ansible_env.LD_LIBRARY_PATH | default('') }}
-StandardOutput=journal
-StandardError=journal
+StandardOutput=inherit
+StandardError=inherit
 Restart=on-failure
 RestartSec=5
 

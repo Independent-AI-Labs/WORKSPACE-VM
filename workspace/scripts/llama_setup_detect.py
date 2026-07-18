@@ -5,6 +5,7 @@ from __future__ import annotations
 import grp
 import os
 import subprocess
+import sys
 from pathlib import Path
 from typing import NamedTuple
 
@@ -84,14 +85,16 @@ def _run_detect_cmd(cmd: tuple[str, ...]) -> int:
         subprocess.run(
             list(cmd),
             cwd=str(PROJECT_ROOT),
-            stdin=subprocess.DEVNULL,
             capture_output=True,
             text=True,
             check=True,
         )
     except subprocess.CalledProcessError as exc:
+        if exc.stderr:
+            sys.stderr.write(exc.stderr)
         return exc.returncode
-    except OSError:
+    except OSError as exc:
+        sys.stderr.write(f"detect command failed: {exc}\n")
         return 127
     return 0
 
@@ -163,7 +166,8 @@ def _list_user_services() -> tuple[ServiceUnit, ...]:
             text=True,
             check=True,
         )
-    except (OSError, subprocess.SubprocessError, subprocess.CalledProcessError):
+    except (OSError, subprocess.SubprocessError, subprocess.CalledProcessError) as exc:
+        sys.stderr.write(f"systemctl list-units failed: {exc}\n")
         return tuple(units)
     for line in completed.stdout.splitlines():
         parts = line.split()
@@ -180,7 +184,6 @@ def _gpu_probe_lines() -> tuple[int, tuple[str, ...]]:
         completed = subprocess.run(
             ["uv", "run", "python", str(probe_script)],
             cwd=str(PROJECT_ROOT),
-            stdin=subprocess.DEVNULL,
             capture_output=True,
             text=True,
             check=True,

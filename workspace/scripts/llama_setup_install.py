@@ -61,7 +61,7 @@ def _run_shell_step(
             cmd,
             cwd=str(PROJECT_ROOT),
             env=dict(os.environ),
-            stdin=subprocess.DEVNULL,
+            input=b"",
             check=True,
         )
     except (OSError, subprocess.SubprocessError, subprocess.CalledProcessError) as exc:
@@ -101,7 +101,7 @@ def run_build_step(step: BuildStep) -> StepResult:
                 make_argv,
                 cwd=str(PROJECT_ROOT),
                 env=dict(os.environ),
-                stdin=subprocess.DEVNULL,
+                input=b"",
                 check=True,
             )
         except (
@@ -152,7 +152,7 @@ def deploy_stack(stack: StackProfile, model: str) -> StepResult:
             make_argv,
             cwd=str(PROJECT_ROOT),
             env=dict(os.environ),
-            stdin=subprocess.DEVNULL,
+            input=b"",
             check=True,
         )
     except (OSError, subprocess.SubprocessError, subprocess.CalledProcessError) as exc:
@@ -204,7 +204,7 @@ def run_diagnostic(spec: DiagnosticSpec) -> StepResult:
             argv,
             cwd=str(PROJECT_ROOT),
             env=dict(os.environ),
-            stdin=subprocess.DEVNULL,
+            input=b"",
             check=True,
         )
     except subprocess.CalledProcessError as exc:

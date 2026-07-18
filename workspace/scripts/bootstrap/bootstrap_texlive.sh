@@ -51,9 +51,9 @@ log_info "Downloading TeXLive installer..."
 INSTALLER_URL="https://mirror.ctan.org/systems/texlive/tlnet/install-tl-unx.tar.gz"
 INSTALLER_TARBALL="${INSTALLER_DIR}/install-tl-unx.tar.gz"
 
-if command -v curl &> /dev/null; then
+if command -v curl ; then
     curl -L -o "${INSTALLER_TARBALL}" "${INSTALLER_URL}"
-elif command -v wget &> /dev/null; then
+elif command -v wget ; then
     wget -O "${INSTALLER_TARBALL}" "${INSTALLER_URL}"
 else
     log_error "Neither curl nor wget found. Please install one of them."
@@ -363,7 +363,7 @@ export TEXMFCNF="${TEXLIVE_DIR}/texmf/texmf.cnf"
 
 # Verify installation
 log_info "Verifying pdflatex installation"
-if "${VENV_DIR}/bin/pdflatex" --version >/dev/null 2>&1; then
+if "${VENV_DIR}/bin/pdflatex" --version; then
     log_info "pdflatex installed successfully:"
     _pdflatexver="$("${VENV_DIR}/bin/pdflatex" --version 2>&1)"
     _pdflatexver="${_pdflatexver%%$'\n'*}"
