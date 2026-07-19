@@ -37,6 +37,8 @@ projects:
     ci: 'projects/CI'
     dataops: 'projects/DATAOPS'
     workspace-guard: 'projects/WORKSPACE-GUARD'
+    workspace-portal: 'projects/WORKSPACE-PORTAL'
+    workspace-streams: 'projects/WORKSPACE-STREAMS'
 
 vcs:
   client: 'git'
