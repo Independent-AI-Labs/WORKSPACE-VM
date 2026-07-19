@@ -36,7 +36,7 @@ _require_config() {
 }
 
 _require_python() {
-    command -v uv >/dev/null 2>&1 || die "missing uv; run: make sync-package"
+    _uv_probe="$(command -v uv 2>&1)" || die "missing uv; run: make sync-package"
 }
 
 _ensure_launchdaemon() {

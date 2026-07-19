@@ -226,11 +226,11 @@ while IFS='|' read -r entry_id remote path mandatory min_tag; do
     if [[ -n "$min_tag" && -d "$target/.git" ]]; then
         # Get the nearest tag reachable from HEAD.
         _bs_tag_err="$(mktemp)"
-        nearest_tag="$( cd "$target" && git describe -tags -abbrev=0 2>"$_bs_tag_err" )" || {
-            if [[ -s "$_bs_tag_err" ]]; then
-                echo "[bootstrap-repos] git describe failed for $entry_id: $(cat "$_bs_tag_err")" >&2
-            fi
-        }
+        tagrc=0
+        nearest_tag="$( cd "$target" && git describe -tags -abbrev=0 2>"$_bs_tag_err" )" || tagrc=$?
+        if [[ $tagrc -ne 0 && -s "$_bs_tag_err" ]]; then
+            echo "[bootstrap-repos] git describe failed for $entry_id: $(cat "$_bs_tag_err")" >&2
+        fi
         rm -f "$_bs_tag_err"
         if [[ -z "$nearest_tag" ]]; then
             echo "WARNING: $entry_id has no tags; cannot verify minTag=$min_tag" >&2

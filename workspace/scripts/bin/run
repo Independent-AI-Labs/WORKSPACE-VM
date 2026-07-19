@@ -12,9 +12,9 @@ BOOT_DIR="$AMI_ROOT/.boot-linux"
 
 if [[ -f "$AMI_ROOT/.env" ]]; then
     _env_err="$(mktemp)"
-    _env_out="$(grep -v '^#' "$AMI_ROOT/.env" | xargs 2>"$_env_err")" || {
-        if [[ -s "$_env_err" ]]; then cat "$_env_err" >&2; fi
-    }
+    envrc=0
+    _env_out="$(grep -v '^#' "$AMI_ROOT/.env" | xargs 2>"$_env_err")" || envrc=$?
+    if [[ $envrc -ne 0 && -s "$_env_err" ]]; then cat "$_env_err" >&2; fi
     [[ -n "$_env_out" ]] && export $_env_out
     rm -f "$_env_err"
 fi
@@ -102,14 +102,15 @@ case "$SUBCOMMAND" in
         PID_F="$R_DIR/pid.lock"
         if [[ -f "$PID_F" ]]; then
             _kill_err="$(mktemp)"
-            if kill -0 "$(cat "$PID_F")" 2>"$_kill_err"; then
+            killrc=0
+            kill -0 "$(cat "$PID_F")" 2>"$_kill_err" || killrc=$?
+            if [[ $killrc -eq 0 ]]; then
                 rm -f "$_kill_err"
                 echo "Already running" >&2
                 exit 1
-            else
-                if [[ -s "$_kill_err" ]]; then cat "$_kill_err" >&2; fi
-                rm -f "$_kill_err"
             fi
+            if [[ -s "$_kill_err" ]]; then cat "$_kill_err" >&2; fi
+            rm -f "$_kill_err"
         fi
         nohup "$0" "${CMD[@]}" > "$R_DIR/std.log" 2>&1 &
         echo $! > "$PID_F"

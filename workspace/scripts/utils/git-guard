@@ -37,18 +37,20 @@ fi
 block() {
     local msg="❌ BLOCKED: $1 ($(date -Is))"
     # Write to terminal directly - bypasses all stdout/stderr redirection.
-    # Cannot be silenced by "> /dev/null 2>&1".
-    echo "$msg" > /dev/tty 2>"$_GG_ERR" || {
+    # Cannot be silenced by redirecting both output streams.
+    ttyrc=0
+    echo "$msg" > /dev/tty 2>"$_GG_ERR" || ttyrc=$?
+    if [[ $ttyrc -ne 0 ]]; then
         _gg_log_err "$_GG_ERR" "tty write"
-        true
-    }
+    fi
     # Also write to stderr for logs/CI where /dev/tty may not exist
     echo "$msg" >&2
     # Permanent audit trail
-    echo "$msg | cwd=$(pwd) | cmd=$1" >> "${HOME}/.ami-git-guard.log" 2>"$_GG_ERR" || {
+    logrc=0
+    echo "$msg | cwd=$(pwd) | cmd=$1" >> "${HOME}/.ami-git-guard.log" 2>"$_GG_ERR" || logrc=$?
+    if [[ $logrc -ne 0 ]]; then
         _gg_log_err "$_GG_ERR" "audit log write"
-        true
-    }
+    fi
     exit 1
 }
 
@@ -118,10 +120,12 @@ fi
 # a non-zero exit code when the query cannot be answered (no repo, no remote,
 # detached HEAD) - in that case the check is skipped rather than blocking.
 _current_branch() {
-    "$GIT_REAL" rev-parse --abbrev-ref HEAD 2>"$_GG_ERR" || {
+    local _brancrc=0
+    "$GIT_REAL" rev-parse --abbrev-ref HEAD 2>"$_GG_ERR" || _brancrc=$?
+    if [[ $_brancrc -ne 0 ]]; then
         _gg_log_err "$_GG_ERR" "git rev-parse -abbrev-ref HEAD"
         return 1
-    }
+    fi
 }
 
 _is_on_remote() {
@@ -130,10 +134,12 @@ _is_on_remote() {
     local branch
     branch="$(_current_branch)"
     [[ -z "$branch" || "$branch" == "HEAD" ]] && return 1
-    "$GIT_REAL" merge-base --is-ancestor "$target" "origin/$branch" 2>"$_GG_ERR" || {
+    local _mergerc=0
+    "$GIT_REAL" merge-base --is-ancestor "$target" "origin/$branch" 2>"$_GG_ERR" || _mergerc=$?
+    if [[ $_mergerc -ne 0 ]]; then
         _gg_log_err "$_GG_ERR" "git merge-base -is-ancestor"
         return 1
-    }
+    fi
 }
 
 _is_protected_branch() {
@@ -170,7 +176,7 @@ if [[ "$cmd" == "revert" ]]; then
     if ! _is_on_remote "$revert_target"; then
         # Only block when we can verify the commit exists locally. If
         # rev-parse fails, fall through so real git emits its own error.
-        if "$GIT_REAL" rev-parse --verify "$revert_target^{commit}" >/dev/null 2>&1; then
+        if _verify_out="$("$GIT_REAL" rev-parse --verify "$revert_target^{commit}" 2>&1)"; then
             block "git revert on $revert_target which is not on origin/$(_current_branch) (edit forward with a new commit instead)"
         fi
     fi
@@ -227,10 +233,12 @@ fi
 # =============================================================================
 if [[ "$cmd" == "commit" || "$cmd" == "push" ]]; then
     _wsroot=""
-    _toplevel="$("$GIT_REAL" rev-parse --show-toplevel 2>"$_GG_ERR" || {
+    toprc=0
+    _toplevel="$("$GIT_REAL" rev-parse --show-toplevel 2>"$_GG_ERR")" || toprc=$?
+    if [[ $toprc -ne 0 ]]; then
         _gg_log_err "$_GG_ERR" "git rev-parse -show-toplevel"
-        true
-    })"
+        _toplevel=""
+    fi
     if [[ -n "$_toplevel" ]]; then
         _cur="$_toplevel"
         while [[ "$_cur" != "/" ]]; do
@@ -256,14 +264,18 @@ if [[ "$cmd" == "commit" || "$cmd" == "push" ]]; then
 
             _rel="${_toplevel#"$_wsroot"/}"
             [[ "$_rel" == "$_toplevel" ]] && _rel="."
-            _tier="$(ci_resolve_tier "$_rel" "$_registry" 2>"$_GG_ERR" || {
+            tierrc=0
+            _tier="$(ci_resolve_tier "$_rel" "$_registry" 2>"$_GG_ERR")" || tierrc=$?
+            if [[ $tierrc -ne 0 ]]; then
                 _gg_log_err "$_GG_ERR" "ci_resolve_tier"
-                echo strict
-            })"
-            _mode="$(ci_resolve_enforcement_mode "$_registry" 2>"$_GG_ERR" || {
+                _tier="strict"
+            fi
+            moderc=0
+            _mode="$(ci_resolve_enforcement_mode "$_registry" 2>"$_GG_ERR")" || moderc=$?
+            if [[ $moderc -ne 0 ]]; then
                 _gg_log_err "$_GG_ERR" "ci_resolve_enforcement_mode"
-                echo warn
-            })"
+                _mode="warn"
+            fi
 
             # vendored = passthrough; nothing to enforce.
             if [[ "$_tier" != "vendored" ]]; then
@@ -271,10 +283,12 @@ if [[ "$cmd" == "commit" || "$cmd" == "push" ]]; then
                 # Resolve hooks dir (handles worktree gitdir-pointer).
                 _gd="$_toplevel/.git"
                 if [[ -f "$_gd" ]]; then
-                    _gd="$(sed -n 's/^gitdir:[[:space:]]*//p' "$_gd" 2>"$_GG_ERR" || {
+                    gdrc=0
+                    _gd="$(sed -n 's/^gitdir:[[:space:]]*//p' "$_gd" 2>"$_GG_ERR")" || gdrc=$?
+                    if [[ $gdrc -ne 0 ]]; then
                         _gg_log_err "$_GG_ERR" "sed gitdir parse"
-                        true
-                    })"
+                        _gd=""
+                    fi
                     [[ -n "$_gd" && "$_gd" != /* ]] && _gd="$_toplevel/$_gd"
                 fi
                 _hooks_dir="$_gd/hooks"
@@ -285,18 +299,30 @@ if [[ "$cmd" == "commit" || "$cmd" == "push" ]]; then
                 fi
 
                 # G2: pre-commit hook installed + AMI-CI generated
-                : > "$_GG_ERR"
-                if [[ ! -x "$_hooks_dir/pre-commit" ]] || ! sed -n '1,5p' "$_hooks_dir/pre-commit" 2>"$_GG_ERR" | grep -q 'AUTO-GENERATED.*generate-hooks'; then
-                    _gg_log_err "$_GG_ERR" "pre-commit hook check"
+                if [[ ! -x "$_hooks_dir/pre-commit" ]]; then
                     _violations+=("pre-commit hook missing or not WORKSPACE-CI generated - run: make install-hooks")
+                else
+                    : > "$_GG_ERR"
+                    hookrc=0
+                    sed -n '1,5p' "$_hooks_dir/pre-commit" 2>"$_GG_ERR" | grep -q 'AUTO-GENERATED.*generate-hooks' || hookrc=$?
+                    if [[ $hookrc -ne 0 ]]; then
+                        _gg_log_err "$_GG_ERR" "pre-commit hook check"
+                        _violations+=("pre-commit hook missing or not WORKSPACE-CI generated - run: make install-hooks")
+                    fi
                 fi
 
                 # G3: commit-msg hook (only enforced for commit, not push)
                 if [[ "$cmd" == "commit" ]]; then
-                    : > "$_GG_ERR"
-                    if [[ ! -x "$_hooks_dir/commit-msg" ]] || ! sed -n '1,5p' "$_hooks_dir/commit-msg" 2>"$_GG_ERR" | grep -q 'AUTO-GENERATED.*generate-hooks'; then
-                        _gg_log_err "$_GG_ERR" "commit-msg hook check"
+                    if [[ ! -x "$_hooks_dir/commit-msg" ]]; then
                         _violations+=("commit-msg hook missing or not WORKSPACE-CI generated - run: make install-hooks")
+                    else
+                        : > "$_GG_ERR"
+                        msgrc=0
+                        sed -n '1,5p' "$_hooks_dir/commit-msg" 2>"$_GG_ERR" | grep -q 'AUTO-GENERATED.*generate-hooks' || msgrc=$?
+                        if [[ $msgrc -ne 0 ]]; then
+                            _gg_log_err "$_GG_ERR" "commit-msg hook check"
+                            _violations+=("commit-msg hook missing or not WORKSPACE-CI generated - run: make install-hooks")
+                        fi
                     fi
                 fi
 
@@ -312,10 +338,16 @@ if [[ "$cmd" == "commit" || "$cmd" == "push" ]]; then
 
                 # G6: Makefile includes the WORKSPACE-CI contract (strict only)
                 if [[ "$_tier" == "strict" ]]; then
-                    : > "$_GG_ERR"
-                    if [[ ! -f "$_toplevel/Makefile" ]] || ! grep -q 'lib/makefile_contract.mk\|CI/scripts' "$_toplevel/Makefile" 2>"$_GG_ERR"; then
-                        _gg_log_err "$_GG_ERR" "Makefile contract check"
+                    if [[ ! -f "$_toplevel/Makefile" ]]; then
                         _violations+=("Makefile not using WORKSPACE-CI contract - include projects/CI/lib/makefile_contract.mk")
+                    else
+                        : > "$_GG_ERR"
+                        mkrc=0
+                        grep -q 'lib/makefile_contract.mk\|CI/scripts' "$_toplevel/Makefile" 2>"$_GG_ERR" || mkrc=$?
+                        if [[ $mkrc -ne 0 ]]; then
+                            _gg_log_err "$_GG_ERR" "Makefile contract check"
+                            _violations+=("Makefile not using WORKSPACE-CI contract - include projects/CI/lib/makefile_contract.mk")
+                        fi
                     fi
                 fi
 
@@ -330,8 +362,9 @@ if [[ "$cmd" == "commit" || "$cmd" == "push" ]]; then
                         esac
                     done
                     : > "$_GG_ERR"
-                    if [[ $_skip_p3 -eq 0 ]] && \
-                       ! "$GIT_REAL" cat-file -e HEAD:.pre-commit-config.yaml 2>"$_GG_ERR"; then
+                    catrc=0
+                    "$GIT_REAL" cat-file -e HEAD:.pre-commit-config.yaml 2>"$_GG_ERR" || catrc=$?
+                    if [[ $_skip_p3 -eq 0 && $catrc -ne 0 ]]; then
                         _gg_log_err "$_GG_ERR" "git cat-file check"
                         _violations+=("push tip's tree is missing .pre-commit-config.yaml - fix the deletion before pushing")
                     fi
@@ -345,11 +378,12 @@ if [[ "$cmd" == "commit" || "$cmd" == "push" ]]; then
                         for _v in "${_violations[@]}"; do
                             echo "  • $_v" >&2
                         done
+                        logrc=0
                         echo "$_summary | cwd=$(pwd) | cmd=$cmd | violations=${#_violations[@]}" \
-                            >> "${HOME}/.ami-git-guard.log" 2>"$_GG_ERR" || {
+                            >> "${HOME}/.ami-git-guard.log" 2>"$_GG_ERR" || logrc=$?
+                        if [[ $logrc -ne 0 ]]; then
                             _gg_log_err "$_GG_ERR" "audit log write"
-                            true
-                        }
+                        fi
                         exit 1
                     else
                         # warn mode: yellow advisory. Prefer /dev/tty so it
@@ -358,7 +392,9 @@ if [[ "$cmd" == "commit" || "$cmd" == "push" ]]; then
                         # `[[ -w ]]` lies on `/dev/tty` (returns true but
                         # opening fails), so probe by actually opening fd9.
                         _warn_fd=/dev/stderr
-                        if (exec 9>/dev/tty) 2>"$_GG_ERR"; then
+                        ttyrc=0
+                        (exec 9>/dev/tty) 2>"$_GG_ERR" || ttyrc=$?
+                        if [[ $ttyrc -eq 0 ]]; then
                             _warn_fd=/dev/tty
                         else
                             _gg_log_err "$_GG_ERR" "tty probe"
@@ -370,10 +406,10 @@ if [[ "$cmd" == "commit" || "$cmd" == "push" ]]; then
                                 printf "\033[33m    • %s\033[0m\n" "$_v"
                             done
                             printf "\n"
-                        } > "$_warn_fd" 2>"$_GG_ERR" || {
+                        } > "$_warn_fd" 2>"$_GG_ERR" || warnrc=$?
+                        if [[ ${warnrc:-0} -ne 0 ]]; then
                             _gg_log_err "$_GG_ERR" "warn output"
-                            true
-                        }
+                        fi
                     fi
                 fi
             fi
