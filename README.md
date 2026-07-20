@@ -22,8 +22,10 @@ Install base system packages once per host (before or alongside your first works
 
 ```bash
 make init-check    # report missing apt/brew packages
-sudo make init     # install from config/system-deps.yaml
+sudo make init     # install from config/system-deps.yaml + privileged bootstrap
 ```
+
+Run as root, `make init` also performs the privileged bootstrap (audit 2026-07-18 section 4.6): promotes `projects/CI` from `projects/WORKSPACE-CI` via `deploy-ci`, installs the git guard, root-locks hooks and exemption files in every consumer repo, and enforces syslog limits. It fails loudly if `projects/WORKSPACE-CI` is missing; clone it first with non-root `make ensure-repos`.
 
 ### Installation paths
 
@@ -61,10 +63,10 @@ The bootstrap TUI installs selected components from the federated dependency gra
 ### Post-install (requires sudo)
 
 ```bash
-make enforce-syslog-limits
+sudo make init
 ```
 
-Applies logrotate and journald rate limits on `/var/log/syslog` so runaway logging cannot fill the root disk.
+Runs the full privileged bootstrap: system packages, `deploy-ci` promotion of `projects/CI`, git guard install, hook + exemption root-locks across consumer repos, and logrotate/journald rate limits on `/var/log/syslog` (INCIDENT-2026-07-05). `make install` and `make install-ci` are strictly non-root; they end by pointing here.
 
 Optional operator steps:
 

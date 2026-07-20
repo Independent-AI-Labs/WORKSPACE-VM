@@ -60,3 +60,12 @@ exemptions:
   - path: projects/WORKSPACE-STREAMS/pimalaya-core/
     tier: vendored
     reason: "Fork of pimalaya/core; tracked upstream, WORKSPACE-STREAMS does not manage its CI"
+
+  # Third-party mirrors we do not develop; wrapper passes through.
+  - path: projects/llamafile/
+    tier: vendored
+    reason: "Third-party mirror (mozilla llamafile); not part of the workspace CI contract"
+
+  - path: projects/opencode/
+    tier: vendored
+    reason: "Third-party mirror (anomaly opencode); not part of the workspace CI contract"

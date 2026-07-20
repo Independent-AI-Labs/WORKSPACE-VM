@@ -59,6 +59,35 @@ else
 	bash $(CI_DIR)/scripts/install-system-deps --install-only "$$_missing"; \
 	rm -f "$$_missing"
 endif
+	if [ "$$(id -u)" = "0" ]; then \
+		$(MAKE) init-root; \
+	else \
+		echo ""; \
+		echo "⚠️  Privileged bootstrap steps remain (deploy-ci, guard install,"; \
+		echo "    hook/exemption locks, syslog limits). Run: sudo make init"; \
+	fi
+
+# Privileged bootstrap (audit 2026-07-18 section 4.6). Every step that
+# needs root lives here so `make install` / `install-ci` stay non-root.
+# projects/WORKSPACE-CI must already exist (cloned by non-root
+# ensure-repos); projects/CI is promoted from it exclusively via
+# deploy-ci, which self-verifies ownership, exec bits and divergence.
+.PHONY: init-root
+init-root: ## (ROOT) Privileged bootstrap: deploy-ci + guard + hook/exemption locks + syslog limits
+	if [ "$$(id -u)" != "0" ]; then \
+		echo "ERROR: init-root needs root: sudo make init" >&2; exit 1; \
+	fi
+	if [ ! -d projects/WORKSPACE-CI ]; then \
+		echo "ERROR: projects/WORKSPACE-CI missing." >&2; \
+		echo "Run 'make ensure-repos' as the agent user first, then re-run: sudo make init" >&2; \
+		exit 1; \
+	fi
+	_agent_home=$$(getent passwd "$${SUDO_USER:-root}" | cut -d: -f6); \
+	HOME="$${_agent_home:-$$HOME}" $(MAKE) -C projects/WORKSPACE-CI deploy-ci
+	$(MAKE) install-guard-host-exec
+	$(MAKE) install-hooks-recursive
+	$(MAKE) enforce-syslog-limits
+	echo "✅ Privileged bootstrap complete"
 
 # =============================================================================
 # Core Bootstrap
@@ -92,18 +121,16 @@ install: init-check sync-package ## Interactive TUI to select and install compon
 	$(MAKE) ci-install-deps && \
 	$(MAKE) install-deps-recursive && \
 	$(MAKE) install-hooks-recursive && \
-	if ! $(MAKE) build-guard; then echo "⚠️  Git guard build failed - continuing without guard"; fi && \
-	if ! $(MAKE) install-guard-host-exec; then echo "⚠️  Git guard installation skipped (needs sudo)"; fi && \
 	bash workspace/scripts/shell/shell-setup --welcome && \
 	echo "" && \
 	echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" && \
-	echo "⚠️  POST-INSTALL ACTION REQUIRED (needs sudo):" && \
+	echo "⚠️  PRIVILEGED BOOTSTRAP REQUIRED (needs sudo):" && \
 	echo "" && \
-	echo "    make enforce-syslog-limits" && \
+	echo "    sudo make init" && \
 	echo "" && \
-	echo "    Enforces system-wide log ceilings (logrotate + journald rate" && \
-	echo "    limiting) to prevent runaway processes from filling the root" && \
-	echo "    disk via /var/log/syslog. See INCIDENT-2026-07-05." && \
+	echo "    Deploys projects/CI from WORKSPACE-CI, installs the git" && \
+	echo "    guard, root-locks hooks + exemption files in every consumer" && \
+	echo "    repo, and enforces syslog limits (INCIDENT-2026-07-05)." && \
 	echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 .PHONY: install-qemu
@@ -127,18 +154,16 @@ install-ci: init-check sync-package ## Non-interactive component install (uses i
 	$(MAKE) ci-install-deps && \
 	$(MAKE) install-deps-recursive && \
 	$(MAKE) install-hooks-recursive && \
-	if ! $(MAKE) build-guard; then echo "⚠️  Git guard build failed - continuing without guard"; fi && \
 	echo "✨ Installation complete (CI mode)!" && \
-	echo "⚠️  Git guard binary built but not installed - run: sudo make guard-up" && \
 	echo "" && \
 	echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" && \
-	echo "⚠️  POST-INSTALL ACTION REQUIRED (needs sudo):" && \
+	echo "⚠️  PRIVILEGED BOOTSTRAP REQUIRED (needs sudo):" && \
 	echo "" && \
-	echo "    make enforce-syslog-limits" && \
+	echo "    sudo make init" && \
 	echo "" && \
-	echo "    Enforces system-wide log ceilings (logrotate + journald rate" && \
-	echo "    limiting) to prevent runaway processes from filling the root" && \
-	echo "    disk via /var/log/syslog. See INCIDENT-2026-07-05." && \
+	echo "    Deploys projects/CI from WORKSPACE-CI, installs the git" && \
+	echo "    guard, root-locks hooks + exemption files in every consumer" && \
+	echo "    repo, and enforces syslog limits (INCIDENT-2026-07-05)." && \
 	echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 # WORKSPACE-GUARD: git protection (delegates to CI + WORKSPACE-GUARD)
@@ -300,9 +325,18 @@ vm-cert: ## generate or print client cert for <id>
 # =============================================================================
 
 .PHONY: install-hooks
-install-hooks: ensure-repos ## Install native git hooks
+install-hooks: ## Install native git hooks (root: unseal + regenerate + root-lock hooks and exemption files)
+	if [ "$$(id -u)" = "0" ]; then \
+		$(MAKE) -C projects/CI unseal-hooks CONSUMER="$(CURDIR)"; \
+	fi
 	if [ -x projects/CI/scripts/cleanup-precommit ]; then bash projects/CI/scripts/cleanup-precommit; fi
 	bash projects/CI/scripts/generate-hooks
+	if [ "$$(id -u)" = "0" ]; then \
+		$(MAKE) -C projects/CI lock-hooks CONSUMER="$(CURDIR)"; \
+		$(MAKE) -C projects/CI lock-exemptions CONSUMER="$(CURDIR)"; \
+	else \
+		echo "ℹ️  hooks generated (unlocked); run 'sudo make install-hooks' to root-lock hooks + exemption files"; \
+	fi
 
 .PHONY: install-deps-recursive
 install-deps-recursive: ensure-repos ## Install deps in every nested repo (skip CI, handled by ci-install-deps)
@@ -316,18 +350,24 @@ install-deps-recursive: ensure-repos ## Install deps in every nested repo (skip 
 	[ $$_failed -eq 0 ] || { echo "❌ Dep install failed in $$_failed repo(s)"; exit 1; }
 
 .PHONY: install-hooks-recursive
-install-hooks-recursive: ensure-repos ## Install hooks in workspace + every nested .git under projects/
-	echo "🔗 Installing hooks in workspace root..."
-	if [ -x projects/CI/scripts/cleanup-precommit ]; then bash projects/CI/scripts/cleanup-precommit; fi
-	bash projects/CI/scripts/generate-hooks
+install-hooks-recursive: ## Install hooks in workspace + every nested .git under projects/ (root: also root-locks hooks + exemptions)
+	$(MAKE) install-hooks
 	_failed=0; \
 	for repo in $$(bash projects/CI/scripts/walk-projects); do \
 		echo ""; \
 		echo "🔗 Installing hooks in $$repo..."; \
+		if [ "$$(id -u)" = "0" ]; then $(MAKE) -C projects/CI unseal-hooks CONSUMER="$(CURDIR)/$$repo"; fi; \
 		( cd "$$repo" && \
 		  if [ -x $(CURDIR)/projects/CI/scripts/cleanup-precommit ]; then bash $(CURDIR)/projects/CI/scripts/cleanup-precommit; fi && \
 		  bash $(CURDIR)/projects/CI/scripts/generate-hooks ) || { echo "❌ Hook install failed in $$repo"; _failed=$$((_failed + 1)); }; \
+		if [ "$$(id -u)" = "0" ]; then \
+			$(MAKE) -C projects/CI lock-hooks CONSUMER="$(CURDIR)/$$repo" || _failed=$$((_failed + 1)); \
+			$(MAKE) -C projects/CI lock-exemptions CONSUMER="$(CURDIR)/$$repo" || _failed=$$((_failed + 1)); \
+		fi; \
 	done; \
+	if [ "$$(id -u)" != "0" ]; then \
+		echo "ℹ️  hooks generated (unlocked); run 'sudo make install-hooks-recursive' to root-lock hooks + exemption files"; \
+	fi; \
 	[ $$_failed -eq 0 ] || { echo "❌ Hook install failed in $$_failed repo(s)"; exit 1; }
 
 .PHONY: check-hooks
