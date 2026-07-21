@@ -365,6 +365,14 @@ install-hooks-recursive: ## Install hooks in workspace + every nested .git under
 			$(MAKE) -C projects/CI lock-exemptions CONSUMER="$(CURDIR)/$$repo" || _failed=$$((_failed + 1)); \
 		fi; \
 	done; \
+	if [ "$$(id -u)" = "0" ]; then \
+		cp $(CURDIR)/ci/config/project_enforcement.yaml $(CURDIR)/workspace/config/project_enforcement.yaml && \
+		for reg in $(CURDIR)/ci/config/project_enforcement.yaml $(CURDIR)/workspace/config/project_enforcement.yaml; do \
+			if lsattr -d "$$reg" | cut -d' ' -f1 | grep -q i; then chattr -i "$$reg"; fi; \
+			chown root:root "$$reg" && chmod 0644 "$$reg" && chattr +i "$$reg" || exit 1; \
+		done && \
+		echo "🔒 synced + locked tier registries (ci/config, workspace/config)" || _failed=$$((_failed + 1)); \
+	fi; \
 	if [ "$$(id -u)" != "0" ]; then \
 		echo "ℹ️  hooks generated (unlocked); run 'sudo make install-hooks-recursive' to root-lock hooks + exemption files"; \
 	fi; \
