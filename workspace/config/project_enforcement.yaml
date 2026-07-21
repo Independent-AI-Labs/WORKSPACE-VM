@@ -24,13 +24,19 @@
 version: 1
 
 # Global enforcement mode. The git-guard wrapper consults this on every
-# commit/push in an in-scope project. See template for full docs.
+# commit/push in an in-scope project.
 #
-#   warn     - yellow advisory on violations, do NOT block (rollout phases 1-2)
-#   enforce  - hard-block commit/push on any contract violation (phase 3)
+#   warn     - print a yellow advisory on contract violations, do NOT block.
+#              Used during rollout (Phase 1-2) so contributors see what's
+#              missing without breaking their workflow.
+#   enforce  - hard-block commit/push on any contract violation. Phase 3.
 #
-# Per-machine: gitignored, so boxes can be at different rollout phases.
-# Default when absent: warn.
+# Per-machine: this file is gitignored, so different boxes can sit at
+# different rollout phases of the same workspace. Flip to `enforce` only
+# after every consumer has its quality_exceptions.yaml committed and
+# `make install-hooks` re-rendered locally.
+#
+# Default when the field is absent: warn (fail-safe during rollout).
 enforcement_mode: warn
 
 defaults:
@@ -69,3 +75,11 @@ exemptions:
   - path: projects/opencode/
     tier: vendored
     reason: "Third-party mirror (anomaly opencode); not part of the workspace CI contract"
+
+  - path: projects/WORKSPACE-STREAMS/himalaya/
+    tier: vendored
+    reason: "Third-party mirror (himalaya email client); not part of the workspace CI contract"
+
+  - path: projects/WORKSPACE-STREAMS/ansible/matrix-docker-ansible-deploy/
+    tier: vendored
+    reason: "Third-party playbook mirror; not part of the workspace CI contract"
