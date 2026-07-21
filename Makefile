@@ -358,16 +358,20 @@ install-hooks-recursive: ## Install hooks in workspace + every nested .git under
 		exit 1; \
 	fi
 	$(MAKE) install-hooks
+	echo "🛡  Ensuring osv-scanner binary (CI boot dir, inherited by consumers)..."; \
+	if bash projects/CI/scripts/bootstrap-osv-scanner; then \
+		echo "✅ osv-scanner ready"; \
+	else \
+		echo "⚠️  osv-scanner bootstrap failed; the osv-scan pre-push hook will fail-open (WARN) until 'make -C projects/CI install-osv-scanner' succeeds" >&2; \
+	fi
 	_failed=0; \
 	for repo in $$(bash projects/CI/scripts/walk-projects); do \
 		echo ""; \
 		echo "🔗 Installing hooks in $$repo..."; \
-		if [ "$$(id -u)" = "0" ]; then $(MAKE) -C projects/CI unseal-hooks CONSUMER="$(CURDIR)/$$repo"; fi; \
 		( cd "$$repo" && \
 		  if [ -x $(CURDIR)/projects/CI/scripts/cleanup-precommit ]; then bash $(CURDIR)/projects/CI/scripts/cleanup-precommit; fi && \
-		  bash $(CURDIR)/projects/CI/scripts/generate-hooks ) || { echo "❌ Hook install failed in $$repo"; _failed=$$((_failed + 1)); }; \
+		  bash $(CURDIR)/projects/CI/scripts/reinstall-hooks ) || { echo "❌ Hook install failed in $$repo"; _failed=$$((_failed + 1)); }; \
 		if [ "$$(id -u)" = "0" ]; then \
-			$(MAKE) -C projects/CI lock-hooks CONSUMER="$(CURDIR)/$$repo" || _failed=$$((_failed + 1)); \
 			$(MAKE) -C projects/CI lock-exemptions CONSUMER="$(CURDIR)/$$repo" || _failed=$$((_failed + 1)); \
 		fi; \
 	done; \
