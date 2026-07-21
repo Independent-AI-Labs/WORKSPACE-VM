@@ -120,7 +120,7 @@ install: init-check sync-package ## Interactive TUI to select and install compon
 	$(MAKE) install-shell && \
 	$(MAKE) ci-install-deps && \
 	$(MAKE) install-deps-recursive && \
-	$(MAKE) install-hooks-recursive && \
+	$(MAKE) install-hooks-recursive ALLOW_UNLOCKED=1 && \
 	bash workspace/scripts/shell/shell-setup --welcome && \
 	echo "" && \
 	echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" && \
@@ -153,7 +153,7 @@ install-ci: init-check sync-package ## Non-interactive component install (uses i
 	$(MAKE) install-shell && \
 	$(MAKE) ci-install-deps && \
 	$(MAKE) install-deps-recursive && \
-	$(MAKE) install-hooks-recursive && \
+	$(MAKE) install-hooks-recursive ALLOW_UNLOCKED=1 && \
 	echo "✨ Installation complete (CI mode)!" && \
 	echo "" && \
 	echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" && \
@@ -351,6 +351,12 @@ install-deps-recursive: ensure-repos ## Install deps in every nested repo (skip 
 
 .PHONY: install-hooks-recursive
 install-hooks-recursive: ## Install hooks in workspace + every nested .git under projects/ (root: also root-locks hooks + exemptions)
+	if [ "$$(id -u)" != "0" ] && [ "$(ALLOW_UNLOCKED)" != "1" ]; then \
+		echo "ERROR: install-hooks-recursive must run as root to root-lock hooks + registries." >&2; \
+		echo "Run: sudo make install-hooks-recursive" >&2; \
+		echo "Bootstrap flows (make install/install-ci) pass ALLOW_UNLOCKED=1 explicitly." >&2; \
+		exit 1; \
+	fi
 	$(MAKE) install-hooks
 	_failed=0; \
 	for repo in $$(bash projects/CI/scripts/walk-projects); do \
