@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess
 import sys
@@ -201,11 +202,11 @@ class QemuBackend:
 
 def _process_alive(pid: int) -> bool:
     try:
-        subprocess.run(["kill", "-0", str(pid)], capture_output=True, check=True)
-    except subprocess.CalledProcessError as exc:
-        if exc.stderr:
-            sys.stderr.write(exc.stderr)
+        os.kill(pid, 0)
+    except ProcessLookupError:
         return False
+    except PermissionError:
+        return True
     return True
 
 

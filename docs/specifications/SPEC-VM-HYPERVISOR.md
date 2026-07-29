@@ -90,14 +90,14 @@ workspace/cli/
 
 ```python
 class IsolationBackend(Protocol):
- def create(self, uuid: str, cfg: VMConfig, vm_dir: Path) -> None: ...
- def start(self, uuid: str) -> None: ...
- def stop(self, uuid: str) -> None: ...
- def destroy(self, uuid: str, *, purge: bool = False) -> None: ...
- def exec(self, uuid: str, cmd: list[str]) -> subprocess.CompletedProcess: ...
- def ssh_endpoint(self, uuid: str) -> tuple[str, int]: ...
- def status(self, uuid: str) -> dict[str, str]: ...
- def backend_name(self) -> str: ...
+    def create(self, uuid: str, cfg: VMConfig, vm_dir: Path) -> None: ...
+    def start(self, uuid: str) -> None: ...
+    def stop(self, uuid: str) -> None: ...
+    def destroy(self, uuid: str, *, purge: bool = False) -> None: ...
+    def exec(self, uuid: str, cmd: list[str]) -> subprocess.CompletedProcess: ...
+    def ssh_endpoint(self, uuid: str) -> tuple[str, int]: ...
+    def status(self, uuid: str) -> dict[str, str]: ...
+    def backend_name(self) -> str: ...
 ```
 
 `PodmanBackend.create` SHALL call the existing `vm_manager.create` body
@@ -157,16 +157,16 @@ Add to `workspace/types/vm.py`:
 
 ```python
 class VMQemuConfig(BaseModel):
- guest_arch: Literal["aarch64", "x86_64"] = "aarch64"
- accel: Literal["auto", "kvm", "hvf", "whpx", "tcg"] = "auto"
- disk_gb: int = 20
- ssh_host_port: int = 0 # 0 = auto-allocate
- image: str = "workspace-vm-base-ubuntu-24.04-aarch64.qcow2"
+    guest_arch: Literal["aarch64", "x86_64"] = "aarch64"
+    accel: Literal["auto", "kvm", "hvf", "whpx", "tcg"] = "auto"
+    disk_gb: int = 20
+    ssh_host_port: int = 0  # 0 = auto-allocate
+    image: str = "workspace-vm-base-ubuntu-24.04-aarch64.qcow2"
 
 
 class VMIsolationConfig(BaseModel):
- backend: Literal["podman", "qemu"] = "podman"
- qemu: VMQemuConfig = Field(default_factory=VMQemuConfig)
+    backend: Literal["podman", "qemu"] = "podman"
+    qemu: VMQemuConfig = Field(default_factory=VMQemuConfig)
 ```
 
 Add to `VMConfig`:
@@ -665,7 +665,18 @@ Document in error text: `sudo usermod -aG kvm $USER` and re-login.
 | `make test-podman` Tier 1-2 | Podman container | Dev sanity check |
 | `e2e-capability.sh` Tier 3 | **QEMU guest only** | **Authoritative** |
 | Policy matrix E2E on real caps | **QEMU guest only** | **Authoritative** |
+| Shell-guard runtime + lifecycle (`e2e-shell-guard-guest.sh`) | **QEMU guest only** | **Authoritative** |
 | Darwin Podman | - | **Not authoritative** for kernel guardrails |
+
+The shell-guard battery is QEMU-only for the same reason as Tier 3,
+plus two compounding host restrictions: rootless Podman stores file
+capabilities as `user.overlay` xattrs the kernel never honors (no
+AT_SECURE), and Ubuntu hosts gate unprivileged user-namespace
+creation behind AppArmor profiles, so nested-namespace workarounds
+are denied. The bats suite `tests/shell/21-shell-guard.bats` runs
+the same matrix wherever a capability context is attainable and
+skips honestly elsewhere; only the AT_SECURE-gate test runs
+everywhere.
 
 ### 12.2 Authoritative gate (host orchestration)
 
@@ -673,7 +684,8 @@ From WORKSPACE-VM root:
 
 ```bash
 make install-qemu
-make test-vm-guard          # create vm-full-ci-qemu.yaml, provision, SSH e2e-guest.sh, destroy
+make test-vm-guard          # create vm-guard-qemu.yaml, provision, SSH e2e-guest.sh, destroy
+make test-vm-shell-guard    # same VM profile, SSH e2e-shell-guard-guest.sh (REQ-SHG-805/806)
 make test-e2e-qemu-full     # poc + full-ci + guard pytest suite
 make test-authoritative     # pre-release checklist (full-ci + guard + host git fingerprint)
 ```
@@ -682,9 +694,12 @@ Inside the guest (after provision):
 
 ```bash
 sudo bash /opt/workspace/projects/WORKSPACE-GUARD/scripts/qemu/e2e-guest.sh
+sudo bash /opt/workspace/projects/WORKSPACE-GUARD/scripts/qemu/e2e-shell-guard-guest.sh
+# or chained: sudo E2E_SHELL_GUARD=1 bash .../e2e-guest.sh
 ```
 
-Mutates **guest** `/usr/bin/git` only. Host `/usr/bin/git` fingerprint is verified
+Mutates **guest** `/usr/bin/git` and `/usr/bin/bash` only. Host
+`/usr/bin/git` and `/usr/bin/bash` fingerprints are verified
 before and after by `tests/e2e/qemu_host_isolation.py`.
 
 Cross-reference: [WORKSPACE-GUARD ROOT-ONLY-MODE](../../projects/WORKSPACE-GUARD/docs/ROOT-ONLY-MODE.md).
@@ -695,6 +710,7 @@ Cross-reference: [WORKSPACE-GUARD ROOT-ONLY-MODE](../../projects/WORKSPACE-GUARD
 test-e2e-qemu:       ## poc + guard (set TEST_QEMU_FULL=1 for full-ci)
 test-e2e-qemu-full:  ## poc + full-ci + guard (slow, authoritative)
 test-vm-guard:       ## SPEC §12.2 orchestration
+test-vm-shell-guard: ## shell-guard authoritative gate (SPEC-SHELL-GUARD §12.4)
 test-authoritative:  ## pre-release gate
 ```
 

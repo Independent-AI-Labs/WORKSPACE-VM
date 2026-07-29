@@ -8,7 +8,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-from workspace.cli import process as proc
 from workspace.cli.vpn_core import boot_name, find_workspace_root
 
 _GUEST_BIN = {
@@ -98,21 +97,28 @@ def resolve_aarch64_firmware() -> Path | None:
 
 
 def probe_accel(qemu_bin: Path, accel: str) -> bool:
-    return proc.run_ok(
-        [
-            str(qemu_bin),
-            "-accel",
-            accel,
-            "-machine",
-            "none",
-            "-display",
-            "none",
-        ],
-        capture_output=True,
-        text=True,
-        timeout=5,
-        reject_in_output="unknown accelerator",
-    )
+    """A working accelerator makes qemu idle (no exit); failure exits non-zero."""
+    argv = [
+        str(qemu_bin),
+        "-accel",
+        accel,
+        "-machine",
+        "none",
+        "-display",
+        "none",
+    ]
+    try:
+        subprocess.run(argv, capture_output=True, text=True, timeout=5, check=True)
+    except subprocess.TimeoutExpired:
+        return True
+    except subprocess.CalledProcessError as exc:
+        if (exc.stderr or "").strip():
+            sys.stderr.write(exc.stderr)
+        return False
+    except OSError as exc:
+        sys.stderr.write(f"probe_accel {accel}: {exc}\n")
+        return False
+    return True
 
 
 def resolve_accel(requested: str, qemu_bin: Path) -> str:

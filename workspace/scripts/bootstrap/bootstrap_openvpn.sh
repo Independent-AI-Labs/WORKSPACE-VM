@@ -45,7 +45,7 @@ case "${OS}" in
             log_error "apt-get not found. Cannot install openvpn on this Linux distribution."
             exit 1
         fi
-        sudo apt-get update -qq
+        sudo apt-get update
         sudo apt-get install -y openvpn
         OVPN_BIN="/usr/sbin/openvpn"
         if [[ ! -x "$OVPN_BIN" ]]; then

@@ -17,6 +17,11 @@ CI_BOOT_BIN := $(CI_DIR)/$(CI_BOOT_NAME)/bin
 CI_RUFF := $(CI_DIR)/ruff.toml
 CI_MYPY := $(CI_DIR)/mypy.toml
 UV := $(CI_BOOT_BIN)/uv
+# User-configurable (env or CLI override); defaults to CI's boot bin
+ANSIBLE_PLAYBOOK ?= $(CI_BOOT_BIN)/ansible-playbook
+# Containment: uv-managed interpreters live inside CI's boot dir, never in
+# $HOME/.local/share/uv/python (no unsanctioned HOME/system resources)
+export UV_PYTHON_INSTALL_DIR := $(CI_DIR)/$(CI_BOOT_NAME)/python
 
 # cmake 4.x dropped support for cmake_minimum_required < 3.5. python-olm
 # uses cmake_minimum_required(VERSION 2.x). Set policy version floor so the
@@ -325,17 +330,11 @@ vm-cert: ## generate or print client cert for <id>
 # =============================================================================
 
 .PHONY: install-hooks
-install-hooks: ## Install native git hooks (root: unseal + regenerate + root-lock hooks and exemption files)
-	if [ "$$(id -u)" = "0" ]; then \
-		$(MAKE) -C projects/CI unseal-hooks CONSUMER="$(CURDIR)"; \
-	fi
+install-hooks: ## Install native git hooks (run via sudo for root-owned hooks; no unseal/lock cycle exists)
 	if [ -x projects/CI/scripts/cleanup-precommit ]; then bash projects/CI/scripts/cleanup-precommit; fi
-	bash projects/CI/scripts/generate-hooks
-	if [ "$$(id -u)" = "0" ]; then \
-		$(MAKE) -C projects/CI lock-hooks CONSUMER="$(CURDIR)"; \
-		$(MAKE) -C projects/CI lock-exemptions CONSUMER="$(CURDIR)"; \
-	else \
-		echo "ℹ️  hooks generated (unlocked); run 'sudo make install-hooks' to root-lock hooks + exemption files"; \
+	bash projects/CI/scripts/reinstall-hooks
+	if [ "$$(id -u)" != "0" ]; then \
+		echo "ℹ️  hooks regenerated; run 'sudo make install-hooks' when hooks are root-owned"; \
 	fi
 
 .PHONY: install-deps-recursive
@@ -350,7 +349,7 @@ install-deps-recursive: ensure-repos ## Install deps in every nested repo (skip 
 	[ $$_failed -eq 0 ] || { echo "❌ Dep install failed in $$_failed repo(s)"; exit 1; }
 
 .PHONY: install-hooks-recursive
-install-hooks-recursive: ## Install hooks in workspace + every nested .git under projects/ (root: also root-locks hooks + exemptions)
+install-hooks-recursive: ## Install hooks in workspace + every nested .git under projects/ (run via sudo for root-owned hooks)
 	if [ "$$(id -u)" != "0" ] && [ "$(ALLOW_UNLOCKED)" != "1" ]; then \
 		echo "ERROR: install-hooks-recursive must run as root to root-lock hooks + registries." >&2; \
 		echo "Run: sudo make install-hooks-recursive" >&2; \
@@ -371,9 +370,6 @@ install-hooks-recursive: ## Install hooks in workspace + every nested .git under
 		( cd "$$repo" && \
 		  if [ -x $(CURDIR)/projects/CI/scripts/cleanup-precommit ]; then bash $(CURDIR)/projects/CI/scripts/cleanup-precommit; fi && \
 		  bash $(CURDIR)/projects/CI/scripts/reinstall-hooks ) || { echo "❌ Hook install failed in $$repo"; _failed=$$((_failed + 1)); }; \
-		if [ "$$(id -u)" = "0" ]; then \
-			$(MAKE) -C projects/CI lock-exemptions CONSUMER="$(CURDIR)/$$repo" || _failed=$$((_failed + 1)); \
-		fi; \
 	done; \
 	if [ "$$(id -u)" = "0" ]; then \
 		for reg in $(CURDIR)/ci/config/project_enforcement.yaml $(CURDIR)/workspace/config/project_enforcement.yaml; do \
@@ -386,7 +382,7 @@ install-hooks-recursive: ## Install hooks in workspace + every nested .git under
 		echo "🔒 synced + locked tier registries (ci/config, workspace/config)" || _failed=$$((_failed + 1)); \
 	fi; \
 	if [ "$$(id -u)" != "0" ]; then \
-		echo "ℹ️  hooks generated (unlocked); run 'sudo make install-hooks-recursive' to root-lock hooks + exemption files"; \
+		echo "ℹ️  hooks regenerated; run 'sudo make install-hooks-recursive' when hooks are root-owned"; \
 	fi; \
 	[ $$_failed -eq 0 ] || { echo "❌ Hook install failed in $$_failed repo(s)"; exit 1; }
 
@@ -420,6 +416,10 @@ test-e2e-qemu-full: ## QEMU poc + full-ci + guard (authoritative, slow)
 .PHONY: test-vm-guard
 test-vm-guard: ## Authoritative WORKSPACE-GUARD gate in QEMU guest
 	uv run python -m pytest tests/e2e/test_vm_qemu_guard.py -v -m e2e --timeout 3600
+
+.PHONY: test-vm-shell-guard
+test-vm-shell-guard: ## Authoritative shell-guard gate in QEMU guest
+	uv run python -m pytest tests/e2e/test_vm_qemu_shell_guard.py -v -s -m e2e --timeout 900
 
 .PHONY: test-authoritative
 test-authoritative: test-e2e-qemu-full ## Pre-release QEMU + guard checklist
@@ -485,12 +485,15 @@ update: ## Update workspace via moon - walks every project topologically (^:upda
 	RET=$$?; rm -f "$$TMP_WS"; exit $$RET
 
 .PHONY: update-oc
-update-oc: ## Update opencode to latest version via npm
+update-oc: ## Update opencode to latest version via npm (operator: sudo make update-oc; installs into root-locked .boot-linux)
 	echo "🔄 Updating opencode..."
-	.boot-linux/bin/npm install --prefix .venv opencode-ai@latest
-	OPN_BIN=".venv/node_modules/.bin/opencode"; \
+	if [ ! -w .boot-linux/bin ]; then \
+		echo "ERROR: .boot-linux/bin not writable (root-locked). Run: sudo make update-oc" >&2; \
+		exit 1; \
+	fi
+	.boot-linux/bin/npm install --prefix .boot-linux opencode-ai@latest
+	OPN_BIN=".boot-linux/bin/opencode"; \
 		if [ -x "$$OPN_BIN" ]; then \
-			ln -sf "../../.venv/node_modules/.bin/opencode" .boot-linux/bin/opencode; \
 			echo "✅ opencode $$("$$OPN_BIN" --version)"; \
 		else \
 			echo "❌ opencode binary not found after install" >&2; \

@@ -1,0 +1,13 @@
+version: 1
+project:
+  slug: workspace-vm
+  displayName: WORKSPACE-VM
+  repoName: WORKSPACE-VM
+  language: Python
+  icon: ri-server-line
+  logo: res/LOGO.png
+  description: >-
+    Sovereign digital workspace stack. A federated repository for developing
+    and running web services and AI agents on infrastructure you control,
+    built on data sovereignty, system immutability, and workspace-wide
+    compliance.

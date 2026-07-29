@@ -20,6 +20,7 @@ _RSYNC_EXCLUDES = [
     "node_modules/",
     "__pycache__/",
     ".git/",
+    "target/",
 ]
 
 _SKELETON_PATHS = [

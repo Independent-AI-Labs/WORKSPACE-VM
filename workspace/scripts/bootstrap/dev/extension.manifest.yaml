@@ -1,6 +1,6 @@
 extensions:
   - name: gcloud
-    binary: .gcloud/google-cloud-sdk/bin/gcloud
+    binary: .boot-linux/gcloud/google-cloud-sdk/bin/gcloud
     description: Google Cloud CLI (gcloud SDK)
     category: dev
     features:

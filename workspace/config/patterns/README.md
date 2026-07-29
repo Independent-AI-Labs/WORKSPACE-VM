@@ -119,8 +119,8 @@ Patterns are loaded via cached functions in `agents/ami/validators.py`:
 ```python
 from scripts.automation.validators import (
     load_python_patterns,  # Load python_fast.yaml
-    load_bash_patterns,    # Load bash_commands.yaml
-    load_exemptions,       # Load exemptions.yaml
+    load_bash_patterns,  # Load bash_commands.yaml
+    load_exemptions,  # Load exemptions.yaml
 )
 
 # Functions are @lru_cache decorated - loaded once per process

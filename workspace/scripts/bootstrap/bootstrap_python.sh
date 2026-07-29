@@ -91,6 +91,10 @@ fi
 
 log_info "Creating Python venv in ${PYTHON_ENV} using uv..."
 
+# Containment: uv-managed interpreters live inside the boot dir, never in
+# $HOME/.local/share/uv/python (no unsanctioned HOME/system resources)
+export UV_PYTHON_INSTALL_DIR="${BOOT_LINUX_DIR}/python"
+
 # Create directories
 mkdir -p "${BIN_DIR}"
 

@@ -9,19 +9,33 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 
 BOOT_DIR="${BOOT_LINUX_DIR:-${PROJECT_ROOT}/.boot-linux}"
+BIN_DIR="${BOOT_DIR}/bin"
 BROWSERS_DIR="${BOOT_DIR}/playwright-browsers"
-PLAYWRIGHT="${PROJECT_ROOT}/.venv/bin/playwright"
+PLAYWRIGHT="${BIN_DIR}/playwright"
+
+# Containment: interpreters + tool envs live inside the boot dir, never in
+# $HOME/.local/share/uv (no unsanctioned HOME/system resources)
+export UV_PYTHON_INSTALL_DIR="${BOOT_DIR}/python"
+export UV_TOOL_DIR="${BOOT_DIR}/uv-tools"
 
 log_info()    { echo "  $1" >&2; }
 log_warn()    { echo "  ⚠ $1" >&2; }
 log_error()   { echo "  ERROR: $1" >&2; }
 log_success() { echo "  ✓ $1" >&2; }
 
-# Check playwright is installed
+# Install the playwright CLI as a boot-contained uv tool (never from .venv)
 if [[ ! -x "$PLAYWRIGHT" ]]; then
-    log_error "playwright not found at $PLAYWRIGHT"
-    log_error "Run 'uv sync' first to install Python dependencies."
-    exit 1
+    UV_CMD="${PROJECT_ROOT}/projects/CI/.boot-linux/bin/uv"
+    if [[ ! -x "$UV_CMD" ]]; then
+        log_error "uv not found at $UV_CMD. Run 'make core' first."
+        exit 1
+    fi
+    if [[ ! -w "$BIN_DIR" ]]; then
+        log_error "$BIN_DIR not writable -- boot dir is root-locked; run elevated: sudo make core"
+        exit 1
+    fi
+    log_info "Installing playwright CLI into $BIN_DIR via uv tool..."
+    UV_TOOL_BIN_DIR="$BIN_DIR" "$UV_CMD" tool install playwright --force
 fi
 
 # Set browsers path - no ~/.cache, everything in .boot-linux

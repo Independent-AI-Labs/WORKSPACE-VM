@@ -108,7 +108,7 @@ endif
 		export $$(grep -v '^\s*#' "$(CURDIR)/.env" 2>/dev/null | xargs) && \
 		export LLAMAFILE_GPU="$(or $(GPU),vulkan)" && \
 		export LLAMAFILE_BUNDLE="$(LLAMAFILE_BUNDLE)" && \
-		ansible-playbook \
+		$(ANSIBLE_PLAYBOOK) \
 			--diff \
 			-e "llama_model=$(MODEL)" \
 			-e "llamafile_gpu=$(or $(GPU),vulkan)" \

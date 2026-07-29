@@ -27,7 +27,7 @@ install_linux() {
         echo "bootstrap-qemu: apt-get required on Linux" >&2
         exit 1
     fi
-    sudo apt-get update -qq
+    sudo apt-get update
     sudo apt-get install -y qemu-system-arm qemu-system-x86 qemu-utils qemu-efi-aarch64 genisoimage cloud-image-utils
 
     for bin in qemu-system-aarch64 qemu-system-x86_64 qemu-img; do

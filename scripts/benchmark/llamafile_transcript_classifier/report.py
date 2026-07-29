@@ -25,7 +25,7 @@ def _bucket_for_tokens(prompt_tokens: int, buckets: list[int]) -> int:
     for bucket in sorted(buckets):
         if prompt_tokens <= bucket:
             return bucket
-    return sorted(buckets)[-1]
+    return max(buckets)
 
 
 def _avg(values: list[float]) -> float | None:

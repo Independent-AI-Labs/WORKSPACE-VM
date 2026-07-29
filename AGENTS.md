@@ -18,6 +18,24 @@ Every rule below is absolute. Violation means you are sabotaging the project.
 
 ---
 
+## The One Git Flow
+
+The commit flow is exactly one path: the pre-commit hook auto-stages
+everything (`git add -A` via `check-unstaged`) and then `git commit`
+runs the gates. There is NO other flow:
+
+- No selective staging (`git add <file>`), no unstaging, no
+  `git restore`/`checkout` of paths to dodge the hook, no snapshot
+  dances around it.
+- A dirty tree rides the next commit as-is. If that is unacceptable,
+  STOP and ask the operator - never improvise a side flow.
+- Session-start ritual: run `git status` in every repo you will touch
+  before making changes.
+- Never fight the hook. If a hook gate fails, fix the underlying
+  problem and commit again.
+
+---
+
 ## Rule 1: Never Circumvent Quality Gates
 
 - NEVER use `#[allow(...)]`, `# type: ignore`, `# noqa` to suppress linters. Fix the code.

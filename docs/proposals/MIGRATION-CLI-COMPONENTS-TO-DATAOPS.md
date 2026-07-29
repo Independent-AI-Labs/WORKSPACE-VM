@@ -279,8 +279,10 @@ from typing import NamedTuple, TypedDict
 
 # ── TUI types (used by ami.cli_components) ──────────────────────
 
+
 class GroupRange(NamedTuple):
     """Range information for a dialog group."""
+
     header_idx: int
     start: int
     end: int
@@ -288,26 +290,31 @@ class GroupRange(NamedTuple):
 
 class KeyHandleResult(NamedTuple):
     """Result from handling a key press in selection dialog."""
+
     should_continue: bool
     result: object
 
 
 class CharWithOrdinal(NamedTuple):
     """Character with its ordinal value."""
+
     char: str
     ordinal: int
 
 
 class FormattedPrefix(NamedTuple):
     """Prefix with formatting and visible width."""
+
     formatted: str
     visible: str
 
 
 # ── Bootstrap types (used by ami/scripts/*.py) ──────────────────
 
+
 class NamedComponentStatus(NamedTuple):
     """Component status paired with its name for collection use."""
+
     name: str
     installed: bool
     version: str | None
@@ -316,12 +323,14 @@ class NamedComponentStatus(NamedTuple):
 
 class ColorPair(NamedTuple):
     """A pair of foreground and background colors."""
+
     fg: int
     bg: int
 
 
 class InstallationResult(TypedDict):
     """Result of component installation."""
+
     component_name: str
     success: bool
     error: str | None
@@ -825,6 +834,7 @@ PROJECT_ROOT = get_project_root()
 
 
 # ── Existing config-path utilities ──────────────────────────────
+
 
 def get_config_path(config_name: str) -> Path:
     """Get the path to a shared configuration file."""

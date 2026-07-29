@@ -87,7 +87,7 @@ ifeq ($(FLAVOR),)
 endif
 	@cd ansible && \
 		export $$(grep -v '^\s*#' "$(CURDIR)/.env" 2>/dev/null | xargs) && \
-		ansible-playbook \
+		$(ANSIBLE_PLAYBOOK) \
 			--diff \
 			-e "llama_flavor=$(FLAVOR)" \
 			llamaserver.yml
