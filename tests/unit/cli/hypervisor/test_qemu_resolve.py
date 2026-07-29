@@ -59,11 +59,10 @@ def test_resolve_qemu_system_missing(
 def test_probe_accel_delegates_to_process(monkeypatch: pytest.MonkeyPatch) -> None:
     calls: list[bool] = []
 
-    def _fake_run_ok(*_args: object, **_kwargs: object) -> bool:
+    def _fake_run(*_args: object, **_kwargs: object) -> None:
         calls.append(True)
-        return True
 
-    monkeypatch.setattr(qr.proc, "run_ok", _fake_run_ok)
+    monkeypatch.setattr(qr.subprocess, "run", _fake_run)
     assert qr.probe_accel(Path("/opt/qemu"), "hvf") is True
     assert calls
 

@@ -127,20 +127,12 @@ def test_destroy_removes_vm_dir(
 
 
 def test_process_alive_true(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(
-        qb.subprocess,
-        "run",
-        lambda *_a, **_k: subprocess.CompletedProcess("kill", 0, "", ""),
-    )
+    monkeypatch.setattr(qb.os, "kill", MagicMock(return_value=None))
     assert qb._process_alive(1) is True
 
 
 def test_process_alive_false(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(
-        qb.subprocess,
-        "run",
-        MagicMock(side_effect=subprocess.CalledProcessError(1, "kill")),
-    )
+    monkeypatch.setattr(qb.os, "kill", MagicMock(side_effect=ProcessLookupError))
     assert qb._process_alive(1) is False
 
 

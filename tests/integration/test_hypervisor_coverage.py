@@ -81,7 +81,11 @@ def test_process_run_result_integration(monkeypatch: pytest.MonkeyPatch) -> None
 
 
 def test_qemu_resolve_probe_integration(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(qr.proc, "run_ok", lambda *_a, **_k: True)
+    monkeypatch.setattr(
+        qr.subprocess,
+        "run",
+        MagicMock(side_effect=subprocess.TimeoutExpired("qemu", 5)),
+    )
     assert qr.probe_accel(Path("/opt/qemu"), "tcg") is True
 
 
