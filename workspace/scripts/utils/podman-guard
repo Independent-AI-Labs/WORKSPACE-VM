@@ -7,7 +7,9 @@
 
 set -euo pipefail
 
-PODMAN_REAL="$(dirname "$0")/real-podman"
+# Resolve through symlinks so the guard works when linked to other paths
+# (quadlet units invoke /usr/local/bin/podman, a symlink to this script).
+PODMAN_REAL="$(dirname "$(readlink -f "$0")")/real-podman"
 
 # Ensure real podman exists
 if [[ ! -x "$PODMAN_REAL" ]]; then
