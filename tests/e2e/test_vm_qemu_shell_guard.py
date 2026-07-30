@@ -109,6 +109,9 @@ def test_vm_qemu_shell_guard_e2e_guest(qemu_tracker: QemuTracker) -> None:
         timeout=_GUARD_TIMEOUT,
     )
     assert rc == 0, guard_out
+    assert "make install-shell-guard applied" in guard_out, guard_out
+    assert "guard hash matches release build" in guard_out, guard_out
+    assert "installed-workspace: benign -c passes" in guard_out, guard_out
     assert "PASS:" in guard_out, guard_out
 
     after = snapshot_host_git()
