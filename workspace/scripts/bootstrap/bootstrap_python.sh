@@ -4,8 +4,10 @@ set -euo pipefail
 # Bootstrap Python venv into .boot-linux using uv
 # Creates .boot-linux/bin/python for use by other bootstrap scripts
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
+_SELF="${BASH_SOURCE[0]}"
+if [ -n "${SHG_SCRIPT_PATH:-}" ]; then _SELF="$SHG_SCRIPT_PATH"; fi
+SCRIPT_DIR="$(cd "$(dirname "$_SELF")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
 _boot_platform="$(uname -s | tr 'A-Z' 'a-z')"
 case "$_boot_platform" in darwin) _boot_default=".boot-macos" ;; *) _boot_default=".boot-linux" ;; esac

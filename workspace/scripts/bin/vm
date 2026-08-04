@@ -2,7 +2,8 @@
 set -euo pipefail
 
 # --- Resolve AMI_ROOT ---
-SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+SCRIPT_SOURCE="${SHG_SCRIPT_PATH:-${BASH_SOURCE[0]}}"
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$SCRIPT_SOURCE")")" && pwd)"
 AMI_ROOT="$SCRIPT_DIR"
 while [[ "$AMI_ROOT" != "/" && ! -f "$AMI_ROOT/pyproject.toml" ]]; do
     AMI_ROOT="$(dirname "$AMI_ROOT")"
@@ -10,12 +11,15 @@ done
 export AMI_ROOT && cd "$AMI_ROOT"
 
 _VMS_DIR=".vms"
-_VM_RUN=(uv run python)
+_BOOT_DIR="${BOOT_DIR:-${AMI_ROOT}/.boot-linux}"
+_UV="${_BOOT_DIR}/bin/uv"
+_VM_RUN=("$_UV" run python)
 _CERTS_SCRIPT="workspace/scripts/bootstrap/bootstrap_certs.sh"
 _VM_MANAGER="workspace.cli.vm_main"
 
 # --- Helpers ---
 die() { echo "vm: ERROR: $*" >&2; exit 1; }
+[[ -x "$_UV" ]] || die "uv not found at $_UV"
 
 _require_vm() {
     local uuid="$1"

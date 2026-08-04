@@ -99,8 +99,10 @@ class TestOcConfigDeployment:
             OC_SRC="/nonexistent/path/to/config"
             OC_DIR="${{HOME}}/.config/opencode"
             mkdir -p "$OC_DIR/plugins"
-            [ ! -f "$OC_DIR/opencode.jsonc" ] && \
-                cp "$OC_SRC/opencode.jsonc" "$OC_DIR/opencode.jsonc" 2>/dev/null || true
+            if [ ! -f "$OC_DIR/opencode.jsonc" ] \
+                && [ -f "$OC_SRC/opencode.jsonc" ]; then
+                cp "$OC_SRC/opencode.jsonc" "$OC_DIR/opencode.jsonc"
+            fi
         """
 
         result = subprocess.run(

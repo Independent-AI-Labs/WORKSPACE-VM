@@ -8,7 +8,7 @@ The agent (uid=1000, group `agent`+`adm`) runs inside a hermetic sandbox VM.
 - Files owned by `root` or `syslog` are **read-only to the agent unless group-writable (`adm`)**.
 - The agent **cannot** truncate, delete, or `chmod` files owned by `syslog:adm` (mode `-rw-r-----`).
 - **When a task requires root**, the agent must **immediately ask the human operator** — do NOT attempt escalation, do NOT loop on `sudo`.
-- This is a hard physical constraint, not a policy choice. There is no workaround. Do not waste tokens trying.
+- This is a hard physical constraint, not a policy choice. There is no permitted alternate path. Do not waste tokens trying.
 
 ## 作弊就是死刑 - Cheating Is The Death Penalty
 
@@ -43,7 +43,7 @@ runs the gates. There is NO other flow:
 - NEVER commit with `--no-verify`. Respect every hook.
 - NEVER amend pushed commits. Make a new commit.
 - NEVER flip-flop config values to cheat past pre-push gates.
-- NEVER add exceptions to banned-words or lint configs as a workaround.
+- NEVER add exceptions to banned-words or lint configs to evade a failure.
 - NEVER touch `quality_exceptions.yaml` unless the reason is over 20 characters, scoped to specific paths, and survives code review.
 
 ## Rule 2: Tests Must Be Real
@@ -167,7 +167,7 @@ Before pushing, verify:
 - Every error must be surfaced to the caller. NEVER swallow errors.
 - `unwrap()` is forbidden in production code. Use proper error propagation.
 - Match arms must be exhaustive. No wildcard fallthroughs that hide logic errors.
-- Network operations (pull, push, fetch) must fail the operation, not degrade silently.
+- Network operations (pull, push, fetch) must fail the operation, not continue without reporting the failure.
 
 ## Rule 14: Shell Strict Mode - Never Mask Exit Codes with Pipelines
 

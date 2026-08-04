@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """AMI Document Production CLI.
 
 Passthrough facade for bootstrapped document tools.

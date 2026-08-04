@@ -89,23 +89,23 @@ class TestOutputExtras:
 
     def test_extras_ignores_problems(self, capsys) -> None:
         exts = [
-            _make_ext("d", Status.DEGRADED, reason="r"),
+            _make_ext("d", Status.ERROR, reason="r"),
             _make_ext("u", Status.UNAVAILABLE, reason="r"),
         ]
         output_extras(exts)
         captured = capsys.readouterr()
-        assert "DEGRADED" not in captured.out
+        assert "ERROR" not in captured.out
         assert "UNAVAILABLE" not in captured.out
         assert "No hidden extensions" in captured.out
 
 
 class TestOutputDoctor:
-    def test_degraded_listed(self, capsys) -> None:
-        exts = [_make_ext("bad-cmd", Status.DEGRADED, reason="dep missing")]
+    def test_error_listed(self, capsys) -> None:
+        exts = [_make_ext("bad-cmd", Status.ERROR, reason="dep missing")]
         output_doctor(exts)
         captured = capsys.readouterr()
         assert "bad-cmd" in captured.out
-        assert "DEGRADED" in captured.out
+        assert "ERROR" in captured.out
         assert "dep missing" in captured.out
 
     def test_unavailable_with_hint(self, capsys) -> None:
@@ -145,13 +145,13 @@ class TestOutputDoctor:
 
     def test_all_problem_categories(self, capsys) -> None:
         exts = [
-            _make_ext("d", Status.DEGRADED, reason="r"),
+            _make_ext("d", Status.ERROR, reason="r"),
             _make_ext("m", Status.VERSION_MISMATCH, reason="r"),
             _make_ext("u", Status.UNAVAILABLE, reason="r"),
         ]
         output_doctor(exts)
         captured = capsys.readouterr()
-        assert "Degraded" in captured.out
+        assert "Errored" in captured.out
         assert "Version-Mismatched" in captured.out
         assert "Unavailable" in captured.out
 
@@ -236,8 +236,8 @@ class TestOutputBanner:
         out = capsys.readouterr().out
         assert out == ""
 
-    def test_degraded_shown_with_warning(self, capsys) -> None:
-        ext = _make_ext("deg", Status.DEGRADED, reason="dep missing")
+    def test_error_shown_with_warning(self, capsys) -> None:
+        ext = _make_ext("deg", Status.ERROR, reason="dep missing")
         output_banner([ext], Path("/tmp"), quiet=True)
         out = capsys.readouterr().out
         assert "deg" in out

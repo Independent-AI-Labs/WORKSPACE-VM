@@ -1,33 +1,49 @@
 #!/usr/bin/env bash
 set -euo pipefail
-SCRIPT_SOURCE="${SHG_SCRIPT_PATH:-${BASH_SOURCE[0]}}"
-SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$SCRIPT_SOURCE")")" && pwd)"
+
+_SELF="${BASH_SOURCE[0]}"
+if [ -n "${SHG_SCRIPT_PATH:-}" ]; then _SELF="$SHG_SCRIPT_PATH"; fi
+SCRIPT_DIR="$(cd "$(dirname "$_SELF")" && pwd)"
 AMI_ROOT="$SCRIPT_DIR"
 while [[ "$AMI_ROOT" != "/" && ! -f "$AMI_ROOT/pyproject.toml" ]]; do
     AMI_ROOT="$(dirname "$AMI_ROOT")"
 done
-ORIG_PWD="$(pwd -P)"
+ORIG_PWD="$PWD"
 export AMI_ROOT && cd "$AMI_ROOT"
-BOOT_DIR="${BOOT_LINUX_DIR:-${AMI_ROOT}/.boot-linux}"
-NPX="${BOOT_DIR}/bin/npx"
-OPN="${BOOT_DIR}/bin/opencode"
 
-_oc_help() {
-    echo "oc - opencode AI agent wrapper with AMI welcome context"
-    echo "Usage: oc [task...]"
+OPN="${AMI_ROOT}/projects/opencode/packages/opencode/dist/opencode-linux-x64/bin/opencode"
+
+case "$(uname -s):$(uname -m)" in
+    Linux:x86_64) ;;
+    *)
+        echo "ocb: source build is available only on Linux x86_64" >&2
+        exit 1
+        ;;
+esac
+
+echo "[ocb] opencode source-build wrapper"
+
+_ocb_help() {
+    echo "ocb - opencode AI agent wrapper (source build)"
+    echo "Usage: ocb [task...]"
     echo "  Without arguments: starts interactive opencode session"
     echo "  With arguments:    runs opencode with the given task"
+    echo ""
+    echo "This wrapper uses the binary built from projects/opencode."
+    echo "If the binary is missing, run: make ocb"
 }
 
 if [[ "${1:-}" == "--help" ]] || [[ "${1:-}" == "-h" ]]; then
-    _oc_help
+    _ocb_help
     exit 0
 fi
+
 if [[ "${1:-}" == "--version" ]] || [[ "${1:-}" == "-V" ]]; then
     if [[ -x "$OPN" ]]; then
         "$OPN" --version
     else
-        echo "unknown"
+        echo "ocb: binary not built. Run 'make ocb' first." >&2
+        exit 1
     fi
     exit 0
 fi
@@ -35,7 +51,7 @@ fi
 for _arg in "$@"; do
     if [[ "$_arg" == "--help" ]] || [[ "$_arg" == "-h" ]]; then
         if [[ ! -x "$OPN" ]]; then
-            _oc_help
+            _ocb_help
             exit 0
         fi
         break
@@ -43,32 +59,38 @@ for _arg in "$@"; do
 done
 
 if [[ ! -x "$OPN" ]]; then
-    echo "oc: opencode binary not found. Run 'make install' first." >&2
+    echo "ocb: opencode binary not found at ${OPN}" >&2
+    echo "      Run 'make ocb' to build from source." >&2
     exit 1
 fi
+
 WELCOME=""
 if _tmp_welcome=$("$AMI_ROOT/workspace/scripts/bin/welcome" --plain 2>&1); then
     WELCOME="$_tmp_welcome"
 else
-    echo "oc: welcome banner unavailable; continuing with a minimal banner" >&2
+    echo "ocb: welcome banner unavailable; continuing with a minimal banner" >&2
     WELCOME="WORKSPACE-VM workspace"
 fi
 printf '%b\n' "$WELCOME" && echo ""
-# Regenerate the instruction file so opencode picks it up fresh each session
 printf '%b\n' "$WELCOME" > "${HOME}/.config/opencode/ami-environment.md"
-# Deploy opencode user config from workspace template
+
 OC_SRC="$AMI_ROOT/workspace/config/opencode"
 OC_DIR="${HOME}/.config/opencode"
 mkdir -p "$OC_DIR/plugins"
-[ ! -f "$OC_DIR/opencode.jsonc" ] && cp "$OC_SRC/opencode.jsonc" "$OC_DIR/opencode.jsonc"
-[ ! -f "$OC_DIR/system-instruction.md" ] && cp "$OC_SRC/system-instruction.template.md" "$OC_DIR/system-instruction.md"
+if [ ! -f "$OC_DIR/opencode.jsonc" ]; then
+    cp "$OC_SRC/opencode.jsonc" "$OC_DIR/opencode.jsonc"
+fi
+if [ ! -f "$OC_DIR/system-instruction.md" ]; then
+    cp "$OC_SRC/system-instruction.template.md" "$OC_DIR/system-instruction.md"
+fi
+
 export OPENCODE_ENABLE_EXA=1
-cd "$ORIG_PWD"
+
 if [[ $# -gt 0 ]]; then
     if [[ "$1" = -* ]]; then
         exec "$OPN" "$@"
     fi
     exec "$OPN" run --dir "$ORIG_PWD" "$@"
 else
-    exec "$OPN"
+    exec "$OPN" "$ORIG_PWD"
 fi

@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import fnmatch
 import os
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 
 import zstandard as zstd
@@ -19,8 +19,6 @@ CHUNK_SIZE = 65536  # 64 KB
 
 class ArchiveError(Exception):
     """Error during archive creation."""
-
-    pass
 
 
 def _should_exclude_path(
@@ -45,7 +43,7 @@ def _should_exclude_path(
 
     path = Path(path_str)
 
-    # Handle paths outside root gracefully
+    # Handle paths outside root without raising
     try:
         rel_path = path.relative_to(root_dir_str) if path.is_absolute() else path
     except ValueError:
@@ -76,17 +74,21 @@ async def _stream_to_zstd(proc: asyncio.subprocess.Process, archive_path: Path) 
         raise ArchiveError(msg)
 
     cctx = zstd.ZstdCompressor(level=3, threads=os.cpu_count() or 1)
-    with (
-        open(archive_path, "wb") as fout,
-        cctx.stream_writer(fout) as compressor,
-        tqdm(unit="B", unit_scale=True, desc="Compressing") as pbar,
-    ):
-        while True:
-            chunk = await proc.stdout.read(CHUNK_SIZE)
-            if not chunk:
-                break
-            compressor.write(chunk)
-            pbar.update(len(chunk))
+    fout = await asyncio.to_thread(archive_path.open, "wb")
+    try:
+        with (
+            fout,
+            cctx.stream_writer(fout) as compressor,
+            tqdm(unit="B", unit_scale=True, desc="Compressing") as pbar,
+        ):
+            while True:
+                chunk = await proc.stdout.read(CHUNK_SIZE)
+                if not chunk:
+                    break
+                compressor.write(chunk)
+                pbar.update(len(chunk))
+    finally:
+        await asyncio.to_thread(fout.close)
 
 
 async def create_archive(
@@ -122,7 +124,7 @@ async def create_archive(
     if output_dir is None:
         output_dir = root_dir.parent
 
-    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    timestamp = datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
     base_name = output_filename or f"{root_dir.name}-{timestamp}"
     archive_path = output_dir / f"{base_name}.tar.zst"
 

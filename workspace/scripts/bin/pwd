@@ -14,11 +14,15 @@ set -euo pipefail
 CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/ami"
 ROOT_FILE="$CONFIG_DIR/root"
 
+_SELF="${BASH_SOURCE[0]:-$0}"
+case "$_SELF" in /proc/self/fd/*) _SELF="${SHG_SCRIPT_PATH:-$_SELF}";; esac
+SCRIPT_DIR="$(cd "$(dirname "$_SELF")" && pwd)"
+
 # Default: agents directory
 # Walk up looking for markers
 get_default_root() {
     local curr
-    curr="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    curr="$SCRIPT_DIR"
     while [[ "$curr" != "/" ]]; do
         if [[ -f "$curr/pyproject.toml" || -d "$curr/.git" ]]; then
             echo "$curr"

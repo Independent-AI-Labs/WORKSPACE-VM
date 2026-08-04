@@ -145,7 +145,7 @@ user creation, and optional `make install-ci` invocation.
 **FR-3.3** Per-VM storage SHALL use a QCOW2 overlay backed by a shared base image
 so the base remains pristine across VM lifecycles.
 
-**FR-3.4 (REQ-VMH-009)** Host bind mounts into QEMU guests SHALL default to
+**FR-3.4 (REQ-VMH-009)** Host bind mounts into QEMU guests SHALL use
 **read-only** virtio-9p/virtfs shares. Writable host mounts SHALL NOT be used for
 guard-test surfaces in v1.
 
@@ -281,12 +281,13 @@ upstream QEMU binary; workspace Kotlin/Java code does not link QEMU as a library
 `firmware_packages` (apt/brew package names).
 
 **FR-10.4** Linux bootstrap SHALL prefer **symlinks to distro packages** when versions
-match the pin file. macOS SHALL symlink from Homebrew. Pinned tarball fallback is
-allowed when distro version drifts.
+match the pin file. macOS SHALL symlink from Homebrew. When the installed distro
+version differs from the pin, bootstrap SHALL use the pinned tarball and report the
+selection reason.
 
-**FR-10.5** POC MAY warn-and-fallback to `PATH` on developer hosts when boot-dir
+**FR-10.5** POC MAY warn and select `PATH` on developer hosts when boot-dir
 binaries are absent. CI and release gates SHALL require boot-dir resolution (no silent
-PATH fallback).
+PATH selection).
 
 **FR-10.6** `config/system-deps.yaml` SHALL list host tools required by QEMU backend
 that are not QEMU itself: `cloud-image-utils` (`cloud-localds`), and on Linux
@@ -313,7 +314,7 @@ prerequisite; macOS HVF requires no extra entitlement for `qemu-system-*`.
 **NFR-1** No breaking change to existing Podman-only workflows. Default backend
 is `podman`; all current tests and configs pass without edits.
 
-**NFR-2** No silent fallbacks for missing QEMU binary, base image, or failed
+**NFR-2** No silent alternate selection is permitted for a missing QEMU binary, base image, or failed
 accelerator probe - surface explicit errors with bootstrap hints.
 
 **NFR-3** No `dict[str, object]` in new Python code; use typed models per AGENTS.md.
@@ -323,7 +324,7 @@ accelerator probe - surface explicit errors with bootstrap hints.
 
 **NFR-5** All new source files (non-markdown) SHALL remain under 512 lines.
 
-**NFR-6** QEMU POC E2E test SHALL skip gracefully when QEMU binary or KVM/HVF is
+**NFR-6** QEMU POC E2E test SHALL skip with an explicit reason when QEMU binary or KVM/HVF is
 unavailable, with a clear skip reason - not a false pass.
 
 **NFR-7** Base Ubuntu image download SHALL be cached under `.vms/_base/` and

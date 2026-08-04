@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 PDF Extractor Utility
 Extracts text and images from a PDF file.
@@ -43,7 +42,7 @@ def extract_pdf_content(
     print(f"Opening {path_pdf}...")
     try:
         doc = fitz.open(path_pdf)
-    except Exception as e:
+    except (OSError, fitz.FileDataError) as e:
         print(f"Error opening PDF: {e}")
         return
 
@@ -88,7 +87,7 @@ def extract_pdf_content(
 
                     with open(image_filename, "wb") as f:
                         f.write(image_bytes)
-                except Exception as e:
+                except (KeyError, OSError, fitz.FileDataError) as e:
                     img_num = img_index + 1
                     print(f"  [Warning] Image {img_num} on page {page_num}: {e}")
 

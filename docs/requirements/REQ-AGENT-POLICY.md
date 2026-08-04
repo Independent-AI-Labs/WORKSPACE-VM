@@ -287,7 +287,7 @@ Audit log files SHALL be created with mode 0600 (owner read/write only).
 Match condition values from user input (regex patterns, field names) SHALL be validated before insertion into the policy YAML. User-provided regex SHALL be tested for compile validity. `yq` handles JSON-safe output escaping.
 
 **NFR-2.5 - Deny-by-Default Principle:**
-The deployed static plugin SHALL default to denying tool calls that match no explicit allow policy (fail-closed for tool execution hooks).
+The deployed static plugin SHALL deny tool calls that match no explicit allow policy (fail-closed for tool execution hooks).
 
 **NFR-2.6 - Run Action Fail-Closed:**
 If a run action script exits with non-zero status, times out, produces invalid or empty JSON on stdout, or is not found on disk, the policy engine SHALL treat the outcome as `action: block` (fail-closed). Truncated, malformed, or missing stdout output SHALL NOT result in allow-by-default. The block reason SHALL be surfaced to the user and logged to the audit trail with the specific failure cause (exit code, timeout duration, parse error message).
@@ -417,7 +417,7 @@ The policy engine SHALL support ISO/IEC 42001 alignment:
 | OWASP Entry | Relevance | Requirement |
 |-------------|-----------|-------------|
 | **LLM01: Prompt Injection** | Malicious input may bypass regex-based match conditions | Match conditions SHALL be evaluated by the static plugin at runtime, not injected into system prompts before evaluation. User-provided regex patterns SHALL be validated for compile validity at render time to prevent ReDoS attacks. |
-| **LLM06: Excessive Agency** | Policies govern tool execution scope | Policies SHALL default to deny-by-default for tool execution hooks. Explicit `action: allow` required for all governed tools. Least privilege principle: unknown tools are denied. |
+| **LLM06: Excessive Agency** | Policies govern tool execution scope | Policies SHALL deny tool execution unless an explicit allow policy matches. Explicit `action: allow` is required for all governed tools. Least privilege principle: unknown tools are denied. |
 | **LLM07: Insecure Plugin Design** | Plugin is an opencode plugin | Static plugin SHALL follow least privilege: only the hooks with policies defined in policies.json are active. No `eval()`, no dynamic code evaluation. |
 | **LLM02: Sensitive Information Disclosure** | Audit logs may contain sensitive context | Audit logs SHALL hash input data, not store raw sensitive content. PII patterns in match conditions SHALL be flagged at validation time. |
 | **LLM10: Unbounded Consumption** | Policy evaluation overhead | Per-message policy evaluation SHALL be bounded: max 50 policies per hook, max 5ms evaluation time per hook. |

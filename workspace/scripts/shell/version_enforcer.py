@@ -14,7 +14,7 @@ def enforce_versions(
 ) -> list[ResolvedExtension]:
     """Run health checks for entries with minVersion/maxVersion, downgrade on mismatch.
 
-    Only touches entries whose resolved status is READY or DEGRADED and that
+    Only touches entries whose resolved status is READY or ERROR and that
     declare at least one version constraint. UNAVAILABLE / HIDDEN stay put.
     Returns a new list with updated ``status`` / ``reason`` / ``version``.
     """

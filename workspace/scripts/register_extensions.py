@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Create symlinks and wrappers in the platform-appropriate boot dir for all extensions.
 

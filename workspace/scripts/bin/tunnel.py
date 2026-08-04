@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """AMI Cloudflare Tunnel Wrapper.
 
 Passthrough to cloudflared. Binary and config paths are env-driven to avoid

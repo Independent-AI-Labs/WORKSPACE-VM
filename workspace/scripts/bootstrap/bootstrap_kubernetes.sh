@@ -207,7 +207,7 @@ log_debug "After mv: helm = $(_file_type "${BIN_DIR}/helm"), size=$(_file_size "
 # Verification - use file(1) check + timeout to avoid Defender scan hangs on WSL.
 # First execution of a new binary on WSL triggers a full Defender scan that can
 # block for 30s+. We verify the binary is real via file(1) (instant), then run
-# the version check with a timeout as a best-effort.
+# the version check with a bounded timeout as an advisory probe.
 log_step "Verifying installations..."
 
 log_debug "kubectl: $(ls -lh "${BIN_DIR}/kubectl") - $(file -b "${BIN_DIR}/kubectl")"
@@ -222,7 +222,7 @@ for bin in kubectl helm; do
 done
 log_info "✓ kubectl and helm are valid ELF binaries"
 
-# Best-effort version check with 15s timeout (Defender may delay first exec)
+# Advisory version check with 15s timeout (Defender may delay first exec)
 log_debug "Running kubectl version (15s timeout)..."
 if timeout 15 "${BIN_DIR}/kubectl" version --client --output=json 2>&1 | grep -q "clientVersion"; then
     _kubever="$(timeout 5 "${BIN_DIR}/kubectl" version --client 2>&1)"

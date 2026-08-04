@@ -49,21 +49,25 @@ _ensure_launchdaemon() {
 
 _apply_persist_flag() {
     local persist="${PERSIST:-}"
+    local persist_value
     source "${SERVICE_SCRIPT}" || exit 1
     case "${persist}" in
         "")
             return 0
             ;;
-        1|true|yes|on)
-            configure_openvpn_persist "true" "${AMI_ROOT}" "${OPENVPN_BIN}"
-            ;;
-        0|false|no|off)
-            configure_openvpn_persist "false" "${AMI_ROOT}" "${OPENVPN_BIN}"
-            ;;
+        1) persist_value="true" ;;
+        true) persist_value="true" ;;
+        yes) persist_value="true" ;;
+        on) persist_value="true" ;;
+        0) persist_value="false" ;;
+        false) persist_value="false" ;;
+        no) persist_value="false" ;;
+        off) persist_value="false" ;;
         *)
             die "invalid PERSIST=${persist} (use 1 or 0)"
             ;;
     esac
+    configure_openvpn_persist "${persist_value}" "${AMI_ROOT}" "${OPENVPN_BIN}"
 }
 
 _usage() {
@@ -78,12 +82,12 @@ Commands:
   status          Show binary, config, and connection state
   health          Emit JSON health check
   logs            Tail OpenVPN log (LINES=50 by default)
-  persist-on      Enable auto-start on reboot/login (both platforms)
-  persist-off     Disable auto-start on reboot/login (both platforms)
+  persist-on      Enable automatic service start at system startup/login
+  persist-off     Disable automatic service start at system startup/login
   persist-status  Show whether auto-start is enabled
 
 Environment:
-  PERSIST=1|0     With start/stop/restart: enable or disable reboot persistence
+  PERSIST=1|0     With start/stop/restart: enable or disable persistent startup
 
 Makefile:
   make vpn-install

@@ -380,14 +380,14 @@ def _print_hidden(exts: list[ResolvedExtension]) -> None:
     print()
 
 
-def _print_degraded(exts: list[ResolvedExtension]) -> None:
-    print(f"{_Style.BOLD}Degraded Extensions:{_Style.NC}")
+def _print_error(exts: list[ResolvedExtension]) -> None:
+    print(f"{_Style.BOLD}Errored Extensions:{_Style.NC}")
     yellow = _COLORS["gold"]
     for ext in exts:
         name = ext.entry["name"]
         desc = ext.entry.get("description", "")
         pad = max(1, _STATUS_PAD - len(name))
-        print(f"  {name}{' ' * pad}{desc}  {yellow}DEGRADED{_Style.NC} ({ext.reason})")
+        print(f"  {name}{' ' * pad}{desc}  {yellow}ERROR{_Style.NC} ({ext.reason})")
     print()
 
 
@@ -434,22 +434,22 @@ def output_doctor(
     resolved: list[ResolvedExtension],
     root: Path | None = None,
 ) -> None:
-    """Diagnose degraded, version-mismatched, and unavailable extensions."""
+    """Diagnose errored, version-mismatched, and unavailable extensions."""
     if root is not None:
         with banner_log_session(root, "doctor") as (log, _on_failure):
             _log_resolution_snapshot(resolved, log)
-    degraded = [e for e in resolved if e.status == Status.DEGRADED]
+    errored = [e for e in resolved if e.status == Status.ERROR]
     mismatched = [e for e in resolved if e.status == Status.VERSION_MISMATCH]
     unavailable = [e for e in resolved if e.status == Status.UNAVAILABLE]
 
-    if degraded:
-        _print_degraded(degraded)
+    if errored:
+        _print_error(errored)
     if mismatched:
         _print_mismatched(mismatched)
     if unavailable:
         _print_unavailable(unavailable)
 
-    if not degraded and not mismatched and not unavailable:
+    if not errored and not mismatched and not unavailable:
         print("No problems detected.")
 
 

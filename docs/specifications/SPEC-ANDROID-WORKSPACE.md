@@ -68,7 +68,7 @@ UI: Dashboard | Console (desktop, logs, Run Ansible) | Settings
 | `useLegacyPackaging = true` | Uncompressed extraction keeps binaries executable |
 | TCG only, `pauth-impdef=on` | KVM unavailable to unprivileged apps; pauth flag cuts boot time |
 | Play asset delivery for base image | Keeps initial APK under size limit (~400 MB image) |
-| Foreground service + watchdog | Prevents OS kill of QEMU; graceful ACPI shutdown on swipe-away |
+| Foreground service + watchdog | Prevents OS kill of QEMU; controlled ACPI shutdown on swipe-away |
 | `EncryptedSharedPreferences` | Protects guest SSH credentials and vault passwords |
 
 ## 5. File Map

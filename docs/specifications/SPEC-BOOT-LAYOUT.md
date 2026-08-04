@@ -20,7 +20,7 @@
 The Boot Layout is the platform abstraction layer that resolves the workspace-local toolchain directory based on the host operating system. It provides:
 
 1. **`ci_platform_name()`**, detects `linux` or `darwin` via `uname -s`
-2. **`ci_boot_dir()`**, resolves the absolute path to `.boot-linux` or `.boot-macos` with legacy fallback
+2. **`ci_boot_dir()`**, resolves the absolute path to `.boot-linux` or `.boot-macos` with an existing-installation migration rule
 3. **`ci_boot_name()`**, returns just the directory name for marker checks
 4. **`ci_relative_path()`**, pure-bash relative path computation replacing `realpath --relative-to`
 
@@ -102,7 +102,7 @@ export PATH="${CI_BOOT_DIR}/python-env/bin:${CI_BOOT_DIR}/bin:$PATH"
 └─────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────┐
-│  workspace/scripts/bin/{repo,run,ops,oc}                       │
+│  workspace/scripts/bin/{repo,run,ops,oc,ocb}                 │
 │  (inline platform detection + portable readlink)               │
 │  ┌─────────────────────────────────────────────────────────────┐│
 │  │ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)" ││
@@ -110,6 +110,18 @@ export PATH="${CI_BOOT_DIR}/python-env/bin:${CI_BOOT_DIR}/bin:$PATH"
 │  │ BOOT_DIR="${BOOT_DIR:-${AMI_ROOT}/$_boot_name}"             ││
 │  └─────────────────────────────────────────────────────────────┘│
 └─────────────────────────────────────────────────────────────────┘
+
+### opencode variants
+
+- `oc`: npm release (`opencode-ai`), installed into `.venv` by
+  `bootstrap_opencode.sh`. Updated via `make update-oc`.
+- `ocb`: optional source build from `projects/opencode`, built explicitly by
+  `make ocb`. The build uses the package version from
+  `packages/opencode/package.json` and the `latest` channel, so it shares the
+  `opencode.db` database with `oc`. The wrapper lives at
+  `workspace/scripts/bin/ocb` and resolves the binary at
+  `projects/opencode/packages/opencode/dist/opencode-linux-x64/bin/opencode`.
+  The npm `oc` install remains untouched.
 ```
 
 ### Component Interaction Flow
@@ -120,7 +132,7 @@ Developer runs: make install-hooks
        ▼
 ┌──────────────────────────────────────────────┐
 │  1. cleanup-precommit                        │
-│     (removes legacy pre-commit traces)       │
+│     (removes obsolete pre-commit traces)     │
 └──────────────────┬───────────────────────────┘
                    │
                    ▼
@@ -178,15 +190,16 @@ ci_platform_name() {
 ```bash
 ci_boot_dir() {
     local _root="${1:-${CI_WORKSPACE_ROOT:-$(pwd)}}"
-    local _platform _preferred _fallback
+    local _platform _boot_name _preferred _existing
     _platform="$(ci_platform_name)"
-    _preferred="${_root}/.boot-${_platform}"
-    _fallback="${_root}/.boot-linux"
+    _boot_name="$(ci_boot_name "$_platform")"
+    _preferred="${_root}/${_boot_name}"
+    _existing="${_root}/.boot-linux"
     if [[ -d "$_preferred" ]]; then
         echo "$_preferred"
-    elif [[ -d "$_fallback" ]]; then
-        ci_warn "Legacy .boot-linux on $(_platform), consider re-bootstrapping"
-        echo "$_fallback"
+    elif [[ -d "$_existing" ]]; then
+        ci_warn "Existing .boot-linux on ${_platform}, consider re-bootstrapping"
+        echo "$_existing"
     else
         echo "$_preferred"
     fi
@@ -197,8 +210,8 @@ ci_boot_dir() {
 |----------|-------|
 | Input | Optional workspace root path |
 | Output | Absolute path to boot directory (to stdout) |
-| Fallback | `.boot-linux` if platform dir missing |
-| Warning | Emitted to stderr on legacy fallback (one-time) |
+| Existing-installation selection | `.boot-linux` if platform dir missing |
+| Warning | Emitted to stderr when the existing-installation path is selected (one-time) |
 | Bash version | 3.2+ compatible |
 
 ### 1.3 `ci_boot_name()`
@@ -306,7 +319,7 @@ BOOT_DIR="${BOOT_DIR:-${BOOT_DIR_LEGACY:-${PROJECT_ROOT}/$_boot_name}}"
 | Priority | Variable | Example | Notes |
 |----------|----------|---------|-------|
 | 1 (highest) | `BOOT_DIR` | `BOOT_DIR=/custom/path` | New preferred override |
-| 2 | `BOOT_LINUX_DIR` | `BOOT_LINUX_DIR=/custom/path` | Legacy override (backward compat) |
+| 2 | `BOOT_LINUX_DIR` | `BOOT_LINUX_DIR=/custom/path` | Existing override accepted during migration |
 | 3 (lowest) | Platform default | `.boot-macos` on Darwin | Computed from `uname -s` |
 
 ### 4.3 Affected Bootstrap Scripts
@@ -451,12 +464,12 @@ grep -vE '\.boot-(linux|macos)|...'
 
 ### 10.1 Backward Compatibility
 
-The migration SHALL be fully backward compatible:
+The migration SHALL preserve existing installations:
 
 1. **Linux unchanged:** `ci_boot_dir()` returns `.boot-linux`. No directory rename, no path changes.
 2. **macOS new installs:** Returns `.boot-macos`. Bootstrap scripts create `.boot-macos/` with all tools.
-3. **macOS legacy fallback:** If `.boot-macos` doesn't exist but `.boot-linux` does, returns `.boot-linux` with a warning.
-4. **Environment variable override:** `BOOT_DIR` (new) and `BOOT_LINUX_DIR` (legacy) both work. `BOOT_DIR` takes precedence.
+3. **Existing-installation path:** If `.boot-macos` does not exist but `.boot-linux` does, return `.boot-linux` with a warning.
+4. **Environment variable migration:** `BOOT_DIR` takes precedence; `BOOT_LINUX_DIR` remains accepted when `BOOT_DIR` is absent.
 5. **Workspace detection:** Both markers accepted everywhere. No breakage for mixed environments.
 
 ### 10.2 Implementation Order

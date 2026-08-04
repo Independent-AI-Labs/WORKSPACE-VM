@@ -49,7 +49,7 @@ class TestFixStaleShebang:
         assert ".venv/bin/python" in content
 
     def test_skips_binary_file(self, tmp_path):
-        """Test skips non-text files gracefully."""
+        """Test skips non-text files without raising."""
         binary = tmp_path / "binary"
         binary.write_bytes(b"\x00\x01\x02\xff")
         fix_stale_shebang(binary, tmp_path)

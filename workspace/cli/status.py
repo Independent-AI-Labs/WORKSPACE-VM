@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """System status display for AMI services and containers."""
 
 import argparse

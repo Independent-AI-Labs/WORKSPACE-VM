@@ -311,7 +311,7 @@ class TestResolveExtensions:
         result = resolve_extensions([manifest], tmp_path)
         assert result[0].status == Status.UNAVAILABLE
 
-    def test_optional_dep_missing_is_degraded(self, tmp_path: Path) -> None:
+    def test_optional_dep_missing_is_error(self, tmp_path: Path) -> None:
         _make_executable(tmp_path / "bin" / "tool")
         deps = [
             {
@@ -326,7 +326,7 @@ class TestResolveExtensions:
             {"extensions": [_valid_entry(binary="bin/tool", deps=deps)]},
         )
         result = resolve_extensions([manifest], tmp_path)
-        assert result[0].status == Status.DEGRADED
+        assert result[0].status == Status.ERROR
 
 
 # ---------------------------------------------------------------------------

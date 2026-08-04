@@ -169,7 +169,7 @@ DEFAULT_CATEGORY_PROPS = {
 
 class Status(enum.Enum):
     READY = "ready"
-    DEGRADED = "degraded"
+    ERROR = "error"
     VERSION_MISMATCH = "version_mismatch"
     UNAVAILABLE = "unavailable"
     HIDDEN = "hidden"
@@ -347,7 +347,7 @@ def check_additional_deps(deps: list[DepConfig], root: Path) -> DepCheckResult:
     if not deps:
         return DepCheckResult(status=Status.READY, reason="")
 
-    degraded_reasons: list[str] = []
+    error_reasons: list[str] = []
     for dep in deps:
         present = check_dep(dep, root)
         required = dep.get("required", True)
@@ -357,12 +357,12 @@ def check_additional_deps(deps: list[DepConfig], root: Path) -> DepCheckResult:
                 reason=f"missing required dep: {dep['name']}",
             )
         if not present and not required:
-            degraded_reasons.append(f"optional dep missing: {dep['name']}")
+            error_reasons.append(f"optional dep missing: {dep['name']}")
 
-    if degraded_reasons:
+    if error_reasons:
         return DepCheckResult(
-            status=Status.DEGRADED,
-            reason="; ".join(degraded_reasons),
+            status=Status.ERROR,
+            reason="; ".join(error_reasons),
         )
     return DepCheckResult(status=Status.READY, reason="")
 

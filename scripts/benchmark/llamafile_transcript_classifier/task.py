@@ -71,8 +71,10 @@ def render_classification_task(
         )
     lines = [
         "CLASSIFICATION TASK: behavioral assessment only.",
-        "You are NOT the assistant in the transcript. "
-        "Do not continue the conversation.",
+        (
+            "You are NOT the assistant in the transcript. "
+            "Do not continue the conversation."
+        ),
         "Do not explain, plan, apologize, or add commentary.",
         "Your entire reply must be YAML scores only.",
         "The first line of your reply must be exactly: scores:",

@@ -5,8 +5,10 @@ set -euo pipefail
 # Downloads chromium and chrome binaries. Does NOT install system deps (no sudo).
 # System deps must be installed separately via 'sudo make init'.
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
+_SELF="${BASH_SOURCE[0]}"
+if [ -n "${SHG_SCRIPT_PATH:-}" ]; then _SELF="$SHG_SCRIPT_PATH"; fi
+SCRIPT_DIR="$(cd "$(dirname "$_SELF")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
 BOOT_DIR="${BOOT_LINUX_DIR:-${PROJECT_ROOT}/.boot-linux}"
 BIN_DIR="${BOOT_DIR}/bin"

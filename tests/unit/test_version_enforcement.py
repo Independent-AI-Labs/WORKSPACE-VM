@@ -28,9 +28,8 @@ class TestParseSemver:
     def test_one_part(self) -> None:
         assert _parse_semver("5") == (5, 0, 0)
 
-    def test_two_parts_fallback_takes_leading_int(self) -> None:
-        # Fallback splits on non-digits, keeps leading integer only.
-        assert _parse_semver("5.1") == (5, 0, 0)
+    def test_two_parts_preserves_minor(self) -> None:
+        assert _parse_semver("5.1") == (5, 1, 0)
 
     def test_empty(self) -> None:
         assert _parse_semver("") is None
@@ -50,7 +49,10 @@ class TestCompareSemver:
         assert _compare_semver("1.2.3", "1.2.3") == 0
 
     def test_unparseable(self) -> None:
-        assert _compare_semver("abc", "1.2.3") == 0
+        assert _compare_semver("abc", "1.2.3") is None
+
+    def test_trailing_text_is_unparseable(self) -> None:
+        assert _parse_semver("1.2.3 unexpected") is None
 
 
 class TestCheckVersionConstraint:

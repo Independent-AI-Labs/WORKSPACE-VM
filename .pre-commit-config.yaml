@@ -27,7 +27,7 @@ repos:
         always_run: true
       - id: gitleaks
         name: Block secrets in all files (gitleaks)
-        entry: "bash -c '_boot=\"projects/CI/.boot-$(uname -s | tr '[:upper:]' '[:lower:]' | sed 's/darwin/macos/')/bin\"; export PATH=\"$_boot:$PATH\"; gitleaks dir . --no-banner --redact --verbose --log-level=error'"
+        entry: "bash -c 'source projects/CI/lib/checks.sh && ci_scan_secrets'"
         language: system
         pass_filenames: false
         always_run: true
@@ -39,14 +39,14 @@ repos:
         always_run: true
       - id: check-dependency-versions
         name: Check Dependency Versions (strict pinning + latest)
-        entry: "bash -c 'source projects/CI/lib/checks.sh && CI_CONFIG_DIR=\"$CI_CONFIG_DIR\" CI_PROJECT_ROOT=\"$CI_PROJECT_ROOT\" exec uv run --project projects/CI --no-sync python -m ci.check_dependency_versions \"$@\"' --"
+        entry: "bash -c 'source projects/CI/lib/checks.sh && _uv_bin=\"$(ci_uv_bin)\" && _uv_dir=\"${_uv_bin%/*}\" && export PATH=\"$_uv_dir:$PATH\" && CI_CONFIG_DIR=\"$CI_CONFIG_DIR\" CI_PROJECT_ROOT=\"$CI_PROJECT_ROOT\" exec uv run --project projects/CI --no-sync python -m ci.check_dependency_versions \"$@\"' --"
         language: system
         pass_filenames: false
         always_run: true
 
       - id: check-duplicate-dependencies
         name: Check Duplicate/Redundant Dependencies
-        entry: "bash -c 'source projects/CI/lib/checks.sh && CI_CONFIG_DIR=\"$CI_CONFIG_DIR\" CI_PROJECT_ROOT=\"$CI_PROJECT_ROOT\" exec uv run --project projects/CI --no-sync python -m ci.check_duplicate_dependencies \"$@\"' --"
+        entry: "bash -c 'source projects/CI/lib/checks.sh && _uv_bin=\"$(ci_uv_bin)\" && _uv_dir=\"${_uv_bin%/*}\" && export PATH=\"$_uv_dir:$PATH\" && CI_CONFIG_DIR=\"$CI_CONFIG_DIR\" CI_PROJECT_ROOT=\"$CI_PROJECT_ROOT\" exec uv run --project projects/CI --no-sync python -m ci.check_duplicate_dependencies \"$@\"' --"
         language: system
         pass_filenames: false
         always_run: true
@@ -72,7 +72,7 @@ repos:
         always_run: true
       - id: check-markdown-docs
         name: Check Markdown Documentation References
-        entry: "bash -c 'source projects/CI/lib/checks.sh && CI_CONFIG_DIR=\"$CI_CONFIG_DIR\" CI_PROJECT_ROOT=\"$CI_PROJECT_ROOT\" exec uv run --project projects/CI --no-sync python -m ci.check_markdown_docs --all-md --check-remote \"$@\"' --"
+        entry: "bash -c 'source projects/CI/lib/checks.sh && _uv_bin=\"$(ci_uv_bin)\" && _uv_dir=\"${_uv_bin%/*}\" && export PATH=\"$_uv_dir:$PATH\" && CI_CONFIG_DIR=\"$CI_CONFIG_DIR\" CI_PROJECT_ROOT=\"$CI_PROJECT_ROOT\" exec uv run --project projects/CI --no-sync python -m ci.check_markdown_docs --all-md --check-remote \"$@\"' --"
         language: system
         pass_filenames: false
         always_run: true
@@ -135,4 +135,3 @@ repos:
         language: system
         stages: [pre-push]
         pass_filenames: false
-

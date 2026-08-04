@@ -4,9 +4,36 @@
 # prepended to PATH so GNU coreutils, gnu-sed, and findutils shadow
 # the BSD equivalents.
 _OS := $(shell uname -s)
-_HB_PREFIX := $(if $(wildcard /opt/homebrew),/opt/homebrew,$(if $(wildcard /usr/local),/usr/local))
-SHELL := $(if $(wildcard $(_HB_PREFIX)/bin/bash),$(_HB_PREFIX)/bin/bash,/bin/bash)
+_ARCH := $(shell uname -m)
+ifeq ($(_OS),Darwin)
+ifeq ($(_ARCH),arm64)
+_HB_PREFIX := /opt/homebrew
+else
+_HB_PREFIX := /usr/local
+endif
+else
+_HB_PREFIX :=
+endif
+
+# Root detection MUST happen before the SHELL assignment below: once SHELL
+# points at the guarded /bin/bash, every $(shell) probe fails closed for root.
+# Root recipes therefore run through the sealed /bin/bash.real, matching the
+# convention used in every other repo Makefile under projects/.
+ifeq ($(shell id -u),0)
+SHELL := /bin/bash.real
+SCRIPT_BASH := /bin/bash.real
+else ifeq ($(_OS),Darwin)
+SHELL := $(_HB_PREFIX)/bin/bash
+SCRIPT_BASH := bash
+else
+SHELL := /bin/bash
+SCRIPT_BASH := bash
+endif
+ifeq ($(_OS),Darwin)
 export PATH := $(_HB_PREFIX)/opt/coreutils/libexec/gnubin:$(_HB_PREFIX)/opt/gnu-sed/libexec/gnubin:$(_HB_PREFIX)/opt/findutils/libexec/gnubin:$(_HB_PREFIX)/bin:$(PATH)
+else
+export PATH := $(PATH)
+endif
 
 # CI provides shared configs (ruff.toml, mypy.toml) and bootstrapped
 # tools (uv, ansible, gitleaks). VM-root delegates to CI for these.
@@ -17,7 +44,8 @@ CI_BOOT_BIN := $(CI_DIR)/$(CI_BOOT_NAME)/bin
 CI_RUFF := $(CI_DIR)/ruff.toml
 CI_MYPY := $(CI_DIR)/mypy.toml
 UV := $(CI_BOOT_BIN)/uv
-# User-configurable (env or CLI override); defaults to CI's boot bin
+MOON := $(CI_BOOT_BIN)/moon
+# User-configurable (env or CLI override); uses CI's boot bin when omitted
 ANSIBLE_PLAYBOOK ?= $(CI_BOOT_BIN)/ansible-playbook
 # Containment: uv-managed interpreters live inside CI's boot dir, never in
 # $HOME/.local/share/uv/python (no unsanctioned HOME/system resources)
@@ -120,7 +148,7 @@ ci-install-deps: ensure-repos ## Install CI project deps (boot tools, Python ven
 
 .PHONY: install
 install: init-check sync-package ## Interactive TUI to select and install components
-	uv run python workspace/scripts/bootstrap_installer.py && \
+	$(UV) run python workspace/scripts/bootstrap_installer.py && \
 	$(MAKE) register-extensions && \
 	$(MAKE) install-shell && \
 	$(MAKE) ci-install-deps && \
@@ -144,16 +172,16 @@ install-qemu: ## Install QEMU + firmware into platform boot directory (GPL-2.0)
 
 .PHONY: llama-setup
 llama-setup: init-check sync-package ## Interactive TUI for llama/hardware lifecycle
-	uv run python workspace/scripts/llama_setup_installer.py
+	$(UV) run python workspace/scripts/llama_setup_installer.py
 
 .PHONY: llama-setup-ci
 llama-setup-ci: init-check sync-package ## Non-interactive llama/hardware setup (llama-setup-defaults.yaml)
-	uv run python workspace/scripts/llama_setup_installer.py \
+	$(UV) run python workspace/scripts/llama_setup_installer.py \
 		--defaults workspace/config/llama-setup-defaults.yaml
 
 .PHONY: install-ci
 install-ci: init-check sync-package ## Non-interactive component install (uses install-defaults.yaml)
-	uv run python workspace/scripts/bootstrap_installer.py --defaults workspace/config/install-defaults.yaml && \
+	$(UV) run python workspace/scripts/bootstrap_installer.py --defaults workspace/config/install-defaults.yaml && \
 	$(MAKE) register-extensions && \
 	$(MAKE) install-shell && \
 	$(MAKE) ci-install-deps && \
@@ -259,7 +287,7 @@ setup-automation: ## Setup automation configuration
 .PHONY: register-extensions
 register-extensions: ## Register extensions in .boot-linux/bin
 	echo "🔌 Registering extensions in ~/.bashrc..."
-	uv run python workspace/scripts/register_extensions.py
+	$(UV) run python workspace/scripts/register_extensions.py
 
 # =============================================================================
 # Shell
@@ -331,8 +359,8 @@ vm-cert: ## generate or print client cert for <id>
 
 .PHONY: install-hooks
 install-hooks: ## Install native git hooks (run via sudo for root-owned hooks; no unseal/lock cycle exists)
-	if [ -x projects/CI/scripts/cleanup-precommit ]; then bash projects/CI/scripts/cleanup-precommit; fi
-	bash projects/CI/scripts/reinstall-hooks
+	if [ -x projects/CI/scripts/cleanup-precommit ]; then $(SCRIPT_BASH) projects/CI/scripts/cleanup-precommit; fi
+	$(SCRIPT_BASH) projects/CI/scripts/reinstall-hooks
 	if [ "$$(id -u)" != "0" ]; then \
 		echo "ℹ️  hooks regenerated; run 'sudo make install-hooks' when hooks are root-owned"; \
 	fi
@@ -369,7 +397,7 @@ install-hooks-recursive: ## Install hooks in workspace + every nested .git under
 		echo "🔗 Installing hooks in $$repo..."; \
 		( cd "$$repo" && \
 		  if [ -x $(CURDIR)/projects/CI/scripts/cleanup-precommit ]; then bash $(CURDIR)/projects/CI/scripts/cleanup-precommit; fi && \
-		  bash $(CURDIR)/projects/CI/scripts/reinstall-hooks ) || { echo "❌ Hook install failed in $$repo"; _failed=$$((_failed + 1)); }; \
+		  $(SCRIPT_BASH) $(CURDIR)/projects/CI/scripts/reinstall-hooks ) || { echo "❌ Hook install failed in $$repo"; _failed=$$((_failed + 1)); }; \
 	done; \
 	if [ "$$(id -u)" = "0" ]; then \
 		for reg in $(CURDIR)/ci/config/project_enforcement.yaml $(CURDIR)/workspace/config/project_enforcement.yaml; do \
@@ -388,7 +416,7 @@ install-hooks-recursive: ## Install hooks in workspace + every nested .git under
 
 .PHONY: check-hooks
 check-hooks: ensure-repos ## Preview generated hooks (dry-run)
-	bash projects/CI/scripts/generate-hooks --dry-run
+	$(SCRIPT_BASH) projects/CI/scripts/generate-hooks --dry-run
 
 # =============================================================================
 # Quality & Test
@@ -396,57 +424,57 @@ check-hooks: ensure-repos ## Preview generated hooks (dry-run)
 
 .PHONY: test
 test: ## Run tests (delegates to moon for caching)
-	moon run workspace:test
+	$(MOON) run workspace:test
 
 .PHONY: test-e2e
 test-e2e: ## Run end-to-end VM integration tests
-	uv run python -m pytest tests/e2e/ -v -m e2e --timeout 600
+	$(UV) run python -m pytest tests/e2e/ -v -m e2e --timeout 600
 
 .PHONY: test-e2e-qemu
 test-e2e-qemu: ## QEMU poc + guard E2E (set TEST_QEMU_FULL=1 to include full-ci)
-	uv run python -m pytest tests/e2e/test_vm_qemu_poc.py tests/e2e/test_vm_qemu_guard.py -v -m e2e --timeout 3600
+	$(UV) run python -m pytest tests/e2e/test_vm_qemu_poc.py tests/e2e/test_vm_qemu_guard.py -v -m e2e --timeout 3600
 	if [ "$${TEST_QEMU_FULL:-0}" = "1" ]; then \
-		uv run python -m pytest tests/e2e/test_vm_qemu_full_ci.py -v -m e2e --timeout 3600; \
+		$(UV) run python -m pytest tests/e2e/test_vm_qemu_full_ci.py -v -m e2e --timeout 3600; \
 	fi
 
 .PHONY: test-e2e-qemu-full
 test-e2e-qemu-full: ## QEMU poc + full-ci + guard (authoritative, slow)
-	uv run python -m pytest tests/e2e/test_vm_qemu_poc.py tests/e2e/test_vm_qemu_full_ci.py tests/e2e/test_vm_qemu_guard.py -v -m e2e --timeout 3600
+	$(UV) run python -m pytest tests/e2e/test_vm_qemu_poc.py tests/e2e/test_vm_qemu_full_ci.py tests/e2e/test_vm_qemu_guard.py -v -m e2e --timeout 3600
 
 .PHONY: test-vm-guard
 test-vm-guard: ## Authoritative WORKSPACE-GUARD gate in QEMU guest
-	uv run python -m pytest tests/e2e/test_vm_qemu_guard.py -v -m e2e --timeout 3600
+	$(UV) run python -m pytest tests/e2e/test_vm_qemu_guard.py -v -m e2e --timeout 3600
 
 .PHONY: test-vm-shell-guard
 test-vm-shell-guard: ## Authoritative shell-guard gate in QEMU guest
-	uv run python -m pytest tests/e2e/test_vm_qemu_shell_guard.py -v -s -m e2e --timeout 900
+	$(UV) run python -m pytest tests/e2e/test_vm_qemu_shell_guard.py -v -s -m e2e --timeout 900
 
 .PHONY: test-authoritative
 test-authoritative: test-e2e-qemu-full ## Pre-release QEMU + guard checklist
 
 .PHONY: clean-qemu-e2e
 clean-qemu-e2e: ## Remove orphaned QEMU per-VM overlays (keeps .vms/_base/)
-	uv run python -c "from tests.e2e.qemu_cleanup import cleanup_orphan_qemu_vms; n=cleanup_orphan_qemu_vms(max_age_seconds=0); print(f'Removed {len(n)} QEMU VM dir(s)' if n else 'No QEMU VM dirs to remove')"
+	$(UV) run python -c "from tests.e2e.qemu_cleanup import cleanup_orphan_qemu_vms; n=cleanup_orphan_qemu_vms(max_age_seconds=0); print(f'Removed {len(n)} QEMU VM dir(s)' if n else 'No QEMU VM dirs to remove')"
 
 .PHONY: lint
 lint: ## Run linters (delegates to moon for caching)
-	moon run workspace:lint
+	$(MOON) run workspace:lint
 
 .PHONY: type-check
 type-check: ## Run type checker (delegates to moon for caching)
-	moon run workspace:type-check
+	$(MOON) run workspace:type-check
 
 .PHONY: check
 check: ## Run all checks (lint + type-check + test, with caching)
-	moon run workspace:check
+	$(MOON) run workspace:check
 
 .PHONY: check-push
 check-push: ## Pre-push gate: lint + type-check + test (single pass)
-	moon run workspace:lint && moon run workspace:type-check && moon run workspace:test
+	$(MOON) run workspace:lint && $(MOON) run workspace:type-check && $(MOON) run workspace:test
 
 .PHONY: dead-code
 dead-code: ## Run AST-based dead code analysis (delegates to moon for caching)
-	moon run workspace:dead-code
+	$(MOON) run workspace:dead-code
 
 # Private implementation targets: invoked by moon's command: field.
 # Not part of the contract; do not call directly.
@@ -499,6 +527,27 @@ update-oc: ## Update opencode to latest version via npm (operator: sudo make upd
 			echo "❌ opencode binary not found after install" >&2; \
 			exit 1; \
 		fi
+
+.PHONY: ocb build-ocb
+ocb: build-ocb ## Optional source build alias; leaves npm-installed 'oc' untouched
+build-ocb: ## Build opencode from source with the package version and latest channel
+	if [ "$$(id -u)" != "0" ]; then \
+		echo "ERROR: build-ocb needs root (bun lifecycle scripts are blocked by the shell guard for non-root): sudo make ocb" >&2; \
+		exit 1; \
+	fi
+	_agent_home="$$(if [ -n "$${SUDO_USER:-}" ]; then getent passwd "$$SUDO_USER" | cut -d: -f6; else printf '%s' "$$HOME"; fi)"; \
+	_shim="$$(mktemp -d)"; \
+	mkdir -p "$$_shim"; \
+	ln -sf /bin/bash.real "$$_shim/bash"; \
+	echo "🔨 Building opencode from source (beta / ocb) ..."; \
+	HOME="$$_agent_home" PATH="$$_shim:$$PATH" bash scripts/setup/build-opencode.sh; \
+	_st=$$?; \
+	if [ $$_st -eq 0 ]; then \
+		ln -sf "$${PWD}/workspace/scripts/bin/ocb" ".boot-linux/bin/ocb"; \
+		echo "✅ ocb symlinked to .boot-linux/bin/ocb"; \
+	fi; \
+	rm -rf "$$_shim"; \
+	exit $$_st
 
 .PHONY: update-deps
 update-deps: ## Update Python dependencies only

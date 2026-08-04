@@ -6,6 +6,7 @@ and workspace alignment checks against the live project tree.
 
 from __future__ import annotations
 
+import logging
 import sys
 from io import StringIO
 from pathlib import Path
@@ -39,6 +40,8 @@ from workspace.scripts.shell.banner_log import (
     make_check_hook,
 )
 from workspace.scripts.shell.run_check import HealthCheckResult, run_check
+
+logger = logging.getLogger(__name__)
 
 
 class TestFindDuplicates:
@@ -120,10 +123,10 @@ class TestBannerLog:
         logs_dir = tmp_path / "logs"
         logs_dir.mkdir()
         try:  # silent-ok: banner_log may fail in minimal test env
-            with banner_log_session(tmp_path, "test-mode") as log:
+            with banner_log_session(tmp_path, "test-mode") as (log, _on_failure):
                 log({"event": "session_start", "mode": "test-mode"})
-        except Exception:  # silent-ok: banner_log may fail in minimal test env
-            pass
+        except (OSError, RuntimeError, ValueError) as exc:
+            logger.debug("banner log unavailable in minimal test environment: %s", exc)
         files = list(logs_dir.glob("banner-*.jsonl"))
         if len(files) >= 1:
             content = files[0].read_text()
@@ -133,7 +136,7 @@ class TestBannerLog:
         logs_dir = tmp_path / "logs"
         logs_dir.mkdir()
         try:  # silent-ok: banner_log may fail in minimal test env
-            with banner_log_session(tmp_path, "check-test") as log:
+            with banner_log_session(tmp_path, "check-test") as (log, _on_failure):
                 hook = make_check_hook(log, "test-ext")
                 check = CheckRecord(
                     command=["echo", "hello"],
@@ -146,8 +149,8 @@ class TestBannerLog:
                     exception=None,
                 )
                 hook(check)
-        except Exception:  # silent-ok: banner_log may fail in minimal test env
-            pass
+        except (OSError, RuntimeError, ValueError) as exc:
+            logger.debug("banner log unavailable in minimal test environment: %s", exc)
         files = list(logs_dir.glob("banner-*.jsonl"))
         assert isinstance(files, list)
 

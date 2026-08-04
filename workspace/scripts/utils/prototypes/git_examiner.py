@@ -25,7 +25,7 @@ class GitManager:
         cmd = ["git", "log", "-n", str(limit), "--pretty=format:%h|%an|%ar|%s"]
         try:
             result = subprocess.check_output(cmd, encoding="utf-8")
-        except Exception as e:
+        except (OSError, subprocess.CalledProcessError) as e:
             console.print(f"[red]Error fetching commits: {e}[/red]")
             return []
         else:
@@ -46,7 +46,7 @@ class GitManager:
             return subprocess.check_output(
                 ["git", "show", commit_hash], encoding="utf-8"
             )
-        except Exception as e:
+        except (OSError, subprocess.CalledProcessError) as e:
             return f"Error fetching diff: {e}"
 
     @staticmethod
@@ -58,7 +58,7 @@ class GitManager:
             if commit_hash == head_hash:
                 subprocess.check_call(["git", "commit", "--amend", "-m", new_message])
                 return True
-        except Exception as e:
+        except (OSError, subprocess.CalledProcessError) as e:
             console.print(f"[red]Failed to reword: {e}[/red]")
             return False
         else:

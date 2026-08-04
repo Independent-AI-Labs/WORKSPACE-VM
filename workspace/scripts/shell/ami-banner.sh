@@ -8,6 +8,16 @@ BLUE='\033[0;34m'
 RED='\033[38;5;203m'
 NC='\033[0m'
 
+# The shell guard runs staged scripts under a scrubbed PATH, so bare `uv`
+# resolves from nothing. Prepend the AMI boot dirs (same as bin/run) so
+# `uv run python` finds the hermetic uv + project venv.
+if [[ -n "${AMI_ROOT:-}" ]]; then
+    _ami_boot_dir=".boot-linux"
+    [[ "$(uname -s)" == "Darwin" ]] && _ami_boot_dir=".boot-macos"
+    export PATH="$AMI_ROOT/$_ami_boot_dir/bin:$AMI_ROOT/.venv/bin:$PATH"
+    unset _ami_boot_dir
+fi
+
 # Unset colors when --plain is active
 for arg in "$@"; do
     if [[ "$arg" == "--plain" ]]; then

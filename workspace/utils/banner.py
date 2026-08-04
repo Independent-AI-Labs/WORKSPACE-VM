@@ -34,7 +34,7 @@ def generate_banner_text(
 ) -> str:
     """Generate ASCII art for hostname and project version.
 
-    Renders the hostname and version string (e.g. ``MyComputer v0.4``)
+    Renders the hostname and version string (e.g. ``MyComputer v0.5``)
     in a compact font so the whole banner stays within an 80-column
     terminal.
     """

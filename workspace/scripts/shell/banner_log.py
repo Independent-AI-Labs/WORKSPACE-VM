@@ -4,7 +4,7 @@ Opens a JSON-lines log file under AMI_ROOT/logs/ each time the banner
 runs its tool health checks. The log captures every tool's status,
 the full command executed, stdout, stderr, returncode, elapsed time,
 and exceptions. Use it to diagnose why a tool is showing as
-UNAVAILABLE / DEGRADED / unhealthy without re-running anything.
+UNAVAILABLE / ERROR / unhealthy without re-running anything.
 """
 
 from __future__ import annotations
@@ -18,17 +18,17 @@ from collections.abc import Callable
 from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, NamedTuple, TypeAlias
+from typing import TYPE_CHECKING, NamedTuple
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
     from io import TextIOWrapper
 
 # A log record is a dict whose values are JSON-friendly scalars or lists.
-LogRecord: TypeAlias = dict[str, str | int | float | bool | list[str] | None]
-LogFn: TypeAlias = Callable[[LogRecord], None]
-FailureCallback: TypeAlias = Callable[[], None]
-BannerSessionYield: TypeAlias = tuple[LogFn, FailureCallback]
+type LogRecord = dict[str, str | int | float | bool | list[str] | None]
+type LogFn = Callable[[LogRecord], None]
+type FailureCallback = Callable[[], None]
+type BannerSessionYield = tuple[LogFn, FailureCallback]
 
 
 class CheckRecord(NamedTuple):
@@ -149,7 +149,7 @@ def make_check_hook(
 
     The returned callable takes a typed CheckRecord so run_check does not
     have to pass nine keyword arguments. If on_failure is provided, it is
-    called when a check reports unhealthy, degraded, or raises an exception.
+    called when a check reports unhealthy, errored, or raises an exception.
     """
 
     def hook(record: CheckRecord) -> None:

@@ -143,13 +143,14 @@ class TestGetContainerInspectInfo:
         assert result.labels == {}
 
     @patch("workspace.cli.status_containers.run_cmd")
-    def test_returns_empty_info_on_json_parse_error(self, mock_run_cmd):
+    def test_returns_empty_info_on_json_parse_error(self, mock_run_cmd, capsys):
         mock_run_cmd.return_value = "not valid json{{{{"
 
         result = _get_container_inspect_info("myapp", "podman")
 
         assert result.ports == []
         assert result.labels == {}
+        assert "could not be parsed" in capsys.readouterr().err
 
     @patch("workspace.cli.status_containers.run_cmd")
     def test_returns_empty_info_on_missing_config_key(self, mock_run_cmd):
@@ -226,7 +227,7 @@ class TestGetContainerStats:
         assert stats[0]["name"] == "valid"
 
     @patch("workspace.cli.status_containers.run_cmd")
-    def test_handles_json_decode_error_gracefully(self, mock_run_cmd):
+    def test_handles_json_decode_error_with_empty_result(self, mock_run_cmd):
         mock_run_cmd.return_value = "corrupted { json [ data"
         stats = get_container_stats()
         assert stats == []
@@ -409,7 +410,7 @@ class TestGetPodmanContainers:
     @patch("workspace.cli.status_containers._get_container_inspect_info")
     @patch("workspace.cli.status_containers.run_cmd")
     def test_handles_general_exception(self, mock_run_cmd, mock_inspect):
-        mock_inspect.side_effect = Exception("inspect failure")
+        mock_inspect.side_effect = ValueError("inspect failure")
         mock_run_cmd.return_value = (
             '[{"Id": "bad123456789", "Names": ["bad"], '
             '"State": "running", "Status": "Up", "Image": "img"}]'

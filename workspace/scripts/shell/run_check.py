@@ -25,8 +25,7 @@ if TYPE_CHECKING:
 MAX_CHECK_TIMEOUT = 5
 
 # Semver core: MAJOR.MINOR.PATCH with optional -pre / +build suffix we discard.
-_SEMVER_RE = re.compile(r"^(\d+)\.(\d+)\.(\d+)")
-_SEMVER_PARTS = 3
+_SEMVER_RE = re.compile(r"^(\d+)(?:\.(\d+))?(?:\.(\d+))?(?:[-+][0-9A-Za-z.-]+)?$")
 
 
 class HealthCheckResult(NamedTuple):
@@ -41,36 +40,51 @@ class HealthCheckResult(NamedTuple):
 def _parse_semver(v: str) -> tuple[int, int, int] | None:
     """Parse a semver-ish string into a (major, minor, patch) tuple.
 
-    Accepts ``1``, ``1.2``, ``1.2.3``, ``1.2.3-rc1``, ``1.2.3+build``.
-    Missing components default to 0. Returns None if no leading integer
-    is present.
+    Accepts ``1``, ``1.2``, ``1.2.3``, ``1.2.3-rc1``, and
+    ``1.2.3+build``. Missing components are explicitly zero. Returns None
+    for malformed input.
     """
     if not v:
         return None
-    m = _SEMVER_RE.match(v)
-    if m:
-        return int(m.group(1)), int(m.group(2)), int(m.group(3))
-    # Fall back to best-effort: take leading int(s) separated by dots.
-    parts = re.split(r"[^0-9]", v, maxsplit=1)[0].split(".")
-    nums = [int(p) for p in parts if p and p.isdigit()]
-    if not nums:
+    m = _SEMVER_RE.fullmatch(v)
+    if not m:
         return None
-    while len(nums) < _SEMVER_PARTS:
-        nums.append(0)
-    return nums[0], nums[1], nums[2]
+    major, minor, patch = m.groups()
+    return int(major), int(minor or "0"), int(patch or "0")
 
 
-def _compare_semver(a: str, b: str) -> int:
-    """Return -1/0/1 comparing two semver-ish strings. Unparseable -> 0."""
+def _compare_semver(a: str, b: str) -> int | None:
+    """Return -1/0/1 comparing versions, or None when either is invalid."""
     pa = _parse_semver(a)
     pb = _parse_semver(b)
     if pa is None or pb is None:
-        return 0
+        return None
     if pa < pb:
         return -1
     if pa > pb:
         return 1
     return 0
+
+
+def _constraint_failure_reason(
+    version: str,
+    min_version: str | None,
+    max_version: str | None,
+) -> str | None:
+    """Return a constraint failure reason, or None when the version is valid."""
+    if min_version:
+        comparison = _compare_semver(version, min_version)
+        if comparison is None:
+            return f"unparseable version: {version!r}"
+        if comparison < 0:
+            return f"{version} < required minVersion {min_version}"
+    if max_version:
+        comparison = _compare_semver(version, max_version)
+        if comparison is None:
+            return f"unparseable version: {version!r}"
+        if comparison > 0:
+            return f"{version} > allowed maxVersion {max_version}"
+    return None
 
 
 def _check_version_constraint(
@@ -102,10 +116,9 @@ def _check_version_constraint(
             return False, f"{cause} (required {bound})"
         return False, f"no version extracted (required {bound})"
 
-    if min_v and _compare_semver(version, min_v) < 0:
-        return False, f"{version} < required minVersion {min_v}"
-    if max_v and _compare_semver(version, max_v) > 0:
-        return False, f"{version} > allowed maxVersion {max_v}"
+    failure_reason = _constraint_failure_reason(version, min_v, max_v)
+    if failure_reason is not None:
+        return False, failure_reason
     return True, None
 
 

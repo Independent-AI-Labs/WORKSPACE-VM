@@ -4,8 +4,10 @@ set -euo pipefail
 # Git LFS and Git Xet Bootstrap Script for AMI-ORCHESTRATOR
 # Downloads git-lfs and git-xet binaries for HuggingFace large file support
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
+_SELF="${BASH_SOURCE[0]}"
+if [ -n "${SHG_SCRIPT_PATH:-}" ]; then _SELF="$SHG_SCRIPT_PATH"; fi
+SCRIPT_DIR="$(cd "$(dirname "$_SELF")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
 BOOT_DIR="${BOOT_LINUX_DIR:-${PROJECT_ROOT}/.boot-linux}"
 BIN_DIR="${BOOT_DIR}/bin"
@@ -92,7 +94,7 @@ install_git_xet() {
     esac
 
     # Get latest git-xet version (separate from hf_xet releases)
-    XET_VERSION=$(curl -sS https://api.github.com/repos/huggingface/xet-core/releases | grep -o '"tag_name": "git-xet-v[^"]*"' | head -1 | sed 's/"tag_name": "git-xet-v\([^"]*\)"/\1/')
+    XET_VERSION=$(curl -sS https://api.github.com/repos/huggingface/xet-core/releases | grep -m1 -o '"tag_name": "git-xet-v[^"]*"' | sed 's/"tag_name": "git-xet-v\([^"]*\)"/\1/')
 
     if [ -z "$XET_VERSION" ]; then
         XET_VERSION="0.2.0"  # Fallback

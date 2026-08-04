@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Llama / hardware setup TUI (make llama-setup)."""
 
 from __future__ import annotations

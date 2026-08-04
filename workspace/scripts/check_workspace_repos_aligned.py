@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Verify .moon/workspace.yml::projects and workspace-clones.yaml agree.
 
 Both files list the workspace's repos but for different consumers:

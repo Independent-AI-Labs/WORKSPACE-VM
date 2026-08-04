@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Disk usage analyzer for top-level directory contents."""
 
 import subprocess

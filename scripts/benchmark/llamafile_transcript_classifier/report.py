@@ -111,10 +111,14 @@ def _bucket_summary_lines(rollup: JsonMap) -> list[str]:
     lines = [
         "## Summary by Measured Context Size",
         "",
-        "| Bucket | Steps | Pass Rate | Prompt Tok Avg | Cache Tok Avg | "
-        "Cache Hit % | TTFT ms Avg | Total ms Avg | Gen tok/s Avg |",
-        "|--------|-------|-----------|----------------|---------------|"
-        "------------|-------------|--------------|---------------|",
+        (
+            "| Bucket | Steps | Pass Rate | Prompt Tok Avg | Cache Tok Avg | "
+            "Cache Hit % | TTFT ms Avg | Total ms Avg | Gen tok/s Avg |"
+        ),
+        (
+            "|--------|-------|-----------|----------------|---------------|"
+            "------------|-------------|--------------|---------------|"
+        ),
     ]
     for block in rollup["by_size_bucket"]:
         bucket = ctx_label(block["size_bucket"])
@@ -164,10 +168,14 @@ def _session_curve_lines(sessions: list[JsonMap]) -> list[str]:
         lines.append("")
         lines.extend(
             [
-                "| Turn | Window | Rolled | Prompt Tok | Cache Tok | Prompt New | "
-                "TTFT ms | Total ms | tok/s | Pass |",
-                "|------|--------|--------|------------|-----------|------------|"
-                "---------|---------|-------|------|",
+                (
+                    "| Turn | Window | Rolled | Prompt Tok | Cache Tok | Prompt New | "
+                    "TTFT ms | Total ms | tok/s | Pass |"
+                ),
+                (
+                    "|------|--------|--------|------------|-----------|------------|"
+                    "---------|---------|-------|------|"
+                ),
             ]
         )
         for step in session.get("steps", []):

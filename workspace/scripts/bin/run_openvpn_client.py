@@ -1,8 +1,3 @@
-#!/usr/bin/env bash
-""":'
-exec "$(dirname "$0")/../scripts/run" "$0" "$@"
-"""
-
 from __future__ import annotations
 
 import argparse

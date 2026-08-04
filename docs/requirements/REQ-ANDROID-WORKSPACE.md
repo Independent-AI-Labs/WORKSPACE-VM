@@ -48,7 +48,7 @@ is required.
 | **TCG** | QEMU Tiny Code Generator - software CPU emulation used when KVM is unavailable |
 | **VirGL** | Virtio-GPU path that forwards guest OpenGL to the host GPU |
 | **W^X** | Android SELinux policy: writable memory cannot be executable from app `filesDir` |
-| **jniLibs workaround** | Ship QEMU/VirGL as `.so` under `jniLibs/` so the package manager extracts them to an executable native library path |
+| **jniLibs packaging path** | Ship QEMU/VirGL as `.so` under `jniLibs/` so the package manager extracts them to an executable native library path |
 | **Asset delivery** | Play feature to ship large files (Ubuntu image) outside the base APK size limit |
 | **VirtFS (9p)** | QEMU host-guest filesystem share for playbook directories |
 
@@ -125,7 +125,7 @@ and stop it when the VM stops.
 | `-cpu max,pauth-impdef=on` | Faster AArch64 guest boot under TCG |
 | `-device virtio-gpu-gl-pci,virgl=on` | VirGL-enabled virtual GPU |
 | `-display x11` | X11 socket output |
-| `-vnc :0` | VNC fallback |
+| `-vnc :0` | VNC selection when X11 is unavailable |
 
 **FR-2.4** Storage SHALL use `qemu-img` to create a QCOW2 overlay (`vm-disk.qcow2`)
 backed by the extracted base image. The base image SHALL remain unmodified.
@@ -218,7 +218,7 @@ current flagship device (reference: Snapdragon 8 Gen 3 class).
 **NFR-4** VM management SHALL run in a foreground service with a persistent
 notification so the OS does not kill QEMU under load.
 
-**NFR-5** A watchdog SHALL detect an unresponsive QEMU process, attempt graceful
+**NFR-5** A watchdog SHALL detect an unresponsive QEMU process, attempt controlled
 shutdown, and optionally restart.
 
 **NFR-6** Swipe-away or device shutdown SHALL trigger guest ACPI shutdown when
@@ -261,7 +261,7 @@ workloads, not native speed. `pauth-impdef=on` is required for acceptable
 AArch64 boot times.
 
 **Display:** Primary path is Termux:X11 via intent; bundled VNC client is the
-fallback when X11 is unavailable.
+selection when X11 is unavailable.
 
 **Image size:** Base Ubuntu image (~400 MB compressed) SHOULD use Play asset
 delivery (install-time or fast-follow) so the initial download stays small.

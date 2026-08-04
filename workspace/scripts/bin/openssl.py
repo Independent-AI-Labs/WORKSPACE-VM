@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """AMI OpenSSL Wrapper.
 
 Smart wrapper for openssl with AMI-aware certificate path defaults.

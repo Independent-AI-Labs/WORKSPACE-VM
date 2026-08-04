@@ -193,14 +193,17 @@ _uninstall_from_bashrc() {
 # Delegates to the Python manifest registry - single source of truth for what
 # extensions exist (see ami/scripts/shell/extension_registry.py).
 _verify_extensions() {
+    # Skip the extension doctor in non-interactive/tool subshells.
+    [[ -t 1 ]] || return 0
+
     local helper="$AMI_ROOT/workspace/scripts/shell/banner_helper.py"
     [[ -f "$helper" ]] || return 0
-    # Use --mode doctor with --quiet: prints degraded/mismatched/unavailable
+    # Use --mode doctor with --quiet: prints errored/mismatched/unavailable
     # lists without running per-extension health checks. Any output means the
     # user has something to look at.
     local doctor py_err
     py_err="$(mktemp)"
-    doctor="$(AMI_QUIET_MODE=1 python3 "$helper" -mode doctor 2>"$py_err")" || {
+    doctor="$(AMI_QUIET_MODE=1 python3 "$helper" --mode doctor 2>"$py_err")" || {
         [[ -s "$py_err" ]] && echo "[shell-setup] extension doctor check failed: $(cat "$py_err")" >&2
         rm -f "$py_err"
         return 0
@@ -278,7 +281,8 @@ if ! source "$AGENTS_SCRIPTS/shell/ami-banner.sh"; then echo "[shell-setup] fail
 
 AMI_QUIET_MODE=${AMI_QUIET_MODE:-0}
 
-if [[ "$AMI_QUIET_MODE" != "1" ]]; then
+# Keep non-interactive/tool subshells quiet; only chatter on a real TTY.
+if [[ "$AMI_QUIET_MODE" != "1" ]] && [[ -t 1 ]]; then
     _ami_echo "${BLUE}🚀 Setting up AMI Orchestrator shell environment...${NC}"
 fi
 
@@ -344,7 +348,9 @@ alias msg="oc"
 # ============================================================================
 # Display banner on welcome
 # ============================================================================
-if [[ "${AMI_SHOW_WELCOME:-0}" == "1" ]] && [[ "${AMI_QUIET_MODE:-0}" != "1" ]]; then
+# Only draw the welcome banner when stdout is a real TTY (skip the noisy
+# banner for every non-interactive subshell/tool invocation).
+if [[ "${AMI_SHOW_WELCOME:-0}" == "1" ]] && [[ "${AMI_QUIET_MODE:-0}" != "1" ]] && [[ -t 1 ]]; then
     display_banner
     display_system_status
 fi

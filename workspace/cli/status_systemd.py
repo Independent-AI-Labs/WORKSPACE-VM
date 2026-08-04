@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Systemd-related functions for the AMI status display."""
 
 import os

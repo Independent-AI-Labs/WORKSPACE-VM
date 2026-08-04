@@ -95,7 +95,7 @@ class _PodmanMachineError(RuntimeError):
 
 
 def _ensure_podman_machine() -> None:
-    """On Darwin, require podman-machine-default to exist and be running."""
+    """On Darwin, require the podman-machine-default machine to exist and run."""
     if sys.platform != "darwin":
         return
     machine = "podman-machine-default"

@@ -291,7 +291,7 @@ README: [`benchmarks/llamafile/transcript_classifier/README.md`](benchmarks/llam
 
 WORKSPACE-VM is an **umbrella repo** that orchestrates multiple independent git clones under `projects/` ([`workspace/config/workspace-clones.yaml`](workspace/config/workspace-clones.yaml)). `projects/CI` and `projects/DATAOPS` are mandatory; other projects (PORTAL, TRADING, GUARD, etc.) opt in via `bootstrap-repos`. Agents, hooks, and guard policy apply workspace-wide; compliance is not optional per nested repo.
 
-- **Fail-Closed Security:** Agent VMs default to air-gapped Podman (`network.mode: none`). `git-guard` wraps `/usr/bin/git` at the syscall boundary, blocking `--no-verify` and history rewrite. `podman-guard` enforces container egress and capability policy before a container starts.
+- **Fail-Closed Security:** Agent VMs use air-gapped Podman (`network.mode: none`) when no network mode is supplied. `git-guard` wraps `/usr/bin/git` at the syscall boundary, blocking `--no-verify` and history rewrite. `podman-guard` enforces container egress and capability policy before a container starts.
 - **Compliance as Code:** WORKSPACE-CI (`projects/CI/`) generates native git hooks from `.pre-commit-config.yaml` and installs them recursively across nested repos. Hook stages and checks: [`projects/CI/README.md`](projects/CI/README.md).
 - **Topological Orchestration:** Prefer `moon` tasks for cross-repo builds and tests. Resync clones with `moon run :update`.
 

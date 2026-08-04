@@ -68,14 +68,14 @@ def _valid_entry(**overrides: object) -> ExtensionEntry:
 class TestStatus:
     def test_values(self) -> None:
         assert Status.READY.value == "ready"
-        assert Status.DEGRADED.value == "degraded"
+        assert Status.ERROR.value == "error"
         assert Status.UNAVAILABLE.value == "unavailable"
         assert Status.HIDDEN.value == "hidden"
 
     def test_members(self) -> None:
         expected = {
             Status.READY,
-            Status.DEGRADED,
+            Status.ERROR,
             Status.UNAVAILABLE,
             Status.HIDDEN,
             Status.VERSION_MISMATCH,
@@ -341,7 +341,7 @@ class TestCheckAdditionalDeps:
             }
         ]
         status, reason = check_additional_deps(deps, tmp_path)
-        assert status == Status.DEGRADED
+        assert status == Status.ERROR
         assert "bar" in reason
 
     def test_all_present(self, tmp_path: Path) -> None:
@@ -374,7 +374,7 @@ class TestCheckAdditionalDeps:
             },
         ]
         status, reason = check_additional_deps(deps, tmp_path)
-        assert status == Status.DEGRADED
+        assert status == Status.ERROR
         assert "a" in reason
         assert "b" in reason
 

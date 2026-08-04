@@ -7,6 +7,10 @@
 
 set -euo pipefail
 
+_SELF="${BASH_SOURCE[0]:-$0}"
+case "$_SELF" in /proc/self/fd/*) _SELF="${SHG_SCRIPT_PATH:-$_SELF}";; esac
+SCRIPT_DIR="$(cd "$(dirname "$_SELF")" && pwd)"
+
 _GG_ERR="$(mktemp)"
 trap 'rm -f "$_GG_ERR"' EXIT
 _gg_log_err() {
@@ -14,8 +18,15 @@ _gg_log_err() {
     : > "$1"
 }
 
-# Resolve system git: try cached path first, then search known locations
+# Resolve system git: env override first, then a `real-git` sibling
+# (how guard tests inject a test-provided executable), then known system locations.
 GIT_REAL="${GIT_GUARD_REAL_GIT:-}"
+
+if [[ -z "$GIT_REAL" || ! -x "$GIT_REAL" ]]; then
+    if [[ -x "$SCRIPT_DIR/real-git" ]]; then
+        GIT_REAL="$SCRIPT_DIR/real-git"
+    fi
+fi
 
 if [[ -z "$GIT_REAL" || ! -x "$GIT_REAL" ]]; then
     # Check git.original first - system guard may have renamed real git
@@ -358,7 +369,9 @@ if [[ "$cmd" == "commit" || "$cmd" == "push" ]]; then
                     _skip_p3=0
                     for _arg in "$@"; do
                         case "$_arg" in
-                            --delete|:*|*:) _skip_p3=1 ;;
+                            --delete) _skip_p3=1 ;;
+                            :*) _skip_p3=1 ;;
+                            *:) _skip_p3=1 ;;
                         esac
                     done
                     : > "$_GG_ERR"
@@ -388,7 +401,7 @@ if [[ "$cmd" == "commit" || "$cmd" == "push" ]]; then
                     else
                         # warn mode: yellow advisory. Prefer /dev/tty so it
                         # survives stdout/stderr redirection in interactive
-                        # use; fall back to stderr in non-tty contexts.
+                        # use; write to stderr in non-tty contexts.
                         # `[[ -w ]]` lies on `/dev/tty` (returns true but
                         # opening fails), so probe by actually opening fd9.
                         _warn_fd=/dev/stderr

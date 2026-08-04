@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Production-grade Disk Space Cleaner.
 Targeted cleaning of Podman resources (Images, Containers, Volumes).

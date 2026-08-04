@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """System information display with progress bars."""
 
 import sys
@@ -151,7 +150,7 @@ def main() -> None:
             )
         print()
 
-    except Exception as e:
+    except (OSError, RuntimeError, ValueError) as e:
         print(f"Error: {e}")
         sys.exit(1)
 

@@ -62,7 +62,7 @@ The Boot Layout feature provides:
 ### FR-1: Platform Detection
 
 **FR-1.1 - `ci_platform_name()` Function:**
-The system SHALL provide a `ci_platform_name()` shell function in `projects/CI/lib/ci.sh` that echoes a lowercase platform identifier. On Linux, it SHALL echo `linux`. On macOS (Darwin), it SHALL echo `darwin`. On any other platform, it SHALL echo `linux` as the default fallback.
+The system SHALL provide a `ci_platform_name()` shell function in `projects/CI/lib/ci.sh` that echoes the lowercase value returned by `uname -s`. On Linux, it SHALL echo `linux`. On macOS (Darwin), it SHALL echo `darwin`. The boot-name resolver SHALL map unrecognized platform values to the Linux boot directory and SHALL make that selection visible to the caller.
 
 **FR-1.2 - Detection Mechanism:**
 `ci_platform_name()` SHALL use `uname -s` as the sole detection mechanism. The function SHALL NOT depend on `/etc/os-release`, `sw_vers`, or any platform-specific file. `uname -s` returns `Linux` on Linux and `Darwin` on macOS, both are stable, POSIX-mandated values.
@@ -73,13 +73,13 @@ The system SHALL provide a `ci_platform_name()` shell function in `projects/CI/l
 ### FR-2: Boot Directory Resolution
 
 **FR-2.1 - `ci_boot_dir()` Function:**
-The system SHALL provide a `ci_boot_dir()` shell function in `projects/CI/lib/ci.sh` that echoes the absolute path to the platform-appropriate boot directory. The function SHALL accept an optional workspace root argument; if omitted, it SHALL use `CI_WORKSPACE_ROOT` (set by `ci.sh` at source-time) or fall back to the current working directory.
+The system SHALL provide a `ci_boot_dir()` shell function in `projects/CI/lib/ci.sh` that echoes the absolute path to the platform-appropriate boot directory. The function SHALL accept an optional workspace root argument; if omitted, it SHALL use `CI_WORKSPACE_ROOT` (set by `ci.sh` at source-time) or the current working directory.
 
 **FR-2.2 - Directory Naming Convention:**
 The boot directory name SHALL follow the pattern `.boot-<platform>` where `<platform>` is the output of `ci_platform_name()`. On Linux: `.boot-linux`. On macOS: `.boot-macos`.
 
-**FR-2.3 - Fallback for Legacy Installations:**
-When the platform-preferred boot directory does not exist but `.boot-linux` does exist (regardless of platform), `ci_boot_dir()` SHALL fall back to `.boot-linux` and emit a one-time warning to stderr advising the operator to re-bootstrap. This ensures existing macOS installations that were bootstrapped before this feature continue to function.
+**FR-2.3 - Migration Path for Existing Installations:**
+When the platform-preferred boot directory does not exist but `.boot-linux` does exist, `ci_boot_dir()` SHALL select `.boot-linux` and emit a one-time warning to stderr advising the operator to re-bootstrap. This preserves installations created before platform-specific boot directories were introduced.
 
 **FR-2.4 - `ci_boot_name()` Function:**
 The system SHALL provide a `ci_boot_name()` shell function that echoes just the directory name (e.g., `.boot-linux` or `.boot-macos`), without the workspace root prefix. This is used by workspace root detection logic that needs to check for directory existence.
@@ -134,7 +134,7 @@ The tier resolution logic in `generate-hooks` that checks for the workspace root
 All bootstrap scripts in `workspace/scripts/bootstrap/` SHALL default their boot directory to the platform-appropriate path (`.boot-linux` on Linux, `.boot-macos` on macOS) instead of hardcoding `.boot-linux`.
 
 **FR-6.2 - Environment Variable Override:**
-Bootstrap scripts SHALL support a `BOOT_DIR` environment variable (replacing the current `BOOT_LINUX_DIR`) that overrides the platform-default boot directory. This preserves backward compatibility for operators who have explicitly set `BOOT_LINUX_DIR`.
+Bootstrap scripts SHALL support a `BOOT_DIR` environment variable that overrides the platform-default boot directory. During migration, an explicitly set `BOOT_LINUX_DIR` remains accepted when `BOOT_DIR` is absent.
 
 **FR-6.3 - Bootstrap Script Pattern:**
 Each bootstrap script SHALL resolve its boot directory using an inline platform detection pattern (not sourcing `ci.sh`, since bootstrap scripts run before `ci.sh` is guaranteed to be available):
@@ -225,7 +225,7 @@ Bootstrap scripts that already detect Darwin and download macOS binaries (e.g., 
 ### NFR-3: Reliability
 
 **NFR-3.1 - Fallback Completeness:**
-When `ci_boot_dir()` falls back from a missing platform directory to `.boot-linux`, the fallback SHALL be transparent to the caller. The returned path SHALL be valid and usable for tool resolution.
+When `ci_boot_dir()` selects `.boot-linux` because the platform directory is missing, it SHALL emit the migration warning described in FR-2.3. The returned path SHALL be valid and usable for tool resolution.
 
 **NFR-3.2 - No Partial Migration State:**
 The system SHALL tolerate mixed-state workspaces where some tools are installed in `.boot-linux` and others in `.boot-macos`. The boot directory resolver returns one directory; tools not found there fall through to system `PATH`.
@@ -277,8 +277,8 @@ The boot directory path SHALL NOT be derived from user-controlled environment va
 | A-1 | `uname -s` returns `Linux` on all Linux distributions and `Darwin` on all macOS versions. This is a POSIX.1-2001 mandate and has been stable across all known implementations. |
 | A-2 | macOS users have bash available. macOS ships with bash 3.2 at `/bin/bash`. Users with Homebrew bash 5.x are also supported. The `#!/usr/bin/env bash` shebang resolves correctly on both. |
 | A-3 | The workspace's bootstrap sequence (uv -> python -> ...) already handles macOS binary downloads correctly. Only the target directory naming needs to change. |
-| A-4 | Existing Linux deployments will not be affected by the addition of `.boot-macos`. The `ci_boot_dir()` fallback ensures `.boot-linux` continues to be used on Linux. |
-| A-5 | The `BOOT_LINUX_DIR` environment variable is used by a limited number of operators. The migration to `BOOT_DIR` with `BOOT_LINUX_DIR` as fallback does not change existing workflows. |
+| A-4 | Existing Linux deployments will not be affected by the addition of `.boot-macos`. The migration rule keeps `.boot-linux` usable until re-bootstrap. |
+| A-5 | The `BOOT_LINUX_DIR` environment variable is used by a limited number of operators. The migration to `BOOT_DIR` retains that explicit setting when the new variable is absent. |
 | A-6 | The `config/boot_layout.yaml` specification comment referencing `ci_resolve_boot_path` was written as a forward-looking contract. Implementing `ci_boot_dir()` fulfills this contract. |
 | A-7 | The `.boot-linux` directory is gitignored and not shared across machines. Each developer/CI runner has their own boot directory, so platform-specific naming introduces no cross-environment conflicts. |
 
@@ -305,7 +305,7 @@ The boot directory path SHALL NOT be derived from user-controlled environment va
 | FR-5.1 | `walk-projects:26`, `checks_compliance.sh:360` | Workspace Detection | HIGH |
 | FR-5.2 | `generate-hooks:56` (workspace root marker check) | Workspace Detection | HIGH |
 | FR-6.1 | ~25 bootstrap scripts (`.boot-linux` default) | Bootstrap | HIGH |
-| FR-6.2 | `BOOT_LINUX_DIR` env var backward compatibility | Bootstrap | HIGH |
+| FR-6.2 | `BOOT_LINUX_DIR` migration support | Bootstrap | HIGH |
 | FR-6.3 | Bootstrap scripts cannot source `ci.sh` | Bootstrap | HIGH |
 | FR-7.1 | `repo`, `run`, `ops`, `oc` CLI wrappers | CLI | HIGH |
 | FR-7.2 | `readlink -f` GNU-only breakage on macOS | CLI | HIGH |
@@ -325,7 +325,7 @@ The boot directory path SHALL NOT be derived from user-controlled environment va
 ### Phase 1: Core Platform Abstraction (ci.sh)
 
 - [ ] `ci_platform_name()` implemented and returns `linux` on Linux, `darwin` on macOS
-- [ ] `ci_boot_dir()` implemented with legacy fallback to `.boot-linux`
+- [ ] `ci_boot_dir()` implements the existing-installation migration rule for `.boot-linux`
 - [ ] `ci_boot_name()` implemented, returns `.boot-linux` or `.boot-macos`
 - [ ] `ci_relative_path()` implemented, correct for all four cases in FR-3.2
 - [ ] `CI_BOOT_DIR` and `CI_BOOT_NAME` set at source-time
@@ -350,8 +350,8 @@ The boot directory path SHALL NOT be derived from user-controlled environment va
 
 ### Phase 4: Bootstrap Scripts
 
-- [ ] All ~25 bootstrap scripts default to platform-appropriate boot directory
-- [ ] `BOOT_DIR` env var overrides work (with `BOOT_LINUX_DIR` fallback)
+- [ ] All ~25 bootstrap scripts select the platform-appropriate boot directory when no override is supplied
+- [ ] `BOOT_DIR` overrides work, with `BOOT_LINUX_DIR` accepted during migration
 - [ ] `bootstrap_uv.sh` installs to `.boot-macos/bin/` on macOS
 - [ ] `bootstrap_python.sh` creates `.boot-macos/python-env/` on macOS
 

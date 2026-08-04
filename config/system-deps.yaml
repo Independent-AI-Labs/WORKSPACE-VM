@@ -107,7 +107,7 @@ requires:
     component: qemu
     optional: true
 
-  - check_cmd: capsh
+  - check_cmd: setcap
     apt_package: libcap2-bin
     description: libcap2-bin (setcap/getcap for WORKSPACE-GUARD)
     platforms: [linux]

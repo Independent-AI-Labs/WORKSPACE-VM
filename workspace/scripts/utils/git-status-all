@@ -4,7 +4,9 @@
 # match an org namespace from workspace-clones.yaml or the umbrella root.
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+_SELF="${BASH_SOURCE[0]:-$0}"
+case "$_SELF" in /proc/self/fd/*) _SELF="${SHG_SCRIPT_PATH:-$_SELF}";; esac
+SCRIPT_DIR="$(cd "$(dirname "$_SELF")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 PROJECTS_DIR="${PROJECT_ROOT}/projects"
 CLONES_YAML="${PROJECT_ROOT}/workspace/config/workspace-clones.yaml"
@@ -61,7 +63,7 @@ if [[ ! -f "$CLONES_YAML" ]]; then
     exit 1
 fi
 
-REAL_GIT="$(dirname "$0")/real-git"
+REAL_GIT="${SCRIPT_DIR}/real-git"
 if [[ ! -x "$REAL_GIT" ]]; then
     _git_err="$(mktemp)"
     if ! REAL_GIT="$(command -v git 2>"$_git_err")"; then

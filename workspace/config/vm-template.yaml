@@ -78,7 +78,7 @@ env:
 isolation:
   backend: podman  # podman | qemu
   qemu:
-    guest_arch: aarch64   # aarch64 | x86_64 (defaults to host CPU)
+    guest_arch: aarch64   # aarch64 | x86_64 (uses host CPU when omitted)
     accel: auto           # auto | kvm | hvf | whpx | tcg
     disk_gb: 20
     ssh_host_port: 0      # 0 = allocate a free localhost port

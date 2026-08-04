@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Container-related functions for the AMI status display."""
 
 import json
@@ -79,12 +78,11 @@ def _get_container_inspect_info(name: str, podman_bin: str) -> ContainerInspectI
             exposed_ports.append(
                 PortMapping(containerPort=int(port_num), protocol=proto)
             )
-    except (json.JSONDecodeError, KeyError, ValueError, IndexError):
-        # intentional-no-op: best-effort parse of `podman inspect` JSON; if the
-        # schema differs (older podman) or fields are missing, returning
-        # whatever we accumulated keeps the status display alive instead
-        # of crashing on a corner-case container.
-        _inspect_parse_failed = True  # intentional-no-op marker; SIM105 forbids `pass`
+    except (json.JSONDecodeError, KeyError, ValueError, IndexError, TypeError) as exc:
+        print(
+            f"Warning: podman inspect data for {name} could not be parsed: {exc}",
+            file=sys.stderr,
+        )
     return ContainerInspectInfo(exposed_ports, labels)
 
 
@@ -225,8 +223,8 @@ def get_podman_containers() -> list[PodmanContainer]:
                     labels={k: str(v) for k, v in labels.items()},
                 )
             )
-    except Exception:
-        print("Warning: podman container listing failed", file=sys.stderr)
+    except (json.JSONDecodeError, KeyError, TypeError, IndexError, ValueError) as exc:
+        print(f"Warning: podman container listing failed: {exc}", file=sys.stderr)
         return []
     else:
         return containers

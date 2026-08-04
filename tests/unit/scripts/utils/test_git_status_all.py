@@ -134,6 +134,13 @@ def _make_fake_git(stub_dir: Path, origins: dict[Path, str]) -> None:
 def _run_status_all(
     script_path: Path, *args: str, stub_dir: Path
 ) -> subprocess.CompletedProcess[str]:
+    # The shell guard scrubs PATH when staging scripts, so a stub git on
+    # PATH is unreachable inside git-status-all. Install the stub as
+    # `real-git` next to the copied script instead (git-status-all
+    # resolves "${SCRIPT_DIR}/real-git" before using PATH).
+    real_git = script_path.parent / "real-git"
+    shutil.copy(stub_dir / "git", real_git)
+    real_git.chmod(real_git.stat().st_mode | stat.S_IEXEC)
     env = dict(os.environ)
     env["PATH"] = f"{stub_dir}{os.pathsep}{env.get('PATH', '')}"
     return subprocess.run(

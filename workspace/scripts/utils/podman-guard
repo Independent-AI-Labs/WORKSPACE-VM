@@ -7,9 +7,19 @@
 
 set -euo pipefail
 
-# Resolve through symlinks so the guard works when linked to other paths
-# (quadlet units invoke /usr/local/bin/podman, a symlink to this script).
-PODMAN_REAL="$(dirname "$(readlink -f "$0")")/real-podman"
+# Resolve the installed path even when the shell guard stages this wrapper
+# through /proc/self/fd. Systemd may invoke /usr/local/bin/podman, which can
+# also be a symlink to this script.
+_SELF="${BASH_SOURCE[0]:-$0}"
+case "$_SELF" in /proc/self/fd/*) _SELF="${SHG_SCRIPT_PATH:-$_SELF}";; esac
+PODMAN_REAL="$(dirname "$(readlink -f "$_SELF")")/real-podman"
+
+# Older guard binaries may not inject SHG_SCRIPT_PATH into staged children.
+# AMI_ROOT is preserved by the guard and gives the hermetic install a stable
+# fallback without consulting the host PATH.
+if [[ ! -x "$PODMAN_REAL" && -n "${AMI_ROOT:-}" ]]; then
+    PODMAN_REAL="$AMI_ROOT/.boot-linux/bin/real-podman"
+fi
 
 # Ensure real podman exists
 if [[ ! -x "$PODMAN_REAL" ]]; then

@@ -41,8 +41,11 @@ def test_aliases_exist_and_respond_to_help() -> None:
         bash_test_cmd = [
             "bash",
             "-c",
-            f'export PATH="{AMI_ROOT}/.venv/bin:{AMI_ROOT}/{_BOOT_NAME}/bin:$PATH" && '
-            f"source {script_path} --quiet && type -t {func_name}",
+            (
+                f'export PATH="{AMI_ROOT}/.venv/bin:'
+                f'{AMI_ROOT}/{_BOOT_NAME}/bin:$PATH" && '
+                f"source {script_path} --quiet && type -t {func_name}"
+            ),
         ]
 
         result = subprocess.run(

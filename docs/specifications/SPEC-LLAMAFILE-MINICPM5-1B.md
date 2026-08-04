@@ -373,7 +373,7 @@ off
 > error. `--jinja` and `--reasoning` are valid in both examples and are kept.
 > The mode is chosen purely by which manifest is embedded - the engine binary
 > is identical across modes (no recompile). `args.cpp:69` checks `--server`
-> before `--chat`, so a bundle that embeds `--server` can never fall back to
+> before `--chat`, so a bundle that embeds `--server` cannot select another mode after
 > chat at runtime; the chat bundle therefore embeds `--chat` and no
 > `--server`.
 
@@ -393,7 +393,7 @@ make build-llamafile MODEL=minicpm5-1b MODE=server
 make build-llamafile MODEL=minicpm5-1b MODE=chat
 
 # Both
-make build-llamafile MODEL=minicpm5-1b            # MODE defaults to all
+make build-llamafile MODEL=minicpm5-1b            # MODE is all when omitted
 
 # Remove built bundles
 make clean-llamafile MODEL=minicpm5-1b
@@ -468,7 +468,7 @@ printf 'What is 1+1? Reply with just the number.\n' | "$CHAT"
 
 ### Port registry (workspace host co-location)
 The workspace `ansible/llamaserver.yml` reserves: cpu=8081, sycl=8082,
-vulkan=8080. The llamafile server bundle defaults to **8765** - an exotic
+vulkan=8080. The llamafile server bundle uses **8765** when unspecified, an unusual
 port chosen to avoid collision with any workspace llamaserver flavor and
 with the sandbox's `rootlessport` forwarder on 8080. Override at launch if
 needed: `./MiniCPM5-1B-Q8_0.llamafile --port <PORT>`. The chat bundle opens

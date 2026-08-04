@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "workspace"
-version = "0.4"
+version = "0.5"
 description = "AMI Agent Orchestration System with shared code quality infrastructure"
 readme = "README.md"
 requires-python = "==3.13.*"
@@ -30,12 +30,12 @@ dependencies = [
     "prometheus-client==0.26.0",
     "fastapi==0.141.1",
     "jinja2==3.1.6",
-    "uvicorn[standard]==0.52.0",
+    "uvicorn[standard]==0.52.1",
     "python-multipart==0.0.32",
     "psutil==7.2.2",
     "pyyaml==6.0.3",
     "nodeenv==1.10.0",
-    "playwright==1.61.0",
+    "playwright==1.62.0",
     "synadm==0.49.2",
     "google-auth==2.56.2",
     "google-auth-oauthlib==1.4.0",

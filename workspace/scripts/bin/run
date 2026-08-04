@@ -2,7 +2,9 @@
 # run: Universal execution wrapper for AMI Orchestrator
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+_SELF="${BASH_SOURCE[0]:-$0}"
+case "$_SELF" in /proc/self/fd/*) _SELF="${SHG_SCRIPT_PATH:-$_SELF}";; esac
+SCRIPT_DIR="$(cd "$(dirname "$_SELF")" && pwd)"
 AMI_ROOT="$("$SCRIPT_DIR/pwd")"
 export AMI_ROOT
 

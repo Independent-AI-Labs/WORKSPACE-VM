@@ -140,7 +140,7 @@ Fix the code or stop.
   - Hides import errors until runtime (fails in production)
   - Makes dependency analysis impossible (can't detect missing packages)
   - Defeats static type checking (mypy can't analyze)
-  - Creates circular import workarounds (masks design problems)
+  - Creates circular import avoidance paths (masks design problems)
   - Performance overhead (repeated imports)
 - **DETECTION**: Any `import` or `from ... import` statement inside function/method/class body (PLC0415)
 - **CORRECT APPROACH**:
@@ -288,7 +288,7 @@ Fix the code or stop.
 
 **Script/Executable Not Found → Fallback**: `except (RuntimeError, FileNotFoundError): logger.warning("Falling back"); basic_impl()` - defeats purpose of required scripts/tools
 
-**Orchestrator Root Not Found → Fallback**: `except RuntimeError: logger.warning("Cannot find orchestrator root"); return basic_operation()` - silently degrades functionality
+**Orchestrator Root Not Found**: `except RuntimeError: logger.warning("Cannot find orchestrator root"); return basic_operation()` - this must report the failure instead of returning reduced functionality
 
 **Logger Warning + Fallback Code**: `logger.warning(f"Falling back to {fallback}"); return fallback_impl()` - masks missing dependencies
 

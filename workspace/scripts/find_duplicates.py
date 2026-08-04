@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Duplicate file finder script that compares filenames between two directories.
 """

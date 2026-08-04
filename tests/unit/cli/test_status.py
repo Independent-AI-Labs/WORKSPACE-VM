@@ -420,7 +420,7 @@ class TestMain:
             assert mock_entry.call_args[0][0].name == "managed-svc"
             mock_orphan_svcs.assert_called_once()
 
-    def test_handles_empty_services_containers_gracefully(self):
+    def test_handles_empty_services_containers_without_error(self):
         mock_legend = MagicMock()
         mock_legend.render.return_value = LegendRender("I", "L")
 

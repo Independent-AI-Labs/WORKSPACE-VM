@@ -70,7 +70,9 @@ function parseArgs() {
     await page.goto(opts.url, { waitUntil: 'networkidle', timeout: opts.timeout });
     console.log(`[NAVIGATE] Loaded ${opts.url}`);
   } catch (e) {
-    console.log(`[NAVIGATE] ${e.message}`);
+    console.error(`[NAVIGATE] ${e.message}`);
+    await browser.close();
+    process.exit(1);
   }
 
   await page.waitForTimeout(opts.wait);

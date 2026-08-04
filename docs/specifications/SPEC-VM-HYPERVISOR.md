@@ -369,7 +369,7 @@ Poll until success or timeout (same order of magnitude as existing `_wait_health
 
 ### 6.5 Stop / destroy
 
-- **stop:** `qemu-monitor` `system_powerdown` if monitor available; else SIGTERM to PID in `qemu.pid`; wait up to 30s; SIGKILL fallback
+- **stop:** `qemu-monitor` `system_powerdown` if monitor available; else SIGTERM to PID in `qemu.pid`; wait up to 30s; use SIGKILL as the final termination step
 - **destroy:** stop + `rm -rf .vms/<uuid>/` (preserve `_base/`)
 
 ### 6.6 Guest provisioning and rsync profiles
@@ -506,7 +506,7 @@ License: GNU General Public License v2.0
 ```
 hypervisor/
  qemu_argv.py # pure functions - argv, firmware paths (unit-testable)
- qemu_resolve.py # boot-dir → Path, PATH fallback with warning
+ qemu_resolve.py # boot-dir → Path, PATH selection with warning
  qemu_images.py # download, qcow2 overlay, cloud-localds
  qemu_backend.py # IsolationBackend - wires the above, subprocess only
 ```
@@ -584,7 +584,7 @@ package (apt/brew) while boot-dir remains the runtime resolution point.
 
 ```
 1. <boot-dir>/bin/qemu-system-<guest_arch>
-2. PATH (dev fallback - log warning to stderr)
+2. PATH for developer hosts (log warning to stderr)
 3. exit with: "run make install-qemu"
 ```
 
@@ -649,7 +649,8 @@ Firmware paths resolved in `qemu_argv.py` from boot-dir bundle first.
 ### 11.4 KVM prerequisite (Linux)
 
 `QemuBackend.create` SHALL probe `/dev/kvm` when accel resolves to `kvm`. If missing,
-fall back to `tcg` when `accel: auto`, or fail when `accel: kvm` is explicit.
+it SHALL select `tcg` when `accel: auto` and report that selection, or fail when
+`accel: kvm` is explicit.
 
 Document in error text: `sudo usermod -aG kvm $USER` and re-login.
 
@@ -672,7 +673,7 @@ The shell-guard battery is QEMU-only for the same reason as Tier 3,
 plus two compounding host restrictions: rootless Podman stores file
 capabilities as `user.overlay` xattrs the kernel never honors (no
 AT_SECURE), and Ubuntu hosts gate unprivileged user-namespace
-creation behind AppArmor profiles, so nested-namespace workarounds
+creation behind AppArmor profiles, so nested-namespace integration changes
 are denied. The bats suite `tests/shell/21-shell-guard.bats` runs
 the same matrix wherever a capability context is attainable and
 skips honestly elsewhere; only the AT_SECURE-gate test runs
@@ -746,14 +747,14 @@ component status and remaining tasks: §17.
 ### 14.1 Windows WHPX bundle
 
 - Ship pinned QEMU + firmware in `.boot-windows/`
-- WHPX accel probe; TCG fallback
+- WHPX accelerator probe; TCG selection when configured
 - Integrate with existing Windows bootstrap path
 
 ### 14.2 Android client
 
 Align with [REQ-ANDROID-WORKSPACE](../requirements/REQ-ANDROID-WORKSPACE.md):
 
-- Bundled `qemu-system-aarch64` as `.so` in `jniLibs/` (W^X workaround)
+- Bundled `qemu-system-aarch64` as `.so` in `jniLibs/` (required W^X packaging change)
 - Forced `-accel tcg`
 - Shared cloud-init / overlay patterns with desktop `QemuBackend`
 - `workspace/cli/hypervisor/qemu_backend.py` extracts shared argv builder
@@ -767,7 +768,7 @@ Align with [REQ-ANDROID-WORKSPACE](../requirements/REQ-ANDROID-WORKSPACE.md):
 
 ## 15. Appendix - Open-Source Engine Comparison
 
-| Engine | License | Maintainer | Last activity | TCG fallback | Accel | Self-contained bundle | v1 role |
+| Engine | License | Maintainer | Last activity | TCG selection | Accel | Self-contained bundle | v1 role |
 |--------|---------|------------|---------------|--------------|-------|----------------------|---------|
 | **QEMU** | GPL-2.0 | QEMU project / community | Active (weekly releases) | **Yes - all hosts** | KVM, HVF, WHPX | Yes (static builds possible) | **Selected** |
 | crosvm | BSD-3 | Google / Chromium | Active | No (needs /dev/kvm or WinHv) | KVM, WHPX | Partial | Future Android/Win fast path |
@@ -777,8 +778,8 @@ Align with [REQ-ANDROID-WORKSPACE](../requirements/REQ-ANDROID-WORKSPACE.md):
 | VirtualBox | GPL-2.0 | Oracle | Maintenance mode | No | VT-x/AMD-V | GUI installer | Not suitable (license + bundle size) |
 | Rootless Podman | Apache-2.0 | Red Hat / community | Active | N/A (container) | N/A | Uses OCI runtime | **Retained default** |
 
-**Decision:** QEMU is the only engine that satisfies REQ-VMH-005 (auto accel + universal
-TCG fallback) while remaining actively maintained under an open license suitable
+**Decision:** QEMU is the only engine that satisfies REQ-VMH-005 (auto accelerator
+selection plus universal TCG support) while remaining actively maintained under an open license suitable
 for bundling in WORKSPACE-VM boot directories and the Android client app.
 
 ---
