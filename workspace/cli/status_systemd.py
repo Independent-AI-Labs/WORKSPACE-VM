@@ -90,6 +90,8 @@ def get_managed_service_names() -> set[str]:
 
     # 2. Per-project service declarations
     for svc_file in sorted((root / "projects").glob("*/res/ansible/services.yml")):
+        if svc_file.parts[-4] == "CI-quarantine":
+            continue
         _load_services_from(svc_file, managed)
 
     return managed
@@ -127,6 +129,8 @@ def get_declared_compose_files() -> set[str]:
     if root_inv.exists():
         _collect_compose_files(root_inv, root, paths)
     for project in sorted((root / "projects").iterdir()):
+        if project.name == "CI-quarantine":
+            continue
         svc = project / "res" / "ansible" / "services.yml"
         if svc.exists():
             _collect_compose_files(svc, project, paths)
