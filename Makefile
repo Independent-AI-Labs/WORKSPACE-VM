@@ -470,6 +470,7 @@ check: ## Run all checks (lint + type-check + test, with caching)
 
 .PHONY: check-push
 check-push: ## Pre-push gate: lint + type-check + test (single pass)
+	export PATH="/usr/bin:$$PATH"; \
 	$(MOON) run workspace:lint && $(MOON) run workspace:type-check && $(MOON) run workspace:test
 
 .PHONY: dead-code
