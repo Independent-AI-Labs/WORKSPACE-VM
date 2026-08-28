@@ -6,9 +6,9 @@
 set -euo pipefail
 
 # Clean up any pre-existing pre-commit framework artifacts
-if ! bash projects/CI/scripts/cleanup-precommit; then
+if ! bash /opt/workspace-ci/scripts/cleanup-precommit; then
     echo "[bootstrap_hooks] cleanup-precommit failed or not found, continuing"
 fi
 
 # Generate native git hooks from config
-bash projects/CI/scripts/generate-hooks
+bash /opt/workspace-ci/scripts/generate-hooks

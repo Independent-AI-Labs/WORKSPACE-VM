@@ -10,6 +10,21 @@ The agent (uid=1000, group `agent`+`adm`) runs inside a hermetic sandbox VM.
 - **When a task requires root**, the agent must **immediately ask the human operator** — do NOT attempt escalation, do NOT loop on `sudo`.
 - This is a hard physical constraint, not a policy choice. There is no permitted alternate path. Do not waste tokens trying.
 
+### Protected Boot Boundaries
+
+- `.boot-linux` and `.boot-macos` are root-owned trust boundaries containing
+  bootstrapped executables. Their ownership and modes are security controls, not
+  test failures to repair.
+- NEVER suggest or request recursive `chown`, `chmod`, deletion, replacement, or
+  write access for a protected boot directory to make an unprivileged workflow
+  pass.
+- If an ordinary test or extension-registration path attempts to write there,
+  treat the path design as defective: move its writable output outside the boot
+  boundary or use an approved operator/control-plane deployment interface.
+- A genuinely necessary boot update requires a narrow, reviewed operator handoff
+  naming the exact files, intended ownership, verification evidence, and rollback
+  plan. It never authorizes broad ownership changes.
+
 ## 作弊就是死刑 - Cheating Is The Death Penalty
 
 Every rule below is absolute. Violation means you are sabotaging the project.

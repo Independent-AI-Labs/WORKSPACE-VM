@@ -19,7 +19,11 @@ _ci_boot_name=".boot-linux"
 if [[ "$_boot_platform" == "darwin" ]]; then
     _ci_boot_name=".boot-macos"
 fi
-CI_UV="${PROJECT_ROOT}/projects/CI/${_ci_boot_name}/bin/uv"
+if [[ "$_boot_platform" == "darwin" ]]; then
+    CI_UV="${PROJECT_ROOT}/projects/WORKSPACE-CI/${_ci_boot_name}/bin/uv"
+else
+    CI_UV="/opt/workspace-ci/${_ci_boot_name}/bin/uv"
+fi
 
 # Color output
 RED='\033[0;31m'
@@ -81,7 +85,7 @@ if [ -x "${PYTHON_ENV}/bin/python" ]; then
     rm -rf "${PYTHON_ENV}"
 fi
 
-# Find uv: CI boot dir first (make core delegates uv to projects/CI), then workspace boot bin.
+# Find uv in the deployed CI artifact first, then the workspace boot bin.
 if [ -x "${CI_UV}" ]; then
     UV_CMD="${CI_UV}"
 elif [ -x "${BIN_DIR}/uv" ]; then

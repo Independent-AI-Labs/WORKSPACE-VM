@@ -19,19 +19,18 @@ BOLD='\033[1m'
 NC='\033[0m'
 
 usage() {
-    cat <<EOF
-Usage: git-status-all [OPTIONS]
-
-Report git status for workspace repositories.
-
-By default, vendored nested repos (third-party origin remotes) are
-hidden. Only repos whose origin owner matches an org from
-workspace/config/workspace-clones.yaml or the umbrella root are shown.
-
-Options:
-  --all-repos   Include vendored/third-party nested repositories
-  -h, --help    Show this help and exit
-EOF
+    printf '%s\n' \
+        'Usage: git-status-all [OPTIONS]' \
+        '' \
+        'Report git status for workspace repositories.' \
+        '' \
+        'By default, vendored nested repos (third-party origin remotes) are' \
+        'hidden. Only repos whose origin owner matches an org from' \
+        'workspace/config/workspace-clones.yaml or the umbrella root are shown.' \
+        '' \
+        'Options:' \
+        '  --all-repos   Include vendored/third-party nested repositories' \
+        '  -h, --help    Show this help and exit'
 }
 
 FILTER_VENDORED=1

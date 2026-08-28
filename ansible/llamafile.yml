@@ -7,6 +7,7 @@
     - role: llamafile
 
   vars:
+    ansible_python_interpreter: '{{ ansible_playbook_python }}'
     llama_model: minicpm5-1b
     llamafile_dir: "{{ playbook_dir }}/../models/{{ llama_model }}"
     llamafile_gpu: "{{ lookup('env', 'LLAMAFILE_GPU') | default('vulkan', true) }}"

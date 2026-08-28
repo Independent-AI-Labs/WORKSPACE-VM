@@ -8,8 +8,6 @@
 **Authors:** Workspace Engineering
 **References:**
 - [SPEC-OPENVPN](../specifications/SPEC-OPENVPN.md) (Technical Specification)
-- [REQ-BOOT-LAYOUT](REQ-BOOT-LAYOUT.md) (Platform boot directory resolution)
-- [SPEC-BOOT-LAYOUT](../specifications/SPEC-BOOT-LAYOUT.md) (Boot layout implementation)
 - [workspace/config/vm-template.yaml](../../workspace/config/vm-template.yaml) (VM config reference)
 - [workspace/config/bootstrap-components.yaml](../../workspace/config/bootstrap-components.yaml) (openvpn bootstrap entry)
 - [AGENTS.md](../../AGENTS.md) (Universal Agent Rules)
@@ -48,7 +46,7 @@ The feature provides:
 
 | Term | Definition |
 |------|------------|
-| **Boot Directory** | `.boot-linux` or `.boot-macos`, see REQ-BOOT-LAYOUT |
+| **Boot Directory** | Workspace-local directory containing bootstrapped tool binaries. |
 | **Canonical Config** | `workspace/config/vpn/client.ovpn` (gitignored) |
 | **Canonical Auth** | `workspace/config/vpn/auth.txt` (gitignored, optional) |
 | **Host Service** | Platform persistence layer: `workspace-openvpn.service` (Linux) or `workspace.openvpn.client` LaunchAgent (macOS) |

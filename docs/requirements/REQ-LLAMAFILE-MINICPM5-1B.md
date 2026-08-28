@@ -59,7 +59,7 @@ argument manifest, so no host toolchain is required at run time.
 | ID | Requirement |
 |----|-------------|
 | FR-1.1 | The engine MUST build with cosmocc from a pristine `mozilla-ai/llamafile` checkout without root and without `sudo make install`. |
-| FR-1.2 | The engine MUST be CPU-only (no GPU code compiled in); the server manifest MUST pin `-ngl 0`. |
+| FR-1.2 | The CPU bundle's engine MUST be CPU-only (no GPU code compiled in) and its server manifest MUST pin `-ngl 0`. GPU (Vulkan) bundles are a separate deliverable owned by REQ-LLAMA-SETUP-TUI. |
 | FR-1.3 | The default build MUST be a fat APE (AMD64 + ARM64); an ARM64-only build MAY be produced for a smaller binary. |
 
 ### FR-2: Manifests and bundles
@@ -69,15 +69,13 @@ argument manifest, so no host toolchain is required at run time.
 | FR-2.1 | Two manifests MUST be tracked in git: `models/minicpm5-1b/.args` (server) and `models/minicpm5-1b/.args.chat` (chat). |
 | FR-2.2 | `make build-llamafile MODEL=minicpm5-1b MODE=server|chat|all` MUST embed the GGUF and the selected manifest as zip entry `.args` via zipalign. |
 | FR-2.3 | The server bundle MUST serve an OpenAI-compatible HTTP API on port 8765 by default. |
-| FR-2.4 | The chat bundle MUST launch an interactive TUI by default (`--chat`, no `--server`). |
-| FR-2.5 | The mode MUST be chosen by the embedded manifest, never by recompiling the engine. |
+| FR-2.4 | The chat bundle MUST run as an interactive chat by default (`--chat`, no `--server`): the user converses with MiniCPM5-1B in a terminal chat session, and exiting the session ends the process. |
 
-### FR-3: Verification
+## 3. Verification
 
 | ID | Requirement |
 |----|-------------|
-| FR-3.1 | Bundle listings MUST show both the GGUF and `.args` as embedded entries. |
-| FR-3.2 | The server bundle MUST respond on its HTTP endpoint after launch; the chat bundle MUST reach an interactive prompt. |
+| FR-3.1 | The server bundle MUST respond on its HTTP endpoint after launch; the chat bundle MUST start an interactive chat session with the model. |
 
 ## 3. Non-Functional Requirements
 
@@ -93,14 +91,7 @@ argument manifest, so no host toolchain is required at run time.
 | C-1 | GGUF source is `openbmb/MiniCPM5-1B-GGUF` (Q8_0 default) | Hugging Face |
 | C-2 | Manifest must be embedded under the exact zip name `.args` | `cosmo_args` contract |
 
-## 5. Assumptions
-
-| ID | Assumption |
-|----|------------|
-| A-1 | MiniCPM5-1B loads on stock llamafile without custom kernels. |
-| A-2 | Hosts provide sufficient RAM for Q8_0 inference on CPU. |
-
-## 6. Open Questions
+## 5. Open Questions
 
 None.
 
@@ -108,9 +99,8 @@ None.
 
 | # | Test | Maps to |
 |---|------|---------|
-| V1 | `zipinfo` bundle listing shows GGUF + `.args` | FR-2.2, FR-3.1 |
-| V2 | Launch server bundle; HTTP responds on 8765 | FR-2.3, FR-3.2 |
-| V3 | Launch chat bundle; interactive prompt reached | FR-2.4, FR-3.2 |
+| V1 | Launch server bundle; HTTP responds on 8765 | FR-2.3, FR-3.1 |
+| V2 | Launch chat bundle; interactive chat session with model | FR-2.4, FR-3.1 |
 
 ## 8. Implementation Status
 

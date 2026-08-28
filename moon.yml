@@ -12,7 +12,7 @@ project:
   name: 'workspace'
   description: 'AMI workspace umbrella repo and Python orchestrator'
   inherited_boot_dirs:
-    - 'projects/CI'
+    - '/opt/workspace-ci'
 
 language: 'python'
 layer: 'unknown'
@@ -38,14 +38,12 @@ tasks:
       - 'tests/**/*.py'
       - 'scripts/**/*'
       - 'pyproject.toml'
-      - 'projects/CI/ruff.toml'
       - 'Makefile'
   type-check:
     command: 'make _type-check-impl'
     inputs:
       - 'workspace/**/*.py'
       - 'pyproject.toml'
-      - 'projects/CI/mypy.toml'
       - 'Makefile'
   test:
     command: 'make _test-impl'
@@ -56,6 +54,24 @@ tasks:
       - 'res/**/*'
       - 'pyproject.toml'
       - 'Makefile'
+      - 'workspace/agentci/package.json'
+      - 'workspace/agentci/package-lock.json'
+      - 'workspace/agentci/tsconfig.json'
+      - 'workspace/agentci/tsconfig.build.json'
+      - 'workspace/agentci/src/**/*.ts'
+      - 'workspace/agentci/tests/**/*.ts'
+      - 'workspace/agentci/tests/fixtures/federation/**/*.yaml'
+      - 'workspace/scripts/bin/oc'
+      - 'workspace/scripts/install-opencode-moderator'
+      - 'workspace/scripts/opencode-wrapper.sh'
+      - 'workspace/config/opencode/opencode.jsonc'
+      - 'workspace/config/opencode/system-instruction.template.md'
+      - 'workspace/config/opencode/plugins/local-response-moderator.js'
+      - 'workspace/config/opencode/plugins/local-response-moderator-machine.js'
+      - 'workspace/config/opencode/plugins/local-response-moderator.sh'
+      - 'workspace/config/opencode/plugins/local-response-moderator.config.template.json'
+      - 'tests/integration/local-response-moderator.test.js'
+      - 'tests/integration/local-response-moderator-machine.test.js'
   dead-code:
     command: 'make _dead-code-impl'
     inputs:

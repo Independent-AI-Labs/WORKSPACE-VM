@@ -3,14 +3,5 @@
 # This file is read by workspace/cli_components/status_systemd.py
 # to determine which services are managed (vs orphan).
 
-compose_services:
-  ami-compose:
-    compose_file: projects/AMI-DATAOPS/res/docker/docker-compose.yml
-    profiles: [data, secrets, dev]
-  gateway-compose:
-    compose_file: projects/WORKSPACE-GATEWAY/res/docker/docker-compose.yml
-  wiki-prod-compose:
-    compose_file: projects/CI/web/compose.prod.yaml
-
-local_services:
-  workspace-openvpn: {}
+services:
+  - llamafile-minicpm5-1b.service

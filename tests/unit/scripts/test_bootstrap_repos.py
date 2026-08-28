@@ -95,7 +95,7 @@ SAMPLE_YAML = """\
 workspaceClones:
   ci:
     remote: 'git@github.com:Independent-AI-Labs/WORKSPACE-CI.git'
-    path: 'projects/CI'
+    path: 'projects/WORKSPACE-CI'
     mandatory: true
   ami-dataops:
     remote: 'git@github.com:Independent-AI-Labs/AMI-DATAOPS.git'

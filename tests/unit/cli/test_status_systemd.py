@@ -149,7 +149,10 @@ def test_extract_compose_info_empty_profiles_when_none_found() -> None:
 
 def _list_units(cmd: str) -> str:
     """systemctl list-units command template (scope=user or empty)."""
-    return f"systemctl {cmd}list-units --type=service --all --no-legend --no-pager"
+    return (
+        f"systemctl {cmd}list-units --type=service --type=timer "
+        "--all --no-legend --no-pager"
+    )
 
 
 def _show(scope: str, name: str) -> str:
@@ -359,11 +362,11 @@ def test_print_orphan_services_does_nothing_when_no_orphans() -> None:
 
 def test_print_orphan_services_prints_with_status_icons() -> None:
     orphan = SystemdService(
-        name="ami-orphan.service",
+        name="workspace-orphan.service",
         scope="user",
         active="active",
         sub="running",
-        path="/tmp/testuser/.config/systemd/user/ami-orphan.service",
+        path="/tmp/testuser/.config/systemd/user/workspace-orphan.service",
         enabled="enabled",
         restart="always",
     )
@@ -380,10 +383,10 @@ def test_print_orphan_services_prints_with_status_icons() -> None:
     all_text = " ".join(
         str(call.args[0]) for call in mock_print.call_args_list if call.args
     )
-    assert "ami-orphan.service" in all_text
+    assert "workspace-orphan.service" in all_text
 
 
-def test_print_orphan_services_only_checks_ami_user_scope_services() -> None:
+def test_print_orphan_services_only_checks_user_scope_units() -> None:
     non_orphan = SystemdService(
         name="matrix-synapse.service",
         scope="system",

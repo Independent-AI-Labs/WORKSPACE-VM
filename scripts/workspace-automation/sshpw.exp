@@ -1,0 +1,71 @@
+#!/usr/bin/env expect
+
+set timeout 90
+if {![info exists env(WORKSPACE_SSH_PASSWORD)]} {
+    puts stderr "error: WORKSPACE_SSH_PASSWORD is not set"
+    exit 1
+}
+if {$argc < 2} {
+    puts stderr "usage: sshpw.exp <user@host> <agent|admin|cmd> [directory|command]"
+    exit 1
+}
+
+set target [lindex $argv 0]
+set mode [lindex $argv 1]
+set argument [lindex $argv 2]
+set password $env(WORKSPACE_SSH_PASSWORD)
+set port [expr {[info exists env(WORKSPACE_SSH_PORT)] ? $env(WORKSPACE_SSH_PORT) : 22}]
+set known_hosts "$env(HOME)/.ssh/known_hosts"
+set ssh [list ssh -p $port -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$known_hosts]
+lappend ssh "-t" $target
+
+set interactive 0
+set max_passwords 1
+set prompt_re {[$#] ?$}
+set cd_command ""
+set escaped_argument [string map [list "'" "'\\''"] $argument]
+if {$mode eq "agent"} {
+    lappend ssh {exec $SHELL -l}
+    set interactive 1
+    set cd_command "cd '$escaped_argument'\r"
+} elseif {$mode eq "admin"} {
+    lappend ssh "sudo bash -c \"cd '$escaped_argument' && exec bash -l\""
+    set interactive 1
+    set max_passwords 2
+    set prompt_re {# ?$}
+} elseif {$mode eq "cmd"} {
+    lappend ssh $argument
+    set timeout -1
+} else {
+    puts stderr "error: unsupported SSH mode: $mode"
+    exit 1
+}
+
+eval spawn $ssh
+set password_count 0
+expect {
+    -re {(?i)password:} {
+        if {$password_count < $max_passwords} {
+            send -- "$password\r"
+            incr password_count
+            exp_continue
+        }
+        puts stderr "error: SSH requested a password more times than expected"
+        exit 1
+    }
+    -re {(?i)host key verification failed|permission denied|connection refused} {
+        puts stderr "error: SSH connection failed"
+        exit 1
+    }
+    -re $prompt_re {
+        if {$interactive} {
+            if {$cd_command ne ""} { send -- $cd_command }
+            interact
+        }
+    }
+    eof {
+        if {$interactive} { puts stderr "error: SSH closed before login"; exit 1 }
+    }
+    timeout { puts stderr "error: SSH operation timed out"; exit 1 }
+}
+wait

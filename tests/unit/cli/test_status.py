@@ -117,8 +117,8 @@ class TestPrintFooter:
 
 
 class TestPrintServiceEntry:
-    def test_prints_active_running_service_green_icon(self):
-        svc = _build_svc(active="active", sub="running")
+    def test_prints_active_timer_green_icon(self):
+        svc = _build_svc(active="active", sub="waiting")
         info = _build_display()
 
         with (
@@ -148,7 +148,7 @@ class TestPrintServiceEntry:
             first_text = mock_pbl.call_args_list[0].args[0]
             assert "YELLOW" in first_text
 
-    def test_prints_inactive_failed_service_red_icon(self):
+    def test_prints_inactive_service_stopped_icon(self):
         svc = _build_svc(active="inactive", sub="dead")
         info = _build_display()
 
@@ -156,12 +156,12 @@ class TestPrintServiceEntry:
             patch("workspace.cli.status.print_box_line") as mock_pbl,
             patch("workspace.cli.status._print_service_children"),
             patch("workspace.cli.status.DISPLAY_WIDTH", 80),
-            patch("workspace.cli.status.I_FAIL", "RED"),
+            patch("workspace.cli.status.I_STOP", "STOPPED"),
         ):
             _print_service_entry(svc, info, [], [])
 
             first_text = mock_pbl.call_args_list[0].args[0]
-            assert "RED" in first_text
+            assert "STOPPED" in first_text
 
     def test_shows_enabled_boot_icon(self):
         svc = _build_svc(enabled="enabled")

@@ -1,6 +1,6 @@
 ---
 - name: reload systemd
-  ansible.builtin.command: systemctl daemon-reload
+  ansible.builtin.shell: systemctl daemon-reload >> /tmp/llamaserver-vulkan-ops.log 2>&1
   register: _daemon_reload
   changed_when: true
 - name: Display daemon-reload result

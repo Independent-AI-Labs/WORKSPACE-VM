@@ -16,7 +16,7 @@ Before cloning or running workspace installers, confirm your host can support th
 
 - **Operating system:** Linux (x86_64) or macOS (Apple Silicon or Intel). Most GPU and llama workflows are Linux-first; macOS is supported for general bootstrap and development.
 - **Elevated permissions:** `sudo` for system packages (apt/brew), Intel GPU drivers, QEMU firmware, logrotate limits, and optional `git-guard` installation. LLM/GPU prereqs are handled through `make llama-setup`, not the general bootstrap.
-- **Boot directory:** `.boot-linux/` on Linux or `.boot-macos/` on macOS. Created and populated when you run `make install` or `make core`; holds vendored binaries (OpenVPN, QEMU pins, and similar) used by CLI extensions. Layout: [`docs/specifications/SPEC-BOOT-LAYOUT.md`](docs/specifications/SPEC-BOOT-LAYOUT.md).
+- **Boot directory:** Created and populated by installation; holds vendored binaries used by CLI extensions. The active deployment contract is [`projects/WORKSPACE-CI/docs/requirements/REQ-BOOT-LAYOUT.md`](projects/WORKSPACE-CI/docs/requirements/REQ-BOOT-LAYOUT.md).
 
 Install base system packages once per host (before or alongside your first workspace installer). `make install`, `make install-ci`, and `make llama-setup` all run `init-check` automatically; run the steps below manually only when you want to resolve apt/brew gaps ahead of time:
 
@@ -25,7 +25,7 @@ make init-check    # report missing apt/brew packages
 sudo make init     # install from config/system-deps.yaml + privileged bootstrap
 ```
 
-Run as root, `make init` also performs the privileged bootstrap (audit 2026-07-18 section 4.6): promotes `projects/CI` from `projects/WORKSPACE-CI` via `deploy-ci`, installs the git guard, root-locks hooks and exemption files in every consumer repo, and enforces syslog limits. It fails loudly if `projects/WORKSPACE-CI` is missing; clone it first with non-root `make ensure-repos`.
+Run as root, `make init` also performs the privileged bootstrap (audit 2026-07-18 section 4.6): publishes the sealed WORKSPACE-CI artifact at `/opt/workspace-ci` via `deploy-ci`, installs the git guard, root-owns hooks and exemption files in every consumer repo, and enforces syslog limits. It fails loudly if `projects/WORKSPACE-CI` is missing; clone it first with non-root `make ensure-repos`.
 
 ### Installation paths
 
@@ -66,7 +66,7 @@ The bootstrap TUI installs selected components from the federated dependency gra
 sudo make init
 ```
 
-Runs the full privileged bootstrap: system packages, `deploy-ci` promotion of `projects/CI`, git guard install, hook + exemption root-locks across consumer repos, and logrotate/journald rate limits on `/var/log/syslog` (INCIDENT-2026-07-05). `make install` and `make install-ci` are strictly non-root; they end by pointing here.
+Runs the full privileged bootstrap: system packages, `deploy-ci` publication of `/opt/workspace-ci`, git guard install, root-owned hooks and exemptions across consumer repos, and logrotate/journald rate limits on `/var/log/syslog` (INCIDENT-2026-07-05). `make install` and `make install-ci` are strictly non-root; they end by pointing here.
 
 Optional operator steps:
 
@@ -289,10 +289,10 @@ README: [`benchmarks/llamafile/transcript_classifier/README.md`](benchmarks/llam
 
 ## 3. Workspace Philosophy
 
-WORKSPACE-VM is an **umbrella repo** that orchestrates multiple independent git clones under `projects/` ([`workspace/config/workspace-clones.yaml`](workspace/config/workspace-clones.yaml)). `projects/CI` and `projects/DATAOPS` are mandatory; other projects (PORTAL, TRADING, GUARD, etc.) opt in via `bootstrap-repos`. Agents, hooks, and guard policy apply workspace-wide; compliance is not optional per nested repo.
+WORKSPACE-VM is an **umbrella repo** that orchestrates multiple independent git clones under `projects/` ([`workspace/config/workspace-clones.yaml`](workspace/config/workspace-clones.yaml)). `projects/WORKSPACE-CI` and `projects/DATAOPS` are mandatory; other projects (PORTAL, TRADING, GUARD, etc.) opt in via `bootstrap-repos`. Agents, hooks, and guard policy apply workspace-wide; compliance is not optional per nested repo.
 
 - **Fail-Closed Security:** Agent VMs use air-gapped Podman (`network.mode: none`) when no network mode is supplied. `git-guard` wraps `/usr/bin/git` at the syscall boundary, blocking `--no-verify` and history rewrite. `podman-guard` enforces container egress and capability policy before a container starts.
-- **Compliance as Code:** WORKSPACE-CI (`projects/CI/`) generates native git hooks from `.pre-commit-config.yaml` and installs them recursively across nested repos. Hook stages and checks: [`projects/CI/README.md`](projects/CI/README.md).
+- **Compliance as Code:** WORKSPACE-CI (sealed at `/opt/workspace-ci`, developed in `projects/WORKSPACE-CI/`) generates native git hooks from `.pre-commit-config.yaml` and installs them recursively across nested repos. Hook stages and checks: [`projects/WORKSPACE-CI/README.md`](projects/WORKSPACE-CI/README.md).
 - **Topological Orchestration:** Prefer `moon` tasks for cross-repo builds and tests. Resync clones with `moon run :update`.
 
 ---
@@ -304,7 +304,7 @@ Use this table as a route map when onboarding. It shows where agent logic, enfor
 | Purpose | Path | Description |
 | :--- | :--- | :--- |
 | **Core Agents** | `workspace/` | Agent logic, CLI entrypoints, provider handlers. |
-| **Workspace CI** | `projects/CI/` | Enforcement engine, system-deps resolver, native hooks. |
+| **Workspace CI** | `/opt/workspace-ci` | Sealed enforcement engine, system-deps resolver, native hooks. |
 | **Data/Infra** | `projects/DATAOPS/` | Sovereign services (Postgres, Keycloak, Vaultwarden). |
 | **Orchestration** | `projects/` | Federated projects (TRADING, SRP, PORTAL, etc.). |
 | **LLM models** | `models/` | GGUF weights and `.args` manifests for llamafile bundles. |
@@ -321,7 +321,7 @@ Quality gates are mandatory and, when WORKSPACE-GUARD is installed, enforced at 
 
 1. **Pass the contract:** `make contract-check` (Makefile targets) and `make check` (lint + type-check + test via moon). Run `make check-push` locally to mirror the pre-push gate.
 2. **Install hooks:** `make install-hooks` (or `make install`, which runs `install-hooks-recursive` across the workspace and nested `projects/*` repos). Hooks are mandatory; there is no `--no-verify` escape when git-guard is installed.
-3. **Understand the gates:** WORKSPACE-CI enforces three hook stages from [`projects/CI/`](projects/CI/):
+3. **Understand the gates:** WORKSPACE-CI enforces three hook stages from `/opt/workspace-ci`:
    - **pre-commit**: ruff format/lint, mypy, gitleaks, banned-word and error-swallow scans, file-length limits, dependency freshness, unstaged-change guard.
    - **commit-msg**: conventional message format (`type: description` + body); blocks agent attribution patterns.
    - **pre-push**: `make check-push`, coverage thresholds, co-authored history scan.

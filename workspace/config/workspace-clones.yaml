@@ -7,10 +7,10 @@
 # is older than this (forwards-compat protection).
 
 workspaceClones:
-  # Agent working repo for CI development. projects/CI is the locked
-  # deployment sourced live by hooks; it is root-managed exclusively via
-  # `sudo make deploy-ci` from this working repo (audit 2026-07-18 §4.3),
-  # so the manifest clones only WORKSPACE-CI.
+  # Agent working repo for CI development. /opt/workspace-ci is the sealed
+  # deployment consumed live by hooks; it is root-managed exclusively via
+  # `sudo make deploy-ci` from this working repo, so the manifest clones
+  # only WORKSPACE-CI.
   ci:
     remote: 'git@github.com:Independent-AI-Labs/WORKSPACE-CI.git'
     path: 'projects/WORKSPACE-CI'

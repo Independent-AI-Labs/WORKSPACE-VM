@@ -35,7 +35,13 @@ class MoonWorkspace(BaseModel):
 
     model_config = ConfigDict(extra="ignore")
 
-    projects: dict[str, str] = Field(default_factory=dict)
+    class Sources(BaseModel):
+        model_config = ConfigDict(extra="ignore")
+
+        globs: list[str] = Field(default_factory=list)
+        sources: dict[str, str] = Field(default_factory=dict)
+
+    projects: Sources = Field(default_factory=Sources)
 
 
 def _find_workspace_root(start: Path) -> Path | None:
@@ -52,6 +58,29 @@ def _find_workspace_root(start: Path) -> Path | None:
 def _load_yaml(path: Path) -> object:
     with open(path) as f:
         return yaml.safe_load(f) or {}
+
+
+def _glob_covered(globs: list[str], path: str) -> bool:
+    """True when a moon projects.globs entry can discover <path>.
+
+    A glob like 'projects/*/moon.yml' discovers every project directory
+    under projects/. Optional clones absent from moon.sources are BY
+    DESIGN (see .moon/workspace.yml): they register via the glob once
+    cloned. Only paths no glob can reach are split-brain.
+    """
+    for glob in globs:
+        marker = "/moon.yml"
+        if not glob.endswith(marker):
+            continue
+        prefix = glob[: -len(marker)]
+        star = prefix.find("*")
+        if star == -1:
+            if path == prefix:
+                return True
+            continue
+        if path.startswith(prefix[:star]):
+            return True
+    return False
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -76,14 +105,19 @@ def main(argv: list[str] | None = None) -> int:
 
     # Drop the umbrella entry - the umbrella IS the workspace root, it isn't
     # cloned by the bootstrap walker.
-    moon_projects = {k: v for k, v in moon.projects.items() if v != "."}
+    moon_projects = {k: v for k, v in moon.projects.sources.items() if v != "."}
     clone_paths = {eid: e.path for eid, e in clones.workspaceClones.items()}
+    globs = moon.projects.globs
 
     moon_ids = set(moon_projects.keys())
     clone_ids = set(clone_paths.keys())
 
     only_in_moon = moon_ids - clone_ids
-    only_in_clones = clone_ids - moon_ids
+    only_in_clones = {
+        eid
+        for eid in (clone_ids - moon_ids)
+        if not _glob_covered(globs, clone_paths[eid])
+    }
     path_mismatches: list[tuple[str, str, str]] = [
         (shared_id, moon_projects[shared_id], clone_paths[shared_id])
         for shared_id in moon_ids & clone_ids

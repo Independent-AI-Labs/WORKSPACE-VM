@@ -71,30 +71,29 @@ _apply_persist_flag() {
 }
 
 _usage() {
-    cat <<EOF
-Usage: vpn <command>
-
-Commands:
-  install         Bootstrap openvpn binary and install host service unit
-  start           Start the workspace OpenVPN client
-  stop            Stop the workspace OpenVPN client
-  restart         Restart the workspace OpenVPN client
-  status          Show binary, config, and connection state
-  health          Emit JSON health check
-  logs            Tail OpenVPN log (LINES=50 by default)
-  persist-on      Enable automatic service start at system startup/login
-  persist-off     Disable automatic service start at system startup/login
-  persist-status  Show whether auto-start is enabled
-
-Environment:
-  PERSIST=1|0     With start/stop/restart: enable or disable persistent startup
-
-Makefile:
-  make vpn-install
-  make vpn-start [PERSIST=1]
-  make vpn-stop [PERSIST=0]
-  make vpn-persist-on | vpn-persist-off | vpn-persist-status
-EOF
+    printf '%s\n' \
+        'Usage: vpn <command>' \
+        '' \
+        'Commands:' \
+        '  install         Bootstrap openvpn binary and install host service unit' \
+        '  start           Start the workspace OpenVPN client' \
+        '  stop            Stop the workspace OpenVPN client' \
+        '  restart         Restart the workspace OpenVPN client' \
+        '  status          Show binary, config, and connection state' \
+        '  health          Emit JSON health check' \
+        '  logs            Tail OpenVPN log (LINES=50 by default)' \
+        '  persist-on      Enable automatic service start at system startup/login' \
+        '  persist-off     Disable automatic service start at system startup/login' \
+        '  persist-status  Show whether auto-start is enabled' \
+        '' \
+        'Environment:' \
+        '  PERSIST=1|0     With start/stop/restart: enable or disable persistent startup' \
+        '' \
+        'Makefile:' \
+        '  make vpn-install' \
+        '  make vpn-start [PERSIST=1]' \
+        '  make vpn-stop [PERSIST=0]' \
+        '  make vpn-persist-on | vpn-persist-off | vpn-persist-status'
 }
 
 cmd_install() {

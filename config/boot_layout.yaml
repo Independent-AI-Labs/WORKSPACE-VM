@@ -24,8 +24,8 @@ version: 1
 boot_dir: .boot-linux/
 venv_dir: .venv/
 inherit:
-  - projects/CI/.boot-linux
+  - /opt/workspace-ci/.boot-linux
 comment: >
-  WORKSPACE-VM root inherits gitleaks from projects/CI/.boot-linux/bin/
+  WORKSPACE-VM root inherits tools from /opt/workspace-ci/.boot-linux/bin/
   via the boot-path resolver so that pre-commit hooks at the workspace
   root can invoke gitleaks without a system-wide install.

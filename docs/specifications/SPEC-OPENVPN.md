@@ -7,7 +7,6 @@
 **Requirements:** [REQ-OPENVPN](../requirements/REQ-OPENVPN.md)
 **References:**
 - [REQ-OPENVPN](../requirements/REQ-OPENVPN.md)
-- [REQ-BOOT-LAYOUT](../requirements/REQ-BOOT-LAYOUT.md)
 - [workspace/cli/vpn_core.py](../../workspace/cli/vpn_core.py)
 - [workspace/types/vm.py](../../workspace/types/vm.py)
 

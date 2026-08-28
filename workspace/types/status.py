@@ -3,7 +3,7 @@
 Provides Pydantic models for systemd services and container information.
 """
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from workspace.types.common import (
     ContainerLabels,
@@ -16,12 +16,11 @@ from workspace.types.common import (
 class PortMapping(BaseModel):
     """Port mapping information for containers."""
 
+    model_config = ConfigDict(populate_by_name=True)
+
     host_port: int | None = Field(default=None, alias="hostPort")
     container_port: int | None = Field(default=None, alias="containerPort")
     protocol: str = "tcp"
-
-    class Config:
-        populate_by_name = True
 
 
 class PodmanContainer(BaseModel):

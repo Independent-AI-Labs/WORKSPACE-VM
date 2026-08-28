@@ -253,8 +253,8 @@ if [[ "$cmd" == "commit" || "$cmd" == "push" ]]; then
     if [[ -n "$_toplevel" ]]; then
         _cur="$_toplevel"
         while [[ "$_cur" != "/" ]]; do
-            if [[ -d "$_cur/.boot-linux" && -d "$_cur/projects/CI" \
-                  && -f "$_cur/ami/scripts/utils/git-guard" ]]; then
+            if [[ -d "$_cur/.boot-linux" && -d "/opt/workspace-ci" \
+                  && -f "$_cur/workspace/scripts/utils/git-guard" ]]; then
                 _wsroot="$_cur"; break
             fi
             _cur="$(dirname "$_cur")"
@@ -262,7 +262,7 @@ if [[ "$cmd" == "commit" || "$cmd" == "push" ]]; then
     fi
 
     if [[ -n "$_wsroot" && -n "$_toplevel" ]]; then
-        _ci_lib="$_wsroot/projects/CI/lib/checks_quality.sh"
+        _ci_lib="/opt/workspace-ci/lib/checks_quality.sh"
         if [[ -f "$_ci_lib" ]]; then
             # shellcheck source=/dev/null
             if ! source "$_ci_lib"; then
@@ -270,7 +270,7 @@ if [[ "$cmd" == "commit" || "$cmd" == "push" ]]; then
                 exit 1
             fi
 
-            _registry="$_wsroot/ami/config/project_enforcement.yaml"
+            _registry="$_wsroot/workspace/config/project_enforcement.yaml"
             [[ ! -f "$_registry" ]] && _registry=""
 
             _rel="${_toplevel#"$_wsroot"/}"
@@ -306,7 +306,7 @@ if [[ "$cmd" == "commit" || "$cmd" == "push" ]]; then
 
                 # G1: .pre-commit-config.yaml at repo root
                 if [[ ! -f "$_toplevel/.pre-commit-config.yaml" ]]; then
-                    _violations+=(".pre-commit-config.yaml missing at repo root - copy from projects/CI/.pre-commit-config.yaml or run: make install-hooks")
+                    _violations+=(".pre-commit-config.yaml missing at repo root - scaffold from /opt/workspace-ci or run: make install-hooks")
                 fi
 
                 # G2: pre-commit hook installed + AMI-CI generated
@@ -338,26 +338,26 @@ if [[ "$cmd" == "commit" || "$cmd" == "push" ]]; then
                 fi
 
                 # G4: WORKSPACE-CI reachable in workspace
-                if [[ ! -f "$_wsroot/projects/CI/lib/checks.sh" ]]; then
-                    _violations+=("WORKSPACE-CI not present at $_wsroot/projects/CI - re-run: make install")
+                if [[ ! -f "/opt/workspace-ci/lib/checks.sh" ]]; then
+                    _violations+=("WORKSPACE-CI not present at /opt/workspace-ci - run: sudo make deploy-ci")
                 fi
 
                 # G5: quality_exceptions.yaml at repo root (strict only)
                 if [[ "$_tier" == "strict" && ! -f "$_toplevel/quality_exceptions.yaml" ]]; then
-                    _violations+=("quality_exceptions.yaml missing at repo root - copy projects/CI/templates/quality_exceptions.template.yaml")
+                    _violations+=("quality_exceptions.yaml missing at repo root - copy /opt/workspace-ci/templates/quality_exceptions.template.yaml")
                 fi
 
                 # G6: Makefile includes the WORKSPACE-CI contract (strict only)
                 if [[ "$_tier" == "strict" ]]; then
                     if [[ ! -f "$_toplevel/Makefile" ]]; then
-                        _violations+=("Makefile not using WORKSPACE-CI contract - include projects/CI/lib/makefile_contract.mk")
+                        _violations+=("Makefile not using WORKSPACE-CI contract - include /opt/workspace-ci/lib/makefile_contract.mk")
                     else
                         : > "$_GG_ERR"
                         mkrc=0
                         grep -q 'lib/makefile_contract.mk\|CI/scripts' "$_toplevel/Makefile" 2>"$_GG_ERR" || mkrc=$?
                         if [[ $mkrc -ne 0 ]]; then
                             _gg_log_err "$_GG_ERR" "Makefile contract check"
-                            _violations+=("Makefile not using WORKSPACE-CI contract - include projects/CI/lib/makefile_contract.mk")
+                            _violations+=("Makefile not using WORKSPACE-CI contract - include /opt/workspace-ci/lib/makefile_contract.mk")
                         fi
                     fi
                 fi

@@ -1,0 +1,255 @@
+# workspace-ci required-hooks manifest.
+#
+# Single source of truth for what hooks every consumer project must wire.
+# Read by `scripts/generate-hooks` at hook-generation time and by
+# `ci/ci/check_required_hooks_present.py` at validation time.
+#
+# Adding a new check_*.py to ci/ MUST be paired with
+# an entry here, otherwise `check_required_hooks_present` fails.
+#
+# Field reference:
+#   id          : stable hook id; matches the # === Hook: <id> === marker in
+#                  generated .git/hooks/* files.
+#   kind        : shell | shell_inline | shell_with_arg | python_module |
+#                  python_module_files | makefile_target.
+#                  shell:          entry is a bash function (args = staged files).
+#                  shell_inline:   entry is a literal bash command string.
+#                  shell_with_arg: entry is a bash function taking one arg
+#                                  (the commit-msg file): used by commit-msg hooks.
+#                  python_module:        entry is a dotted module path (run as module).
+#                  python_module_files:  entry is a module path + pass_filenames
+#                                        (staged files passed as CLI args).
+#                  makefile_target: entry is a make target name.
+#   entry       : bash function name | python module path | make target name | inline command.
+#   stage       : pre-commit | commit-msg | pre-push.
+#   pass_filenames, always_run: passed through to the rendered hook.
+#   files       : optional path pattern that scopes the hook (pass-through).
+#   mandatory   : true: cannot be exempted via quality_exceptions.yaml.
+#                  false: exemptable per-path because the check is heuristic.
+#   applicable_to: list of language hints the check applies to.
+#                  [any] runs for every project. [python] | [node] | [rust]
+#                  scopes by language (detected by language-marker files).
+
+version: 1
+
+hooks:
+
+  - id: check-unstaged
+    kind: shell
+    entry: ci_check_unstaged
+    stage: pre-commit
+    pass_filenames: false
+    always_run: true
+    mandatory: true
+    applicable_to: [any]
+
+  - id: ci-check-error-swallow
+    kind: shell
+    entry: ci_check_silent_swallow
+    stage: pre-commit
+    pass_filenames: false
+    always_run: true
+    mandatory: true
+    applicable_to: [any]
+
+  - id: check-coverage-no-devolution
+    kind: shell
+    entry: ci_check_coverage_thresholds_no_devolution
+    stage: pre-commit
+    pass_filenames: false
+    always_run: true
+    mandatory: true
+    applicable_to: [any]
+
+  - id: check-banned-words
+    kind: shell
+    entry: ci_check_banned_words
+    stage: pre-commit
+    pass_filenames: false
+    always_run: false
+    mandatory: true
+    applicable_to: [any]
+
+  - id: check-commit-message
+    kind: shell_with_arg
+    entry: ci_check_commit_message
+    stage: commit-msg
+    pass_filenames: false
+    always_run: true
+    mandatory: true
+    applicable_to: [any]
+
+  - id: block-coauthored
+    kind: shell_with_arg
+    entry: ci_block_coauthored
+    stage: commit-msg
+    pass_filenames: false
+    always_run: true
+    mandatory: true
+    applicable_to: [any]
+
+  - id: block-coauthored-history
+    kind: shell
+    entry: ci_block_coauthored_history
+    stage: pre-push
+    pass_filenames: false
+    always_run: true
+    mandatory: true
+    applicable_to: [any]
+
+  - id: check-portable-shell
+    kind: shell
+    entry: ci_check_portable_shell
+    stage: pre-commit
+    pass_filenames: false
+    always_run: true
+    mandatory: true
+    applicable_to: [any]
+
+  - id: check-file-length
+    kind: shell
+    entry: ci_check_file_length
+    stage: pre-commit
+    pass_filenames: false
+    always_run: true
+    mandatory: true
+    applicable_to: [any]
+
+  - id: check-required-hooks-present
+    kind: python_module
+    entry: ci.check_required_hooks_present
+    stage: pre-commit
+    pass_filenames: false
+    always_run: true
+    mandatory: true
+    applicable_to: [any]
+
+  - id: check-boot-venv-layout
+    kind: python_module
+    entry: ci.check_boot_venv_layout
+    stage: pre-commit
+    pass_filenames: false
+    always_run: true
+    # Advisory + non-blocking (always exits 0). mandatory=false allows per-path
+    mandatory: false
+    applicable_to: [any]
+
+  - id: ci-lint
+    kind: makefile_target
+    entry: lint
+    stage: pre-commit
+    pass_filenames: false
+    always_run: true
+    mandatory: true
+    applicable_to: [any]
+
+  - id: ci-type-check
+    kind: makefile_target
+    entry: type-check
+    stage: pre-commit
+    pass_filenames: false
+    always_run: true
+    mandatory: true
+    applicable_to: [any]
+
+  - id: ci-check-push
+    kind: makefile_target
+    entry: check-push
+    stage: pre-push
+    pass_filenames: false
+    always_run: true
+    mandatory: true
+    applicable_to: [any]
+
+  - id: check-dead-code
+    kind: shell
+    entry: ci_check_dead_code
+    stage: pre-push
+    pass_filenames: false
+    always_run: true
+    mandatory: false
+    applicable_to: [any]
+
+  - id: osv-scan
+    kind: shell
+    entry: ci_scan_vulnerabilities
+    stage: pre-push
+    pass_filenames: false
+    always_run: true
+    mandatory: false
+    applicable_to: [any]
+
+  - id: check-dependency-versions
+    kind: python_module
+    entry: ci.check_dependency_versions
+    stage: pre-commit
+    pass_filenames: false
+    always_run: true
+    mandatory: true
+    applicable_to: [any]
+
+  - id: check-duplicate-dependencies
+    kind: python_module
+    entry: ci.check_duplicate_dependencies
+    stage: pre-commit
+    pass_filenames: false
+    always_run: true
+    mandatory: false
+    applicable_to: [python]
+
+  - id: check-markdown-docs
+    kind: python_module_files
+    entry: ci.check_markdown_docs --check-remote
+    stage: pre-commit
+    pass_filenames: true
+    always_run: false
+    files_types: [markdown]
+    mandatory: true
+    applicable_to: [any]
+  - id: check-resolution-shapes
+    kind: shell
+    entry: ci_check_fallback_resolution
+    stage: pre-commit
+    pass_filenames: false
+    always_run: false
+    mandatory: true
+    applicable_to:
+      - any
+  - id: check-module-size
+    kind: shell
+    entry: ci_check_module_size
+    stage: pre-commit
+    pass_filenames: false
+    always_run: true
+    mandatory: true
+    applicable_to:
+      - any
+  - id: check-npm-lock-sync
+    kind: python_module
+    entry: ci.check_npm_lock_sync
+    stage: pre-commit
+    pass_filenames: false
+    always_run: true
+    mandatory: true
+    applicable_to:
+      - any
+  - id: block-sensitive-files
+    kind: shell
+    entry: ci_block_sensitive_files
+    stage: pre-commit
+    pass_filenames: true
+    always_run: false
+    mandatory: true
+    applicable_to:
+      - any
+    safety: true
+  - id: gitleaks
+    kind: shell
+    entry: ci_scan_secrets
+    stage: pre-commit
+    pass_filenames: false
+    always_run: true
+    mandatory: true
+    applicable_to:
+      - any
+    safety: true

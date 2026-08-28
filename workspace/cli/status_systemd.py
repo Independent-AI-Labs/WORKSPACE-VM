@@ -33,12 +33,16 @@ from workspace.types.status import (
 
 SYSTEMD_PREFIXES = [
     "ami-",
+    "gateway-",
+    "llamafile-",
     "matrix-",
     "postgres",
     "valkey",
     "traefik",
     "exim-relay",
     "git-",
+    "wiki-",
+    "workspace-",
 ]
 
 
@@ -67,6 +71,8 @@ def _load_services_from(path: Path, managed: set[str]) -> None:
             managed.add(f"{svc_name}.service")
         for svc_name in data.get("local_services", {}):
             managed.add(f"{svc_name}.service")
+        managed.update(data.get("services", []))
+        managed.update(data.get("timers", []))
     except (OSError, yaml.YAMLError) as e:
         sys.stderr.write(f"Warning: Failed to load {path}: {e}\n")
 
@@ -191,9 +197,14 @@ def get_systemd_services() -> list[SystemdService]:
     commands = [
         (
             "user",
-            "systemctl --user list-units --type=service --all --no-legend --no-pager",
+            "systemctl --user list-units --type=service --type=timer "
+            "--all --no-legend --no-pager",
         ),
-        ("system", "systemctl list-units --type=service --all --no-legend --no-pager"),
+        (
+            "system",
+            "systemctl list-units --type=service --type=timer "
+            "--all --no-legend --no-pager",
+        ),
     ]
 
     for scope, cmd in commands:
@@ -299,12 +310,11 @@ def _print_orphan_services(
     services: list[SystemdService],
     managed_services: set[str],
 ) -> None:
-    """Print systemd services not managed by Ansible (orphan services)."""
-    # Only check ami-* user services for orphan detection
+    """Print project systemd units not managed by Ansible."""
     orphan_svcs = [
         svc
         for svc in services
-        if svc.name.startswith("ami-")
+        if any(svc.name.startswith(prefix) for prefix in SYSTEMD_PREFIXES)
         and svc.scope == "user"
         and svc.name not in managed_services
     ]
@@ -315,7 +325,7 @@ def _print_orphan_services(
     print(f"{Colors.CYAN}├{'─' * (DISPLAY_WIDTH - 2)}┤{Colors.RESET}")
     print_box_line("", DISPLAY_WIDTH)
     print_box_line(
-        f"{Colors.YELLOW}⚠️  ORPHAN SERVICES (Not in Ansible){Colors.RESET}",
+        f"{Colors.YELLOW}⚠️  ORPHAN UNITS (Not in Ansible){Colors.RESET}",
         DISPLAY_WIDTH,
         bold=True,
     )
@@ -332,11 +342,11 @@ def _print_orphan_services(
 
     for svc in sorted(orphan_svcs, key=lambda s: s.name):
         # Status icon based on ActiveState + SubState
-        if svc.active == "active" and svc.sub == "running":
+        if svc.active == "active":
             status_icon = I_OK
         elif svc.active == "activating" or svc.sub == "auto-restart":
             status_icon = I_WARN
-        elif svc.active in {"inactive", "failed"}:
+        elif svc.active == "failed":
             status_icon = I_FAIL
         else:
             status_icon = I_STOP

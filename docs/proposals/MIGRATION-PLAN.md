@@ -289,7 +289,7 @@ alias @="oc"
 alias msg="oc"
 ```
 
-**`oc` wrapper** (`workspace/scripts/bin/oc`): Prints the AMI welcome banner (system paths, tool versions, extension status) fresh on each invocation as environment context, writes it to `~/.config/opencode/ami-environment.md` for the agent to pick up, copies config template from `workspace/config/opencode/`, then delegates to `npx opencode`.
+**`oc` wrapper** (`workspace/scripts/bin/oc`): Prints the AMI welcome banner (system paths, tool versions, extension status) fresh on each invocation as environment context, writes it to the `OPENCODE_CONFIG_DIR` or XDG-resolved config directory for the agent to pick up, copies config template from `workspace/config/opencode/`, then delegates to `npx opencode`.
 
 ```bash
 #!/usr/bin/env bash

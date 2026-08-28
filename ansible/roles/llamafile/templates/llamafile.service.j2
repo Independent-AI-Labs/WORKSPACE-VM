@@ -1,6 +1,8 @@
 [Unit]
 Description=Llamafile server (model: {{ llama_model }}, gpu: {{ llamafile_gpu }})
 After=network.target
+StartLimitIntervalSec=60
+StartLimitBurst=3
 
 [Service]
 Type=exec
@@ -10,8 +12,10 @@ ExecStart={{ llamafile_server_script }} {{ llamafile_path }}
 EnvironmentFile=%h/.config/llamafile/llamafile-{{ llama_model }}.env
 StandardOutput=inherit
 StandardError=inherit
-Restart=always
+Restart=on-failure
 RestartSec=5
+TimeoutStartSec=120
+TimeoutStopSec=60
 
 [Install]
 WantedBy=default.target

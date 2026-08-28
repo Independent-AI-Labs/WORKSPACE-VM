@@ -1,0 +1,27 @@
+{
+  "name": "agentci",
+  "version": "0.0.0",
+  "type": "module",
+  "exports": {
+    ".": "./dist/server.js",
+    "./server": "./dist/server.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc --project tsconfig.build.json",
+    "prepack": "npm run build",
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-strip-types --test --test-concurrency=1 tests/*.test.ts tests/*.integration.test.ts",
+    "test:live": "node --experimental-strip-types --test tests/live-oc.live.ts",
+    "test:release": "node --experimental-strip-types --test tests/release-entrypoint.test.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0"
+  },
+  "dependencies": {
+    "yaml": "^2.9.0"
+  }
+}

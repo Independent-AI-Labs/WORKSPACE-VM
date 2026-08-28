@@ -1,13 +1,13 @@
 """Integration tests for extensions discovered from extension.manifest.yaml files.
 
-Tests that extensions have valid metadata, binaries exist, and commands
-are properly installed in the platform-appropriate boot directory.
+Tests that extensions have valid metadata, source binaries exist, and source
+commands respond to help without boot-directory registration.
 """
 
 import os
-import platform
 import re
 import subprocess
+import sys
 from pathlib import Path
 from typing import NamedTuple
 
@@ -30,8 +30,6 @@ def _find_project_root() -> Path:
 
 
 PROJECT_ROOT = _find_project_root()
-_BOOT_NAME = ".boot-macos" if platform.system() == "Darwin" else ".boot-linux"
-BIN_DIR = PROJECT_ROOT / _BOOT_NAME / "bin"
 VALID_CATEGORIES = frozenset(
     ["core", "enterprise", "dev", "infra", "research", "docs", "agents"]
 )
@@ -109,18 +107,13 @@ def validate_shebang_paths(shebang: str) -> list[str]:
 ALL_EXTENSIONS = get_all_extensions()
 EXTENSION_NAMES = [ext.name for ext in ALL_EXTENSIONS]
 
-# Pre-filtered lists for parametrized tests that require binaries to exist on disk.
+# Pre-filtered lists for parametrized tests that require source binaries to exist.
 # Tests that can run against metadata alone parametrize over EXTENSION_NAMES directly.
-INSTALLED_EXTENSION_NAMES = sorted(
-    ext.name for ext in ALL_EXTENSIONS if (BIN_DIR / ext.name).exists()
-)
 EXTENSIONS_WITH_BINARY = sorted(
     ext.name for ext in ALL_EXTENSIONS if ext.binary and check_binary_exists(ext.binary)
 )
 EXTENSIONS_HELP_READY = sorted(
-    ext.name
-    for ext in ALL_EXTENSIONS
-    if ext.binary and check_binary_exists(ext.binary) and (BIN_DIR / ext.name).exists()
+    ext.name for ext in ALL_EXTENSIONS if ext.binary and check_binary_exists(ext.binary)
 )
 
 
@@ -128,12 +121,7 @@ def make_test_env():
     """Create environment for running extension tests."""
     env = os.environ.copy()
     env["AMI_ROOT"] = str(PROJECT_ROOT)
-    env["PATH"] = (
-        f"{BIN_DIR}:"
-        f"{PROJECT_ROOT}/.venv/bin:"
-        f"{PROJECT_ROOT}/.venv/node_modules/.bin:"
-        f"{env.get('PATH', '')}"
-    )
+    env["PATH"] = f"{PROJECT_ROOT}/.venv/bin:{env.get('PATH', '')}"
     env["PYTHONPATH"] = str(PROJECT_ROOT)
     return env
 
@@ -147,52 +135,8 @@ def get_extension_by_name(name: str) -> ExtensionMetadata | None:
 
 
 @pytest.mark.integration
-class TestExtensionInstallation:
-    """Test that extensions are installed as symlinks/wrappers in the boot dir."""
-
-    @pytest.mark.parametrize("ext_name", EXTENSION_NAMES)
-    def test_command_exists_in_bin(self, ext_name: str):
-        """Test that extension command exists in the boot dir."""
-        cmd_path = BIN_DIR / ext_name
-        assert cmd_path.exists(), (
-            f"Extension {ext_name} not installed in {BIN_DIR}\n"
-            f"Run: make register-extensions"
-        )
-
-    @pytest.mark.parametrize("ext_name", INSTALLED_EXTENSION_NAMES)
-    def test_command_is_executable(self, ext_name: str):
-        """Test that extension command is executable."""
-        cmd_path = BIN_DIR / ext_name
-        assert cmd_path.exists()
-        assert os.access(cmd_path, os.X_OK), (
-            f"Extension {ext_name} is not executable: {cmd_path}"
-        )
-
-    @pytest.mark.parametrize("ext_name", INSTALLED_EXTENSION_NAMES)
-    def test_symlink_or_wrapper_type(self, ext_name: str):
-        """Test that non-.py binaries are symlinks, .py binaries are wrappers."""
-        ext = get_extension_by_name(ext_name)
-        assert ext is not None
-        cmd_path = BIN_DIR / ext_name
-        assert cmd_path.exists()
-
-        if ext.binary.endswith(".py"):
-            assert not cmd_path.is_symlink(), (
-                f"{ext_name} (.py binary) should be a wrapper, not a symlink"
-            )
-            content = cmd_path.read_text()
-            assert "run" in content, f"{ext_name} wrapper should call run"
-        else:
-            is_symlink = cmd_path.is_symlink()
-            is_in_place = str(ext.binary).startswith(f"{_BOOT_NAME}/bin/")
-            assert is_symlink or is_in_place, (
-                f"{ext_name} should be symlink or in {_BOOT_NAME}/bin/"
-            )
-
-
-@pytest.mark.integration
 class TestExtensionHelp:
-    """Test that extensions respond to help flags."""
+    """Test that source extension commands respond to help flags."""
 
     @pytest.fixture(autouse=True)
     def setup_env(self):
@@ -207,8 +151,7 @@ class TestExtensionHelp:
         assert ext.binary, f"Extension {ext_name} has no binary defined"
         assert check_binary_exists(ext.binary), f"Binary not installed: {ext.binary}"
 
-        cmd_path = BIN_DIR / ext_name
-        assert cmd_path.exists(), f"Command not installed in bin: {ext_name}"
+        source_path = PROJECT_ROOT / ext.binary
 
         shebang = get_binary_shebang(ext.binary)
         if shebang:
@@ -222,8 +165,11 @@ class TestExtensionHelp:
                 )
 
         for flag in ("--help", "-h"):
+            command = [str(source_path), flag]
+            if ext.binary.endswith(".py"):
+                command.insert(0, sys.executable)
             result = subprocess.run(
-                [str(cmd_path), flag],
+                command,
                 capture_output=True,
                 text=True,
                 env=self.env,
@@ -333,15 +279,3 @@ class TestHiddenExtensions:
 
         msg = f"Too many hidden: {len(hidden)} vs {len(visible)} visible"
         assert len(visible) > len(hidden), msg
-
-    @pytest.mark.parametrize(
-        "ext_name",
-        [ext.name for ext in ALL_EXTENSIONS if ext.hidden],
-        ids=lambda x: f"hidden-{x}",
-    )
-    def test_hidden_extension_command_exists(self, ext_name: str):
-        """Test that hidden extensions still have commands installed."""
-        cmd_path = BIN_DIR / ext_name
-        assert cmd_path.exists(), (
-            f"Hidden extension {ext_name} not installed in {BIN_DIR}"
-        )

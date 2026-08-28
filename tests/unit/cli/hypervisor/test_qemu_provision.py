@@ -73,14 +73,21 @@ def test_build_rsync_script_guard_profile() -> None:
     script = qp._build_rsync_script("guard")
     assert "projects/WORKSPACE-GUARD/" in script
     assert "projects/CI/" in script
+    assert "scripts/e2e/" in script
     assert "rsync -a" in script
     assert "mkdir -p /opt/workspace/projects" in script
     assert "chown -R workspace:workspace /opt/workspace" in script
+    assert (
+        "find /opt/workspace/projects/WORKSPACE-GUARD/config -type f -name '*.yaml'"
+        in script
+    )
+    assert "-exec chown root:root {} +" in script
 
 
 def test_build_rsync_script_full_ci_profile() -> None:
     script = qp._build_rsync_script("full-ci")
     assert "projects/" in script
+    assert "WORKSPACE-GUARD/config" not in script
 
 
 def test_build_install_script_guard_skips_install_ci() -> None:

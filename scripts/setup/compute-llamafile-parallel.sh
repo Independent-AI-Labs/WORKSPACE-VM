@@ -27,7 +27,11 @@
 # Tunable override: LLAMAFILE_KV_MIB_PER_SLOT
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_PATH="${BASH_SOURCE[0]:-$0}"
+case "$SCRIPT_PATH" in
+    /proc/self/fd/*) SCRIPT_PATH="${SHG_SCRIPT_PATH:?shell guard source path is unavailable}" ;;
+esac
+SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_PATH")" && pwd)"
 # shellcheck source=lib/llamafile-gpu-env.sh
 source "$SCRIPT_DIR/lib/llamafile-gpu-env.sh" || exit 1
 
@@ -46,8 +50,9 @@ PROBE_SCRIPT="$SCRIPT_DIR/lib/vulkan_gpu_probe.py"
 PROBE_CACHE=""
 
 llamafile_python() {
-    if command -v uv ; then
-        uv run python "$@"
+    local uv_path
+    if uv_path="$(command -v uv)"; then
+        "$uv_path" run python "$@"
     else
         python3 "$@"
     fi
@@ -57,7 +62,8 @@ cache_vulkan_probe() {
     if [ -n "$PROBE_CACHE" ] && [ -f "$PROBE_CACHE" ]; then
         return 0
     fi
-    if ! command -v vulkaninfo ; then
+    local vulkaninfo_path
+    if ! vulkaninfo_path="$(command -v vulkaninfo)" || [ ! -x "$vulkaninfo_path" ]; then
         return 1
     fi
     PROBE_CACHE="$(mktemp)"
@@ -86,7 +92,7 @@ resolve_main_gpu() {
     case "$main_gpu" in
         auto|""|"-1")
             local picked
-            if ! picked="$(select_best_gpu_index)"; then
+            if ! cache_vulkan_probe || ! picked="$(select_best_gpu_index)"; then
                 printf 'error: Vulkan GPU probe failed; using MAIN_GPU=0 (verify render group + vulkaninfo)\n' >&2
                 printf '0\n'
                 return

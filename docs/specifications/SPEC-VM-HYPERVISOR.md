@@ -7,7 +7,6 @@
 **Requirements:** [REQ-VM-HYPERVISOR](../requirements/REQ-VM-HYPERVISOR.md)
 **References:**
 - [REQ-VM-HYPERVISOR](../requirements/REQ-VM-HYPERVISOR.md)
-- [REQ-BOOT-LAYOUT](../requirements/REQ-BOOT-LAYOUT.md)
 - [REQ-OPENVPN](../requirements/REQ-OPENVPN.md)
 - [REQ-ANDROID-WORKSPACE](../requirements/REQ-ANDROID-WORKSPACE.md)
 - [workspace/types/vm.py](../../workspace/types/vm.py)

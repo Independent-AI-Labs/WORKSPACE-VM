@@ -78,6 +78,8 @@ def test_load_services_parses_valid_yaml() -> None:
     yaml_data = {
         "compose_services": {"svc-a": {}, "svc-b": {}},
         "local_services": {"local-x": {}, "local-y": {}},
+        "services": ["explicit.service"],
+        "timers": ["explicit.timer"],
     }
     managed: set[str] = set()
     m_open = mock_open(read_data=real_yaml.dump(yaml_data))
@@ -93,6 +95,8 @@ def test_load_services_parses_valid_yaml() -> None:
         "svc-b.service",
         "local-x.service",
         "local-y.service",
+        "explicit.service",
+        "explicit.timer",
     }
 
 

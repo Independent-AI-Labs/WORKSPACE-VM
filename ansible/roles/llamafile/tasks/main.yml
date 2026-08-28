@@ -4,10 +4,9 @@
 # via scripts/setup/llamafile-server.sh (PATH, dlopen helper, GPU/parallel tuning).
 
 - name: Preflight - vulkaninfo available for GPU auto-select
-  ansible.builtin.command: command -v vulkaninfo
+  ansible.builtin.shell: which vulkaninfo >> /tmp/llamafile-preflight.log 2>&1
   register: _vulkaninfo_cmd
   changed_when: false
-  failed_when: _vulkaninfo_cmd.rc != 0
   when: llamafile_gpu == 'vulkan'
 
 - name: Display vulkaninfo preflight result
@@ -16,7 +15,7 @@
   when: llamafile_gpu == 'vulkan'
 
 - name: Preflight - render group membership (GPU device access)
-  ansible.builtin.command: id -nG
+  ansible.builtin.shell: id -nG >> /tmp/llamafile-preflight.log 2>&1
   register: _user_groups
   changed_when: false
 
@@ -105,13 +104,13 @@
 
 - name: Ensure llamafile config directory exists
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/.config/llamafile"
+    path: "{{ ansible_facts['env']['HOME'] }}/.config/llamafile"
     state: directory
     mode: '0755'
 
 - name: Ensure systemd user directory exists
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/.config/systemd/user"
+    path: "{{ ansible_facts['env']['HOME'] }}/.config/systemd/user"
     state: directory
     mode: '0755'
 
@@ -142,16 +141,18 @@
       {% if llamafile_model_gguf is defined %}
       LLAMAFILE_MODEL_GGUF={{ llamafile_model_gguf }}
       {% endif %}
-    dest: "{{ ansible_env.HOME }}/.config/llamafile/llamafile-{{ llama_model }}.env"
+    dest: "{{ ansible_facts['env']['HOME'] }}/.config/llamafile/llamafile-{{ llama_model }}.env"
     mode: '0600'
     backup: false
+  register: llamafile_environment
 
 - name: Deploy llamafile-{{ llama_model }}.service unit
   ansible.builtin.template:
     src: llamafile.service.j2
-    dest: "{{ ansible_env.HOME }}/.config/systemd/user/llamafile-{{ llama_model }}.service"
+    dest: "{{ ansible_facts['env']['HOME'] }}/.config/systemd/user/llamafile-{{ llama_model }}.service"
     mode: '0644'
     backup: false
+  register: llamafile_unit
 
 - name: Daemon-reload systemd user instance
   ansible.builtin.systemd:
@@ -162,5 +163,5 @@
   ansible.builtin.systemd:
     name: "llamafile-{{ llama_model }}.service"
     enabled: true
-    state: started
+    state: '{{ "restarted" if llamafile_environment.changed or llamafile_unit.changed else "started" }}'
     scope: user

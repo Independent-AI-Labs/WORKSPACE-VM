@@ -17,7 +17,7 @@ SAMPLE_CLONES_YAML = """\
 workspaceClones:
   ci:
     remote: 'git@github.com:Independent-AI-Labs/WORKSPACE-CI.git'
-    path: 'projects/CI'
+    path: 'projects/WORKSPACE-CI'
     mandatory: true
   dataops:
     remote: 'git@github.com:Independent-AI-Labs/AMI-DATAOPS.git'
@@ -47,10 +47,10 @@ def _make_fake_workspace(tmp_path: Path) -> tuple[Path, Path]:
 
     projects_dir = root / "projects"
     projects_dir.mkdir(parents=True)
-    (projects_dir / "CI").mkdir()
+    (projects_dir / "WORKSPACE-CI").mkdir()
     (projects_dir / "vendor-lib").mkdir()
     (root / ".git").mkdir()
-    (projects_dir / "CI" / ".git").mkdir()
+    (projects_dir / "WORKSPACE-CI" / ".git").mkdir()
     (projects_dir / "vendor-lib" / ".git").mkdir()
 
     return script_copy, root
@@ -159,7 +159,7 @@ class TestVendoredFiltering:
         stub = tmp_path / "stub-bin"
         origins = {
             root: "git@github.com:Independent-AI-Labs/WORKSPACE-VM.git",
-            root / "projects" / "CI": (
+            root / "projects" / "WORKSPACE-CI": (
                 "git@github.com:Independent-AI-Labs/WORKSPACE-CI.git"
             ),
             root / "projects" / "vendor-lib": (
@@ -172,7 +172,7 @@ class TestVendoredFiltering:
         output = _strip_ansi(result.stdout)
 
         assert result.returncode == 0, result.stderr
-        assert "projects/CI" in output
+        assert "projects/WORKSPACE-CI" in output
         assert "projects/vendor-lib" not in output
         assert "1 vendored skipped" in output
 
@@ -181,7 +181,7 @@ class TestVendoredFiltering:
         stub = tmp_path / "stub-bin"
         origins = {
             root: "git@github.com:Independent-AI-Labs/WORKSPACE-VM.git",
-            root / "projects" / "CI": (
+            root / "projects" / "WORKSPACE-CI": (
                 "git@github.com:Independent-AI-Labs/WORKSPACE-CI.git"
             ),
             root / "projects" / "vendor-lib": (
@@ -194,7 +194,7 @@ class TestVendoredFiltering:
         output = _strip_ansi(result.stdout)
 
         assert result.returncode == 0, result.stderr
-        assert "projects/CI" in output
+        assert "projects/WORKSPACE-CI" in output
         assert "projects/vendor-lib" in output
         assert "vendored skipped" not in output
 

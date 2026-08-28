@@ -1,39 +1,31 @@
 #!/usr/bin/env bash
 set -euo pipefail
-OP="bootstrap_opencode"
-
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_SOURCE="${BASH_SOURCE[0]:-$0}"
+case "$SCRIPT_SOURCE" in
+    /proc/self/fd/*) SCRIPT_SOURCE="${SHG_SCRIPT_PATH:-$SCRIPT_SOURCE}" ;;
+esac
+SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_SOURCE")" && pwd)"
 AMI_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 BOOT_DIR="${BOOT_LINUX_DIR:-${AMI_ROOT}/.boot-linux}"
+BOOT_BIN="${BOOT_DIR}/bin"
+NPM="${BOOT_BIN}/npm"
 
-NPM="${BOOT_DIR}/bin/npm"
+if [[ ! -w "$BOOT_BIN" ]]; then
+    echo "ERROR: ${BOOT_BIN} not writable (root-locked). Run: sudo make update-oc" >&2
+    exit 1
+fi
+
 if [[ ! -x "$NPM" ]]; then
-    echo "[${OP}] hermetic npm not found at ${NPM} -- run make pre-req first"
+    echo "ERROR: npm not found at ${NPM}" >&2
     exit 1
 fi
 
-export PATH="${BOOT_DIR}/bin:${PATH}"
+PATH="${BOOT_BIN}:${PATH}" "$NPM" install --prefix "$BOOT_DIR" opencode-ai@latest
+ln -sfn ../node_modules/.bin/opencode "${BOOT_BIN}/opencode"
 
-echo "[${OP}] Installing opencode-ai into .venv..."
-_npm_rc=0
-npm install --prefix "${AMI_ROOT}/.venv" opencode-ai@latest || _npm_rc=$?
-if [[ $_npm_rc -ne 0 ]]; then
-    echo "[${OP}] npm install failed (rc=${_npm_rc}), retrying once..."
-    sleep 2
-    _npm_rc=0
-    npm install --prefix "${AMI_ROOT}/.venv" opencode-ai@latest || _npm_rc=$?
-    if [[ $_npm_rc -ne 0 ]]; then
-        echo "[${OP}] ERROR: npm install failed after retry (rc=${_npm_rc})"
-        exit 1
-    fi
-    echo "[${OP}] npm install succeeded on retry"
-fi
-
-OPN_BIN="${AMI_ROOT}/.venv/node_modules/.bin/opencode"
-if [[ -x "$OPN_BIN" ]]; then
-    ln -sf "../../.venv/node_modules/.bin/opencode" "${BOOT_DIR}/bin/opencode"
-    echo "[${OP}] opencode-ai $("$OPN_BIN" --version) installed → .boot-linux/bin/opencode"
-else
-    echo "[${OP}] opencode-ai installed but binary not found at ${OPN_BIN}"
+if [[ ! -x "${BOOT_BIN}/opencode" ]]; then
+    echo "ERROR: opencode binary not found after install" >&2
     exit 1
 fi
+
+echo "opencode $(PATH="${BOOT_BIN}:${PATH}" "${BOOT_BIN}/opencode" --version)"

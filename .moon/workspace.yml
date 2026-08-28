@@ -34,7 +34,7 @@ projects:
     - 'projects/*/moon.yml'
   sources:
     workspace: '.'
-    ci: 'projects/CI'
+    ci: 'projects/WORKSPACE-CI'
     dataops: 'projects/DATAOPS'
     workspace-guard: 'projects/WORKSPACE-GUARD'
     workspace-portal: 'projects/WORKSPACE-PORTAL'
@@ -49,4 +49,3 @@ pipeline:
 
 # Disable telemetry: see CLAUDE.md guidance.
 telemetry: false
-

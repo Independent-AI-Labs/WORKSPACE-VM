@@ -281,7 +281,7 @@ class TestInstallComponents:
                 description="Python package manager",
                 type=ComponentType.SCRIPT,
                 group="Core Dependencies",
-                script_path="projects/CI/scripts/bootstrap-uv",
+                script_path="/opt/workspace-ci/scripts/bootstrap-uv",
             ),
         ]
 
@@ -443,7 +443,7 @@ class TestRunScriptPath:
             description="t",
             type=ComponentType.SCRIPT,
             group="Test",
-            script_path="projects/CI/scripts/bootstrap-gitleaks",
+            script_path="/opt/workspace-ci/scripts/bootstrap-gitleaks",
         )
         with patch.object(Path, "exists", return_value=True):
             result = install_component(comp)
@@ -454,7 +454,7 @@ class TestRunScriptPath:
     @patch("workspace.scripts.bootstrap_install._PROJECT_ROOT", Path("/test/root"))
     def test_runs_script_path_failure(self, mock_run) -> None:
         mock_run.side_effect = subprocess.CalledProcessError(
-            1, ["bash", str(Path("/test/root/projects/CI/scripts/bootstrap-gitleaks"))]
+            1, ["bash", "/opt/workspace-ci/scripts/bootstrap-gitleaks"]
         )
         comp = Component(
             name="test",
@@ -462,7 +462,7 @@ class TestRunScriptPath:
             description="t",
             type=ComponentType.SCRIPT,
             group="Test",
-            script_path="projects/CI/scripts/bootstrap-gitleaks",
+            script_path="/opt/workspace-ci/scripts/bootstrap-gitleaks",
         )
         with patch.object(Path, "exists", return_value=True):
             result = install_component(comp)
@@ -492,7 +492,7 @@ class TestRunScriptPath:
             description="t",
             type=ComponentType.SCRIPT,
             group="Test",
-            script_path="projects/CI/scripts/bootstrap-gitleaks",
+            script_path="/opt/workspace-ci/scripts/bootstrap-gitleaks",
         )
         with patch.object(Path, "exists", return_value=True):
             result = install_component(comp)

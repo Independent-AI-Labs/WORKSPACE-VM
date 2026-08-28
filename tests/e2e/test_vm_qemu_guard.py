@@ -12,7 +12,7 @@ from tests.e2e.qemu_host_isolation import assert_host_git_unchanged, snapshot_ho
 from workspace.cli import process as proc
 
 _GUARD_CONFIG = Path("workspace/config/vm-guard-qemu.yaml")
-_E2E_GUEST = Path("projects/WORKSPACE-GUARD/scripts/qemu/e2e-guest.sh")
+_E2E_GUEST = Path("scripts/e2e/workspace-guard-guest.sh")
 _CREATE_TIMEOUT = 3600
 _GUARD_TIMEOUT = 1800
 
@@ -52,7 +52,7 @@ def test_vm_qemu_guard_e2e_guest(qemu_tracker: QemuTracker) -> None:
             "workspace@127.0.0.1",
             "sudo",
             "bash",
-            "/opt/workspace/projects/WORKSPACE-GUARD/scripts/qemu/e2e-guest.sh",
+            "/opt/workspace/scripts/e2e/workspace-guard-guest.sh",
         ],
         capture_output=True,
         text=True,

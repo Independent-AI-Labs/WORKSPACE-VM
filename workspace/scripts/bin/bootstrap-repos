@@ -197,6 +197,21 @@ processed=0
 skipped=0
 errors=0
 
+install_hooks_for_fresh_repo() {
+    local repo="$1" installer=""
+    [[ -f "$repo/.pre-commit-config.yaml" ]] || return 0
+    if [[ -x "/opt/workspace-ci/scripts/reinstall-hooks" ]]; then
+        installer="/opt/workspace-ci/scripts/reinstall-hooks"
+    elif [[ -x "$AMI_ROOT/projects/WORKSPACE-CI/scripts/reinstall-hooks" ]]; then
+        installer="$AMI_ROOT/projects/WORKSPACE-CI/scripts/reinstall-hooks"
+    else
+        echo "ERROR: no shared hook installer is available for fresh repo $repo" >&2
+        return 1
+    fi
+    echo "🔐 installing hooks in fresh repo $repo"
+    ( cd "$repo" && bash "$installer" )
+}
+
 while IFS='|' read -r entry_id remote path mandatory min_tag; do
     [[ -z "$entry_id" ]] && continue
 
@@ -206,6 +221,7 @@ while IFS='|' read -r entry_id remote path mandatory min_tag; do
     fi
 
     target="$AMI_ROOT/$path"
+    fresh_clone=0
     if [[ ! -d "$target/.git" ]]; then
         echo "📦 cloning $entry_id from $remote → $path"
         if ! git clone "$remote" "$target"; then
@@ -214,6 +230,7 @@ while IFS='|' read -r entry_id remote path mandatory min_tag; do
             continue
         fi
         processed=$((processed + 1))
+        fresh_clone=1
     else
         if [[ $PULL -eq 1 ]]; then
             echo "🔄 pulling $entry_id at $path"
@@ -222,6 +239,12 @@ while IFS='|' read -r entry_id remote path mandatory min_tag; do
             fi
         fi
         processed=$((processed + 1))
+    fi
+
+    if [[ "$fresh_clone" -eq 1 ]] && ! install_hooks_for_fresh_repo "$target"; then
+        echo "ERROR: fresh repo setup failed for $entry_id" >&2
+        errors=$((errors + 1))
+        continue
     fi
 
     # minTag enforcement.

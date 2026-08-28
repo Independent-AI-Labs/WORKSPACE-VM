@@ -16,7 +16,11 @@ if [ "$#" -lt 1 ]; then
 fi
 
 BUNDLE_PATH="$1"
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_PATH="${BASH_SOURCE[0]:-$0}"
+case "$SCRIPT_PATH" in
+    /proc/self/fd/*) SCRIPT_PATH="${SHG_SCRIPT_PATH:?shell guard source path is unavailable}" ;;
+esac
+SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_PATH")" && pwd)"
 # shellcheck source=lib/llamafile-gpu-env.sh
 source "$SCRIPT_DIR/lib/llamafile-gpu-env.sh" || exit 1
 

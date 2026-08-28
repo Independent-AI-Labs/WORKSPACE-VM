@@ -1,4 +1,5 @@
 # Makefile for AMI Agents
+MAKEFILE_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 # Platform detection. On macOS, prefer Homebrew bash 5.x over /bin/bash
 # (3.2) for nameref support. The Homebrew gnubin directories are
 # prepended to PATH so GNU coreutils, gnu-sed, and findutils shadow
@@ -15,13 +16,10 @@ else
 _HB_PREFIX :=
 endif
 
-# Root detection MUST happen before the SHELL assignment below: once SHELL
-# points at the guarded /bin/bash, every $(shell) probe fails closed for root.
-# Root recipes therefore run through the sealed /bin/bash.real, matching the
-# convention used in every other repo Makefile under projects/.
+# Root detection happens before selecting the guarded shell for every recipe.
 ifeq ($(shell id -u),0)
-SHELL := /bin/bash.real
-SCRIPT_BASH := /bin/bash.real
+SHELL := /bin/bash
+SCRIPT_BASH := /bin/bash
 else ifeq ($(_OS),Darwin)
 SHELL := $(_HB_PREFIX)/bin/bash
 SCRIPT_BASH := bash
@@ -29,6 +27,8 @@ else
 SHELL := /bin/bash
 SCRIPT_BASH := bash
 endif
+
+BUN_BIN := $(HOME)/.bun/bin/bun
 ifeq ($(_OS),Darwin)
 export PATH := $(_HB_PREFIX)/opt/coreutils/libexec/gnubin:$(_HB_PREFIX)/opt/gnu-sed/libexec/gnubin:$(_HB_PREFIX)/opt/findutils/libexec/gnubin:$(_HB_PREFIX)/bin:$(PATH)
 else
@@ -37,7 +37,7 @@ endif
 
 # CI provides shared configs (ruff.toml, mypy.toml) and bootstrapped
 # tools (uv, ansible, gitleaks). VM-root delegates to CI for these.
-CI_DIR := $(abspath projects/CI)
+CI_DIR := /opt/workspace-ci
 GUARD_DIR := $(abspath projects/WORKSPACE-GUARD)
 CI_BOOT_NAME := $(if $(filter Darwin,$(_OS)),.boot-macos,.boot-linux)
 CI_BOOT_BIN := $(CI_DIR)/$(CI_BOOT_NAME)/bin
@@ -49,7 +49,7 @@ MOON := $(CI_BOOT_BIN)/moon
 ANSIBLE_PLAYBOOK ?= $(CI_BOOT_BIN)/ansible-playbook
 # Containment: uv-managed interpreters live inside CI's boot dir, never in
 # $HOME/.local/share/uv/python (no unsanctioned HOME/system resources)
-export UV_PYTHON_INSTALL_DIR := $(CI_DIR)/$(CI_BOOT_NAME)/python
+export UV_PYTHON_INSTALL_DIR := $(CURDIR)/$(CI_BOOT_NAME)/python
 
 # cmake 4.x dropped support for cmake_minimum_required < 3.5. python-olm
 # uses cmake_minimum_required(VERSION 2.x). Set policy version floor so the
@@ -57,7 +57,7 @@ export UV_PYTHON_INSTALL_DIR := $(CI_DIR)/$(CI_BOOT_NAME)/python
 export CMAKE_POLICY_VERSION_MINIMUM := 3.5
 
 # Contract compliance
--include projects/CI/lib/makefile_contract.mk
+-include $(CI_DIR)/lib/makefile_contract.mk
 
 # =============================================================================
 # Help
@@ -75,7 +75,7 @@ help: ## Show this help message
 
 .PHONY: init-check
 init-check: ## Check system dependencies (via CI resolver)
-	bash projects/CI/scripts/install-system-deps --check
+	$(SCRIPT_BASH) $(CI_DIR)/scripts/install-system-deps --check
 
 .PHONY: init
 init: ## Install system dependencies (platform-aware: brew on macOS, two-phase sudo on Linux)
@@ -97,16 +97,16 @@ endif
 	else \
 		echo ""; \
 		echo "⚠️  Privileged bootstrap steps remain (deploy-ci, guard install,"; \
-		echo "    hook/exemption locks, syslog limits). Run: sudo make init"; \
+		echo "    root-owned hook/exemption files, syslog limits). Run: sudo make init"; \
 	fi
 
 # Privileged bootstrap (audit 2026-07-18 section 4.6). Every step that
 # needs root lives here so `make install` / `install-ci` stay non-root.
 # projects/WORKSPACE-CI must already exist (cloned by non-root
-# ensure-repos); projects/CI is promoted from it exclusively via
-# deploy-ci, which self-verifies ownership, exec bits and divergence.
+# ensure-repos); /opt/workspace-ci is published from it exclusively via
+# deploy-ci, which verifies and seals the complete artifact.
 .PHONY: init-root
-init-root: ## (ROOT) Privileged bootstrap: deploy-ci + guard + hook/exemption locks + syslog limits
+init-root: ## (ROOT) Privileged bootstrap: deploy-ci + guard + root-owned hooks/exemptions + syslog limits
 	if [ "$$(id -u)" != "0" ]; then \
 		echo "ERROR: init-root needs root: sudo make init" >&2; exit 1; \
 	fi
@@ -128,10 +128,8 @@ init-root: ## (ROOT) Privileged bootstrap: deploy-ci + guard + hook/exemption lo
 
 .PHONY: core
 core: ## Bootstrap CI tools (uv + ansible + node) + VM-specific tools (python + git-xet + playwright)
-	echo "🔧 Bootstrapping CI tools..."
-	$(MAKE) -C projects/CI install-boot-tools
-	$(MAKE) -C projects/CI install-ansible
-	$(MAKE) -C projects/CI install-node
+	echo "🔧 Verifying deployed CI tools..."
+	test -x "$(UV)" && test -x "$(ANSIBLE_PLAYBOOK)" && test -x "$(CI_BOOT_BIN)/node"
 	echo "🔧 Bootstrapping VM-specific tools..."
 	AMI_ROOT="$$(pwd)" bash workspace/scripts/bootstrap/bootstrap_python.sh
 	AMI_ROOT="$$(pwd)" bash workspace/scripts/bootstrap/bootstrap_git_xet.sh
@@ -144,7 +142,8 @@ core: ## Bootstrap CI tools (uv + ansible + node) + VM-specific tools (python + 
 
 .PHONY: ci-install-deps
 ci-install-deps: ensure-repos ## Install CI project deps (boot tools, Python venv, gitleaks) - delegates to CI
-	$(MAKE) -C projects/CI install-deps
+	test -x "$(UV)" && test -x "$(CI_BOOT_BIN)/gitleaks"
+	echo "✅ Sealed WORKSPACE-CI dependencies already installed"
 
 .PHONY: install
 install: init-check sync-package ## Interactive TUI to select and install components
@@ -161,8 +160,8 @@ install: init-check sync-package ## Interactive TUI to select and install compon
 	echo "" && \
 	echo "    sudo make init" && \
 	echo "" && \
-	echo "    Deploys projects/CI from WORKSPACE-CI, installs the git" && \
-	echo "    guard, root-locks hooks + exemption files in every consumer" && \
+	echo "    Deploys /opt/workspace-ci from WORKSPACE-CI, installs the git" && \
+	echo "    guard, root-owns hooks + exemption files in every consumer" && \
 	echo "    repo, and enforces syslog limits (INCIDENT-2026-07-05)." && \
 	echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
@@ -194,8 +193,8 @@ install-ci: init-check sync-package ## Non-interactive component install (uses i
 	echo "" && \
 	echo "    sudo make init" && \
 	echo "" && \
-	echo "    Deploys projects/CI from WORKSPACE-CI, installs the git" && \
-	echo "    guard, root-locks hooks + exemption files in every consumer" && \
+	echo "    Deploys /opt/workspace-ci from WORKSPACE-CI, installs the git" && \
+	echo "    guard, root-owns hooks + exemption files in every consumer" && \
 	echo "    repo, and enforces syslog limits (INCIDENT-2026-07-05)." && \
 	echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
@@ -216,7 +215,7 @@ install-ci: init-check sync-package ## Non-interactive component install (uses i
 
 .PHONY: build-guard
 build-guard: ensure-repos ## Build git-guard binary (operator: sudo make build-guard) - delegates to CI
-	$(MAKE) -C projects/CI build-guard
+	$(MAKE) -C $(GUARD_DIR) build-guard
 
 .PHONY: install-guard install-guard-host-exec reconcile-guard-host-exec check-guard-host-exec
 .PHONY: uninstall-guard purge-guard-state install-host-stack-phase5
@@ -235,7 +234,7 @@ guard-up guard-refresh guard-check guard-down guard-reset:
 
 .PHONY: enforce-syslog-limits
 enforce-syslog-limits: ## Enforce system-level log ceilings (needs sudo) - delegates to CI
-	$(MAKE) -C projects/CI enforce-syslog-limits
+	$(SCRIPT_BASH) $(CI_DIR)/scripts/enforce-syslog-limits
 
 # =============================================================================
 # Repos
@@ -285,7 +284,7 @@ setup-automation: ## Setup automation configuration
 # =============================================================================
 
 .PHONY: register-extensions
-register-extensions: ## Register extensions in .boot-linux/bin
+register-extensions: ## (CONTROL PLANE) Register extensions in the platform boot bin
 	echo "🔌 Registering extensions in ~/.bashrc..."
 	$(UV) run python workspace/scripts/register_extensions.py
 
@@ -359,17 +358,16 @@ vm-cert: ## generate or print client cert for <id>
 
 .PHONY: install-hooks
 install-hooks: ## Install native git hooks (run via sudo for root-owned hooks; no unseal/lock cycle exists)
-	if [ -x projects/CI/scripts/cleanup-precommit ]; then $(SCRIPT_BASH) projects/CI/scripts/cleanup-precommit; fi
-	$(SCRIPT_BASH) projects/CI/scripts/reinstall-hooks
+	if [ -x $(CI_DIR)/scripts/cleanup-precommit ]; then $(SCRIPT_BASH) $(CI_DIR)/scripts/cleanup-precommit; fi
+	$(SCRIPT_BASH) $(CI_DIR)/scripts/reinstall-hooks
 	if [ "$$(id -u)" != "0" ]; then \
 		echo "ℹ️  hooks regenerated; run 'sudo make install-hooks' when hooks are root-owned"; \
 	fi
 
 .PHONY: install-deps-recursive
-install-deps-recursive: ensure-repos ## Install deps in every nested repo (skip CI, handled by ci-install-deps)
+install-deps-recursive: ensure-repos ## Install deps in every nested repo
 	_failed=0; \
-	for repo in $$(bash projects/CI/scripts/walk-projects); do \
-		if [ "$$repo" = "projects/CI" ]; then continue; fi; \
+	for repo in $$($(SCRIPT_BASH) $(CI_DIR)/scripts/walk-projects); do \
 		echo ""; \
 		echo "📦 Installing deps in $$repo..."; \
 		$(MAKE) -C "$$repo" install-ci || { echo "❌ Dep install failed in $$repo"; _failed=$$((_failed + 1)); }; \
@@ -379,44 +377,34 @@ install-deps-recursive: ensure-repos ## Install deps in every nested repo (skip 
 .PHONY: install-hooks-recursive
 install-hooks-recursive: ## Install hooks in workspace + every nested .git under projects/ (run via sudo for root-owned hooks)
 	if [ "$$(id -u)" != "0" ] && [ "$(ALLOW_UNLOCKED)" != "1" ]; then \
-		echo "ERROR: install-hooks-recursive must run as root to root-lock hooks + registries." >&2; \
+		echo "ERROR: install-hooks-recursive must run as root for root-owned hooks." >&2; \
 		echo "Run: sudo make install-hooks-recursive" >&2; \
-		echo "Bootstrap flows (make install/install-ci) pass ALLOW_UNLOCKED=1 explicitly." >&2; \
 		exit 1; \
 	fi
 	$(MAKE) install-hooks
-	echo "🛡  Ensuring osv-scanner binary (CI boot dir, inherited by consumers)..."; \
-	if bash projects/CI/scripts/bootstrap-osv-scanner; then \
+	_failed=0; \
+	echo "🛡  Verifying osv-scanner in sealed CI artifact..."; \
+	if [ -x "$(CI_BOOT_BIN)/osv-scanner" ]; then \
 		echo "✅ osv-scanner ready"; \
 	else \
-		echo "⚠️  osv-scanner bootstrap failed; the osv-scan pre-push hook will fail-open (WARN) until 'make -C projects/CI install-osv-scanner' succeeds" >&2; \
-	fi
-	_failed=0; \
-	for repo in $$(bash projects/CI/scripts/walk-projects); do \
+		echo "❌ osv-scanner missing from $(CI_BOOT_BIN); redeploy WORKSPACE-CI" >&2; _failed=$$((_failed + 1)); \
+	fi; \
+	for repo in $$($(SCRIPT_BASH) $(CI_DIR)/scripts/walk-projects); do \
 		echo ""; \
 		echo "🔗 Installing hooks in $$repo..."; \
+		if [ ! -f "$$repo/ci-profile.yaml" ]; then \
+			echo "ℹ️  Skipping $$repo (no federated ci-profile.yaml)"; \
+			continue; \
+		fi; \
 		( cd "$$repo" && \
-		  if [ -x $(CURDIR)/projects/CI/scripts/cleanup-precommit ]; then bash $(CURDIR)/projects/CI/scripts/cleanup-precommit; fi && \
-		  $(SCRIPT_BASH) $(CURDIR)/projects/CI/scripts/reinstall-hooks ) || { echo "❌ Hook install failed in $$repo"; _failed=$$((_failed + 1)); }; \
+		  if [ -x $(CI_DIR)/scripts/cleanup-precommit ]; then $(SCRIPT_BASH) $(CI_DIR)/scripts/cleanup-precommit; fi && \
+		  $(SCRIPT_BASH) $(CI_DIR)/scripts/reinstall-hooks ) || { echo "❌ Hook install failed in $$repo"; _failed=$$((_failed + 1)); }; \
 	done; \
-	if [ "$$(id -u)" = "0" ]; then \
-		for reg in $(CURDIR)/ci/config/project_enforcement.yaml $(CURDIR)/workspace/config/project_enforcement.yaml; do \
-			if lsattr -d "$$reg" | cut -d' ' -f1 | grep -q i; then chattr -i "$$reg"; fi; \
-		done; \
-		cp $(CURDIR)/ci/config/project_enforcement.yaml $(CURDIR)/workspace/config/project_enforcement.yaml && \
-		for reg in $(CURDIR)/ci/config/project_enforcement.yaml $(CURDIR)/workspace/config/project_enforcement.yaml; do \
-			chown root:root "$$reg" && chmod 0644 "$$reg" && chattr +i "$$reg" || exit 1; \
-		done && \
-		echo "🔒 synced + locked tier registries (ci/config, workspace/config)" || _failed=$$((_failed + 1)); \
-	fi; \
-	if [ "$$(id -u)" != "0" ]; then \
-		echo "ℹ️  hooks regenerated; run 'sudo make install-hooks-recursive' when hooks are root-owned"; \
-	fi; \
 	[ $$_failed -eq 0 ] || { echo "❌ Hook install failed in $$_failed repo(s)"; exit 1; }
 
 .PHONY: check-hooks
 check-hooks: ensure-repos ## Preview generated hooks (dry-run)
-	$(SCRIPT_BASH) projects/CI/scripts/generate-hooks --dry-run
+	$(SCRIPT_BASH) $(CI_DIR)/scripts/generate-hooks --dry-run
 
 # =============================================================================
 # Quality & Test
@@ -425,6 +413,18 @@ check-hooks: ensure-repos ## Preview generated hooks (dry-run)
 .PHONY: test
 test: ## Run tests (delegates to moon for caching)
 	$(MOON) run workspace:test
+
+.PHONY: test-opencode-extensions
+test-opencode-extensions: ## Run AgentCI and moderator JavaScript tests
+	cd workspace/agentci && npm run typecheck && npm test && npm run test:release
+	set -euo pipefail; \
+	_temp="$$(mktemp -d)"; \
+	trap 'rm -rf "$$_temp"' EXIT; \
+	mkdir "$$_temp/bin" "$$_temp/xdg-config" "$$_temp/xdg-state"; \
+	printf '%s\n' '#!/bin/bash' 'set -euo pipefail' 'printf "%s\\n" '\''{"data":[{"id":"/zip/MiniCPM5-1B-Q8_0.gguf"}]} '\''' > "$$_temp/bin/curl"; \
+	chmod 0755 "$$_temp/bin/curl"; \
+	XDG_CONFIG_HOME="$$_temp/xdg-config" XDG_STATE_HOME="$$_temp/xdg-state" LOCAL_RESPONSE_MODERATOR_REPO_ROOT="$(CURDIR)" PATH="$$_temp/bin:$$PATH" $(SCRIPT_BASH) workspace/scripts/install-opencode-moderator install; \
+	XDG_STATE_HOME="$$_temp/xdg-state" OPENCODE_MODERATOR_PLUGIN="$$_temp/xdg-config/opencode/plugins/local-response-moderator.js" $(BUN_BIN) test ./tests/integration/local-response-moderator-machine.test.js ./tests/integration/local-response-moderator.test.js
 
 .PHONY: test-e2e
 test-e2e: ## Run end-to-end VM integration tests
@@ -454,7 +454,7 @@ test-authoritative: test-e2e-qemu-full ## Pre-release QEMU + guard checklist
 
 .PHONY: clean-qemu-e2e
 clean-qemu-e2e: ## Remove orphaned QEMU per-VM overlays (keeps .vms/_base/)
-	$(UV) run python -c "from tests.e2e.qemu_cleanup import cleanup_orphan_qemu_vms; n=cleanup_orphan_qemu_vms(max_age_seconds=0); print(f'Removed {len(n)} QEMU VM dir(s)' if n else 'No QEMU VM dirs to remove')"
+	$(UV) run python -m tests.e2e.cleanup_qemu_vms
 
 .PHONY: lint
 lint: ## Run linters (delegates to moon for caching)
@@ -482,7 +482,7 @@ dead-code: ## Run AST-based dead code analysis (delegates to moon for caching)
 .PHONY: _lint-impl
 _lint-impl: install-package
 ifdef CI
-	$(UV) run ruff check --config $(CI_RUFF) --check .
+	$(UV) run ruff check --config $(CI_RUFF) .
 	$(UV) run ruff format --config $(CI_RUFF) --check .
 else
 	$(UV) run ruff check --config $(CI_RUFF) --fix .
@@ -496,6 +496,7 @@ _type-check-impl: install-package
 .PHONY: _test-impl
 _test-impl: install-package
 	$(UV) run pytest tests/unit tests/integration -v --timeout=30
+	$(MAKE) test-opencode-extensions
 
 .PHONY: _dead-code-impl
 _dead-code-impl: install-package
@@ -514,19 +515,7 @@ update: ## Update workspace via moon - walks every project topologically (^:upda
 
 .PHONY: update-oc
 update-oc: ## Update opencode to latest version via npm (operator: sudo make update-oc; installs into root-locked .boot-linux)
-	echo "🔄 Updating opencode..."
-	if [ ! -w .boot-linux/bin ]; then \
-		echo "ERROR: .boot-linux/bin not writable (root-locked). Run: sudo make update-oc" >&2; \
-		exit 1; \
-	fi
-	.boot-linux/bin/npm install --prefix .boot-linux opencode-ai@latest
-	OPN_BIN=".boot-linux/bin/opencode"; \
-		if [ -x "$$OPN_BIN" ]; then \
-			echo "✅ opencode $$("$$OPN_BIN" --version)"; \
-		else \
-			echo "❌ opencode binary not found after install" >&2; \
-			exit 1; \
-		fi
+	$(SCRIPT_BASH) workspace/scripts/bootstrap/bootstrap_opencode.sh
 
 .PHONY: ocb build-ocb
 ocb: build-ocb ## Optional source build alias; leaves npm-installed 'oc' untouched
@@ -536,17 +525,13 @@ build-ocb: ## Build opencode from source with the package version and latest cha
 		exit 1; \
 	fi
 	_agent_home="$$(if [ -n "$${SUDO_USER:-}" ]; then getent passwd "$$SUDO_USER" | cut -d: -f6; else printf '%s' "$$HOME"; fi)"; \
-	_shim="$$(mktemp -d)"; \
-	mkdir -p "$$_shim"; \
-	ln -sf /bin/bash.real "$$_shim/bash"; \
 	echo "🔨 Building opencode from source (beta / ocb) ..."; \
-	HOME="$$_agent_home" PATH="$$_shim:$$PATH" bash scripts/setup/build-opencode.sh; \
+	HOME="$$_agent_home" bash scripts/setup/build-opencode.sh; \
 	_st=$$?; \
 	if [ $$_st -eq 0 ]; then \
 		ln -sf "$${PWD}/workspace/scripts/bin/ocb" ".boot-linux/bin/ocb"; \
 		echo "✅ ocb symlinked to .boot-linux/bin/ocb"; \
 	fi; \
-	rm -rf "$$_shim"; \
 	exit $$_st
 
 .PHONY: update-deps
@@ -622,8 +607,8 @@ clean: ## Clean build artifacts
 
 .PHONY: scaffold-recursive
 scaffold-recursive: ensure-repos ## Scaffold quality_exceptions.yaml in every strict-tier repo
-	bash projects/CI/scripts/walk-projects | while IFS= read -r repo; do \
-		_tier=$$(bash -c "source projects/CI/lib/checks_quality.sh && \
+	$(SCRIPT_BASH) $(CI_DIR)/scripts/walk-projects | while IFS= read -r repo; do \
+		_tier=$$($(SCRIPT_BASH) -c "source $(CI_DIR)/lib/checks_quality.sh && \
 			ci_resolve_tier '$$repo' \
 			'$(CURDIR)/workspace/config/project_enforcement.yaml'"); \
 		if [ -z "$$_tier" ]; then _tier=strict; fi; \
@@ -631,7 +616,7 @@ scaffold-recursive: ensure-repos ## Scaffold quality_exceptions.yaml in every st
 		if [ ! -f "$$repo/quality_exceptions.yaml" ]; then \
 			pname=$$(basename "$$repo"); \
 			sed "s/__PROJECT_NAME__/$$pname/" \
-				projects/CI/templates/quality_exceptions.template.yaml \
+				$(CI_DIR)/templates/quality_exceptions.template.yaml \
 				> "$$repo/quality_exceptions.yaml"; \
 			echo "📝 Scaffolded $$repo/quality_exceptions.yaml (tier=strict)"; \
 		fi; \
@@ -640,10 +625,10 @@ scaffold-recursive: ensure-repos ## Scaffold quality_exceptions.yaml in every st
 .PHONY: check-compliance-recursive
 check-compliance-recursive: ensure-repos ## Audit every nested repo for CI contract compliance
 	_failed=0; \
-	bash projects/CI/scripts/walk-projects | while IFS= read -r repo; do \
+	$(SCRIPT_BASH) $(CI_DIR)/scripts/walk-projects | while IFS= read -r repo; do \
 		echo ""; \
 		echo "═══ Compliance: $$repo ═══"; \
-		bash -c "source projects/CI/lib/checks.sh && ci_compliance_score '$$repo'" \
+		$(SCRIPT_BASH) -c "source $(CI_DIR)/lib/checks.sh && ci_compliance_score '$$repo'" \
 			|| _failed=$$((_failed + 1)); \
 	done; \
 	[ $$_failed -eq 0 ]
@@ -662,3 +647,23 @@ check-compliance-recursive: ensure-repos ## Audit every nested repo for CI contr
 # Llamafile
 # =============================================================================
 -include Makefile.llamafile
+
+# =============================================================================
+# OpenCode response moderator
+# =============================================================================
+
+.PHONY: install-opencode-moderator
+install-opencode-moderator: ## Install the local MiniCPM response moderator plugin
+	LOCAL_RESPONSE_MODERATOR_REPO_ROOT="$(MAKEFILE_DIR)" $(SCRIPT_BASH) $(MAKEFILE_DIR)workspace/scripts/install-opencode-moderator install
+
+.PHONY: verify-opencode-moderator
+verify-opencode-moderator: ## Verify the installed local MiniCPM response moderator plugin
+	LOCAL_RESPONSE_MODERATOR_REPO_ROOT="$(MAKEFILE_DIR)" $(SCRIPT_BASH) $(MAKEFILE_DIR)workspace/scripts/install-opencode-moderator verify
+
+.PHONY: status-opencode-moderator
+status-opencode-moderator: ## Show installed local MiniCPM response moderator plugin status
+	LOCAL_RESPONSE_MODERATOR_REPO_ROOT="$(MAKEFILE_DIR)" $(SCRIPT_BASH) $(MAKEFILE_DIR)workspace/scripts/install-opencode-moderator status
+
+.PHONY: uninstall-opencode-moderator
+uninstall-opencode-moderator: ## Remove the installed local MiniCPM response moderator plugin
+	LOCAL_RESPONSE_MODERATOR_REPO_ROOT="$(MAKEFILE_DIR)" $(SCRIPT_BASH) $(MAKEFILE_DIR)workspace/scripts/install-opencode-moderator uninstall

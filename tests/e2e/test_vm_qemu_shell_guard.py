@@ -14,7 +14,7 @@ from tests.e2e.qemu_cleanup import QemuTracker, run_vm_create
 from tests.e2e.qemu_host_isolation import assert_host_git_unchanged, snapshot_host_git
 
 _GUARD_CONFIG = Path("workspace/config/vm-guard-qemu.yaml")
-_E2E_GUEST = Path("projects/WORKSPACE-GUARD/scripts/qemu/e2e-shell-guard-guest.sh")
+_E2E_GUEST = Path("scripts/e2e/workspace-guard-shell-guest.sh")
 _CREATE_TIMEOUT = 600
 _GUARD_TIMEOUT = 600
 
@@ -104,7 +104,7 @@ def test_vm_qemu_shell_guard_e2e_guest(qemu_tracker: QemuTracker) -> None:
             "sudo",
             "SHG_PREBUILT=/tmp/shg-prebuilt",
             "bash",
-            "/opt/workspace/projects/WORKSPACE-GUARD/scripts/qemu/e2e-shell-guard-guest.sh",
+            "/opt/workspace/scripts/e2e/workspace-guard-shell-guest.sh",
         ],
         timeout=_GUARD_TIMEOUT,
     )

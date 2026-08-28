@@ -8,8 +8,6 @@
 **Authors:** Workspace Engineering
 **References:**
 - [SPEC-VM-HYPERVISOR](../specifications/SPEC-VM-HYPERVISOR.md) (Technical Specification)
-- [REQ-BOOT-LAYOUT](REQ-BOOT-LAYOUT.md) (Platform boot directory resolution)
-- [SPEC-BOOT-LAYOUT](../specifications/SPEC-BOOT-LAYOUT.md) (Boot layout implementation)
 - [REQ-OPENVPN](REQ-OPENVPN.md) (VM network modes - Podman backend)
 - [REQ-ANDROID-WORKSPACE](REQ-ANDROID-WORKSPACE.md) (Android client - QEMU TCG bundle, Phase 2)
 - [workspace/config/vm-template.yaml](../../workspace/config/vm-template.yaml) (VM config reference)
@@ -72,7 +70,7 @@ The feature provides:
 | **VM boundary** | QEMU guest with separate kernel - guest writes do not affect host `/` |
 | **TCG** | QEMU Tiny Code Generator - software CPU emulation, universal fallback |
 | **Accelerator** | Host-specific QEMU accel: `kvm` (Linux), `hvf` (macOS), `whpx` (Windows) |
-| **Boot directory** | `.boot-linux` or `.boot-macos` - pinned tool binaries per REQ-BOOT-LAYOUT |
+| **Boot directory** | Workspace-local directory containing pinned tool binaries. |
 | **Base image** | Shared Ubuntu cloud image under `.vms/_base/` |
 | **Overlay disk** | Per-VM QCOW2 overlay at `.vms/<uuid>/disk.qcow2` |
 | **Cloud-init seed** | FAT/ISO seed image injecting SSH keys and first-boot provisioning |
@@ -264,8 +262,7 @@ upstream QEMU binary; workspace Kotlin/Java code does not link QEMU as a library
 (`bootstrap-components.yaml` entry `qemu`) installed by `make install-qemu` /
 `workspace/scripts/bootstrap/bootstrap_qemu.sh`.
 
-**FR-10.2** Bootstrap SHALL install into the platform boot directory per
-[REQ-BOOT-LAYOUT](REQ-BOOT-LAYOUT.md):
+**FR-10.2** Bootstrap SHALL install into the platform boot directory:
 
 | Artifact | Linux path | macOS path |
 |----------|------------|------------|

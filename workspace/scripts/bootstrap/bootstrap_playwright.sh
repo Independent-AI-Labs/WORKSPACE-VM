@@ -27,7 +27,11 @@ log_success() { echo "  ✓ $1" >&2; }
 
 # Install the playwright CLI as a boot-contained uv tool (never from .venv)
 if [[ ! -x "$PLAYWRIGHT" ]]; then
-    UV_CMD="${PROJECT_ROOT}/projects/CI/.boot-linux/bin/uv"
+    if [[ "$(uname -s)" == "Darwin" ]]; then
+        UV_CMD="${PROJECT_ROOT}/projects/WORKSPACE-CI/.boot-macos/bin/uv"
+    else
+        UV_CMD="/opt/workspace-ci/.boot-linux/bin/uv"
+    fi
     if [[ ! -x "$UV_CMD" ]]; then
         log_error "uv not found at $UV_CMD. Run 'make core' first."
         exit 1

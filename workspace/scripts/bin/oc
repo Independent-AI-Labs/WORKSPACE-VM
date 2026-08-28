@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 set -euo pipefail
 SCRIPT_SOURCE="${SHG_SCRIPT_PATH:-${BASH_SOURCE[0]}}"
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$SCRIPT_SOURCE")")" && pwd)"
@@ -11,12 +11,17 @@ export AMI_ROOT && cd "$AMI_ROOT"
 BOOT_DIR="${BOOT_LINUX_DIR:-${AMI_ROOT}/.boot-linux}"
 NPX="${BOOT_DIR}/bin/npx"
 OPN="${BOOT_DIR}/bin/opencode"
+if [[ -n "${OPENCODE_BINARY:-}" ]]; then
+    OPN="$OPENCODE_BINARY"
+fi
+source "$AMI_ROOT/workspace/scripts/opencode-wrapper.sh" || exit 1
 
 _oc_help() {
     echo "oc - opencode AI agent wrapper with AMI welcome context"
-    echo "Usage: oc [task...]"
+    echo "Usage: oc [--db NAME|--db=NAME] [task...]"
     echo "  Without arguments: starts interactive opencode session"
     echo "  With arguments:    runs opencode with the given task"
+    echo "  Use -- before an upstream command to bypass task conversion"
 }
 
 if [[ "${1:-}" == "--help" ]] || [[ "${1:-}" == "-h" ]]; then
@@ -46,29 +51,8 @@ if [[ ! -x "$OPN" ]]; then
     echo "oc: opencode binary not found. Run 'make install' first." >&2
     exit 1
 fi
-WELCOME=""
-if _tmp_welcome=$("$AMI_ROOT/workspace/scripts/bin/welcome" --plain 2>&1); then
-    WELCOME="$_tmp_welcome"
-else
-    echo "oc: welcome banner unavailable; continuing with a minimal banner" >&2
-    WELCOME="WORKSPACE-VM workspace"
-fi
+WELCOME="$(oc_wrapper_welcome)"
 printf '%b\n' "$WELCOME" && echo ""
-# Regenerate the instruction file so opencode picks it up fresh each session
-printf '%b\n' "$WELCOME" > "${HOME}/.config/opencode/ami-environment.md"
-# Deploy opencode user config from workspace template
-OC_SRC="$AMI_ROOT/workspace/config/opencode"
-OC_DIR="${HOME}/.config/opencode"
-mkdir -p "$OC_DIR/plugins"
-[ ! -f "$OC_DIR/opencode.jsonc" ] && cp "$OC_SRC/opencode.jsonc" "$OC_DIR/opencode.jsonc"
-[ ! -f "$OC_DIR/system-instruction.md" ] && cp "$OC_SRC/system-instruction.template.md" "$OC_DIR/system-instruction.md"
-export OPENCODE_ENABLE_EXA=1
+oc_wrapper_prepare "$AMI_ROOT" "$WELCOME"
 cd "$ORIG_PWD"
-if [[ $# -gt 0 ]]; then
-    if [[ "$1" = -* ]]; then
-        exec "$OPN" "$@"
-    fi
-    exec "$OPN" run --dir "$ORIG_PWD" "$@"
-else
-    exec "$OPN"
-fi
+oc_wrapper_dispatch "$OPN" "$ORIG_PWD" "$@"

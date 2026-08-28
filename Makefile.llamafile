@@ -93,19 +93,27 @@ ifeq ($(MODEL),)
 	$(error MODEL is required. Usage: make install-llamafile MODEL=minicpm5-1b [GPU=vulkan])
 endif
 	@if [ "$(or $(GPU),cpu)" = "vulkan" ]; then \
-		if ! ls models/$(MODEL)/*-vulkan.llamafile >/dev/null 2>&1; then \
+		_found=0; \
+		for _bundle in models/$(MODEL)/*-vulkan.llamafile; do \
+			if [ -f "$$_bundle" ]; then _found=1; break; fi; \
+		done; \
+		if [ "$$_found" -eq 0 ]; then \
 			echo "No Vulkan server .llamafile found. Building first..."; \
 			$(MAKE) build-llamafile-vulkan-bundle MODEL=$(MODEL) MODE=server; \
 		fi; \
 	else \
-		if ! ls models/$(MODEL)/*.llamafile >/dev/null 2>&1 || \
-				! ls models/$(MODEL)/*.llamafile | grep -vE '(-chat|-vulkan)\.llamafile$$' >/dev/null 2>&1; then \
+		_found=0; \
+		for _bundle in models/$(MODEL)/*.llamafile; do \
+			case "$$_bundle" in *-chat.llamafile|*-vulkan.llamafile) continue ;; esac; \
+			if [ -f "$$_bundle" ]; then _found=1; break; fi; \
+		done; \
+		if [ "$$_found" -eq 0 ]; then \
 			echo "No server .llamafile found. Building first..."; \
 			$(MAKE) build-llamafile MODEL=$(MODEL) MODE=server; \
 		fi; \
 	fi
 	@cd ansible && \
-		export $$(grep -v '^\s*#' "$(CURDIR)/.env" 2>/dev/null | xargs) && \
+		if [ -f "$(CURDIR)/.env" ]; then set -a; source "$(CURDIR)/.env" || exit 1; set +a; fi; \
 		export LLAMAFILE_GPU="$(or $(GPU),vulkan)" && \
 		export LLAMAFILE_BUNDLE="$(LLAMAFILE_BUNDLE)" && \
 		$(ANSIBLE_PLAYBOOK) \

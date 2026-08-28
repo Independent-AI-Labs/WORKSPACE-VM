@@ -139,11 +139,11 @@ def _print_service_entry(
 ) -> None:
     """Print a single service entry."""
     # Status icon based on ActiveState + SubState
-    if svc.active == "active" and svc.sub == "running":
+    if svc.active == "active":
         status_icon = I_OK
     elif svc.active == "activating" or svc.sub == "auto-restart":
         status_icon = I_WARN
-    elif svc.active in {"inactive", "failed"}:
+    elif svc.active == "failed":
         status_icon = I_FAIL
     else:
         status_icon = I_STOP

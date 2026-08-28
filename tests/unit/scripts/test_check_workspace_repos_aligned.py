@@ -13,20 +13,23 @@ from workspace.scripts import check_workspace_repos_aligned as mod
 
 MOON_OK = """\
 projects:
-  ami-agents: '.'
-  ci: 'projects/CI'
-  ami-dataops: 'projects/AMI-DATAOPS'
+  globs:
+    - 'projects/*/moon.yml'
+  sources:
+    workspace: '.'
+    ci: 'projects/WORKSPACE-CI'
+    dataops: 'projects/DATAOPS'
 """
 
 CLONES_OK = """\
 workspaceClones:
   ci:
     remote: 'git@example.com:ci.git'
-    path: 'projects/CI'
+    path: 'projects/WORKSPACE-CI'
     mandatory: true
-  ami-dataops:
+  dataops:
     remote: 'git@example.com:ami-dataops.git'
-    path: 'projects/AMI-DATAOPS'
+    path: 'projects/DATAOPS'
     mandatory: true
 """
 
@@ -49,7 +52,7 @@ class TestAlignmentCheck:
         assert "aligned" in capsys.readouterr().out
 
     def test_drift_only_in_moon(self, tmp_path, capsys) -> None:
-        moon = MOON_OK + "  ami-stray: 'projects/STRAY'\n"
+        moon = MOON_OK + "    ami-stray: 'projects/STRAY'\n"
         root = _make_workspace(tmp_path, moon, CLONES_OK)
         with patch.object(mod, "_find_workspace_root", return_value=root):
             assert mod.main() == mod.EXIT_DRIFT
@@ -57,11 +60,24 @@ class TestAlignmentCheck:
         assert "missing from workspace-clones.yaml" in err
         assert "ami-stray" in err
 
-    def test_drift_only_in_clones(self, tmp_path, capsys) -> None:
+    def test_optional_clone_under_glob_is_not_drift(self, tmp_path, capsys) -> None:
+        """Clones-only entries covered by projects.globs are by design."""
         clones = CLONES_OK + (
             "  ami-extra:\n"
             "    remote: 'git@example.com:extra.git'\n"
             "    path: 'projects/EXTRA'\n"
+            "    mandatory: false\n"
+        )
+        root = _make_workspace(tmp_path, MOON_OK, clones)
+        with patch.object(mod, "_find_workspace_root", return_value=root):
+            assert mod.main() == mod.EXIT_OK
+        assert "aligned" in capsys.readouterr().out
+
+    def test_drift_only_in_clones(self, tmp_path, capsys) -> None:
+        clones = CLONES_OK + (
+            "  ami-extra:\n"
+            "    remote: 'git@example.com:extra.git'\n"
+            "    path: 'vendor/EXTRA'\n"
             "    mandatory: false\n"
         )
         root = _make_workspace(tmp_path, MOON_OK, clones)
@@ -74,16 +90,19 @@ class TestAlignmentCheck:
     def test_drift_path_mismatch(self, tmp_path, capsys) -> None:
         moon = (
             "projects:\n"
-            "  ami-agents: '.'\n"
-            "  ci: 'projects/CI'\n"
-            "  ami-dataops: 'projects/WRONG'\n"
+            "  globs:\n"
+            "    - 'projects/*/moon.yml'\n"
+            "  sources:\n"
+            "    workspace: '.'\n"
+            "    ci: 'projects/WORKSPACE-CI'\n"
+            "    dataops: 'projects/WRONG'\n"
         )
         root = _make_workspace(tmp_path, moon, CLONES_OK)
         with patch.object(mod, "_find_workspace_root", return_value=root):
             assert mod.main() == mod.EXIT_DRIFT
         err = capsys.readouterr().err
         assert "path mismatch" in err
-        assert "ami-dataops" in err
+        assert "dataops" in err
 
     def test_infra_error_when_root_unfindable(self, tmp_path, capsys) -> None:
         with patch.object(mod, "_find_workspace_root", return_value=None):

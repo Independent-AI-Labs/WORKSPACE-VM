@@ -1,7 +1,15 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "instructions": [
-    "~/.config/opencode/ami-environment.md",
-    "~/.config/opencode/system-instruction.md"
-  ]
+    "./ami-environment.md",
+    "./system-instruction.md"
+  ],
+  "subagent_depth": 0,
+  "agent": {
+    "explore": { "disable": true },
+    "general": { "disable": true }
+  },
+  "permission": {
+    "task": "deny"
+  }
 }

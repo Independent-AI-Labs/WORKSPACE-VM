@@ -10,7 +10,7 @@ files, generated files, build output, and third-party source repositories.
 
 | Registry | Current purpose | Consumer |
 |---|---|---|
-| `config/system-deps.yaml` | Host apt/brew packages and binary checks | `projects/CI/scripts/install-system-deps` via root Make targets |
+| `config/system-deps.yaml` | Host apt/brew packages and binary checks | `/opt/workspace-ci/scripts/install-system-deps` via root Make targets |
 | `workspace/config/bootstrap-components.yaml` | Component identity, installation script, detection, and grouping | `bootstrap_component_defs.py`, installer TUI |
 | `workspace/config/install-defaults.yaml` | Default selected components | `bootstrap_installer.py --defaults` |
 | `workspace/config/vm-*.yaml` | Guest component selections | Rendered as `vm-install-defaults.yaml` for guest `make install-ci` |
@@ -19,8 +19,9 @@ files, generated files, build output, and third-party source repositories.
 ## Current Flow
 
 `make init-check` and `make init` delegate system dependency validation and
-installation to `projects/CI/scripts/install-system-deps`. `make core` installs
-CI-provided tools and invokes VM-specific bootstrap scripts. `make install-ci`
+installation to `/opt/workspace-ci/scripts/install-system-deps`. `make core`
+verifies CI-provided tools in the sealed artifact and invokes VM-specific
+bootstrap scripts. `make install-ci`
 passes a component list into `bootstrap_installer.py`, which resolves each name
 through `bootstrap-components.yaml` and invokes its script.
 

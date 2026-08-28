@@ -36,6 +36,7 @@ _SKELETON_PATHS = [
 _GUARD_PATHS = [
     "projects/CI/",
     "projects/WORKSPACE-GUARD/",
+    "scripts/e2e/",
 ]
 
 
@@ -123,6 +124,12 @@ def _build_rsync_script(profile: str) -> str:
         lines.append(f"sudo mkdir -p {dst_parent}")
         lines.append(f"sudo rsync -a {exclude_args} {src} {dst}")
     lines.append(f"sudo chown -R workspace:workspace {_GUEST_ROOT}")
+    if profile == "guard":
+        policy_dir = f"{_GUEST_ROOT}/projects/WORKSPACE-GUARD/config"
+        lines.append(
+            f"sudo find {policy_dir} -type f -name '*.yaml' "
+            "-exec chown root:root {} +"
+        )
     return "\n".join(lines) + "\n"
 
 

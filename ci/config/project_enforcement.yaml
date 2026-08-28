@@ -18,8 +18,6 @@
 #   poc       - safety subset only: gitleaks, sensitive-files, banned-words,
 #               blocked-history, commit-message format. No
 #               quality_exceptions.yaml required, no lint/type/check.
-#   vendored  - wrapper passthrough; no hooks installed at all. Use for
-#               git-subtree mirrors and frozen legacy code.
 
 version: 1
 

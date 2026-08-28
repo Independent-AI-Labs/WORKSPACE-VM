@@ -6,7 +6,7 @@
 #   pwd              # Print current AMI_ROOT
 #   pwd --set PATH   # Set AMI_ROOT persistently
 #   pwd --reset      # Reset to default (agents/ directory)
-#   pwd --env        # Output export statement for eval
+#   pwd --env        # Output shell export statement
 #
 # The root is stored in ~/.config/ami/root and exported as AMI_ROOT
 set -euo pipefail
@@ -95,7 +95,7 @@ case "${1:-}" in
         echo "  pwd              Print current AMI_ROOT"
         echo "  pwd --set PATH   Set AMI_ROOT persistently"
         echo "  pwd --reset      Reset to default (agents/)"
-        echo "  pwd --env        Output export statement for eval"
+        echo "  pwd --env        Output shell export statement"
         echo ""
         echo "Current: $(get_root)"
         ;;
