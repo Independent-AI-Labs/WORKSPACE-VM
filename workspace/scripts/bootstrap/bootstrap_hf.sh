@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # HuggingFace CLI Bootstrap Script for WORKSPACE-VM
-# Installs huggingface-cli into the .boot-linux python environment
+# Installs huggingface-cli into the .boot-linux/python environment
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Script is in ami/scripts/bootstrap/, project root is 3 levels up
@@ -39,7 +39,7 @@ if [ ! -d "$PYTHON_ENV" ]; then
     exit 1
 fi
 
-# Install huggingface_hub into the boot-linux python env (CLI is included by default)
+# Install huggingface_hub into the boot-linux/python env (CLI is included by default)
 "$UV_CMD" pip install --python "$PYTHON_ENV" huggingface_hub
 
 # The CLI binary is installed as 'hf' in the python-env bin/

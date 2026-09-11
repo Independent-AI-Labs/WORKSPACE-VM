@@ -15,9 +15,9 @@ workspaceClones:
     remote: 'git@github.com:Independent-AI-Labs/WORKSPACE-CI.git'
     path: 'projects/WORKSPACE-CI'
     mandatory: true
-  dataops:
-    remote: 'git@github.com:Independent-AI-Labs/AMI-DATAOPS.git'
-    path: 'projects/DATAOPS'
+  workspace-dataops:
+    remote: 'git@github.com:Independent-AI-Labs/WORKSPACE-DATAOPS.git'
+    path: 'projects/WORKSPACE-DATAOPS'
     mandatory: true
   ami-docs:
     remote: 'git@github.com:Independent-AI-Labs/AMI-DOCS.git'
@@ -27,9 +27,9 @@ workspaceClones:
     remote: 'git@github.com:Independent-AI-Labs/WORKSPACE-PORTAL.git'
     path: 'projects/WORKSPACE-PORTAL'
     mandatory: false
-  ami-srp:
-    remote: 'git@github.com:Independent-AI-Labs/AMI-SRP.git'
-    path: 'projects/AMI-SRP'
+  workspace-rp:
+    remote: 'git@github.com:Independent-AI-Labs/WORKSPACE-RP.git'
+    path: 'projects/WORKSPACE-RP'
     mandatory: false
   ami-browser:
     remote: 'git@github.com:Independent-AI-Labs/AMI-BROWSER.git'

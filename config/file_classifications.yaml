@@ -1,0 +1,28 @@
+# Exact-file classifications (reviewed). Roots are structural facts
+# used only by ordinary rules' declared scope; non-exemptible rules
+# apply to every tracked text file regardless of classification.
+test_roots:
+  - tests/
+doc_roots:
+  - docs/
+doc_files:
+  - README.md
+files:
+  config/banned_words_exceptions_v5.yaml:
+    class: policy-definition
+    owner: workspace-vm
+  config/file_classifications.yaml:
+    class: policy-definition
+    owner: workspace-vm
+  config/silent_swallow_exceptions.yaml:
+    class: policy-definition
+    owner: workspace-vm
+  scripts/results/cli-test.txt:
+    class: binary
+    owner: workspace-vm
+  res/LOGO.png:
+    class: binary
+    owner: workspace-vm
+  res/LOGO_RAW.png:
+    class: binary
+    owner: workspace-vm

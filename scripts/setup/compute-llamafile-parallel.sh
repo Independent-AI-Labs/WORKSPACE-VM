@@ -54,7 +54,8 @@ llamafile_python() {
     if uv_path="$(command -v uv)"; then
         "$uv_path" run python "$@"
     else
-        python3 "$@"
+        echo "compute-llamafile-parallel: uv not found; run 'make core' first" >&2
+        return 1
     fi
 }
 

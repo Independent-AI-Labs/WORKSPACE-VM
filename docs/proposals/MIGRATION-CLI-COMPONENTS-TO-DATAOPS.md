@@ -354,7 +354,7 @@ The `ami/types/` directory stays in the main package. The surviving cli_componen
 | `PortMapping` | `status.py` | No |
 | `PodmanContainer` | `status.py` | No |
 
-**Therefore `ami/types/` stays in its entirety.** The DATAOPS consolidated `results.py` is a minimal subset useful for DATAOPS's namespace package independence; it is shadowed at runtime by the main package's full types/ (which appears first on PYTHONPATH via `$AMI_ROOT:${PROJECT_PATHS}`) but serves as a fallback reference.
+**Therefore `ami/types/` stays in its entirety.** The DATAOPS consolidated `results.py` is a minimal subset useful for DATAOPS's namespace package independence; it is shadowed at runtime by the main package's full types/ (which appears first on PYTHONPATH via `$AMI_ROOT:${PROJECT_PATHS}`) but serves as a reference copy.
 
 ---
 
@@ -549,7 +549,7 @@ sync-package: bootstrap-core ensure-ci ensure-dataops
 
 **No changes needed** to the Makefile. The install order is:
 
-1. `bootstrap-core` - uv, python, git-xet
+1. `bootstrap-core` - uv, Python runtime, git-xet
 2. `ensure-ci` - clone AMI-CI
 3. `ensure-dataops` - clone AMI-DATAOPS
 4. `uv sync` - installs all editable packages in dependency order
@@ -640,18 +640,18 @@ cp tests/unit/cli_components/terminal/test_ansi.py      projects/AMI-DATAOPS/tes
 
 # 5a. AMI-DATAOPS
 cd projects/AMI-DATAOPS
-python -c "from ami.cli_components.dialogs import confirm; print('OK')"
-python -c "from ami.cli_components.tui import TUI; print('OK')"
-python -c "from ami.types.results import GroupRange; print('OK')"
-python -c "from ami.types.results import InstallationResult; print('OK')"
-python -m pytest tests/
+uv run python -c "from ami.cli_components.dialogs import confirm; print('OK')"
+uv run python -c "from ami.cli_components.tui import TUI; print('OK')"
+uv run python -c "from ami.types.results import GroupRange; print('OK')"
+uv run python -c "from ami.types.results import InstallationResult; print('OK')"
+uv run python -m pytest tests/
 
 # 5b. PROJECT_ROOT fix
 cd /
-python -c "from ami.config_utils import get_project_root, PROJECT_ROOT; print(PROJECT_ROOT)"
-python -c "from ami.scripts.bootstrap_components import PROJECT_ROOT; print('OK')"
-python -c "from ami.scripts.bootstrap_component_defs import ALL_COMPONENTS; print(len(ALL_COMPONENTS))"
-python -c "from ami.config_utils import get_config_path; print(get_config_path('ruff.toml'))"
+uv run python -c "from ami.config_utils import get_project_root, PROJECT_ROOT; print(PROJECT_ROOT)"
+uv run python -c "from ami.scripts.bootstrap_components import PROJECT_ROOT; print('OK')"
+uv run python -c "from ami.scripts.bootstrap_component_defs import ALL_COMPONENTS; print(len(ALL_COMPONENTS))"
+uv run python -c "from ami.config_utils import get_config_path; print(get_config_path('ruff.toml'))"
 
 # ── Phase 6: Delete from main package ──
 
@@ -676,16 +676,16 @@ rm -f scripts/setup/node.sh         # (already deleted)
 uv sync --extra dev
 
 # Verify imports resolve from AMI-DATAOPS
-python -c "import ami.cli_components.keys; print(ami.cli_components.keys.__file__)"
+uv run python -c "import ami.cli_components.keys; print(ami.cli_components.keys.__file__)"
 # Should show: ...projects/AMI-DATAOPS/ami/cli_components/keys.py
 
-python -c "from ami.types.results import GroupRange, KeyHandleResult, NamedComponentStatus, InstallationResult; print('ok')"
+uv run python -c "from ami.types.results import GroupRange, KeyHandleResult, NamedComponentStatus, InstallationResult; print('ok')"
 
 # Run AMI-DATAOPS full test suite
-python -m pytest projects/AMI-DATAOPS/tests/ -q
+uv run python -m pytest projects/AMI-DATAOPS/tests/ -q
 
 # Run root test suite (expect errors for deleted agent test files)
-python -m pytest tests/ -q
+uv run python -m pytest tests/ -q
 ```
 
 ---
@@ -881,10 +881,10 @@ With all consumers migrated to `ami/config_utils.py`, `ami/core/env.py` is delet
 #### Step 6: Verify
 
 ```bash
-python -c "from ami.config_utils import get_project_root, PROJECT_ROOT; print(PROJECT_ROOT)"
-python -c "from ami.scripts.bootstrap_components import PROJECT_ROOT; print(PROJECT_ROOT)"
-python -c "from ami.scripts.bootstrap_component_defs import ALL_COMPONENTS; print(len(ALL_COMPONENTS))"
-python -c "from ami.config_utils import get_config_path; print(get_config_path('ruff.toml'))"
+uv run python -c "from ami.config_utils import get_project_root, PROJECT_ROOT; print(PROJECT_ROOT)"
+uv run python -c "from ami.scripts.bootstrap_components import PROJECT_ROOT; print(PROJECT_ROOT)"
+uv run python -c "from ami.scripts.bootstrap_component_defs import ALL_COMPONENTS; print(len(ALL_COMPONENTS))"
+uv run python -c "from ami.config_utils import get_config_path; print(get_config_path('ruff.toml'))"
 ```
 
 #### Dependency chain after fix:
@@ -917,17 +917,17 @@ No cyclic imports: `config_utils` depends only on stdlib (`os`, `pathlib`). Boot
 
 | ID | Criterion | How to Verify |
 |----|-----------|---------------|
-| AC-CLI-1 | AMI-DATAOPS imports resolve standalone | `pip install -e projects/AMI-DATAOPS && python -c "from ami.cli_components.dialogs import confirm; print('OK')"` |
-| AC-CLI-2 | Consolidated types all resolve | `python -c "from ami.types.results import GroupRange, KeyHandleResult, CharWithOrdinal, FormattedPrefix, NamedComponentStatus, ColorPair, InstallationResult; print('OK')"` |
-| AC-CLI-3 | All AMI-DATAOPS tests pass | `cd projects/AMI-DATAOPS && python -m pytest tests/` → 1080+ pass |
-| AC-CLI-4 | bootstrap_installer.py resolves cli_components | `python -c "from ami.cli_components import dialogs, menu_selector; from ami.cli_components.selection_dialog import DialogItem; print('OK')"` |
-| AC-CLI-5 | bootstrap_install.py resolves new import | `python -c "from ami.types.results import InstallationResult; print('OK')"` |
-| AC-CLI-6 | sys_info.py resolves types | `python -c "from ami.types.results import ColorPair; print('OK')"` |
-| AC-CLI-7 | PROJECT_ROOT moved to config_utils | `python -c "from ami.config_utils import PROJECT_ROOT; print(PROJECT_ROOT)"` |
-| AC-CLI-8 | bootstrap_components imports from config_utils | `python -c "from ami.scripts.bootstrap_components import PROJECT_ROOT; print(PROJECT_ROOT)"` |
+| AC-CLI-1 | AMI-DATAOPS imports resolve standalone | `uv pip install -e projects/AMI-DATAOPS && uv run python -c "from ami.cli_components.dialogs import confirm; print('OK')"` |
+| AC-CLI-2 | Consolidated types all resolve | `uv run python -c "from ami.types.results import GroupRange, KeyHandleResult, CharWithOrdinal, FormattedPrefix, NamedComponentStatus, ColorPair, InstallationResult; print('OK')"` |
+| AC-CLI-3 | All AMI-DATAOPS tests pass | `cd projects/AMI-DATAOPS && uv run python -m pytest tests/` → 1080+ pass |
+| AC-CLI-4 | bootstrap_installer.py resolves cli_components | `uv run python -c "from ami.cli_components import dialogs, menu_selector; from ami.cli_components.selection_dialog import DialogItem; print('OK')"` |
+| AC-CLI-5 | bootstrap_install.py resolves new import | `uv run python -c "from ami.types.results import InstallationResult; print('OK')"` |
+| AC-CLI-6 | sys_info.py resolves types | `uv run python -c "from ami.types.results import ColorPair; print('OK')"` |
+| AC-CLI-7 | PROJECT_ROOT moved to config_utils | `uv run python -c "from ami.config_utils import PROJECT_ROOT; print(PROJECT_ROOT)"` |
+| AC-CLI-8 | bootstrap_components imports from config_utils | `uv run python -c "from ami.scripts.bootstrap_components import PROJECT_ROOT; print(PROJECT_ROOT)"` |
 | AC-CLI-9 | Extension cli_components stay in main package | `ls ami/cli_components/status.py ami/cli_components/storage.py` → found; `ls ami/cli_components/text_input_utils.py` → error (resolved from DATAOPS) |
-| AC-CLI-10 | text_input_utils resolves from DATAOPS | `python -c "import ami.cli_components.text_input_utils; print(ami.cli_components.text_input_utils.__file__)"` → shows DATAOPS path |
-| AC-CLI-11 | ops status works | `python ami/cli_components/status.py` → exit 0, displays system status |
+| AC-CLI-10 | text_input_utils resolves from DATAOPS | `uv run python -c "import ami.cli_components.text_input_utils; print(ami.cli_components.text_input_utils.__file__)"` → shows DATAOPS path |
+| AC-CLI-11 | ops status works | `uv run python ami/cli_components/status.py` → exit 0, displays system status |
 | AC-CLI-12 | `uv tree` shows both packages | `uv tree` → `ami-agents` and `ami-dataops` as siblings |
 
 ### 12.2 Test Matrix

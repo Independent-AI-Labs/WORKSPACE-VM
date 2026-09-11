@@ -16,7 +16,7 @@ PODMAN_REAL="$(dirname "$(readlink -f "$_SELF")")/real-podman"
 
 # Older guard binaries may not inject SHG_SCRIPT_PATH into staged children.
 # AMI_ROOT is preserved by the guard and gives the hermetic install a stable
-# fallback without consulting the host PATH.
+# resolution path without consulting the host PATH.
 if [[ ! -x "$PODMAN_REAL" && -n "${AMI_ROOT:-}" ]]; then
     PODMAN_REAL="$AMI_ROOT/.boot-linux/bin/real-podman"
 fi

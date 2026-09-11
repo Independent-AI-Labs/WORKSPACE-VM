@@ -32,7 +32,7 @@ class TestFindWorkspaceRoot:
 
 
 class TestFindOpenvpnBinary:
-    def test_prefers_boot_dir(self, tmp_path: Path) -> None:
+    def test_uses_boot_dir(self, tmp_path: Path) -> None:
         boot = tmp_path / vpn_core.boot_name() / "bin"
         boot.mkdir(parents=True)
         binary = boot / "openvpn"
@@ -40,12 +40,7 @@ class TestFindOpenvpnBinary:
         binary.chmod(0o755)
         assert vpn_core.find_openvpn_binary(tmp_path) == str(binary.resolve())
 
-    def test_falls_back_to_path(self, tmp_path: Path, monkeypatch) -> None:
-        monkeypatch.setattr(vpn_core.shutil, "which", lambda _name: "/usr/bin/openvpn")
-        assert vpn_core.find_openvpn_binary(tmp_path) == "/usr/bin/openvpn"
-
-    def test_raises_when_missing(self, tmp_path: Path, monkeypatch) -> None:
-        monkeypatch.setattr(vpn_core.shutil, "which", lambda _name: None)
+    def test_raises_when_boot_binary_missing(self, tmp_path: Path) -> None:
         with pytest.raises(vpn_core._VPNBinaryNotFoundError):
             vpn_core.find_openvpn_binary(tmp_path)
 

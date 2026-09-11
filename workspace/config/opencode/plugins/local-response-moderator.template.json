@@ -1,4 +1,0 @@
-{
-  "gateway_url": "http://127.0.0.1:9080/llamafile",
-  "model": "/zip/MiniCPM5-1B-Q8_0.gguf"
-}

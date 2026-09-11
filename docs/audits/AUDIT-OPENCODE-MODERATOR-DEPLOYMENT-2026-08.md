@@ -105,12 +105,12 @@ shell script. This happens after the wrapper resolves the workspace root and
 before it executes OpenCode.
 
 The operation is unrelated to starting OpenCode. It causes a command intended
-to run an agent to silently alter user configuration.
+to run an agent to alter user configuration without notice.
 
 **Impact:**
 
 - Explicit installation has no durable meaning.
-- Local intentional changes are silently overwritten.
+- Local intentional changes are overwritten without notice.
 - A changed workspace branch changes deployed configuration as a side effect of
   opening OpenCode.
 - Troubleshooting cannot distinguish an intentional installation from an
@@ -377,7 +377,7 @@ two independent file renames. OpenCode auto-discovers only direct
 `local-response-moderator.js` symlink whose target remains inside the plugin
 directory and resolves through an atomically switched `current` release
 symlink. The deployed JavaScript adapter resolves its shell script from its own
-release directory. OpenCode must restart after activation; no compatibility
+release directory. OpenCode must restart after activation; no wrapper
 launcher is retained for prior loaded adapters.
 
 ### Explicit Lifecycle Surface
@@ -408,8 +408,8 @@ classifier logic. Choose one explicit configuration source:
    available.
 
 The selected approach must enforce the Gateway-only policy. A direct llamafile
-URL must fail startup or classification with a clear error, not silently bypass
-the Gateway.
+URL must fail startup or classification with a clear error, not bypass
+the Gateway unnoticed.
 
 ## Required Test Replacement
 
@@ -487,7 +487,7 @@ dependency-free reducer and transition-table implementation. The current
 adapter's mutable session maps and imperative branches are implementation debt;
 they are not the target architecture. The authoritative requirements and
 implementation contract are now
-[`REQ-OPENCODE-RESPONSE-MODERATOR`](../requirements/REQ-OPENCODE-RESPONSE-MODERATOR.md)
+[`REQ-AGENTCI-RESPONSE-MODERATION`](../requirements/REQ-AGENTCI-RESPONSE-MODERATION.md)
 and
 [`SPEC-OPENCODE-RESPONSE-MODERATOR`](../specifications/SPEC-OPENCODE-RESPONSE-MODERATOR.md).
 The detailed execution order is

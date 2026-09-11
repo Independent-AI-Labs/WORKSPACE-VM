@@ -4,6 +4,7 @@ Bootstrap installation logic.
 Handles the actual installation of components, separate from TUI.
 """
 
+import errno
 import os
 import subprocess
 import sys
@@ -21,6 +22,7 @@ from workspace.scripts.bootstrap_components import (
 from workspace.types.results import InstallationResult
 
 _PROJECT_ROOT = Path(os.environ.get("AMI_ROOT", str(_config_root)))
+_BOOT_NAME = ".boot-macos" if sys.platform == "darwin" else ".boot-linux"
 
 
 class CategorizedComponents(NamedTuple):
@@ -32,8 +34,26 @@ class CategorizedComponents(NamedTuple):
 
 def ensure_directories() -> None:
     """Ensure required directories exist."""
+    if os.geteuid() == 0:
+        raise PermissionError(
+            errno.EPERM,
+            "local installation must run as the checkout owner, not root",
+        )
+    boot_dir = _PROJECT_ROOT / _BOOT_NAME
+    if boot_dir.exists() and boot_dir.stat().st_uid != os.geteuid():
+        raise PermissionError(
+            errno.EPERM,
+            "checkout boot directory is not owned by the current user",
+            str(boot_dir),
+        )
+    if boot_dir.exists() and not os.access(boot_dir, os.W_OK):
+        raise PermissionError(
+            errno.EPERM,
+            "checkout boot directory is not writable",
+            str(boot_dir),
+        )
     dirs = [
-        _PROJECT_ROOT / ".boot-linux" / "bin",
+        boot_dir / "bin",
         _PROJECT_ROOT / ".venv" / "bin",
     ]
     for d in dirs:
@@ -49,16 +69,16 @@ def get_bootstrap_env() -> dict[str, str]:
     """Return environment dict for bootstrap operations.
 
     Mirrors what bootstrap shell scripts receive: BOOT_LINUX_DIR,
-    VENV_DIR, .boot-linux/bin on PATH, and RUSTUP_HOME/CARGO_HOME
+    VENV_DIR, the platform boot bin on PATH, and RUSTUP_HOME/CARGO_HOME
     when the hermetic rust toolchain is present.
     """
     env = dict(os.environ)
-    boot_dir = str(_PROJECT_ROOT / ".boot-linux")
+    boot_dir = str(_PROJECT_ROOT / _BOOT_NAME)
     env["BOOT_LINUX_DIR"] = boot_dir
     env["VENV_DIR"] = str(_PROJECT_ROOT / ".venv")
-    boot_bin = str(_PROJECT_ROOT / ".boot-linux" / "bin")
+    boot_bin = str(_PROJECT_ROOT / _BOOT_NAME / "bin")
     env["PATH"] = f"{boot_bin}:{env.get('PATH', '')}"
-    rust_home = str(_PROJECT_ROOT / ".boot-linux" / "rust")
+    rust_home = str(_PROJECT_ROOT / _BOOT_NAME / "rust")
     if Path(rust_home).is_dir():
         env.setdefault("RUSTUP_HOME", rust_home)
         env.setdefault("CARGO_HOME", rust_home)

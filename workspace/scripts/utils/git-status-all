@@ -10,6 +10,11 @@ SCRIPT_DIR="$(cd "$(dirname "$_SELF")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 PROJECTS_DIR="${PROJECT_ROOT}/projects"
 CLONES_YAML="${PROJECT_ROOT}/workspace/config/workspace-clones.yaml"
+BOOT_PY="${PROJECT_ROOT}/.boot-linux/bin/python"
+if [[ ! -x "$BOOT_PY" ]]; then
+    echo "ERROR: $BOOT_PY missing; run 'make core' first" >&2
+    exit 1
+fi
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -73,7 +78,7 @@ fi
 
 _org_from_remote() {
     local url="$1"
-    python3 - "$url" <<'PY'
+    "$BOOT_PY" - "$url" <<'PY'
 import re
 import sys
 
@@ -99,7 +104,7 @@ fi
 rm -f "$_umbrella_origin_err"
 
 _allowed_orgs_err="$(mktemp)"
-if ! _allowed_orgs_raw=$(python3 - "$CLONES_YAML" "$_umbrella_origin" 2>"$_allowed_orgs_err" <<'PY'
+if ! _allowed_orgs_raw=$("$BOOT_PY" - "$CLONES_YAML" "$_umbrella_origin" 2>"$_allowed_orgs_err" <<'PY'
 import re
 import sys
 

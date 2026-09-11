@@ -106,7 +106,7 @@ endif
 # ensure-repos); /opt/workspace-ci is published from it exclusively via
 # deploy-ci, which verifies and seals the complete artifact.
 .PHONY: init-root
-init-root: ## (ROOT) Privileged bootstrap: deploy-ci + guard + root-owned hooks/exemptions + syslog limits
+init-root: ## (ROOT) Privileged bootstrap: deploy-ci + guard + hooks/exemptions + syslog limits
 	if [ "$$(id -u)" != "0" ]; then \
 		echo "ERROR: init-root needs root: sudo make init" >&2; exit 1; \
 	fi
@@ -127,13 +127,12 @@ init-root: ## (ROOT) Privileged bootstrap: deploy-ci + guard + root-owned hooks/
 # =============================================================================
 
 .PHONY: core
-core: ## Bootstrap CI tools (uv + ansible + node) + VM-specific tools (python + git-xet + playwright)
+core: require-non-root ## Bootstrap CI tools (uv + ansible + node) + VM-specific tools (uv python + git-xet)
 	echo "🔧 Verifying deployed CI tools..."
 	test -x "$(UV)" && test -x "$(ANSIBLE_PLAYBOOK)" && test -x "$(CI_BOOT_BIN)/node"
 	echo "🔧 Bootstrapping VM-specific tools..."
 	AMI_ROOT="$$(pwd)" bash workspace/scripts/bootstrap/bootstrap_python.sh
 	AMI_ROOT="$$(pwd)" bash workspace/scripts/bootstrap/bootstrap_git_xet.sh
-	AMI_ROOT="$$(pwd)" bash workspace/scripts/bootstrap/bootstrap_playwright.sh
 	echo "✅ Core bootstrap complete"
 
 # =============================================================================
@@ -145,14 +144,26 @@ ci-install-deps: ensure-repos ## Install CI project deps (boot tools, Python ven
 	test -x "$(UV)" && test -x "$(CI_BOOT_BIN)/gitleaks"
 	echo "✅ Sealed WORKSPACE-CI dependencies already installed"
 
+.PHONY: require-non-root
+require-non-root:
+	if [ "$$(id -u)" = "0" ]; then \
+		echo "ERROR: local installation must run as the checkout owner, not root" >&2; exit 1; \
+	fi
+	_boot="$(CURDIR)/$(CI_BOOT_NAME)"; \
+	if [ -e "$$_boot" ] && [ ! -O "$$_boot" ]; then \
+		echo "ERROR: checkout boot directory is not owned by the current user: $$_boot" >&2; exit 1; \
+	fi; \
+	if [ -e "$$_boot" ] && [ ! -w "$$_boot" ]; then \
+		echo "ERROR: checkout boot directory is not writable: $$_boot" >&2; exit 1; \
+	fi
+
 .PHONY: install
-install: init-check sync-package ## Interactive TUI to select and install components
+install: require-non-root init-check sync-package ## Interactive TUI to select and install components
 	$(UV) run python workspace/scripts/bootstrap_installer.py && \
 	$(MAKE) register-extensions && \
 	$(MAKE) install-shell && \
 	$(MAKE) ci-install-deps && \
 	$(MAKE) install-deps-recursive && \
-	$(MAKE) install-hooks-recursive ALLOW_UNLOCKED=1 && \
 	bash workspace/scripts/shell/shell-setup --welcome && \
 	echo "" && \
 	echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" && \
@@ -166,7 +177,7 @@ install: init-check sync-package ## Interactive TUI to select and install compon
 	echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 .PHONY: install-qemu
-install-qemu: ## Install QEMU + firmware into platform boot directory (GPL-2.0)
+install-qemu: require-non-root ## Install QEMU + firmware into platform boot directory (GPL-2.0)
 	bash workspace/scripts/bootstrap/bootstrap_qemu.sh
 
 .PHONY: llama-setup
@@ -179,13 +190,12 @@ llama-setup-ci: init-check sync-package ## Non-interactive llama/hardware setup 
 		--defaults workspace/config/llama-setup-defaults.yaml
 
 .PHONY: install-ci
-install-ci: init-check sync-package ## Non-interactive component install (uses install-defaults.yaml)
+install-ci: require-non-root init-check sync-package ## Non-interactive component install (uses install-defaults.yaml)
 	$(UV) run python workspace/scripts/bootstrap_installer.py --defaults workspace/config/install-defaults.yaml && \
 	$(MAKE) register-extensions && \
 	$(MAKE) install-shell && \
 	$(MAKE) ci-install-deps && \
 	$(MAKE) install-deps-recursive && \
-	$(MAKE) install-hooks-recursive ALLOW_UNLOCKED=1 && \
 	echo "✨ Installation complete (CI mode)!" && \
 	echo "" && \
 	echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" && \
@@ -357,12 +367,14 @@ vm-cert: ## generate or print client cert for <id>
 # =============================================================================
 
 .PHONY: install-hooks
-install-hooks: ## Install native git hooks (run via sudo for root-owned hooks; no unseal/lock cycle exists)
+install-hooks: ## Install native git hooks (root-only: root-owned, immutable; no user-owned hook path exists)
+	if [ "$$(id -u)" != "0" ]; then \
+		echo "ERROR: hook installation requires root; there is no user-owned hook installation path." >&2; \
+		echo "Run: sudo make install-hooks (or full privileged bootstrap: sudo make init)" >&2; \
+		exit 1; \
+	fi
 	if [ -x $(CI_DIR)/scripts/cleanup-precommit ]; then $(SCRIPT_BASH) $(CI_DIR)/scripts/cleanup-precommit; fi
 	$(SCRIPT_BASH) $(CI_DIR)/scripts/reinstall-hooks
-	if [ "$$(id -u)" != "0" ]; then \
-		echo "ℹ️  hooks regenerated; run 'sudo make install-hooks' when hooks are root-owned"; \
-	fi
 
 .PHONY: install-deps-recursive
 install-deps-recursive: ensure-repos ## Install deps in every nested repo
@@ -375,8 +387,8 @@ install-deps-recursive: ensure-repos ## Install deps in every nested repo
 	[ $$_failed -eq 0 ] || { echo "❌ Dep install failed in $$_failed repo(s)"; exit 1; }
 
 .PHONY: install-hooks-recursive
-install-hooks-recursive: ## Install hooks in workspace + every nested .git under projects/ (run via sudo for root-owned hooks)
-	if [ "$$(id -u)" != "0" ] && [ "$(ALLOW_UNLOCKED)" != "1" ]; then \
+install-hooks-recursive: ## Install hooks in workspace + every nested .git under projects/ (root-only: root-owned, immutable)
+	if [ "$$(id -u)" != "0" ]; then \
 		echo "ERROR: install-hooks-recursive must run as root for root-owned hooks." >&2; \
 		echo "Run: sudo make install-hooks-recursive" >&2; \
 		exit 1; \
@@ -415,16 +427,8 @@ test: ## Run tests (delegates to moon for caching)
 	$(MOON) run workspace:test
 
 .PHONY: test-opencode-extensions
-test-opencode-extensions: ## Run AgentCI and moderator JavaScript tests
+test-opencode-extensions: ## Run AgentCI TypeScript plugin tests
 	cd workspace/agentci && npm run typecheck && npm test && npm run test:release
-	set -euo pipefail; \
-	_temp="$$(mktemp -d)"; \
-	trap 'rm -rf "$$_temp"' EXIT; \
-	mkdir "$$_temp/bin" "$$_temp/xdg-config" "$$_temp/xdg-state"; \
-	printf '%s\n' '#!/bin/bash' 'set -euo pipefail' 'printf "%s\\n" '\''{"data":[{"id":"/zip/MiniCPM5-1B-Q8_0.gguf"}]} '\''' > "$$_temp/bin/curl"; \
-	chmod 0755 "$$_temp/bin/curl"; \
-	XDG_CONFIG_HOME="$$_temp/xdg-config" XDG_STATE_HOME="$$_temp/xdg-state" LOCAL_RESPONSE_MODERATOR_REPO_ROOT="$(CURDIR)" PATH="$$_temp/bin:$$PATH" $(SCRIPT_BASH) workspace/scripts/install-opencode-moderator install; \
-	XDG_STATE_HOME="$$_temp/xdg-state" OPENCODE_MODERATOR_PLUGIN="$$_temp/xdg-config/opencode/plugins/local-response-moderator.js" $(BUN_BIN) test ./tests/integration/local-response-moderator-machine.test.js ./tests/integration/local-response-moderator.test.js
 
 .PHONY: test-e2e
 test-e2e: ## Run end-to-end VM integration tests
@@ -492,7 +496,7 @@ endif
 
 .PHONY: _type-check-impl
 _type-check-impl: install-package
-	MYPYPATH=".:projects/DATAOPS" $(UV) run mypy --config-file $(CI_MYPY) workspace
+	MYPYPATH=".:projects/WORKSPACE-DATAOPS" $(UV) run mypy --config-file $(CI_MYPY) workspace
 
 .PHONY: _test-impl
 _test-impl: install-package
@@ -515,7 +519,7 @@ update: ## Update workspace via moon - walks every project topologically (^:upda
 	RET=$$?; rm -f "$$TMP_WS"; exit $$RET
 
 .PHONY: update-oc
-update-oc: ## Update opencode to latest version via npm (operator: sudo make update-oc; installs into root-locked .boot-linux)
+update-oc: require-non-root ## Update opencode in the checkout-owned platform boot directory
 	$(SCRIPT_BASH) workspace/scripts/bootstrap/bootstrap_opencode.sh
 
 .PHONY: ocb build-ocb
@@ -648,23 +652,3 @@ check-compliance-recursive: ensure-repos ## Audit every nested repo for CI contr
 # Llamafile
 # =============================================================================
 -include Makefile.llamafile
-
-# =============================================================================
-# OpenCode response moderator
-# =============================================================================
-
-.PHONY: install-opencode-moderator
-install-opencode-moderator: ## Install the local MiniCPM response moderator plugin
-	LOCAL_RESPONSE_MODERATOR_REPO_ROOT="$(MAKEFILE_DIR)" $(SCRIPT_BASH) $(MAKEFILE_DIR)workspace/scripts/install-opencode-moderator install
-
-.PHONY: verify-opencode-moderator
-verify-opencode-moderator: ## Verify the installed local MiniCPM response moderator plugin
-	LOCAL_RESPONSE_MODERATOR_REPO_ROOT="$(MAKEFILE_DIR)" $(SCRIPT_BASH) $(MAKEFILE_DIR)workspace/scripts/install-opencode-moderator verify
-
-.PHONY: status-opencode-moderator
-status-opencode-moderator: ## Show installed local MiniCPM response moderator plugin status
-	LOCAL_RESPONSE_MODERATOR_REPO_ROOT="$(MAKEFILE_DIR)" $(SCRIPT_BASH) $(MAKEFILE_DIR)workspace/scripts/install-opencode-moderator status
-
-.PHONY: uninstall-opencode-moderator
-uninstall-opencode-moderator: ## Remove the installed local MiniCPM response moderator plugin
-	LOCAL_RESPONSE_MODERATOR_REPO_ROOT="$(MAKEFILE_DIR)" $(SCRIPT_BASH) $(MAKEFILE_DIR)workspace/scripts/install-opencode-moderator uninstall

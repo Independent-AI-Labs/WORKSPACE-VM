@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import os
 import platform
-import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -52,13 +51,10 @@ def find_workspace_root(start: Path | None = None) -> Path:
 
 
 def find_openvpn_binary(workspace_root: Path) -> str:
-    """Resolve boot-dir openvpn binary, then PATH."""
+    """Resolve the boot-dir openvpn binary; fail explicitly if absent."""
     boot_bin = workspace_root / boot_name() / "bin" / "openvpn"
     if boot_bin.is_file():
         return str(boot_bin)
-    found = shutil.which("openvpn")
-    if found:
-        return found
     raise _VPNBinaryNotFoundError
 
 

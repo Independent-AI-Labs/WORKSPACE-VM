@@ -90,13 +90,7 @@ install scripts) with one interactive wizard and one non-interactive CI entry.
 |----|------------|--------|
 | C-1 | After Intel driver install, `newgrp render` or re-login is required before GPU probes succeed | kernel group semantics |
 
-## 5. Assumptions
-
-| ID | Assumption |
-|----|------------|
-| A-1 | Target hosts are Linux with Intel GPUs for Vulkan/SYCL profiles. |
-
-## 6. Open Questions
+## 5. Open Questions
 
 None.
 

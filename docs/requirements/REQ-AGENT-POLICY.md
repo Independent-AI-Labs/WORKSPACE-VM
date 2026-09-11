@@ -75,7 +75,7 @@ The system follows the same template→userfile→deploy pattern as the current 
 | **Action** | The prescribed outcome when conditions match: `inject` (system prompt), `block`, `allow`, `warn`, `ask`, `modify`, `env`, `run`. |
 | **Profile** | A named, versioned collection of policy references that can be activated as a unit. Stored as YAML in `profiles/`. |
 | **Dry Run** | Simulated evaluation of a policy against test input without deploying the plugin. |
-| **Policy Validation** | Schema check + hook event compatibility verification before rendering. |
+| **Policy Validation** | Schema check + hook event conformance verification before rendering. |
 | **Policy Render** | Convert enabled YAML policies from all domain files into `policies.json` via `yq`. No code generation - the plugin JS is static. |
 | **Policy Apply** | Render `policies.json` + copy the static plugin JS → `~/.config/opencode/plugins/`. |
 | **Audit Trail** | Append-only, tamper-evident JSONL log of every policy evaluation decision, with structured metadata. |
@@ -111,7 +111,7 @@ Policies SHALL support a `priority` integer field (default 0). Higher priority p
 Every policy SHALL support an `enabled` boolean field. Disabled policies are skipped during rendering but retained in the source file.
 
 **FR-1.9 - Executable Policy Actions (`run`):**
-The system SHALL support `action: run` which executes an external script via Bun's built-in `$` shell API (not a system shell - Bun auto-escapes arguments, preventing command injection). The script receives the full event context as JSON on stdin and MUST return a decision object as JSON on stdout. Supported decisions: `block` (throw, kill execution), `allow` (proceed normally), `warn` (inject reason into system prompt, proceed), `modify` (deep-merge `fields` into tool arguments). Script execution SHALL be time-bounded with a configurable timeout (default 5000ms). The run action SHALL be compatible with `tool.execute.before`, `tool.execute.after`, and `command.execute.before` hook events, matching the event-action compatibility matrix defined in the specification.
+The system SHALL support `action: run` which executes an external script via Bun's built-in `$` shell API (not a system shell - Bun auto-escapes arguments, preventing command injection). The script receives the full event context as JSON on stdin and MUST return a decision object as JSON on stdout. Supported decisions: `block` (throw, kill execution), `allow` (proceed normally), `warn` (inject reason into system prompt, proceed), `modify` (deep-merge `fields` into tool arguments). Script execution SHALL be time-bounded with a configurable timeout (default 5000ms). The run action SHALL apply to `tool.execute.before`, `tool.execute.after`, and `command.execute.before` hook events, matching the event-action applicability matrix defined in the specification.
 
 **FR-1.10 - Run Action stdin/stdout JSON Protocol:**
 The run action SHALL follow a well-defined stdin/stdout JSON protocol. stdin SHALL contain a JSON object with context fields keyed by hook event: `hook` (event name), `tool` (tool identifier), `sessionID`, `callID`, `args` (tool arguments), and `result` (for `tool.execute.after` only). stdout SHALL contain a single JSON object with `action` (one of `block`/`allow`/`warn`/`modify`), `reason` (optional, for block/warn), and `fields` (optional, for modify - merged into output args). Every non-success condition (non-zero exit, timeout, empty stdout, invalid JSON, unknown action, script not found) SHALL be treated as `block` (fail-closed). There SHALL be NO path to `allow` by default - the script MUST explicitly return `{"action":"allow"}`.
@@ -478,10 +478,10 @@ For deployments in financial services (DORA) or critical infrastructure (NIS2):
 | C-5 | All shell scripts SHALL use `set -euo pipefail` and pass shellcheck. | AGENTS.md - Rule 1: Never Circumvent Quality Gates. |
 | C-6 | Userfiles (`*.yaml` directly in `policies/`) and rendered `policies.json` SHALL be gitignored. Only templates (`template/*.template.yaml`) are tracked. | AGENTS.md Rule 3.5 - History is immutable. User policy data is not project source. |
 | C-7 | The system SHALL NOT depend on any LLM provider SDK. CLI invocation only. | AGENTS.md Rule 9 - Banned Patterns. Inherited from REQ-HOOKS-103. |
-| C-8 | Policy names SHALL be unique within each domain file and match `[a-z][a-z0-9._-]+`. | Cross-compatibility with AgentCard skill IDs, Veto rule IDs, hooksmith rule names. |
+| C-8 | Policy names SHALL be unique within each domain file and match `[a-z][a-z0-9._-]+`. | Alignment with AgentCard skill IDs, Veto rule IDs, hooksmith rule names. |
 | C-9 | All source files SHALL remain under 512 lines (shell scripts, YAML schemas, static JS plugin). | AGENTS.md Rule 12. |
 | C-10 | The policy rendering pipeline SHALL NOT use any Python VM. YAML processing is via `yq` (single-purpose Go binary). Shell scripts SHALL use `grep`, `awk`, `git`, and yq exclusively. | AGENTS.md Rule 5 - Shell-First, Framework-Never. |
-| C-11 | `yq` (https://github.com/mikefarah/yq) SHALL be available on PATH. Fallback: `python3 -c "import yaml, json, sys; json.dump(yaml.safe_load(sys.stdin), sys.stdout)"` is an acceptable emergency fallback but SHALL NOT be the primary path. | Shell-first principle. |
+| C-11 | `yq` (https://github.com/mikefarah/yq) SHALL be available on PATH. If `yq` is missing, the pipeline SHALL fail with an explicit install instruction; no substitute YAML processor is permitted. | Shell-first principle. |
 | C-12 | Template YAML files SHALL be a working minimal default - seeding from template must produce a valid `policies.json` with zero user edits. | Bootstrap ergonomics. |
 
 ---
@@ -534,7 +534,7 @@ For deployments in financial services (DORA) or critical infrastructure (NIS2):
 | FR-5.4 | AgentContract YAML portability | Portability | MEDIUM |
 | FR-5.5 | Aegis built-in templates, agent-guard `get_builtin()` | Templates | MEDIUM |
 | FR-6.1 | harness `validate`, hooksmith `validate`, AgentSpec `validate` | Validation | HIGH |
-| FR-6.2 | hook-bridge event compatibility check | Compatibility | MEDIUM |
+| FR-6.2 | hook-bridge event conformance check | Conformance | MEDIUM |
 | FR-6.3 | harness `dry-run`, Veto `test`, mcp-claude-hooks `test` | Dry Run | MEDIUM |
 | FR-6.4 | Agent RuleZ conflict detection, AGT policy conflict resolution | Conflict Detection | LOW |
 | FR-7.1 | AgentContract audit entry schema, Cullis ATN audit ledger | Audit Trail | **CRITICAL** |
@@ -574,7 +574,7 @@ For deployments in financial services (DORA) or critical infrastructure (NIS2):
 - [ ] `policy apply` renders + deploys static plugin JS + policies.json in one command
 - [ ] `rules` and `guards` CLIs operational with list/add/delete/update/enable/disable
 - [ ] Existing rules (5) and hooks (1) migrated to template→userfile YAML format
-- [ ] `policy validate` catches schema and event compatibility errors
+- [ ] `policy validate` catches schema and event conformance errors
 - [ ] Run action functional: scripts receive context JSON on stdin, decisions read from stdout, fail-closed on error
 - [ ] Userfiles and `policies.json` gitignored; template files tracked
 - [ ] All scripts pass shellcheck and remain under 512 lines

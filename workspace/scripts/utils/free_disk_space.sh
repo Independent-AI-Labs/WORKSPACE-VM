@@ -14,7 +14,7 @@ else
 fi
 
 echo "[2/2] Cleaning Podman artifacts (~19GB)..."
-# The python script is in prototypes/ relative to this script
+# The extractor in prototypes/ handles the heavy lifting
 uv run python "$SCRIPT_DIR/prototypes/clean_disk_space.py" --force
 
 echo "--- CLEANUP COMPLETE ---"

@@ -64,7 +64,7 @@ WORKSPACE-VM is a federated AI-agent workspace with:
 | `projects/AMI-CI/` | CI enforcement - independent of agent choice |
 | `projects/WORKSPACE-GUARD/` | Git immutability - security infrastructure |
 | `workspace/config/` | Configuration (automation, bootstrap components, hooks) - still used by Makefile |
-| `workspace/scripts/bootstrap/` | System tool bootstrapping (uv, python, rust, podman, moon, etc.) - independent |
+| `workspace/scripts/bootstrap/` | System tool bootstrapping (uv, Python runtime, rust, podman, moon, etc.) - independent |
 | `workspace/scripts/pre-req.sh` | System pre-requisites - still needed |
 | `workspace/scripts/shell/` | Shell setup - ported to use `opencode` instead of 3 agents |
 | `workspace/types/` | Shared types (LegendRender, ContainerStatusDisplay, etc.) - needed by CLI components |
@@ -604,7 +604,7 @@ other component.
 ```
 1. git clone WORKSPACE-VM
 2. sudo make init          - system deps (apt packages)
-3. make core               - bootstrap uv, python, node, podman, etc.
+3. make core               - bootstrap uv, Python runtime, node, podman, etc.
 4. make install-ci         - install all components from install-defaults.yaml
 5. make vm <config.yaml>   - build + start an agent VM
 ```
@@ -618,7 +618,7 @@ init-check → sync-package → build-guard → bootstrap_installer.py → regis
 
 | Target | Action |
 |--------|--------|
-| `core` | Bootstrap uv, python, node, git-xet, moon, podman (prerequisite for install-ci) |
+| `core` | Bootstrap uv, Python runtime, node, git-xet, moon, podman (prerequisite for install-ci) |
 | `install-ci` | Non-interactive: `bootstrap_installer.py --defaults install-defaults.yaml` |
 | `install` | Interactive: `bootstrap_installer.py` (TUI component selection) |
 | `install-shell` | Register `oc` alias + extensions in `~/.bashrc` |
@@ -905,7 +905,7 @@ time (web UI model picker, or `opencode run --model <provider/model>`).
 | `custom` | User-specified list (`ssh.files:`) | Per-file host paths |
 
 For `inherit` mode, only files that exist on the host are copied -
-missing files are silently skipped. File permissions are preserved.
+missing files are skipped and logged. File permissions are preserved.
 The container's `/home/ami/.ssh/` directory gets mode `0700`, private
 key files get `0600`.
 
@@ -1157,46 +1157,6 @@ LaunchAgent (macOS). OpenVPN Connect is not managed.
 If a VM with the same config SHA256 already exists, `make vm` is
 idempotent: it prints the existing UUID instead of rebuilding. Use
 `make vm rebuild <id>` to force a rebuild from the stored `vm.yaml`.
-
-#### 3.9 Convenience Makefile Targets
-
-```makefile
-# Added to the main Makefile:
-.PHONY: vm vm-start vm-stop vm-resume vm-delete vm-shell vm-logs vm-list vm-status vm-rebuild vm-config vm-cert vm-exec vm-kill vm-sync
-vm: ## Build + start a VM from config file
-	@.venv/bin/python workspace/scripts/vm_manager.py create --config "$(filter-out $@,$(MAKECMDGOALS))"
-%::
-	@true   # catch-all to prevent Make from treating config paths as targets
-
-vm-start:    ## podman start <id> + write PID to .vms/<id>/pid
-	@.venv/bin/python workspace/scripts/vm_manager.py start $(filter-out $@,$(MAKECMDGOALS))
-vm-stop:     ## podman stop <id> + remove PID file
-	@.venv/bin/python workspace/scripts/vm_manager.py stop $(filter-out $@,$(MAKECMDGOALS))
-vm-resume:   ## podman start <id> (alias for start)
-	@.venv/bin/python workspace/scripts/vm_manager.py start $(filter-out $@,$(MAKECMDGOALS))
-vm-delete:   ## podman rm <id> + optional volume purge
-	@.venv/bin/python workspace/scripts/vm_manager.py delete $(filter-out $@,$(MAKECMDGOALS))
-vm-kill:     ## read .vms/<id>/pid, send SIGKILL directly, skip podman
-	@.venv/bin/python workspace/scripts/vm_manager.py kill $(filter-out $@,$(MAKECMDGOALS))
-vm-shell:    ## podman exec -it <id> bash
-	@.venv/bin/python workspace/scripts/vm_manager.py shell $(filter-out $@,$(MAKECMDGOALS))
-vm-exec:     ## podman exec <id> -- <cmd> (one-off command, no TTY)
-	@.venv/bin/python workspace/scripts/vm_manager.py exec $(filter-out $@,$(MAKECMDGOALS))
-vm-logs:     ## podman logs <id>
-	@.venv/bin/python workspace/scripts/vm_manager.py logs $(filter-out $@,$(MAKECMDGOALS))
-vm-list:     ## podman ps -a --filter label=ami.type=vm
-	@.venv/bin/python workspace/scripts/vm_manager.py list
-vm-status:   ## podman inspect + stats for <id>
-	@.venv/bin/python workspace/scripts/vm_manager.py status $(filter-out $@,$(MAKECMDGOALS))
-vm-rebuild:  ## re-build + restart <id> from its stored vm.yaml
-	@.venv/bin/python workspace/scripts/vm_manager.py rebuild $(filter-out $@,$(MAKECMDGOALS))
-vm-config:   ## print the vm.yaml used to create <id>
-	@.venv/bin/python workspace/scripts/vm_manager.py config $(filter-out $@,$(MAKECMDGOALS))
-vm-cert:     ## generate/print client cert for <id>
-	@.venv/bin/python workspace/scripts/vm_manager.py cert $(filter-out $@,$(MAKECMDGOALS))
-vm-sync:     ## file sync per config.sync rules
-	@.venv/bin/python workspace/scripts/vm_manager.py sync $(filter-out $@,$(MAKECMDGOALS))
-```
 
 #### 3.10 Files to Create (Phase 3)
 

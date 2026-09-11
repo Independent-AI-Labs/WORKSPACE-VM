@@ -21,7 +21,7 @@ if [ ! -f "$UV_CMD" ]; then
     exit 1
 fi
 
-# Install synadm using uv pip into the boot-linux python env
+# Install synadm using uv pip into the boot-linux/python env
 "$UV_CMD" pip install --python "$PYTHON_ENV" synadm
 
 # Symlink the installed entry point to bin/

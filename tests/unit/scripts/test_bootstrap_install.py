@@ -1,9 +1,12 @@
 """Unit tests for scripts/bootstrap_install module."""
 
+import re
 import subprocess
 from pathlib import Path
 from typing import NamedTuple
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 from workspace.scripts.bootstrap_components import Component, ComponentType
 from workspace.scripts.bootstrap_install import (
@@ -47,6 +50,25 @@ class TestEnsureDirectories:
 
             # Should be called twice (for .boot-linux/bin and .venv/bin)
             assert mock_mkdir.call_count == EXPECTED_DIRECTORY_COUNT
+
+    def test_rejects_root(self) -> None:
+        """Local installation never creates root-owned checkout state."""
+        with (
+            patch("workspace.scripts.bootstrap_install.os.geteuid", return_value=0),
+            pytest.raises(PermissionError, match="checkout owner"),
+        ):
+            ensure_directories()
+
+    def test_rejects_foreign_owned_boot(self, tmp_path: Path) -> None:
+        """An existing boot directory must belong to the invoking user."""
+        boot = tmp_path / ".boot-linux"
+        boot.mkdir()
+        with (
+            patch("workspace.scripts.bootstrap_install.os.geteuid", return_value=1234),
+            patch("workspace.scripts.bootstrap_install._PROJECT_ROOT", tmp_path),
+            pytest.raises(PermissionError, match=re.escape(str(boot))),
+        ):
+            ensure_directories()
 
 
 class TestGetPaths:
@@ -294,41 +316,6 @@ class TestInstallComponents:
         assert len(result_calls) == 1
         assert result_calls[0].success is True
         assert len(progress_calls) == 1
-
-
-class TestInstallEdgeCases:
-    """Tests for install edge cases."""
-
-    @patch("workspace.scripts.bootstrap_install.subprocess.run")
-    def test_run_script_oserror(self, mock_run):
-        """Test run_bootstrap_script handles OSError."""
-        mock_run.side_effect = OSError("exec failed")
-        result = run_bootstrap_script("fail.sh")
-        assert result is False
-
-    def test_install_uv_type_returns_true(self):
-        """Test UV type components always return True."""
-        comp = Component(
-            name="uv_pkg",
-            label="UV Pkg",
-            description="test",
-            type=ComponentType.UV,
-            group="Test",
-        )
-        result = install_component(comp)
-        assert result is True
-
-    def test_install_script_no_script(self):
-        """Test script type with no script returns False."""
-        comp = Component(
-            name="bad",
-            label="Bad",
-            description="test",
-            type=ComponentType.SCRIPT,
-            group="Test",
-        )
-        result = install_component(comp)
-        assert result is False
 
 
 class TestScriptFailureNotRescuedByDetectPath:

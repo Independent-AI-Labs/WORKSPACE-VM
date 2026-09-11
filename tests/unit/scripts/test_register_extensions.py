@@ -41,7 +41,7 @@ class TestFixStaleShebang:
         assert ".venv/bin/python3" in content
 
     def test_fixes_inline_python_paths(self, tmp_path):
-        """Test rewrites inline python paths in wrappers."""
+        """Test rewrites inline interpreter paths in wrappers."""
         binary = tmp_path / "wrapper"
         binary.write_text('#!/usr/bin/env bash\nexec "/old/path/python3" "$@"\n')
         fix_stale_shebang(binary, tmp_path)

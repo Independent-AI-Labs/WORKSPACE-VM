@@ -16,13 +16,6 @@ Use `workspace/scripts/bin/ocb` only to test the source-built OpenCode binary.
 Both wrappers accept `--db NAME` or `--db=NAME` and pass the value unchanged as
 `OPENCODE_DB`. `--` sends an upstream OpenCode command without task conversion.
 
-The approved Bun executable is `/home/agent/.bun/bin/bun`. Run moderator tests
-with:
-
-```bash
-/home/agent/.bun/bin/bun test tests/integration/local-response-moderator-machine.test.js tests/integration/local-response-moderator.test.js
-```
-
 Run AgentCI tests from `workspace/agentci/` with `npm test`,
 `npm run test:release`, and `npm run test:live`.
 

@@ -3,7 +3,8 @@ PDF Extractor Utility
 Extracts text and images from a PDF file.
 
 Usage:
-    python pdf_extractor.py input.pdf output_directory [--start_page N] [--end_page N]
+    uv run python pdf_extractor.py input.pdf output_directory
+    [--start_page N] [--end_page N]
 
 Requirements:
     pymupdf (fitz)

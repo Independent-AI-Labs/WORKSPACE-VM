@@ -355,12 +355,12 @@ components:
   # =========================================================================
   - name: playwright
     label: 'Playwright'
-    description: 'Browser automation (chromium + chrome)'
+    description: 'Browser automation (Chromium)'
     type: script
     group: 'Browser & Device Automation'
     script: 'bootstrap_playwright.sh'
     detect_path: '.boot-linux/playwright-browsers'
-    version_cmd: ['.venv/bin/playwright', '--version']
+    version_cmd: ['.boot-linux/bin/playwright', '--version']
     version_pattern: '(\d+\.\d+\.\d+)'
 
   - name: adb

@@ -20,7 +20,7 @@
 #                  python_module_files:  entry is a module path + pass_filenames
 #                                        (staged files passed as CLI args).
 #                  makefile_target: entry is a make target name.
-#   entry       : bash function name | python module path | make target name | inline command.
+#   entry       : bash function name | Python module path | make target name | inline command.
 #   stage       : pre-commit | commit-msg | pre-push.
 #   pass_filenames, always_run: passed through to the rendered hook.
 #   files       : optional path pattern that scopes the hook (pass-through).

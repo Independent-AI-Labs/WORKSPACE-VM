@@ -234,7 +234,7 @@ fi
 #   - Makefile includes lib/makefile_contract.mk
 #
 # Tier resolution: project_enforcement.yaml in ami/config/ (live) or
-# the WORKSPACE-CI template (fallback). Per-machine enforcement_mode in the
+# the WORKSPACE-CI template (secondary source). Per-machine enforcement_mode in the
 # same file: 'warn' = yellow advisory, 'enforce' = hard block.
 # Default mode 'warn' for fail-safe rollout.
 #

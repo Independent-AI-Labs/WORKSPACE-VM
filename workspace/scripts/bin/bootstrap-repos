@@ -17,7 +17,7 @@
 # Usage:
 #   bootstrap-repos                           # mandatory only
 #   bootstrap-repos --include workspace-portal      # mandatory + portal
-#   bootstrap-repos --include workspace-portal,ami-srp
+#   bootstrap-repos --include workspace-portal,workspace-rp
 #   bootstrap-repos --all                     # mandatory + ALL optional
 #   bootstrap-repos --pull                    # also git-pull existing repos
 #   bootstrap-repos --include workspace-portal --pull
@@ -44,15 +44,8 @@ fi
 CLONES_YAML="$AMI_ROOT/workspace/config/workspace-clones.yaml"
 PYTHON="$AMI_ROOT/.boot-linux/bin/python"
 if [[ ! -x "$PYTHON" ]]; then
-    # Fall back to system python3 if .boot-linux isn't there yet (very-cold-start).
-    PYTHON="$(command -v python3)" || {
-        echo "[bootstrap-repos] system python3 not found in PATH" >&2
-        PYTHON=""
-    }
-    if [[ -z "$PYTHON" ]]; then
-        echo "ERROR: no python found (.boot-linux/bin/python missing AND system python3 missing)" >&2
-        exit 1
-    fi
+    echo "ERROR: $PYTHON missing; run the Python bootstrap component first (make bootstrap)" >&2
+    exit 1
 fi
 
 # --- reconstruct SSH env when invoked under sudo ---
@@ -136,7 +129,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# --- read workspaceClones via python ---
+# --- read workspaceClones via the boot interpreter ---
 # Output one line per entry: id|remote|path|mandatory|minTag
 ENTRIES=$("$PYTHON" - "$CLONES_YAML" <<'PY'
 import sys

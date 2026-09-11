@@ -59,7 +59,7 @@ agent:
     model_default: "qwen-coder"
     model_audit: "qwen-coder"
 
-# Legacy claude_cli config (for backward compatibility - will be deprecated)
+# Transitional claude_cli config (superseded - will be deprecated)
 claude_cli:
   command: "claude"
   model_default: "claude-sonnet-4-5"

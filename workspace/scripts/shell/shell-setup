@@ -123,7 +123,7 @@ _strip_legacy_markers() {
         changed=true
     fi
 
-    [[ "$changed" == "true" ]] && echo -e "${BLUE}→${NC} Stripped legacy AMI markers from ~/$(basename "$rc")"
+    [[ "$changed" == "true" ]] && echo -e "${BLUE}→${NC} Stripped outdated AMI markers from ~/$(basename "$rc")"
 }
 
 _install_to_bashrc() {
@@ -203,7 +203,7 @@ _verify_extensions() {
     # user has something to look at.
     local doctor py_err
     py_err="$(mktemp)"
-    doctor="$(AMI_QUIET_MODE=1 python3 "$helper" --mode doctor 2>"$py_err")" || {
+    doctor="$(AMI_QUIET_MODE=1 uv run python "$helper" --mode doctor 2>"$py_err")" || {
         [[ -s "$py_err" ]] && echo "[shell-setup] extension doctor check failed: $(cat "$py_err")" >&2
         rm -f "$py_err"
         return 0

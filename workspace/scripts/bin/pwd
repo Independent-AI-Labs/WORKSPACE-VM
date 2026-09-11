@@ -30,14 +30,13 @@ get_default_root() {
         fi
         curr="$(dirname "$curr")"
     done
-    # Final fallback - resolve from git root
-    local _err_tmp
-    _err_tmp="$(mktemp)"
-    if ! git rev-parse -show-toplevel 2>"$_err_tmp"; then
-        if [[ -s "$_err_tmp" ]]; then cat "$_err_tmp" >&2; fi
-        echo "$HOME/WORKSPACE-VM"
+    # Last resort: resolve from git root, else fail explicitly.
+    # stderr is inherited (surfaced, never captured to a discardable file).
+    if git rev-parse --show-toplevel; then
+        return 0
     fi
-    rm -f "$_err_tmp"
+    echo "Error: cannot determine AMI root (no pyproject.toml/.git marker, not in a git repo)" >&2
+    return 1
 }
 
 # Get current root (from file, env, or default)

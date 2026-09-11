@@ -10,8 +10,16 @@ BOOT_DIR="${BOOT_LINUX_DIR:-${AMI_ROOT}/.boot-linux}"
 BOOT_BIN="${BOOT_DIR}/bin"
 NPM="${BOOT_BIN}/npm"
 
-if [[ ! -w "$BOOT_BIN" ]]; then
-    echo "ERROR: ${BOOT_BIN} not writable (root-locked). Run: sudo make update-oc" >&2
+if [[ "$(id -u)" == "0" ]]; then
+    echo "ERROR: local OpenCode installation must run as the checkout owner, not root" >&2
+    exit 1
+fi
+if [[ -e "$BOOT_DIR" && ! -O "$BOOT_DIR" ]]; then
+    echo "ERROR: checkout boot directory is not owned by the current user: $BOOT_DIR" >&2
+    exit 1
+fi
+if [[ ! -w "$BOOT_DIR" || ! -w "$BOOT_BIN" ]]; then
+    echo "ERROR: checkout boot directory is not writable: $BOOT_DIR" >&2
     exit 1
 fi
 

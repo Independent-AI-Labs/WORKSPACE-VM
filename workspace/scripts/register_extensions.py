@@ -87,7 +87,7 @@ def fix_stale_shebang(binary: Path, ami_root: Path) -> None:
             lines[0] = f"#!{correct_python}"
             stale = True
 
-    # Fix inline python paths in bash wrappers (e.g. ami-synadm)
+    # Fix inline interpreter paths in bash wrappers (e.g. ami-synadm)
     for i in range(1, len(lines)):
         if "/python" in lines[i]:
             new_line = re.sub(

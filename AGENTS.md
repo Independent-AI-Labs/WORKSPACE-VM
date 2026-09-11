@@ -12,15 +12,18 @@ The agent (uid=1000, group `agent`+`adm`) runs inside a hermetic sandbox VM.
 
 ### Protected Boot Boundaries
 
-- `.boot-linux` and `.boot-macos` are root-owned trust boundaries containing
-  bootstrapped executables. Their ownership and modes are security controls, not
-  test failures to repair.
+- `.boot-linux` and `.boot-macos` beneath a source checkout are owner-writable
+  development tool directories. Projects may compose these directories through
+  `moon.yml::project.inherited_boot_dirs`; they must never be world-writable.
+- `.boot-linux` and `.boot-macos` inside root-deployed artifacts such as
+  `/opt/workspace-ci` are protected trust boundaries. Their root ownership,
+  modes, verification, and immutable attributes are security controls.
 - NEVER suggest or request recursive `chown`, `chmod`, deletion, replacement, or
-  write access for a protected boot directory to make an unprivileged workflow
-  pass.
-- If an ordinary test or extension-registration path attempts to write there,
-  treat the path design as defective: move its writable output outside the boot
-  boundary or use an approved operator/control-plane deployment interface.
+  write access for a root-deployed boot directory to make an unprivileged
+  workflow pass.
+- If an ordinary installer cannot write its checkout-local boot directory, stop
+  with the exact path. Do not run the local installer with elevated privileges
+  or silently repair ownership.
 - A genuinely necessary boot update requires a narrow, reviewed operator handoff
   naming the exact files, intended ownership, verification evidence, and rollback
   plan. It never authorizes broad ownership changes.

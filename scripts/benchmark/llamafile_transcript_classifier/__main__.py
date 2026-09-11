@@ -1,4 +1,4 @@
-"""Single entrypoint: python3 -m scripts.benchmark.llamafile_transcript_classifier"""
+"""Entry point: uv run python -m scripts.benchmark.llamafile_transcript_classifier"""
 
 from __future__ import annotations
 

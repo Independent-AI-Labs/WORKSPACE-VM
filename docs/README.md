@@ -28,9 +28,9 @@ Start here for onboarding: [`../README.md`](../README.md)
 | [`requirements/REQ-ANDROID-WORKSPACE.md`](requirements/REQ-ANDROID-WORKSPACE.md) | Android app running bundled Ubuntu ARM64 VM (Draft) |
 | [`requirements/REQ-LLAMA-SETUP-TUI.md`](requirements/REQ-LLAMA-SETUP-TUI.md) | `make llama-setup` unified llama/GPU setup wizard |
 | [`requirements/REQ-LLAMAFILE-MINICPM5-1B.md`](requirements/REQ-LLAMAFILE-MINICPM5-1B.md) | MiniCPM5-1B llamafile bundles (server + chat) |
-| [`requirements/REQ-OPENCODE-RESPONSE-MODERATOR.md`](requirements/REQ-OPENCODE-RESPONSE-MODERATOR.md) | Local MiniCPM5 Build moderation and finite-state-machine continuation controller |
+| [`requirements/REQ-AGENTCI-RESPONSE-MODERATION.md`](requirements/REQ-AGENTCI-RESPONSE-MODERATION.md) | Local MiniCPM5 Build moderation and finite-state-machine continuation controller (AgentCI, TypeScript) |
 | [`requirements/REQ-OPENVPN.md`](requirements/REQ-OPENVPN.md) | Host and VM OpenVPN client automation |
-| [`requirements/REQ-AGENTCI.md`](requirements/REQ-AGENTCI.md) | AgentCI context and quality-gate remediation (Draft) |
+| [`requirements/REQ-AGENTCI.md`](requirements/REQ-AGENTCI.md) | AgentCI plugin: explicit policy files, hooks, file injection |
 | [`requirements/REQ-VM-HYPERVISOR.md`](requirements/REQ-VM-HYPERVISOR.md) | `make vm` dual isolation backends (Podman + QEMU) |
 
 ### specifications/ - implementation specs (SPEC-*)
@@ -42,7 +42,7 @@ Start here for onboarding: [`../README.md`](../README.md)
 | [`specifications/SPEC-ANDROID-WORKSPACE.md`](specifications/SPEC-ANDROID-WORKSPACE.md) | Android VM app implementation design (Draft) |
 | [`specifications/SPEC-LLAMA-SETUP-TUI.md`](specifications/SPEC-LLAMA-SETUP-TUI.md) | Setup wizard phases, profiles, prereq scripts |
 | [`specifications/SPEC-LLAMAFILE-MINICPM5-1B.md`](specifications/SPEC-LLAMAFILE-MINICPM5-1B.md) | llamafile bundle format and CPU cosmocc build |
-| [`specifications/SPEC-OPENCODE-RESPONSE-MODERATOR.md`](specifications/SPEC-OPENCODE-RESPONSE-MODERATOR.md) | OpenCode Build moderation, reducer architecture, continuation controller, and compaction guards |
+| [`specifications/SPEC-OPENCODE-RESPONSE-MODERATOR.md`](specifications/SPEC-OPENCODE-RESPONSE-MODERATOR.md) | Superseded by REQ-AGENTCI-RESPONSE-MODERATION (historical reference) |
 | [`specifications/SPEC-OPENVPN.md`](specifications/SPEC-OPENVPN.md) | `make vpn-*` automation: bootstrap, host service, VM pipeline |
 | [`specifications/SPEC-AGENTCI.md`](specifications/SPEC-AGENTCI.md) | AgentCI TypeScript plugin design (Draft) |
 | [`specifications/SPEC-OPENCODE-ISOLATED-INTEGRATION-TESTS.md`](specifications/SPEC-OPENCODE-ISOLATED-INTEGRATION-TESTS.md) | Temporary-root OpenCode, plugin, database, and live-provider test contract (Draft) |

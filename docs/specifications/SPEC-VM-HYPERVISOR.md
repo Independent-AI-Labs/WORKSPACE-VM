@@ -569,7 +569,7 @@ Pins are checked at bootstrap; mismatch emits a warning (POC) or fails (CI).
 ### 10.3 `bootstrap_qemu.sh` steps
 
 1. Resolve `BOOT_DIR` / `BIN_DIR` / `SHARE_DIR` (same pattern as `bootstrap_openvpn.sh`)
-2. Read `res/qemu-pins.yaml` via `python -c` or `yq`
+2. Read `res/qemu-pins.yaml` via `uv run python -c` or `yq`
 3. **Linux:** `apt-get install` pinned packages OR verify existing versions; symlink into `BIN_DIR`
 4. **macOS:** `brew install qemu`; symlink `qemu-system-aarch64`, `qemu-img`
 5. Copy firmware into `SHARE_DIR/firmware/` (symlink if stable path exists)

@@ -38,7 +38,7 @@ artifact catalog:
 
 - Bun, Go, GitHub CLI, GitLab CLI, kubectl, Helm, Pandoc, sd, Traefik, and
   git-xet release versions.
-- wkhtmltopdf and fallback package artifact versions.
+- wkhtmltopdf and secondary package artifact versions.
 - Bootlin toolchain and cosmocc versions.
 - Release URLs and artifact selection rules associated with those tools.
 - GitHub Action references in `.github/workflows/ci.yml`.

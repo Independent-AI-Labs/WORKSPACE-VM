@@ -139,7 +139,7 @@ These files exist on the PR branch with merge conflicts because the current `dev
 
 | Sub-req | Exists on PR? | Exists on `dev`? | Gap | Action |
 |---------|---------------|------------------|-----|--------|
-| FR-4.1 Domain Trust Evaluation | Yes - `checkTrust` in `trust.ts` | No | Evaluates permission + session + legacy config | Re-write against PermissionV2 |
+| FR-4.1 Domain Trust Evaluation | Yes - `checkTrust` in `trust.ts` | No | Evaluates permission + session config | Re-write against PermissionV2 |
 | FR-4.2 Trust Actions | Yes - allow/deny/ask | No | Three states supported | Re-write against PermissionV2 |
 | FR-4.3 Session-Scoped Trust | Yes - `Set<string>` in `trust.ts` | No | In-memory Set, not persisted | Cherry-pick logic; port to Effect Ref |
 | FR-4.4 Permission Configuration | Yes - `remote_agent` rules | No | Zod schema in PR, needs Effect Schema | Port to `ConfigPermission.Info` |
@@ -499,7 +499,7 @@ git checkout origin/pr/feat-remote-agents -- \
 git checkout origin/pr/feat-remote-agents -- \
   packages/opencode/src/a2a/oauth/flow.ts
 
-# Tests - need mock adaptation from Config.get() to Effect.Config
+# Tests - need test-double adaptation from Config.get() to Effect.Config
 git checkout origin/pr/feat-remote-agents -- \
   packages/opencode/test/a2a/agent-card.test.ts \
   packages/opencode/test/a2a/client.test.ts \
@@ -570,9 +570,9 @@ After integration, the following must be verified:
 - [ ] `bun typecheck` passes from `packages/opencode/`
 - [ ] A2A tests can run independently: `bun test test/a2a/`
 - [ ] Agent card fetching works for `@domain.com` (existing agent cards in test fixtures)
-- [ ] OAuth flow completes with PKCE (mock token endpoint)
+- [ ] OAuth flow completes with PKCE (test token endpoint)
 - [ ] Session trust persists for the duration of a session
-- [ ] Trust evaluation: session > permission config > legacy config > ask
+- [ ] Trust evaluation: session > permission config > ask
 - [ ] Remote agents appear in `@` autocomplete with description
 - [ ] Task tool can delegate to remote agents
 - [ ] `--trust-domains` CLI flag works

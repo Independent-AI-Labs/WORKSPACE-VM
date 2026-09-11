@@ -57,18 +57,27 @@ set -euo pipefail
 cd /opt/ami-agents
 echo "=== venv ==="
 test -d .venv && echo "[PASS] .venv exists" || { echo "[FAIL] .venv missing"; exit 1; }
-test -f .venv/bin/python && echo "[PASS] .venv/bin/python exists" || { echo "[FAIL] python missing"; exit 1; }
+py_ver=$(uv run python --version) && echo "[PASS] uv run python works ($py_ver)" || { echo "[FAIL] interpreter missing"; exit 1; }
 echo "=== uv.lock ==="
 test -f uv.lock && echo "[PASS] uv.lock present"
 echo "=== config files ==="
 test -f pyproject.toml && echo "[PASS] pyproject.toml present"
 test -f Makefile && echo "[PASS] Makefile present"
 echo "=== dependencies ==="
-.venv/bin/python -c "import loguru, pydantic; print(\"[PASS] critical deps loadable\")"
+uv run python - <<'PY'
+import loguru, pydantic
+print("[PASS] critical deps loadable")
+PY
 echo "=== WORKSPACE-CI namespace ==="
-.venv/bin/python -c "from ci.check_dependency_versions import main; print(\"[PASS] CI namespace accessible\")"
+uv run python - <<'PY'
+from ci.check_dependency_versions import main
+print("[PASS] CI namespace accessible")
+PY
 echo "=== workspace package ==="
-.venv/bin/python -c "from workspace.cli.vm_main import main; print(\"[PASS] workspace package accessible\")"
+uv run python - <<'PY'
+from workspace.cli.vm_main import main
+print("[PASS] workspace package accessible")
+PY
 '
 echo "[PASS] Filesystem verification complete"
 

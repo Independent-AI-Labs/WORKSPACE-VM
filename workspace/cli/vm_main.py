@@ -25,7 +25,7 @@ _SUB_CMD_ARGS = 2
 def _usage() -> None:
     commands = "create|rebuild|sync|start|stop|delete|shell|exec|list|status|logs|kill"
     print(
-        f"usage: python -m workspace.cli.vm_main <{commands}> <args>",
+        f"usage: uv run python -m workspace.cli.vm_main <{commands}> <args>",
         file=sys.stderr,
     )
 

@@ -156,8 +156,7 @@ The system SHALL handle the `TASK_STATE_AUTH_REQUIRED` interrupted state, where 
 The system SHALL evaluate domain trust on every remote agent invocation, with the following precedence (highest to lowest):
 1. **Session trust** - domain approved during the current session
 2. **Permission configuration** - rules in the agent permission system for `remote_agent`
-3. **Legacy configuration** - domains listed in legacy remote agent domain configuration
-4. **Default** - prompt user for approval (`"ask"`)
+3. **Default** - prompt user for approval (`"ask"`)
 
 **FR-4.2 - Trust Actions:**
 The system SHALL support three trust actions:
@@ -375,8 +374,8 @@ The system SHALL respect data residency requirements:
 |----|------------|--------|
 | C-1 | The system MUST NOT expose local agent internal state, memory, or tools to remote agents (opaque execution per A2A §1.2). | A2A Specification |
 | C-2 | The system MUST NOT send data to remote agents in jurisdictions without adequate data protection unless explicitly configured by the deployer. | GDPR Art. 44-49 |
-| C-3 | The A2A protocol version used MUST be declared in `A2A-Version` header (or equivalent). Clients MUST send this with every request to maintain compatibility. | A2A Specification §3.6.1 |
-| C-4 | The system MUST NOT permit automatic fallback to older A2A protocol versions if the required version is not supported. | A2A Specification §3.6.3 |
+| C-3 | The A2A protocol version used MUST be declared in `A2A-Version` header (or equivalent). Clients MUST send this with every request for version conformance checking. | A2A Specification §3.6.1 |
+| C-4 | The system MUST NOT automatically downgrade to older A2A protocol versions if the required version is not supported. | A2A Specification §3.6.3 |
 | C-5 | OAuth 2.0 PKCE (RFC 7636) is the REQUIRED authentication flow for agents declaring OAuth2 security schemes. | RFC 7636, A2A Implementation |
 | C-6 | No remote agent SHALL be invoked without first establishing a non-default trust state (allow or ask). | REG-1.2 (Art. 14) |
 
@@ -388,7 +387,7 @@ The system SHALL respect data residency requirements:
 |----|------------|
 | A-1 | Remote agents implement the A2A protocol correctly per the specification v1.0. Non-compliant behaviour will be surfaced as errors. |
 | A-2 | Remote agent domains are reachable over HTTPS from the local network. |
-| A-3 | The A2A specification's versioning guarantees (Major.Minor compatibility) will be maintained by implementers. |
+| A-3 | The A2A specification's versioning guarantees (Major.Minor version matching) will be maintained by implementers. |
 | A-4 | The `@a2a-js/sdk` library (or equivalent A2A SDK) will be maintained and kept compatible with the A2A protocol specification. |
 | A-5 | The EU AI Act Article 6(5) guidelines (due 2 February 2026) will provide further clarity on high-risk classification for agent invocations, and the system should be adaptable to those guidelines. |
 | A-6 | A2A protocol version 0.3 clients will be assumed if the `A2A-Version` header is empty (per §3.6.2), but the implementation targets v1.0. |

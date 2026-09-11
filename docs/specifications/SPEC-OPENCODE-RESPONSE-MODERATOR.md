@@ -1,9 +1,9 @@
 # Specification: OpenCode Response Moderator
 
 **Document ID:** WS-SPEC-OPENCODE-RESPONSE-MODERATOR-v1.6  
-**Status:** Approved implementation design - checklist-free terminal-response policy
+**Status:** Superseded - replaced by REQ-AGENTCI-RESPONSE-MODERATION (TypeScript AgentCI plugin)
 **Date:** 2026-08-10  
-**Requirements:** [REQ-OPENCODE-RESPONSE-MODERATOR](../requirements/REQ-OPENCODE-RESPONSE-MODERATOR.md)
+**Requirements:** [REQ-AGENTCI-RESPONSE-MODERATION](../requirements/REQ-AGENTCI-RESPONSE-MODERATION.md)
 
 ## Deployment Design
 
@@ -470,7 +470,7 @@ later busy generation for the bounded existing timeout.
 Effects for one transition execute in listed order. Failure to write the
 decision record stops later externally visible effects and yields `EFFECT_ERROR`.
 Failures after the decision record are appended by a follow-up error record.
-The executor does not silently retry semantic decisions; only the existing
+The executor never retries semantic decisions implicitly; only the existing
 three format retries are represented by `CLASSIFIER_FORMAT_RETRY` events.
 
 ### Queue And Recovery
@@ -494,7 +494,7 @@ safe retry.
 
 The refactor preserves the V2 classifier protocol, audit directory, release
 configuration, Gateway-only route, visible strings, and decision types. It
-removes checklist and `[WORK DONE]` marker compatibility, along with second-pass
+removes checklist and `[WORK DONE]` marker handling, along with second-pass
 adjudication, because they are redundant self-certification paths.
 Existing YAML records lacking a `stateSnapshot` remain readable as audit evidence
 but are not authoritative snapshots. Recovery derives the minimum compatible
@@ -562,4 +562,3 @@ active release, and that its content matches the tracked source.
 - Start an isolated OpenCode server with the plugin configured and verify the
   plugin is discovered and receives a real idle event.
 - Run a live sanity check through the existing Gateway `/llamafile` relay.
-- Run `/home/agent/.bun/bin/bun test tests/integration/local-response-moderator-machine.test.js tests/integration/local-response-moderator.test.js` before an installed-release claim.

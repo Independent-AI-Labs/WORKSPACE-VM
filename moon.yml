@@ -60,18 +60,10 @@ tasks:
       - 'workspace/agentci/tsconfig.build.json'
       - 'workspace/agentci/src/**/*.ts'
       - 'workspace/agentci/tests/**/*.ts'
-      - 'workspace/agentci/tests/fixtures/federation/**/*.yaml'
       - 'workspace/scripts/bin/oc'
-      - 'workspace/scripts/install-opencode-moderator'
       - 'workspace/scripts/opencode-wrapper.sh'
       - 'workspace/config/opencode/opencode.jsonc'
       - 'workspace/config/opencode/system-instruction.template.md'
-      - 'workspace/config/opencode/plugins/local-response-moderator.js'
-      - 'workspace/config/opencode/plugins/local-response-moderator-machine.js'
-      - 'workspace/config/opencode/plugins/local-response-moderator.sh'
-      - 'workspace/config/opencode/plugins/local-response-moderator.config.template.json'
-      - 'tests/integration/local-response-moderator.test.js'
-      - 'tests/integration/local-response-moderator-machine.test.js'
   dead-code:
     command: 'make _dead-code-impl'
     inputs:

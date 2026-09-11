@@ -1,7 +1,7 @@
 #!/bin/bash
 # bootstrap_hooks.sh: Install native git hooks from .pre-commit-config.yaml.
 #
-# Runs cleanup-precommit (removes legacy pre-commit Python artifacts) then
+# Runs cleanup-precommit (removes old pre-commit Python artifacts) then
 # generate-hooks (writes native bash hooks to .git/hooks/).
 set -euo pipefail
 

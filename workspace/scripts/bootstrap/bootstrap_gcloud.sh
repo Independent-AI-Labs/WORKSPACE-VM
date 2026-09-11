@@ -1,11 +1,9 @@
 #!/usr/bin/env bash
 # Install Google Cloud CLI locally to project
 #
-# Downloads and installs gcloud CLI into the root-locked boot dir
-# (.boot-linux/gcloud). Containment: no unsanctioned use of $HOME or
+# Downloads and installs gcloud CLI into the checkout-owned boot dir.
+# Containment: no unsanctioned use of $HOME or
 # top-level workspace dirs -- all tools live inside .boot-<platform>.
-# This script must run elevated (sudo make core / sudo ./ami/scripts/...) so
-# the tool lives in the root-locked, world read+exec boot dir.
 # This allows the backup script to use service account impersonation
 # without requiring system-wide gcloud installation.
 #
@@ -16,15 +14,21 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Script is in ami/scripts/bootstrap/, project root is 3 levels up
 ROOT_DIR="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
-GCLOUD_DIR="${BOOT_LINUX_DIR:-$ROOT_DIR/.boot-linux}/gcloud"
+BOOT_DIR="${BOOT_LINUX_DIR:-$ROOT_DIR/.boot-linux}"
+GCLOUD_DIR="$BOOT_DIR/gcloud"
 GCLOUD_SDK_DIR="$GCLOUD_DIR/google-cloud-sdk"
 
-# Fail fast: boot dir is root-locked; installs are operator-run elevated steps
-if [ ! -d "$GCLOUD_DIR" ] || [ ! -w "$GCLOUD_DIR" ]; then
-    if [ ! -w "$(dirname "$GCLOUD_DIR")" ]; then
-        echo "Error: $GCLOUD_DIR is not writable. Install with sudo: sudo $0" >&2
-        exit 1
-    fi
+if [[ "$(id -u)" == "0" ]]; then
+    echo "Error: local gcloud installation must run as the checkout owner, not root" >&2
+    exit 1
+fi
+if [[ -e "$BOOT_DIR" && ! -O "$BOOT_DIR" ]]; then
+    echo "Error: checkout boot directory is not owned by the current user: $BOOT_DIR" >&2
+    exit 1
+fi
+if [[ ! -w "$BOOT_DIR" ]]; then
+    echo "Error: checkout boot directory is not writable: $BOOT_DIR" >&2
+    exit 1
 fi
 
 echo "================================"

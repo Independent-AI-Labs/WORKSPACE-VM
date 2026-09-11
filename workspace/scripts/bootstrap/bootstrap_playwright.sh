@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Bootstrap Playwright browsers into .boot-linux/playwright-browsers/
-# Downloads chromium and chrome binaries. Does NOT install system deps (no sudo).
+# Downloads Chromium. Does NOT install system deps (no sudo).
 # System deps must be installed separately via 'sudo make init'.
 
 _SELF="${BASH_SOURCE[0]}"
@@ -25,6 +25,24 @@ log_warn()    { echo "  ⚠ $1" >&2; }
 log_error()   { echo "  ERROR: $1" >&2; }
 log_success() { echo "  ✓ $1" >&2; }
 
+# Checkout boot directories are local developer state, never root-installed.
+if [[ "$(id -u)" == "0" ]]; then
+    log_error "local Playwright installation must run as the checkout owner, not root"
+    exit 1
+fi
+if [[ -e "$BOOT_DIR" && ! -O "$BOOT_DIR" ]]; then
+    log_error "checkout boot directory is not owned by the current user: $BOOT_DIR"
+    exit 1
+fi
+if ! mkdir -p "$BIN_DIR"; then
+    log_error "cannot create checkout boot directory: $BIN_DIR"
+    exit 1
+fi
+if [[ ! -w "$BOOT_DIR" || ! -w "$BIN_DIR" ]]; then
+    log_error "checkout boot directory is not writable: $BOOT_DIR"
+    exit 1
+fi
+
 # Install the playwright CLI as a boot-contained uv tool (never from .venv)
 if [[ ! -x "$PLAYWRIGHT" ]]; then
     if [[ "$(uname -s)" == "Darwin" ]]; then
@@ -36,32 +54,12 @@ if [[ ! -x "$PLAYWRIGHT" ]]; then
         log_error "uv not found at $UV_CMD. Run 'make core' first."
         exit 1
     fi
-    if [[ ! -w "$BIN_DIR" ]]; then
-        log_error "$BIN_DIR not writable -- boot dir is root-locked; run elevated: sudo make core"
-        exit 1
-    fi
     log_info "Installing playwright CLI into $BIN_DIR via uv tool..."
     UV_TOOL_BIN_DIR="$BIN_DIR" "$UV_CMD" tool install playwright --force
 fi
 
 # Set browsers path - no ~/.cache, everything in .boot-linux
 export PLAYWRIGHT_BROWSERS_PATH="$BROWSERS_DIR"
-
-# Check if already installed with correct version
-# playwright install --dry-run shows "Install location: ...chromium-NNN" only when
-# the expected version is missing or outdated. If no such line, we're up to date.
-if [[ -d "$BROWSERS_DIR" ]] && ! "$PLAYWRIGHT" install --dry-run chromium chrome 2>&1 | grep -q 'Install location:.*chromium-[0-9]'; then
-    _pw_err="$(mktemp)"
-    EXISTING=$("$PLAYWRIGHT" -version 2>"$_pw_err") || _pw_rc=$?
-    if [[ ${_pw_rc:-0} -ne 0 ]]; then
-        echo "[bootstrap-playwright] playwright version check failed: $(cat "$_pw_err")" >&2
-        EXISTING="unknown"
-    fi
-    rm -f "$_pw_err"
-    log_success "Playwright browsers already installed and up to date ($EXISTING)"
-    log_success "  Path: $BROWSERS_DIR"
-    exit 0
-fi
 
 # Check for key system dependencies BEFORE downloading
 MISSING_LIBS=()
@@ -89,7 +87,7 @@ fi
 log_info "Downloading Playwright browsers to $BROWSERS_DIR..."
 mkdir -p "$BROWSERS_DIR"
 
-if "$PLAYWRIGHT" install chromium chrome 2>&1; then
+if "$PLAYWRIGHT" install chromium 2>&1; then
     log_success "Playwright browsers downloaded"
 else
     log_error "Playwright browser download failed"
@@ -115,4 +113,4 @@ fi
 
 log_success "Playwright bootstrap complete"
 log_info "  Browsers: $BROWSERS_DIR"
-log_info "  Installed: chromium, chrome"
+log_info "  Installed: chromium"

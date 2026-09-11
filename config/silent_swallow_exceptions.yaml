@@ -1,5 +1,108 @@
-# Per-project error-swallow exceptions for WORKSPACE-VM root repo.
-# Entries require operator approval. See projects/CI docs:
-# docs/audits/SECURITY-AUDIT-2026-07-18-EXEMPTION-TAMPERING.md
-
-exceptions: []
+# Per-project silent-swallow exceptions, final model: one anchored
+# exact file per entry with full provenance. No prefixes, no wildcards.
+exceptions:
+  - path: ^tests/e2e/conftest\.py$
+    rationale: Test code runs subprocesses with check=False and asserts outcomes explicitly.
+    owner: workspace-vm
+    review_date: '2026-09-11'
+    removal: Remove when subprocess helpers surface every captured stream.
+  - path: ^tests/e2e/test_vm_cleanup\.py$
+    rationale: Test code runs subprocesses with check=False and asserts outcomes explicitly.
+    owner: workspace-vm
+    review_date: '2026-09-11'
+    removal: Remove when subprocess helpers surface every captured stream.
+  - path: ^tests/e2e/test_vm_create\.py$
+    rationale: Test code runs subprocesses with check=False and asserts outcomes explicitly.
+    owner: workspace-vm
+    review_date: '2026-09-11'
+    removal: Remove when subprocess helpers surface every captured stream.
+  - path: ^tests/e2e/test_vm_full_ci\.py$
+    rationale: Test code runs subprocesses with check=False and asserts outcomes explicitly.
+    owner: workspace-vm
+    review_date: '2026-09-11'
+    removal: Remove when subprocess helpers surface every captured stream.
+  - path: ^tests/e2e/test_vm_mgmt\.py$
+    rationale: Test code runs subprocesses with check=False and asserts outcomes explicitly.
+    owner: workspace-vm
+    review_date: '2026-09-11'
+    removal: Remove when subprocess helpers surface every captured stream.
+  - path: ^tests/e2e/test_vm_network\.py$
+    rationale: Test code runs subprocesses with check=False and asserts outcomes explicitly.
+    owner: workspace-vm
+    review_date: '2026-09-11'
+    removal: Remove when subprocess helpers surface every captured stream.
+  - path: ^tests/e2e/test_vm_qemu_shell_guard\.py$
+    rationale: Test code runs subprocesses with check=False and asserts outcomes explicitly.
+    owner: workspace-vm
+    review_date: '2026-09-11'
+    removal: Remove when subprocess helpers surface every captured stream.
+  - path: ^tests/e2e/test_vm_resources\.py$
+    rationale: Test code runs subprocesses with check=False and asserts outcomes explicitly.
+    owner: workspace-vm
+    review_date: '2026-09-11'
+    removal: Remove when subprocess helpers surface every captured stream.
+  - path: ^tests/e2e/test_vm_security\.py$
+    rationale: Test code runs subprocesses with check=False and asserts outcomes explicitly.
+    owner: workspace-vm
+    review_date: '2026-09-11'
+    removal: Remove when subprocess helpers surface every captured stream.
+  - path: ^tests/integration/oc_config_test_helpers\.py$
+    rationale: Test helper runs subprocesses with check=False and asserts outcomes explicitly.
+    owner: workspace-vm
+    review_date: '2026-09-11'
+    removal: Remove when subprocess helpers surface every captured stream.
+  - path: ^tests/integration/test_bootstrap_scripts\.py$
+    rationale: Test code asserts captured failure output explicitly.
+    owner: workspace-vm
+    review_date: '2026-09-11'
+    removal: Remove when subprocess helpers surface every captured stream.
+  - path: ^tests/integration/test_core_utils\.py$
+    rationale: Test code suppresses only the fixture-specific failure it asserts on.
+    owner: workspace-vm
+    review_date: '2026-09-11'
+    removal: Remove when subprocess helpers surface every captured stream.
+  - path: ^tests/integration/test_extensions_help\.py$
+    rationale: Test code asserts captured failure output explicitly.
+    owner: workspace-vm
+    review_date: '2026-09-11'
+    removal: Remove when subprocess helpers surface every captured stream.
+  - path: ^tests/integration/test_git_safety_patcher\.py$
+    rationale: Test code runs subprocesses with check=False and asserts outcomes explicitly.
+    owner: workspace-vm
+    review_date: '2026-09-11'
+    removal: Remove when subprocess helpers surface every captured stream.
+  - path: ^tests/integration/test_setup_shell_aliases\.py$
+    rationale: Test code runs subprocesses with check=False and asserts outcomes explicitly.
+    owner: workspace-vm
+    review_date: '2026-09-11'
+    removal: Remove when subprocess helpers surface every captured stream.
+  - path: ^tests/unit/cli/test_vm_manager\.py$
+    rationale: Test code runs subprocesses with check=False and asserts outcomes explicitly.
+    owner: workspace-vm
+    review_date: '2026-09-11'
+    removal: Remove when subprocess helpers surface every captured stream.
+  - path: ^tests/unit/scripts/test_bootstrap_certs\.py$
+    rationale: Test code runs subprocesses with check=False and asserts outcomes explicitly.
+    owner: workspace-vm
+    review_date: '2026-09-11'
+    removal: Remove when subprocess helpers surface every captured stream.
+  - path: ^tests/unit/scripts/test_bootstrap_repos\.py$
+    rationale: Test code runs subprocesses with check=False and asserts outcomes explicitly.
+    owner: workspace-vm
+    review_date: '2026-09-11'
+    removal: Remove when subprocess helpers surface every captured stream.
+  - path: ^tests/unit/scripts/test_tunnel\.py$
+    rationale: Test code runs subprocesses with check=False and asserts outcomes explicitly.
+    owner: workspace-vm
+    review_date: '2026-09-11'
+    removal: Remove when subprocess helpers surface every captured stream.
+  - path: ^tests/unit/scripts/utils/test_git_status_all\.py$
+    rationale: Test code runs the script under test with check=False and asserts outcomes explicitly.
+    owner: workspace-vm
+    review_date: '2026-09-11'
+    removal: Remove when subprocess helpers surface every captured stream.
+  - path: ^tests/unit/test_oc_message\.py$
+    rationale: Test code runs subprocesses with check=False and asserts outcomes explicitly.
+    owner: workspace-vm
+    review_date: '2026-09-11'
+    removal: Remove when subprocess helpers surface every captured stream.

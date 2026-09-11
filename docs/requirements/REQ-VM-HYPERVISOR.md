@@ -34,7 +34,7 @@ The feature provides:
 - **Authoritative guard testing** - WORKSPACE-GUARD capability, `setcap`, and
  `chattr` E2E SHALL run only inside QEMU guests
 - **Cross-platform engine strategy** - QEMU (GPL-2.0) with per-host accelerator
- auto-selection and TCG fallback
+ auto-selection and TCG software emulation as the universal engine
 
 **In scope (v1 POC):**
 
@@ -68,7 +68,7 @@ The feature provides:
 | **QEMU backend** | Full hardware-emulated or accelerated Linux VM via `qemu-system-*` |
 | **Isolation backend** | The hypervisor driver selected by `isolation.backend` in VM YAML |
 | **VM boundary** | QEMU guest with separate kernel - guest writes do not affect host `/` |
-| **TCG** | QEMU Tiny Code Generator - software CPU emulation, universal fallback |
+| **TCG** | QEMU Tiny Code Generator - software CPU emulation, available on every host |
 | **Accelerator** | Host-specific QEMU accel: `kvm` (Linux), `hvf` (macOS), `whpx` (Windows) |
 | **Boot directory** | Workspace-local directory containing pinned tool binaries. |
 | **Base image** | Shared Ubuntu cloud image under `.vms/_base/` |
@@ -282,9 +282,8 @@ match the pin file. macOS SHALL symlink from Homebrew. When the installed distro
 version differs from the pin, bootstrap SHALL use the pinned tarball and report the
 selection reason.
 
-**FR-10.5** POC MAY warn and select `PATH` on developer hosts when boot-dir
-binaries are absent. CI and release gates SHALL require boot-dir resolution (no silent
-PATH selection).
+**FR-10.5** Boot-dir binaries SHALL be required on all hosts. Missing binaries SHALL
+produce an explicit error with bootstrap instructions; host-PATH selection is prohibited.
 
 **FR-10.6** `config/system-deps.yaml` SHALL list host tools required by QEMU backend
 that are not QEMU itself: `cloud-image-utils` (`cloud-localds`), and on Linux
@@ -311,10 +310,10 @@ prerequisite; macOS HVF requires no extra entitlement for `qemu-system-*`.
 **NFR-1** No breaking change to existing Podman-only workflows. Default backend
 is `podman`; all current tests and configs pass without edits.
 
-**NFR-2** No silent alternate selection is permitted for a missing QEMU binary, base image, or failed
+**NFR-2** No implicit alternate selection is permitted for a missing QEMU binary, base image, or failed
 accelerator probe - surface explicit errors with bootstrap hints.
 
-**NFR-3** No `dict[str, object]` in new Python code; use typed models per AGENTS.md.
+**NFR-3** No untyped dicts with object-typed values in new Python code; use typed models per AGENTS.md.
 
 **NFR-4** Shell scripts SHALL use `#!/bin/bash`, `set -euo pipefail`, and
 `source ... || exit 1`.
@@ -398,7 +397,7 @@ Execution status for each criterion is tracked in §10.
 
 QEMU is the selected engine for the hardware-VM path because it is the only
 mature, actively maintained, GPL-2.0-licensed engine with **TCG software
-fallback on every host** plus native accelerators (KVM, HVF, WHPX). Alternatives
+emulation on every host** plus native accelerators (KVM, HVF, WHPX). Alternatives
 evaluated:
 
 | Engine | License | Cross-platform VM? | v1 role |

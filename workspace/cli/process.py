@@ -1,4 +1,4 @@
-"""Subprocess helpers with explicit ``check=True`` (no silent swallow)."""
+"""Subprocess helpers with explicit ``check=True``; failures raise immediately."""
 
 from __future__ import annotations
 

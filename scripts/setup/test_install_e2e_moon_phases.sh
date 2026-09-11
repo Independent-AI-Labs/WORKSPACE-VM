@@ -65,8 +65,12 @@ if [ -n "$MOON" ]; then
         head tagged_python.json
         exit 1
     fi
-    PYTHON_COUNT=$(.venv/bin/python -c \
-        "import json; d=json.load(open('tagged_python.json')); print(len(d.get('projects',[])))" 2>&1)
+    PYTHON_COUNT=$(uv run python - <<'PY'
+import json
+d = json.load(open("tagged_python.json"))
+print(len(d.get("projects", [])))
+PY
+)
     if [ -z "$PYTHON_COUNT" ] || [ "$PYTHON_COUNT" = "0" ]; then
         echo "[FAIL] python-tagged project count is 0 - tags missing or query broken"
         exit 1

@@ -1,8 +1,8 @@
 # Implementation Plan: OpenCode Moderator Finite-State Machine
 
-**Status:** Approved; checklist-free policy migration pending  
+**Status:** Superseded - requirements replaced by REQ-AGENTCI-RESPONSE-MODERATION
 **Date:** 2026-08-10  
-**Requirements:** [REQ-OPENCODE-RESPONSE-MODERATOR](../requirements/REQ-OPENCODE-RESPONSE-MODERATOR.md)  
+**Requirements:** [REQ-AGENTCI-RESPONSE-MODERATION](../requirements/REQ-AGENTCI-RESPONSE-MODERATION.md)
 **Specification:** [SPEC-OPENCODE-RESPONSE-MODERATOR](../specifications/SPEC-OPENCODE-RESPONSE-MODERATOR.md)
 
 ## Scope

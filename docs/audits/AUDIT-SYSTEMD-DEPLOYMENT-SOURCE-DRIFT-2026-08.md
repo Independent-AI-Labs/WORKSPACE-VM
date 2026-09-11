@@ -23,7 +23,7 @@ but the healthy runtime concealed serious provisioning drift:
 - Llamafile's deployed unit and environment file lagged their provisioning
   source, and the service had no managed-service declaration.
 - The workspace status command ignored every deployed project unit because its
-  prefix list only covered legacy service names.
+  prefix list only covered outdated service names.
 - The tracked OpenVPN bootstrap script had been corrupted by a prior bulk edit,
   making future service installation impossible.
 
@@ -146,14 +146,14 @@ ownership must be represented in the root managed-service inventory.
 
 ### Medium: Managed-Service Inventory and Status Were Blind
 
-`workspace/cli/status_systemd.py` only discovered legacy prefixes such as
+`workspace/cli/status_systemd.py` only discovered outdated prefixes such as
 `ami-`, `matrix-`, and `postgres`. It ignored all eight deployed project units.
 Orphan reporting then narrowed discovery again to `ami-*` user services.
 
 Several declaration files also used unsupported keys. The loader accepts only
 `compose_services` and `local_services`, while CI used `services` and Portal
 used `systemd_services`. Portal omitted its healthcheck service and timer from
-the declaration. Root inventory declared absent legacy units and duplicated a
+the declaration. Root inventory declared absent obsolete units and duplicated a
 Wiki compose path through the immutable deployment instead of source.
 
 Required correction: discover all current prefixes, support explicit service

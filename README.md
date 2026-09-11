@@ -289,7 +289,7 @@ README: [`benchmarks/llamafile/transcript_classifier/README.md`](benchmarks/llam
 
 ## 3. Workspace Philosophy
 
-WORKSPACE-VM is an **umbrella repo** that orchestrates multiple independent git clones under `projects/` ([`workspace/config/workspace-clones.yaml`](workspace/config/workspace-clones.yaml)). `projects/WORKSPACE-CI` and `projects/DATAOPS` are mandatory; other projects (PORTAL, TRADING, GUARD, etc.) opt in via `bootstrap-repos`. Agents, hooks, and guard policy apply workspace-wide; compliance is not optional per nested repo.
+WORKSPACE-VM is an **umbrella repo** that orchestrates multiple independent git clones under `projects/` ([`workspace/config/workspace-clones.yaml`](workspace/config/workspace-clones.yaml)). `projects/WORKSPACE-CI` and `projects/WORKSPACE-DATAOPS` are mandatory; other projects (PORTAL, TRADING, GUARD, etc.) opt in via `bootstrap-repos`. Agents, hooks, and guard policy apply workspace-wide; compliance is not optional per nested repo.
 
 - **Fail-Closed Security:** Agent VMs use air-gapped Podman (`network.mode: none`) when no network mode is supplied. `git-guard` wraps `/usr/bin/git` at the syscall boundary, blocking `--no-verify` and history rewrite. `podman-guard` enforces container egress and capability policy before a container starts.
 - **Compliance as Code:** WORKSPACE-CI (sealed at `/opt/workspace-ci`, developed in `projects/WORKSPACE-CI/`) generates native git hooks from `.pre-commit-config.yaml` and installs them recursively across nested repos. Hook stages and checks: [`projects/WORKSPACE-CI/README.md`](projects/WORKSPACE-CI/README.md).
@@ -305,7 +305,7 @@ Use this table as a route map when onboarding. It shows where agent logic, enfor
 | :--- | :--- | :--- |
 | **Core Agents** | `workspace/` | Agent logic, CLI entrypoints, provider handlers. |
 | **Workspace CI** | `/opt/workspace-ci` | Sealed enforcement engine, system-deps resolver, native hooks. |
-| **Data/Infra** | `projects/DATAOPS/` | Sovereign services (Postgres, Keycloak, Vaultwarden). |
+| **Data/Infra** | `projects/WORKSPACE-DATAOPS/` | Sovereign services (Postgres, Keycloak, Vaultwarden). |
 | **Orchestration** | `projects/` | Federated projects (TRADING, SRP, PORTAL, etc.). |
 | **LLM models** | `models/` | GGUF weights and `.args` manifests for llamafile bundles. |
 | **LLM setup scripts** | `scripts/setup/` | Build, GPU probe, Intel/Vulkan prereqs, Ansible wrappers. |
@@ -320,7 +320,7 @@ Use this table as a route map when onboarding. It shows where agent logic, enfor
 Quality gates are mandatory and, when WORKSPACE-GUARD is installed, enforced at the git syscall boundary. There is no `--no-verify` escape hatch. Before opening a PR:
 
 1. **Pass the contract:** `make contract-check` (Makefile targets) and `make check` (lint + type-check + test via moon). Run `make check-push` locally to mirror the pre-push gate.
-2. **Install hooks:** `make install-hooks` (or `make install`, which runs `install-hooks-recursive` across the workspace and nested `projects/*` repos). Hooks are mandatory; there is no `--no-verify` escape when git-guard is installed.
+2. **Install hooks (root):** `sudo make install-hooks` (single repo) or `sudo make install-hooks-recursive` (workspace + nested `projects/*` repos); the full privileged bootstrap `sudo make init` includes it. Hook installation is root-only: hooks land root-owned and immutable; there is no user-owned hook path, and `make install` does not touch hooks. Hooks are mandatory; there is no `--no-verify` escape when git-guard is installed.
 3. **Understand the gates:** WORKSPACE-CI enforces three hook stages from `/opt/workspace-ci`:
    - **pre-commit**: ruff format/lint, mypy, gitleaks, banned-word and error-swallow scans, file-length limits, dependency freshness, unstaged-change guard.
    - **commit-msg**: conventional message format (`type: description` + body); blocks agent attribution patterns.

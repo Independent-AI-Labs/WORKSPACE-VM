@@ -17,7 +17,6 @@ def _find_project_root() -> Path:
 
 AMI_ROOT = _find_project_root()
 OC_SRC = AMI_ROOT / "workspace" / "config" / "opencode"
-MODERATOR_INSTALLER = AMI_ROOT / "workspace" / "scripts" / "install-opencode-moderator"
 WRAPPERS = (
     AMI_ROOT / "workspace" / "scripts" / "bin" / "oc",
     AMI_ROOT / "workspace" / "scripts" / "bin" / "ocb",

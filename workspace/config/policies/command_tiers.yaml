@@ -35,9 +35,9 @@ hard_deny:
   - pattern: '--no-verify'
     message: "Git hook bypass forbidden"
   - pattern: '\bpython3?\s+-c\b'
-    message: "Inline python execution forbidden"
+    message: "Inline Python execution forbidden"
   - pattern: '\|\s*python3?\b'
-    message: "Piping to python forbidden"
+    message: "Piping to Python forbidden"
   - pattern: '\bpip3?\b'
     message: "Use uv sync instead of pip"
   - pattern: '(?<!run )\bruff\b'

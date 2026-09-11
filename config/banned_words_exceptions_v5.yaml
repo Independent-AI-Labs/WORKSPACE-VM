@@ -1,0 +1,283 @@
+# Per-project exceptions, schema v5: one rule id + one anchored exact file
+# per entry, with full provenance.
+exceptions:
+  # Root AGENTS.md documents hook/checker policy and must quote rule examples.
+  - rule: bsilent
+    path: ^AGENTS\.md$
+    rationale: Meta policy document quoting the rules it defines.
+    owner: workspace-vm
+    review_date: '2026-09-10'
+    removal: Remove when AGENTS.md no longer quotes this rule.
+  - rule: s-type-s-ignore
+    path: ^AGENTS\.md$
+    rationale: Meta policy document quoting the rules it defines.
+    owner: workspace-vm
+    review_date: '2026-09-10'
+    removal: Remove when AGENTS.md no longer quotes this rule.
+  - rule: s-noqa
+    path: ^AGENTS\.md$
+    rationale: Meta policy document quoting the rules it defines.
+    owner: workspace-vm
+    review_date: '2026-09-10'
+    removal: Remove when AGENTS.md no longer quotes this rule.
+  - rule: unsafe-s
+    path: ^AGENTS\.md$
+    rationale: Meta policy document quoting the rules it defines.
+    owner: workspace-vm
+    review_date: '2026-09-10'
+    removal: Remove when AGENTS.md no longer quotes this rule.
+  - rule: blegacy-b
+    path: ^AGENTS\.md$
+    rationale: Meta policy document quoting the rules it defines.
+    owner: workspace-vm
+    review_date: '2026-09-10'
+    removal: Remove when AGENTS.md no longer quotes this rule.
+  - rule: self-get
+    path: ^AGENTS\.md$
+    rationale: Meta policy document quoting the rules it defines.
+    owner: workspace-vm
+    review_date: '2026-09-10'
+    removal: Remove when AGENTS.md no longer quotes this rule.
+  - rule: bmock-b
+    path: ^AGENTS\.md$
+    rationale: Meta policy document quoting the rules it defines.
+    owner: workspace-vm
+    review_date: '2026-09-10'
+    removal: Remove when AGENTS.md no longer quotes this rule.
+  - rule: bstubs-b
+    path: ^AGENTS\.md$
+    rationale: Meta policy document quoting the rules it defines.
+    owner: workspace-vm
+    review_date: '2026-09-10'
+    removal: Remove when AGENTS.md no longer quotes this rule.
+  - rule: bfallback-b
+    path: ^AGENTS\.md$
+    rationale: Meta policy document quoting the rules it defines.
+    owner: workspace-vm
+    review_date: '2026-09-10'
+    removal: Remove when AGENTS.md no longer quotes this rule.
+  - rule: protected-bare-system-interpreter
+    path: ^AGENTS\.md$
+    rationale: Meta policy document quoting the rules it defines.
+    owner: workspace-vm
+    review_date: '2026-09-10'
+    removal: Remove when AGENTS.md no longer quotes this rule.
+  # Prompt catalogs define the banned patterns; they must quote them verbatim.
+  - rule: protected-bare-system-interpreter
+    path: ^workspace/config/prompts/patterns_core\.txt$
+    rationale: Pattern catalog defines this rule; quoting is its purpose.
+    owner: workspace-vm
+    review_date: '2026-09-10'
+    removal: Remove when the catalog no longer defines this rule.
+  - rule: bfallback-b
+    path: ^workspace/config/prompts/patterns_core\.txt$
+    rationale: Pattern catalog defines this rule; quoting is its purpose.
+    owner: workspace-vm
+    review_date: '2026-09-10'
+    removal: Remove when the catalog no longer defines this rule.
+  - rule: protected-bare-system-interpreter
+    path: ^workspace/config/prompts/agent\.txt$
+    rationale: Prompt file defines this rule; quoting is its purpose.
+    owner: workspace-vm
+    review_date: '2026-09-10'
+    removal: Remove when the file no longer defines this rule.
+  - rule: protected-bare-system-interpreter
+    path: ^workspace/config/patterns/README\.md$
+    rationale: Pattern-pack documentation quoting the rules it documents.
+    owner: workspace-vm
+    review_date: '2026-09-10'
+    removal: Remove when the file no longer documents this rule.
+  # python_fast.yaml is the pattern pack that defines these Python rules.
+  - rule: bstubs-b
+    path: ^workspace/config/patterns/python_fast\.yaml$
+    rationale: Pattern pack defines this rule; quoting is its purpose.
+    owner: workspace-vm
+    review_date: '2026-09-10'
+    removal: Remove when the pack no longer defines this rule.
+  - rule: s-type-s-ignore
+    path: ^workspace/config/patterns/python_fast\.yaml$
+    rationale: Pattern pack defines this rule; quoting is its purpose.
+    owner: workspace-vm
+    review_date: '2026-09-10'
+    removal: Remove when the pack no longer defines this rule.
+  - rule: s-noqa
+    path: ^workspace/config/patterns/python_fast\.yaml$
+    rationale: Pattern pack defines this rule; quoting is its purpose.
+    owner: workspace-vm
+    review_date: '2026-09-10'
+    removal: Remove when the pack no longer defines this rule.
+  - rule: mypy-ignore-errors
+    path: ^workspace/config/patterns/python_fast\.yaml$
+    rationale: Pattern pack defines this rule; quoting is its purpose.
+    owner: workspace-vm
+    review_date: '2026-09-10'
+    removal: Remove when the pack no longer defines this rule.
+  - rule: parent-parent
+    path: ^workspace/config/patterns/python_fast\.yaml$
+    rationale: Pattern pack defines this rule; quoting is its purpose.
+    owner: workspace-vm
+    review_date: '2026-09-10'
+    removal: Remove when the pack no longer defines this rule.
+  - rule: parents
+    path: ^workspace/config/patterns/python_fast\.yaml$
+    rationale: Pattern pack defines this rule; quoting is its purpose.
+    owner: workspace-vm
+    review_date: '2026-09-10'
+    removal: Remove when the pack no longer defines this rule.
+  - rule: blazy-b
+    path: ^workspace/config/patterns/python_fast\.yaml$
+    rationale: Pattern pack defines this rule; quoting is its purpose.
+    owner: workspace-vm
+    review_date: '2026-09-10'
+    removal: Remove when the pack no longer defines this rule.
+  - rule: bdict-s-any
+    path: ^workspace/config/patterns/python_fast\.yaml$
+    rationale: Pattern pack defines this rule; quoting is its purpose.
+    owner: workspace-vm
+    review_date: '2026-09-10'
+    removal: Remove when the pack no longer defines this rule.
+  - rule: buuid-134568
+    path: ^workspace/config/patterns/python_fast\.yaml$
+    rationale: Pattern pack defines this rule; quoting is its purpose.
+    owner: workspace-vm
+    review_date: '2026-09-10'
+    removal: Remove when the pack no longer defines this rule.
+  - rule: uuid-uuid-134568
+    path: ^workspace/config/patterns/python_fast\.yaml$
+    rationale: Pattern pack defines this rule; quoting is its purpose.
+    owner: workspace-vm
+    review_date: '2026-09-10'
+    removal: Remove when the pack no longer defines this rule.
+  # Component names: `- python` is a bootstrap component identifier, not an
+  # interpreter invocation.
+  - rule: protected-bare-system-interpreter
+    path: ^workspace/config/bootstrap-components\.yaml$
+    rationale: Component identifier named after the language runtime.
+    owner: workspace-vm
+    review_date: '2026-09-10'
+    removal: Remove if the component is renamed.
+  - rule: protected-bare-system-interpreter
+    path: ^workspace/config/install-defaults\.yaml$
+    rationale: Component identifier named after the language runtime.
+    owner: workspace-vm
+    review_date: '2026-09-10'
+    removal: Remove if the component is renamed.
+  - rule: protected-bare-system-interpreter
+    path: ^workspace/config/vm-template\.yaml$
+    rationale: Component identifier named after the language runtime.
+    owner: workspace-vm
+    review_date: '2026-09-10'
+    removal: Remove if the component is renamed.
+  - rule: protected-bare-system-interpreter
+    path: ^workspace/config/vm-guard-qemu\.yaml$
+    rationale: Component identifier named after the language runtime.
+    owner: workspace-vm
+    review_date: '2026-09-10'
+    removal: Remove if the component is renamed.
+  - rule: protected-bare-system-interpreter
+    path: ^workspace/config/vm-full-ci-qemu\.yaml$
+    rationale: Component identifier named after the language runtime.
+    owner: workspace-vm
+    review_date: '2026-09-10'
+    removal: Remove if the component is renamed.
+  - rule: protected-bare-system-interpreter
+    path: ^workspace/scripts/bin/extension\.manifest\.yaml$
+    rationale: Component identifier named after the language runtime.
+    owner: workspace-vm
+    review_date: '2026-09-10'
+    removal: Remove if the component is renamed.
+  # bootstrap.sh installs the uv-managed interpreter by name.
+  - rule: protected-bare-system-interpreter
+    path: ^workspace/scripts/setup/bootstrap\.sh$
+    rationale: Invokes the uv binary's own interpreter-install subcommand.
+    owner: workspace-vm
+    review_date: '2026-09-10'
+    removal: Remove if the bootstrap flow changes.
+  # moon project tag filtering uses the `python` tag as data.
+  - rule: protected-bare-system-interpreter
+    path: ^scripts/setup/test_install_e2e_moon_phases\.sh$
+    rationale: moon `--tags python` is a project-tag identifier, not an invocation.
+    owner: workspace-vm
+    review_date: '2026-09-10'
+    removal: Remove if the moon tag is renamed.
+  # Test asserts wrapper scripts rewrite .venv interpreter paths.
+  - rule: venv-bin-python
+    path: ^tests/unit/scripts/test_register_extensions\.py$
+    rationale: Test fixture and assertion for the rewrite being tested.
+    owner: workspace-vm
+    review_date: '2026-09-10'
+    removal: Remove when the test no longer exercises .venv rewrites.
+  # Dated audit quotes incident evidence verbatim.
+  - rule: home
+    path: ^docs/audits/AUDIT-BOOT-DIRECTORY-OWNERSHIP-AND-TRUST-BOUNDARIES-2026-08\.md$
+    rationale: Dated audit quotes incident evidence verbatim.
+    owner: workspace-vm
+    review_date: '2026-09-10'
+    removal: Remove when the audit is retired.
+  - rule: blegacy-b
+    path: ^docs/audits/AUDIT-BOOT-DIRECTORY-OWNERSHIP-AND-TRUST-BOUNDARIES-2026-08\.md$
+    rationale: Dated audit quotes incident evidence verbatim.
+    owner: workspace-vm
+    review_date: '2026-09-10'
+    removal: Remove when the audit is retired.
+  - rule: bsilent
+    path: ^docs/audits/AUDIT-BOOT-DIRECTORY-OWNERSHIP-AND-TRUST-BOUNDARIES-2026-08\.md$
+    rationale: Dated audit quotes incident evidence verbatim.
+    owner: workspace-vm
+    review_date: '2026-09-10'
+    removal: Remove when the audit is retired.
+  # Dated proposals/audits quote paths and CLI syntax verbatim.
+  - rule: home
+    path: ^docs/proposals/MIGRATION-PLAN\.md$
+    rationale: Dated migration plan quotes concrete deployment paths.
+    owner: workspace-vm
+    review_date: '2026-09-10'
+    removal: Remove when the migration is complete.
+  - rule: protected-bare-system-interpreter
+    path: ^docs/proposals/MIGRATION-PLAN\.md$
+    rationale: Dated migration plan quotes component names and fence tags.
+    owner: workspace-vm
+    review_date: '2026-09-10'
+    removal: Remove when the migration is complete.
+  - rule: rule
+    path: ^docs/proposals/MIGRATION-PLAN\.md$
+    rationale: Dated migration plan quotes real CLI separator syntax.
+    owner: workspace-vm
+    review_date: '2026-09-10'
+    removal: Remove when the migration is complete.
+  - rule: protected-bare-system-interpreter
+    path: ^docs/proposals/MIGRATION-CLI-COMPONENTS-TO-DATAOPS\.md$
+    rationale: Dated migration document quotes component names and fence tags.
+    owner: workspace-vm
+    review_date: '2026-09-10'
+    removal: Remove when the migration is complete.
+  - rule: protected-bare-system-interpreter
+    path: ^docs/specifications/SPEC-OPENVPN\.md$
+    rationale: Specification quotes fence tags and component names.
+    owner: workspace-vm
+    review_date: '2026-09-10'
+    removal: Remove when the spec no longer quotes this rule.
+  - rule: protected-bare-system-interpreter
+    path: ^docs/specifications/SPEC-VM-HYPERVISOR\.md$
+    rationale: Specification quotes fence tags and component names.
+    owner: workspace-vm
+    review_date: '2026-09-10'
+    removal: Remove when the spec no longer quotes this rule.
+  - rule: rule
+    path: ^docs/specifications/SPEC-AGENT-POLICY\.md$
+    rationale: Specification quotes real CLI separator syntax.
+    owner: workspace-vm
+    review_date: '2026-09-10'
+    removal: Remove when the spec no longer quotes this syntax.
+  - rule: rule
+    path: ^docs/specifications/SPEC-OPENCODE-ISOLATED-INTEGRATION-TESTS\.md$
+    rationale: Specification quotes real CLI separator syntax.
+    owner: workspace-vm
+    review_date: '2026-09-10'
+    removal: Remove when the spec no longer quotes this syntax.
+  - rule: rule
+    path: ^docs/audits/GAP-ANALYSIS-A2A\.md$
+    rationale: Gap analysis quotes real CLI separator syntax verbatim.
+    owner: workspace-vm
+    review_date: '2026-09-10'
+    removal: Remove when the analysis is retired.

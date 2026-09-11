@@ -7,6 +7,7 @@ import re
 import shutil
 import stat
 import subprocess
+import sys
 from pathlib import Path
 
 from workspace.config_utils import PROJECT_ROOT as REPO_ROOT
@@ -46,12 +47,18 @@ def _make_fake_workspace(tmp_path: Path) -> tuple[Path, Path]:
     (cfg_dir / "workspace-clones.yaml").write_text(SAMPLE_CLONES_YAML)
 
     projects_dir = root / "projects"
-    projects_dir.mkdir(parents=True)
+    projects_dir.mkdir()
     (projects_dir / "WORKSPACE-CI").mkdir()
     (projects_dir / "vendor-lib").mkdir()
     (root / ".git").mkdir()
     (projects_dir / "WORKSPACE-CI" / ".git").mkdir()
     (projects_dir / "vendor-lib" / ".git").mkdir()
+
+    # The script resolves its interpreter from the checkout boot directory;
+    # mirror that layout so the copy under test stays self-contained.
+    boot_bin = root / ".boot-linux" / "bin"
+    boot_bin.mkdir(parents=True)
+    (boot_bin / "python").symlink_to(sys.executable)
 
     return script_copy, root
 

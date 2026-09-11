@@ -27,7 +27,7 @@ A single-activity Jetpack Compose app plus a foreground `VmService` that:
 2. Boots a QCOW2 overlay backed by a pristine Ubuntu cloud base image with a
    cloud-init NoCloud seed.
 3. Starts VirGL before QEMU and renders the guest desktop through Termux:X11
-   (primary) or a bundled VNC client (fallback).
+   (primary) or a bundled VNC client (secondary).
 4. Stages user playbook directories over VirtFS (9p) and runs
    `ansible-playbook` inside the guest over forwarded SSH.
 

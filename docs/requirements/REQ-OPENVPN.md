@@ -66,7 +66,7 @@ The feature provides:
 
 **FR-1.3** On Linux, bootstrap SHALL use `apt-get install openvpn` and SHALL require operator `sudo` for package installation.
 
-**FR-1.4** All runtime consumers (CLI, service units, netns setup) SHALL resolve the binary from `<boot-dir>/bin/openvpn` first, then `PATH`, and SHALL fail explicitly when neither is available.
+**FR-1.4** All runtime consumers (CLI, service units, netns setup) SHALL resolve the binary from `<boot-dir>/bin/openvpn` only, and SHALL fail explicitly when it is absent. Host-PATH resolution is prohibited.
 
 ### FR-2: Configuration Resolution
 
@@ -160,9 +160,9 @@ The feature provides:
 
 ## 4. Non-Functional Requirements
 
-**NFR-1** No silent fallbacks, missing binary, config, or sudo SHALL surface errors to the caller.
+**NFR-1** No implicit secondary resolution: missing binary, config, or sudo SHALL surface errors to the caller.
 
-**NFR-2** No `dict[str, object]` in new Python code; use typed models and TypedDict where needed.
+**NFR-2** No untyped dicts with object-typed values in new Python code; use typed models and TypedDict where needed.
 
 **NFR-3** Shell scripts SHALL use `#!/bin/bash`, `set -euo pipefail`, and `source ... || exit 1`, per AGENTS.md Rule 14.
 

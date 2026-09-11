@@ -360,10 +360,10 @@ action:
   type: run
   command: "path/to/script.sh"               # absolute or relative to AMI_ROOT
   timeout_ms: 5000                           # max execution time in ms (default: 5000)
-  cwd: "/home/user/project"                  # optional working directory (default: plugin's directory)
+  cwd: "$HOME/project"                  # optional working directory (default: plugin's directory)
 ```
 
-**`command`** (required): Path to the script. `#!` shebang determines the interpreter (`#!/usr/bin/env bash`, `#!/usr/bin/env python3`, etc.). The script MUST be executable and on disk at render time.
+**`command`** (required): Path to the script. `#!` shebang determines the interpreter (`#!/usr/bin/env bash`, `#!/bin/sh`, etc.). The script MUST be executable and on disk at render time.
 
 **`timeout_ms`** (optional, default 5000): Maximum wall-clock time for script execution. Exceeding this produces `{"action":"block","reason":"timeout"}`.
 
@@ -382,7 +382,7 @@ The script receives a single JSON object on stdin. The shape depends on the hook
   "callID": "call456",
   "args": {
     "command": "rm -rf /tmp/build",
-    "workdir": "/home/user/project"
+    "workdir": "$HOME/project"
   }
 }
 ```
@@ -396,7 +396,7 @@ The script receives a single JSON object on stdin. The shape depends on the hook
   "callID": "call456",
   "args": {
     "command": "git status",
-    "workdir": "/home/user/project"
+    "workdir": "$HOME/project"
   },
   "result": {
     "title": "Ran git status",
@@ -478,7 +478,7 @@ Every `run` action decision is logged to the audit trail with:
 
 **Trust boundary:** Scripts invoked by `run` execute with the same user and filesystem permissions as the opencode process. Policy authors MUST only reference trusted scripts from the `workspace/config/opencode/policies/scripts/` directory or equivalent controlled location.
 
-**No system shell:** Bun's `$` API is the execution layer. It auto-escapes all arguments, preventing command injection. The shebang line determines the interpreter - `/bin/sh`, `/usr/bin/env python3`, or any other executable.
+**No system shell:** Bun's `$` API is the execution layer. It auto-escapes all arguments, preventing command injection. The shebang line determines the interpreter - `/bin/sh`, `/usr/bin/env bash`, or any other executable.
 
 **Network access:** Scripts CAN make network calls (via `curl`, `fetch`, etc.) but the policy engine makes no network calls itself. Network access is governed by the script's environment, not the plugin. Policy authors SHOULD document any network-dependent scripts.
 
@@ -508,7 +508,7 @@ The existing V2 HookManager (v4.0.0, `hook_manager.py`, `guards.py`) operates at
 
 **Migration path:**
 1. **Phase 1:** Policy engine deploys alongside HookManager. The `tool.execute.before`/`after` hooks provide tool-call-level enforcement that the V2 system cannot offer. HookManager's 21 hard-deny patterns are migrated to `template/tool-guards.template.yaml` as policy rules.
-2. **Phase 2:** HookManager is disabled by default. A `--legacy-hooks` flag enables it for backward compatibility. All new deployments use the policy engine exclusively.
+2. **Phase 2:** HookManager is removed. All deployments use the policy engine exclusively; there is no re-enable flag.
 3. **Phase 3:** HookManager code is archived to `docs/archive/v2/`. All enforcement flows through the policy engine and opencode plugin hooks.
 
 The V2 HookManager's command-tier architecture (observe/modify/execute/admin) maps directly to the policy engine's `block`/`allow`/`warn`/`ask` action types. The 21 hard-deny patterns are expressible as `match` conditions with `action: block`.
