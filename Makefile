@@ -120,6 +120,7 @@ init-root: ## (ROOT) Privileged bootstrap: deploy-ci + guard + hooks/exemptions 
 	$(MAKE) install-guard-host-exec
 	$(MAKE) install-hooks-recursive
 	$(MAKE) enforce-syslog-limits
+	$(MAKE) enforce-multi-server-limits
 	echo "✅ Privileged bootstrap complete"
 
 # =============================================================================
@@ -173,9 +174,9 @@ install: require-non-root init-check sync-package ## Interactive TUI to select a
 	echo "" && \
 	echo "    Deploys /opt/workspace-ci from WORKSPACE-CI, installs the git" && \
 	echo "    guard, root-owns hooks + exemption files in every consumer" && \
-	echo "    repo, and enforces syslog limits (INCIDENT-2026-07-05)." && \
+	echo "    repo, enforces syslog limits (INCIDENT-2026-07-05), and raises" && \
+	echo "    multi-server capacity limits (inotify/conntrack/sockets/fds)." && \
 	echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-
 .PHONY: install-qemu
 install-qemu: require-non-root ## Install QEMU + firmware into platform boot directory (GPL-2.0)
 	bash workspace/scripts/bootstrap/bootstrap_qemu.sh
@@ -205,8 +206,9 @@ install-ci: require-non-root init-check sync-package ## Non-interactive componen
 	echo "" && \
 	echo "    Deploys /opt/workspace-ci from WORKSPACE-CI, installs the git" && \
 	echo "    guard, root-owns hooks + exemption files in every consumer" && \
-	echo "    repo, and enforces syslog limits (INCIDENT-2026-07-05)." && \
-	echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	echo "    repo, enforces syslog limits (INCIDENT-2026-07-05), and raises" && \
+	echo "    multi-server capacity limits (inotify/conntrack/sockets/fds)." && \
+	echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 # WORKSPACE-GUARD: git protection (delegates to CI + WORKSPACE-GUARD)
 # Guard targets require git over SSH (ensure-repos pulls every workspace
@@ -245,6 +247,14 @@ guard-up guard-refresh guard-check guard-down guard-reset:
 .PHONY: enforce-syslog-limits
 enforce-syslog-limits: ## Enforce system-level log ceilings (needs sudo) - delegates to CI
 	$(SCRIPT_BASH) $(CI_DIR)/scripts/enforce-syslog-limits
+
+.PHONY: enforce-multi-server-limits
+enforce-multi-server-limits: ## Enforce multi-server capacity limits: inotify/conntrack/socket/fd (needs sudo)
+	if [ "$$(id -u)" != "0" ]; then \
+		echo "ERROR: enforce-multi-server-limits requires root. Run: sudo make enforce-multi-server-limits" >&2; \
+		exit 1; \
+	fi
+	$(SCRIPT_BASH) scripts/setup/configure-multi-server-limits.sh
 
 # =============================================================================
 # Repos
