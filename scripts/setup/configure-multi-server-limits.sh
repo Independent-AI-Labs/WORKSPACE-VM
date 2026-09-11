@@ -17,6 +17,7 @@ set -euo pipefail
 #   /etc/modprobe.d/nf_conntrack-workspace.conf           (conntrack hash size)
 #   /etc/systemd/system.conf.d/50-workspace-multi-server.conf  (system manager fd limits)
 #   /etc/systemd/user.conf.d/50-workspace-multi-server.conf    (user manager fd limits)
+#   /swap2.img + /etc/fstab swap entry                    (total swap raised to 32G)
 # Plus immediate relief: chmod 0755 on the root-only-installed podman
 # user generator (deploy-ci installs it 0700; a *user* generator must be
 # user-executable - tracked separately in WORKSPACE-CI deploy-ci).
@@ -41,12 +42,14 @@ SYSTEM_LIMITS_FILE="$SYSTEM_CONF_DIR/50-workspace-multi-server.conf"
 USER_LIMITS_FILE="$USER_CONF_DIR/50-workspace-multi-server.conf"
 PODMAN_GENERATOR="/usr/local/lib/systemd/user-generators/podman-user-generator"
 NOFILE_LIMIT="1048576"
+SWAP_TARGET_GB=32
+SWAP_FILE="/swap2.img"
 
 echo "=== Enforcing multi-server capacity limits ==="
 echo ""
 
 # --- 1. Kernel sysctls (persistent via sysctl.d, applied now) ---
-echo "[1/5] Writing $SYSCTL_FILE ..."
+echo "[1/6] Writing $SYSCTL_FILE ..."
 mkdir -p /etc/sysctl.d
 cat > "$SYSCTL_FILE" << 'SYSCTL_EOF'
 # WORKSPACE multi-server capacity limits (2026-09-11 incident follow-up).
@@ -89,7 +92,7 @@ chmod 644 "$SYSCTL_FILE"
 echo "    written"
 
 # --- 2. Apply sysctls now, verify each key ---
-echo "[2/5] Applying kernel limits ..."
+echo "[2/6] Applying kernel limits ..."
 FAILURES=0
 MISSING=0
 while IFS= read -r line; do
@@ -121,7 +124,7 @@ while IFS= read -r line; do
 done < "$SYSCTL_FILE"
 
 # --- 3. conntrack hash size (module param, not a sysctl) ---
-echo "[3/5] Conntrack hash size ..."
+echo "[3/6] Conntrack hash size ..."
 echo "options nf_conntrack hashsize=262144" > "$MODPROBE_FILE"
 chmod 644 "$MODPROBE_FILE"
 HASH_PARAM="/sys/module/nf_conntrack/parameters/hashsize"
@@ -133,7 +136,7 @@ else
 fi
 
 # --- 4. systemd DefaultLimitNOFILE (system + user managers) ---
-echo "[4/5] systemd fd limits (DefaultLimitNOFILE=$NOFILE_LIMIT) ..."
+echo "[4/6] systemd fd limits (DefaultLimitNOFILE=$NOFILE_LIMIT) ..."
 mkdir -p "$SYSTEM_CONF_DIR" "$USER_CONF_DIR"
 printf '[Manager]\nDefaultLimitNOFILE=%s\n' "$NOFILE_LIMIT" > "$SYSTEM_LIMITS_FILE"
 printf '[Manager]\nDefaultLimitNOFILE=%s\n' "$NOFILE_LIMIT" > "$USER_LIMITS_FILE"
@@ -146,7 +149,7 @@ echo "    user manager (uid=$TARGET_UID) re-executed"
 echo "    NOTE: already-running services keep old soft limits until restarted."
 
 # --- 5. Immediate relief: user-executable podman generator ---
-echo "[5/5] podman user generator mode ..."
+echo "[5/6] podman user generator mode ..."
 if [ -e "$PODMAN_GENERATOR" ]; then
     _mode="$(stat -c '%a' "$PODMAN_GENERATOR")"
     if [ "$_mode" != "755" ]; then
@@ -158,6 +161,49 @@ if [ -e "$PODMAN_GENERATOR" ]; then
     fi
 else
     echo "    $PODMAN_GENERATOR not present - skipped" >&2
+fi
+
+# --- 6. Total swap raised to target (adds a second swapfile; never touches
+#        the existing in-use one - growing it would require swapoff under
+#        load) ---
+echo "[6/6] Total swap target: ${SWAP_TARGET_GB}G ..."
+SWAP_TOTAL_KB="$(awk '/^SwapTotal:/ {print $2}' /proc/meminfo)"
+SWAP_TARGET_KB=$((SWAP_TARGET_GB * 1024 * 1024))
+SWAP_FAILURES=0
+if [ "$SWAP_TOTAL_KB" -ge "$SWAP_TARGET_KB" ]; then
+    echo "    total swap already $((SWAP_TOTAL_KB / 1024))M >= ${SWAP_TARGET_GB}G - skipped"
+else
+    DEFICIT_MB=$(((SWAP_TARGET_KB - SWAP_TOTAL_KB) / 1024))
+    if swapon --show --noheadings --output=NAME | grep -qx "$SWAP_FILE"; then
+        echo "    FAIL  $SWAP_FILE is active but total swap is still below target" >&2
+        SWAP_FAILURES=$((SWAP_FAILURES + 1))
+    else
+        if [ ! -e "$SWAP_FILE" ]; then
+            _st=0
+            fallocate -l "${DEFICIT_MB}M" "$SWAP_FILE" || _st=$?
+            if [ "$_st" -ne 0 ]; then
+                echo "    fallocate failed (status=$_st) - writing with dd instead" >&2
+                dd if=/dev/zero of="$SWAP_FILE" bs=1M count="$DEFICIT_MB" status=progress
+            fi
+        fi
+        chmod 0600 "$SWAP_FILE"
+        mkswap "$SWAP_FILE"
+        swapon "$SWAP_FILE"
+        if ! grep -q "^${SWAP_FILE}[[:space:]]" /etc/fstab; then
+            printf '%s\tnone\tswap\tsw\t0\t0\n' "$SWAP_FILE" >> /etc/fstab
+            echo "    appended $SWAP_FILE to /etc/fstab"
+        else
+            echo "    $SWAP_FILE already in /etc/fstab"
+        fi
+        echo "    created + enabled $SWAP_FILE (${DEFICIT_MB}M)"
+    fi
+    SWAP_TOTAL_KB="$(awk '/^SwapTotal:/ {print $2}' /proc/meminfo)"
+    if [ "$SWAP_TOTAL_KB" -lt "$SWAP_TARGET_KB" ]; then
+        echo "    FAIL  total swap is $((SWAP_TOTAL_KB / 1024))M, below ${SWAP_TARGET_GB}G target" >&2
+        SWAP_FAILURES=$((SWAP_FAILURES + 1))
+    else
+        echo "    ok    total swap now $((SWAP_TOTAL_KB / 1024))M"
+    fi
 fi
 
 echo ""
@@ -183,7 +229,12 @@ echo "  - sockets: somaxconn=65535, syn_backlog=65536, port range 1024-65535"
 echo "  - transient: tw_buckets=1048576, fin_timeout=30s, tw_reuse=1"
 echo "  - conntrack: 1048576 entries, hashsize=262144, established timeout 1d"
 echo "  - per-process fds: DefaultLimitNOFILE=1048576 (system + user managers)"
+echo "  - total swap: ${SWAP_TARGET_GB}G target (/swap2.img + /etc/fstab entry)"
 echo "  - vm.swappiness=10"
+if [ "$SWAP_FAILURES" -gt 0 ]; then
+    echo "ERROR: swap extension failed (see above)" >&2
+    exit 1
+fi
 if [ "$MISSING" -gt 0 ]; then
     echo "WARN: $MISSING sysctl key(s) not present on this kernel (see above)" >&2
 fi

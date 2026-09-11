@@ -86,6 +86,19 @@ class TestCapacityScript:
         assert "chmod 0755" in text
         assert "user-generators/podman-user-generator" in text
 
+    def test_swap_extension_to_32g(self) -> None:
+        """Total swap must be raised to 32G via an added swapfile + fstab."""
+        text = SCRIPT.read_text(encoding="utf-8")
+        assert "SWAP_TARGET_GB=32" in text
+        assert "/swap2.img" in text
+        assert "fallocate" in text
+        assert "mkswap" in text
+        assert "swapon" in text
+        assert "/etc/fstab" in text
+        # Never disables the existing in-use swap device (no swapoff command;
+        # prose comments mentioning it are fine)
+        assert not re.search(r"^\s*swapoff\b", text, re.MULTILINE)
+
 
 class TestMakefileWiring:
     def test_target_root_gated(self) -> None:
