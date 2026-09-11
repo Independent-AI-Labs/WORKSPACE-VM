@@ -118,10 +118,15 @@ while IFS= read -r line; do
         FAILURES=$((FAILURES + 1))
         continue
     fi
-    # sysctl read-back renders multi-value keys with tabs; normalize both
-    # sides to single-space before comparing
+    # sysctl read-back renders multi-value keys with tabs and ends with a
+    # newline; squeeze all whitespace runs to single spaces, then trim the
+    # edges (tr turns the trailing newline into a trailing space)
     actual="$(sysctl -n "$key" | tr -s '[:space:]' ' ')"
+    actual="${actual# }"
+    actual="${actual% }"
     expected="$(printf '%s' "$value" | tr -s '[:space:]' ' ')"
+    expected="${expected# }"
+    expected="${expected% }"
     if [ "$actual" != "$expected" ]; then
         echo "    FAIL  $key expected [$expected] read back [$actual]" >&2
         FAILURES=$((FAILURES + 1))

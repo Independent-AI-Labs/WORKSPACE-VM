@@ -104,8 +104,11 @@ class TestCapacityScript:
         tab/space read-back mismatch, unsupported swapon --output=NAME,
         and the mkswap metadata-page shortfall vs an exact 32G check."""
         text = SCRIPT.read_text(encoding="utf-8")
-        # sysctl read-back whitespace normalization
+        # sysctl read-back whitespace normalization, including edge trim
+        # (tr turns the trailing newline into a trailing space)
         assert "tr -s '[:space:]' ' '" in text
+        assert 'actual="${actual% }"' in text
+        assert 'expected="${expected% }"' in text
         # active-swap detection must not use `swapon --output=`
         assert "swapon --show" not in text
         assert "--output=NAME" not in text
