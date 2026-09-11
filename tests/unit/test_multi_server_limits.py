@@ -99,6 +99,21 @@ class TestCapacityScript:
         # prose comments mentioning it are fine)
         assert not re.search(r"^\s*swapoff\b", text, re.MULTILINE)
 
+    def test_operator_run_regressions_fixed(self) -> None:
+        """Pin the three failures from the 2026-09-11 operator run:
+        tab/space read-back mismatch, unsupported swapon --output=NAME,
+        and the mkswap metadata-page shortfall vs an exact 32G check."""
+        text = SCRIPT.read_text(encoding="utf-8")
+        # sysctl read-back whitespace normalization
+        assert "tr -s '[:space:]' ' '" in text
+        # active-swap detection must not use `swapon --output=`
+        assert "swapon --show" not in text
+        assert "--output=NAME" not in text
+        assert "/proc/swaps" in text
+        # tolerance for mkswap-reserved pages instead of exact compare
+        assert "SWAP_SLACK_KB=" in text
+        assert 'lt "$SWAP_FLOOR_KB"' in text
+
 
 class TestMakefileWiring:
     def test_target_root_gated(self) -> None:

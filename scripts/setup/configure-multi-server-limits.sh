@@ -43,6 +43,10 @@ USER_LIMITS_FILE="$USER_CONF_DIR/50-workspace-multi-server.conf"
 PODMAN_GENERATOR="/usr/local/lib/systemd/user-generators/podman-user-generator"
 NOFILE_LIMIT="1048576"
 SWAP_TARGET_GB=32
+# mkswap reserves a metadata page per swap device and SwapTotal rounds
+# down; a 64M slack makes the target check exact-enough instead of
+# off-by-one-page (8G + 24G reads back as 32767M)
+SWAP_SLACK_KB=65536
 SWAP_FILE="/swap2.img"
 
 echo "=== Enforcing multi-server capacity limits ==="
@@ -114,9 +118,12 @@ while IFS= read -r line; do
         FAILURES=$((FAILURES + 1))
         continue
     fi
-    actual="$(sysctl -n "$key")"
-    if [ "$actual" != "$value" ]; then
-        echo "    FAIL  $key expected [$value] read back [$actual]" >&2
+    # sysctl read-back renders multi-value keys with tabs; normalize both
+    # sides to single-space before comparing
+    actual="$(sysctl -n "$key" | tr -s '[:space:]' ' ')"
+    expected="$(printf '%s' "$value" | tr -s '[:space:]' ' ')"
+    if [ "$actual" != "$expected" ]; then
+        echo "    FAIL  $key expected [$expected] read back [$actual]" >&2
         FAILURES=$((FAILURES + 1))
         continue
     fi
@@ -169,12 +176,13 @@ fi
 echo "[6/6] Total swap target: ${SWAP_TARGET_GB}G ..."
 SWAP_TOTAL_KB="$(awk '/^SwapTotal:/ {print $2}' /proc/meminfo)"
 SWAP_TARGET_KB=$((SWAP_TARGET_GB * 1024 * 1024))
+SWAP_FLOOR_KB=$((SWAP_TARGET_KB - SWAP_SLACK_KB))
 SWAP_FAILURES=0
-if [ "$SWAP_TOTAL_KB" -ge "$SWAP_TARGET_KB" ]; then
+if [ "$SWAP_TOTAL_KB" -ge "$SWAP_FLOOR_KB" ]; then
     echo "    total swap already $((SWAP_TOTAL_KB / 1024))M >= ${SWAP_TARGET_GB}G - skipped"
 else
     DEFICIT_MB=$(((SWAP_TARGET_KB - SWAP_TOTAL_KB) / 1024))
-    if swapon --show --noheadings --output=NAME | grep -qx "$SWAP_FILE"; then
+    if grep -q "^${SWAP_FILE}[[:space:]]" /proc/swaps; then
         echo "    FAIL  $SWAP_FILE is active but total swap is still below target" >&2
         SWAP_FAILURES=$((SWAP_FAILURES + 1))
     else
@@ -195,10 +203,10 @@ else
         else
             echo "    $SWAP_FILE already in /etc/fstab"
         fi
-        echo "    created + enabled $SWAP_FILE (${DEFICIT_MB}M)"
+        echo "    enabled $SWAP_FILE (deficit was ${DEFICIT_MB}M)"
     fi
     SWAP_TOTAL_KB="$(awk '/^SwapTotal:/ {print $2}' /proc/meminfo)"
-    if [ "$SWAP_TOTAL_KB" -lt "$SWAP_TARGET_KB" ]; then
+    if [ "$SWAP_TOTAL_KB" -lt "$SWAP_FLOOR_KB" ]; then
         echo "    FAIL  total swap is $((SWAP_TOTAL_KB / 1024))M, below ${SWAP_TARGET_GB}G target" >&2
         SWAP_FAILURES=$((SWAP_FAILURES + 1))
     else
