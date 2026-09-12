@@ -159,7 +159,7 @@ rm -rf "$probe_dir"
 
 if [ -n "${MODEL:-}" ]; then
     printf '\n=== Phase 5: MODEL quick check (%s) ===\n' "$MODEL"
-    model_dir="$PROJECT_ROOT/models/$MODEL"
+    model_dir="${WS_MODELS_DIR:-$PROJECT_ROOT/models}/$MODEL"
     gguf=""
     count=0
     while IFS= read -r -d '' f; do

@@ -14,6 +14,10 @@ setup_paths() {
     else
         [[ -d "$AMI_ROOT/.boot-linux/bin" ]] && export PATH="$AMI_ROOT/.boot-linux/bin:$PATH"
     fi
+    # Deployed trust-boundary boot bin (provisioned by deploy-ci) fills gaps
+    # the checkout boot dir leaves (e.g. podman runtime). Appended LAST so
+    # checkout toolchains keep precedence; deploy-ci upgrades flow in here.
+    [[ -d "/opt/workspace-ci/.boot-linux/bin" ]] && export PATH="$PATH:/opt/workspace-ci/.boot-linux/bin"
     export VIRTUAL_ENV="${VIRTUAL_ENV:-$AMI_ROOT/.venv}"
     export PYTHONPATH="$AMI_ROOT:${PYTHONPATH:-}"
 }

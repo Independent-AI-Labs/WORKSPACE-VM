@@ -37,7 +37,6 @@ _FULL_CI_COMPONENTS = [
 _ESSENTIAL_BINARIES = [
     ("uv", f"{VM_INSTALL_ROOT}/.boot-linux/bin/uv"),
     ("python3", f"{VM_INSTALL_ROOT}/.boot-linux/bin/python3"),
-    ("node", f"{VM_INSTALL_ROOT}/projects/CI/.boot-linux/bin/node"),
     ("opencode", f"{VM_INSTALL_ROOT}/.boot-linux/bin/opencode"),
     ("git", "/usr/bin/git"),
 ]

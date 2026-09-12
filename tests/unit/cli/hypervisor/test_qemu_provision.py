@@ -72,7 +72,6 @@ def test_provision_guest_none_is_noop(tmp_path: Path) -> None:
 def test_build_rsync_script_guard_profile() -> None:
     script = qp._build_rsync_script("guard")
     assert "projects/WORKSPACE-GUARD/" in script
-    assert "projects/CI/" in script
     assert "scripts/e2e/" in script
     assert "rsync -a" in script
     assert "mkdir -p /opt/workspace/projects" in script

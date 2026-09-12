@@ -10,7 +10,7 @@ while [[ "$AMI_ROOT" != "/" && ! -f "$AMI_ROOT/pyproject.toml" ]]; do
 done
 export AMI_ROOT && cd "$AMI_ROOT"
 
-_VMS_DIR=".vms"
+_VMS_DIR="${WS_VM_DIR:-.vms}"
 _BOOT_DIR="${BOOT_DIR:-${AMI_ROOT}/.boot-linux}"
 _UV="${_BOOT_DIR}/bin/uv"
 _VM_RUN=("$_UV" run python)

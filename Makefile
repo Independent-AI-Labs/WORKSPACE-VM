@@ -256,6 +256,18 @@ enforce-multi-server-limits: ## Enforce multi-server capacity limits: inotify/co
 	fi
 	$(SCRIPT_BASH) scripts/setup/configure-multi-server-limits.sh
 
+.PHONY: configure-fast-storage
+configure-fast-storage: ## (ROOT) Provision second NVMe as fast ext4 (preview: FAST_STORAGE_ARGS='--dry-run'; apply: '--wipe-nvme1')
+	if [ "$$(id -u)" != "0" ]; then \
+		echo "ERROR: configure-fast-storage requires root. Run: sudo make configure-fast-storage FAST_STORAGE_ARGS='--dry-run'" >&2; \
+		exit 1; \
+	fi
+	$(SCRIPT_BASH) scripts/setup/configure-fast-storage.sh $$(FAST_STORAGE_ARGS)
+
+.PHONY: migrate-fast-storage
+migrate-fast-storage: ## Move podman store/models/QEMU/caches onto fast storage (preview: MIGRATE_ARGS='--dry-run')
+	$(SCRIPT_BASH) scripts/setup/migrate-fast-storage.sh $$(MIGRATE_ARGS)
+
 # =============================================================================
 # Repos
 # =============================================================================

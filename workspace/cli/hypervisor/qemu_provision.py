@@ -34,7 +34,6 @@ _SKELETON_PATHS = [
 ]
 
 _GUARD_PATHS = [
-    "projects/CI/",
     "projects/WORKSPACE-GUARD/",
     "scripts/e2e/",
 ]

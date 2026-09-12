@@ -31,7 +31,22 @@ if [ "$(id -u)" -ne 0 ]; then
     exit 1
 fi
 
-TARGET_USER="${SUDO_USER:-agent}"
+# Data-owner resolution: the workspace checkout owner, never SUDO_USER
+# (operators sudo from their own accounts, which re-execed the wrong
+# user manager in the 2026-09-11 run). Hardcoded default + workspace
+# marker verification; no BASH_SOURCE/pwd derivation (unreliable under
+# operator root shells).
+_MWS_DEF_ROOT="$(getent passwd agent | cut -d: -f6)/WORKSPACE-VM"
+_MWS_ROOT="${MWS_ROOT:-$_MWS_DEF_ROOT}"
+if [ ! -f "$_MWS_ROOT/pyproject.toml" ]; then
+    echo "ERROR: $_MWS_ROOT is not the workspace checkout (pyproject.toml missing)." >&2
+    exit 1
+fi
+TARGET_USER="$(stat -c '%U' "$_MWS_ROOT/pyproject.toml")"
+if [ -z "$TARGET_USER" ] || [ "$TARGET_USER" = "root" ]; then
+    echo "ERROR: checkout owner at $_MWS_ROOT resolved to '$TARGET_USER'; refusing." >&2
+    exit 1
+fi
 TARGET_UID="$(id -u "$TARGET_USER")"
 
 SYSCTL_FILE="/etc/sysctl.d/70-workspace-multi-server.conf"

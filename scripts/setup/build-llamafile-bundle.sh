@@ -66,7 +66,7 @@ esac
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-MODEL_DIR="$PROJECT_ROOT/models/$MODEL"
+MODEL_DIR="${WS_MODELS_DIR:-$PROJECT_ROOT/models}/$MODEL"
 ENGINE="$PROJECT_ROOT/projects/llamafile/o/llamafile/llamafile"
 ZIPALIGN="$PROJECT_ROOT/projects/llamafile/o/third_party/zipalign/zipalign"
 VULKAN_DSO="$PROJECT_ROOT/projects/llamafile/o/llamafile/ggml-vulkan.so"

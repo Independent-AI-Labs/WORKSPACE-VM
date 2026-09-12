@@ -232,7 +232,7 @@ Podman shares the host kernel, so a named volume plus copy/sync is enough. QEMU 
 | `provision` | Rsync scope (QEMU) |
 | :--- | :--- |
 | `poc` | Workspace core layout only |
-| `guard` | Skeleton + `projects/CI/` + `projects/WORKSPACE-GUARD/` |
+| `guard` | Skeleton + `projects/WORKSPACE-GUARD/` |
 | `full-ci` | Skeleton + entire `projects/` |
 
 **Day-2 commands:** `vm rebuild` and `make vm sync` are Podman-only. QEMU provision runs once at create.

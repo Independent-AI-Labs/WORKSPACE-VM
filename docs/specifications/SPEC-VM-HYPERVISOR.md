@@ -383,7 +383,7 @@ Poll until success or timeout (same order of magnitude as existing `_wait_health
 | Profile | Config | Rsync scope | install-ci |
 |---------|--------|-------------|------------|
 | `poc` | `vm-poc-qemu.yaml` | None | No |
-| `guard` | `vm-guard-qemu.yaml` | Skeleton + `projects/CI` + `projects/WORKSPACE-GUARD` | Minimal (git, rust via init) |
+| `guard` | `vm-guard-qemu.yaml` | Skeleton + `projects/WORKSPACE-GUARD` | Minimal (git, rust via init) |
 | `full-ci` | `vm-full-ci-qemu.yaml` | Skeleton + required `projects/*` | Yes (13 default components) |
 
 **Always excluded from rsync:** `.vms/`, `.venv/`, `node_modules/`, `__pycache__/`.

@@ -14,6 +14,7 @@ from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader
 
+from workspace.cli.vpn_core import boot_name
 from workspace.types.vm import VMConfig
 
 _VMS_DIR = Path(".vms")
@@ -24,11 +25,29 @@ _HEALTHCHECK_TIMEOUT = 120
 _HEALTHCHECK_POLL = 2
 _PODMAN_TIMEOUT = 600
 
+# Runtime binaries come from the deployed trust boundary provisioned by
+# deploy-ci (see vpn_core pathfinding seam + AGENTS.md): single explicit
+# source or fail. Checkout boot copies are forbidden (removed 2026-09-12).
+_DEPLOYED_BOOT_BIN = Path("/opt/workspace-ci") / boot_name() / "bin"
+
+
+class PodmanNotDeployedError(RuntimeError):
+    """Raised when the deployed podman runtime is missing."""
+
+
+def _podman_binary() -> Path:
+    """Resolve the deployed podman wrapper; fail explicitly if absent."""
+    binary = _DEPLOYED_BOOT_BIN / "podman"
+    if not binary.is_file():
+        msg = f"deployed podman missing at {binary} - run: sudo make init"
+        raise PodmanNotDeployedError(msg)
+    return binary
+
 
 def _podman(*args: str) -> subprocess.CompletedProcess[str]:
     try:
         return subprocess.run(
-            ["podman", *args],
+            [str(_podman_binary()), *args],
             capture_output=True,
             text=True,
             check=True,

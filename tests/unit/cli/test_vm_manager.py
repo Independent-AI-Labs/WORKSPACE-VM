@@ -19,10 +19,12 @@ from workspace.cli.vm_build import (
     _pre_copy_files,
 )
 from workspace.cli.vm_core import (
+    PodmanNotDeployedError,
     _config_sha256,
     _generate_dockerignore,
     _generate_password,
     _podman,
+    _podman_binary,
     _remove_hosts_entry,
     _render_template,
 )
@@ -215,13 +217,18 @@ class TestCLIDispatch:
         assert "unknown subcommand" in result.stderr
 
 
+def _podman_available() -> bool:
+    try:
+        _podman_binary()
+    except PodmanNotDeployedError:
+        return False
+    return True
+
+
 class TestPodman:
     @pytest.mark.skipif(
-        subprocess.run(
-            ["podman", "version"], capture_output=True, text=True, check=False
-        ).returncode
-        != 0,
-        reason="podman socket not running",
+        not _podman_available(),
+        reason="deployed podman runtime missing",
     )
     def test_podman_wrapper(self) -> None:
         result = _podman("version")

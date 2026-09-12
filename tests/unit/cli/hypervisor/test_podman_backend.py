@@ -64,3 +64,19 @@ def test_destroy_running_purges_volumes(monkeypatch: pytest.MonkeyPatch) -> None
     backend.destroy("uuid-1", purge=True)
     assert ("rm", "-f", "uuid-1") in podman_calls
     assert purged == ["uuid-1"]
+
+
+def test_status_absent_container_reports_absent(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A stale .vms dir whose container no longer exists must not crash
+    `vm list` - it reports state=absent."""
+
+    def _missing(*_args: str) -> None:
+        raise subprocess.CalledProcessError(125, "podman")
+
+    monkeypatch.setattr(pb, "_podman", _missing)
+    assert PodmanBackend().status("gone-uuid") == {
+        "state": "absent",
+        "backend": "podman",
+    }

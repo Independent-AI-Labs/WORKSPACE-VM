@@ -1,5 +1,67 @@
 # AGENTS.md - Universal Agent Rules for Enterprise Delivery
 
+## Pathfinding Semantics (READ BEFORE RESOLVING ANY PATH)
+
+The repo has exactly ONE canonical path seam — `workspace/cli/vpn_core.py`:
+
+- `find_workspace_root(start=None)` — walk up (max 12 levels) to the directory
+  containing `workspace/`. This is how every module finds the checkout
+  (`vm_manager`, `podman_backend`, `qemu_backend`, `qemu_resolve`, `qemu_images`).
+- `boot_name()` — `.boot-macos` on Darwin, else `.boot-linux`.
+- `find_*_binary(workspace_root)` pattern (see `find_openvpn_binary`): compose
+  `workspace_root / boot_name() / "bin" / <binary>` and **fail explicitly with a
+  remediation hint** when absent.
+
+Rules (mirrored by banned-words gates `bfall-back-b`, `parents`, `parent-parent`):
+- **Single explicit source or fail.** NEVER a fallback chain (deployed → checkout
+  → PATH). Pick the one provisioning-owned source, raise a named error with the
+  fix command if missing.
+- NEVER resolve the checkout from the module file location: indexed `parents`
+  access, chained `.parent` walks, and upward `joinpath` segments are all
+  banned. Resolve through the seam above.
+- Shell scripts walk up to the `pyproject.toml` marker (see
+  `workspace/scripts/bin/vm` AMI_ROOT resolution) — same semantics, marker file.
+- Runtime binaries come from the deployed trust boundary
+  `/opt/workspace-ci/<boot>/bin` (provisioned by deploy-ci); the checkout boot
+  dir is a dev-toolchain overlay (uv, python, gcc). Provisioning fixes mean
+  running the provisioning code (`sudo make init`), never copying artifacts.
+
+## Podman: Where It Lives and How It May Be Invoked
+
+Binaries (do NOT guess, do NOT `which podman` in scripts):
+- `/opt/workspace-ci/.boot-linux/bin/{podman,real-podman,conmon,crun}` — the CANONICAL
+  runtime, provisioned by `deploy-ci` from `projects/WORKSPACE-CI`
+  (`res/podman-guard` is the guard source of truth). Root-owned, world-executable.
+  `/opt/.../bin/podman` is the guard WRAPPER: blocks `rm|rmi -a`,
+  `system prune|migrate|reset`, `volume|image|container|network prune`.
+  `system migrate` is blocked BY DESIGN — never run it, never try to bypass.
+- Checkout `.boot-linux/bin/podman|real-podman|conmon` are FORBIDDEN LEGACY — stale
+  drift-prone duplicates (the 2026-09-12 incident: a Jul-30 wrapper copy broke
+  `vm list` with `//real-podman` resolution). They were removed; do not recreate.
+  The checkout boot dir is a dev-toolchain overlay ONLY (uv, python, gcc).
+- `/usr/local/bin/podman` — root-only 0700 launcher → `exec /opt/.../bin/podman "$@"`.
+  Not usable by the agent.
+- PATH layering: `workspace/scripts/utils/env_setup.sh` `setup_paths()` composes
+  checkout boot bin FIRST, deployed `/opt` boot bin LAST. Consumers resolve
+  binaries accordingly (see `vm_core._PODMAN_BIN`).
+
+Configs:
+- Agent: `~/.config/containers/containers.conf` (conmon → `/opt/workspace-ci/...`)
+  and `~/.config/containers/storage.conf` (graphroot → `/mnt/ws-fast/containers/storage`).
+- Root: `/root/.config/containers/containers.conf` (agent cannot read or write it;
+  repairs go through an operator-run `/tmp/opencode` script).
+
+Invocation rule (shell-guard rule `podman-command`, scope: command — HARD):
+- Podman is ONLY allowed inside a script file (`ctx: script`).
+- NEVER on an inline command line: `podman ...`, `real-podman ...` as a direct
+  command is BLOCKED, even for read-only `info`/`images`/`inspect`.
+- NEVER `runuser -u agent -- bash -lc 'real-podman ...'` or any
+  `bash -c`/`env`/`exec`/`timeout`/`xargs` prefix — these are command channels.
+- To run podman as another user from a root/operator script: put the podman
+  calls in a separate script file, then `runuser -u agent -- /path/to/script.sh`.
+- The store is rootless (uid 1000) with subuid-owned trees (`overlay/*/work/work`,
+  some volumes) — agent cannot read them; store copies run as root via rsync.
+
 ## Environment Constraint: Non-Root Hermetic Sandbox
 
 The agent (uid=1000, group `agent`+`adm`) runs inside a hermetic sandbox VM.

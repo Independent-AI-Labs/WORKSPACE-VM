@@ -150,6 +150,12 @@ class PodmanBackend:
         raise NotImplementedError(msg)
 
     def status(self, uuid: str) -> dict[str, str]:
-        running = _podman("inspect", "-f", "{{.State.Running}}", uuid).stdout.strip()
+        fmt = "{{.State.Running}}"
+        try:
+            running = _podman("inspect", "-f", fmt, uuid).stdout.strip()
+        except subprocess.CalledProcessError:
+            # No such container (e.g. stale .vms dir after a store reset):
+            # report absent rather than crashing the whole listing.
+            return {"state": "absent", "backend": "podman"}
         state = "running" if running == "true" else "stopped"
         return {"state": state, "backend": "podman"}
