@@ -20,6 +20,8 @@ RUNBOOK = ROOT / "docs" / "OPS-FAST-STORAGE.md"
 VM_BIN = ROOT / "workspace" / "scripts" / "bin" / "vm"
 BUNDLE = ROOT / "scripts" / "setup" / "build-llamafile-bundle.sh"
 VULKAN_TEST = ROOT / "scripts" / "setup" / "test-llamafile-vulkan.sh"
+SAMPLER = ROOT / "scripts" / "setup" / "hang-evidence-sampler.sh"
+SAMPLER_UNIT = ROOT / "scripts" / "setup" / "hang-evidence-sampler.service"
 
 
 def _recipe(target: str, text: str) -> str:
@@ -93,6 +95,27 @@ class TestConfigureFastStorage:
         assert "tcp time-wait sockets now" in text
         assert "vm.swappiness" in text
         assert "/proc/swaps" in text
+        assert "pressure stall ratios (PSI)" in text
+        assert "for _psi in io cpu memory" in text
+
+    def test_hang_evidence_sampler(self) -> None:
+        """Persistent sampler records PSI/disk/mem/kernel to the fast disk
+        so freeze windows survive power-cycles (2026-09-13 postmortem)."""
+        text = SAMPLER.read_text(encoding="utf-8")
+        assert "/proc/pressure" in text
+        assert "/proc/diskstats" in text
+        assert "/proc/meminfo" in text
+        assert "hung_task" in text
+        assert "Atomic update failure" in text
+        assert "journalctl -k" in text
+        assert "/mnt/ws-fast/diag" in text
+        unit = SAMPLER_UNIT.read_text(encoding="utf-8")
+        assert "hang-evidence-sampler.sh" in unit
+        assert "Restart=always" in unit
+        assert "WantedBy=default.target" in unit
+        make = MAKEFILE.read_text(encoding="utf-8")
+        assert "install-diagnostics:" in make
+        assert "diagnostics-status:" in make
 
     def test_guard_clean(self) -> None:
         _assert_guard_clean(CONFIGURE.read_text(encoding="utf-8"))

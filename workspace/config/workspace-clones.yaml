@@ -11,7 +11,7 @@ workspaceClones:
   # deployment consumed live by hooks; it is root-managed exclusively via
   # `sudo make deploy-ci` from this working repo, so the manifest clones
   # only WORKSPACE-CI.
-  ci:
+  workspace-ci:
     remote: 'git@github.com:Independent-AI-Labs/WORKSPACE-CI.git'
     path: 'projects/WORKSPACE-CI'
     mandatory: true
@@ -31,9 +31,9 @@ workspaceClones:
     remote: 'git@github.com:Independent-AI-Labs/WORKSPACE-RP.git'
     path: 'projects/WORKSPACE-RP'
     mandatory: false
-  ami-browser:
-    remote: 'git@github.com:Independent-AI-Labs/AMI-BROWSER.git'
-    path: 'projects/AMI-BROWSER'
+  workspace-browser:
+    remote: 'git@github.com:Independent-AI-Labs/WORKSPACE-BROWSER.git'
+    path: 'projects/WORKSPACE-BROWSER'
     mandatory: false
   workspace-streams:
     remote: 'git@github.com:Independent-AI-Labs/WORKSPACE-STREAMS.git'

@@ -1,4 +1,4 @@
-# workspace-ci required-hooks manifest.
+# WORKSPACE-CI required-hooks manifest (sealed at /opt/workspace-ci).
 #
 # Single source of truth for what hooks every consumer project must wire.
 # Read by `scripts/generate-hooks` at hook-generation time and by

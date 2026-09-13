@@ -27,8 +27,8 @@ tags:
 # belong to the AMI workspace" - read by workspace/scripts/bin/bootstrap-repos.
 
 dependsOn:
-  - 'ci'
-  - 'dataops'
+  - 'workspace-ci'
+  - 'workspace-dataops'
 
 tasks:
   lint:

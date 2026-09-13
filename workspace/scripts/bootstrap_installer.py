@@ -228,9 +228,10 @@ def select_workspace_repos(
 ) -> list[Component]:
     """Step 1 of the TUI - dedicated workspace-repo selection.
 
-    Mandatory entries (workspace-ci, ami-dataops) render locked-on so the user sees
-    the full workspace topology and can't deselect them. Optional entries
-    opt-in via checkbox. Already-cloned repos are marked skippable.
+    Mandatory entries (workspace-ci, workspace-dataops) render locked-on
+    so the user sees the full workspace topology and can't deselect them.
+    Optional entries opt-in via checkbox. Already-cloned repos are marked
+    skippable.
     """
     repos = list(_bootstrap_defs.WORKSPACE_REPOS)
     if not repos:
@@ -366,7 +367,7 @@ def _run_from_defaults(defaults_file: Path) -> int:
 
     component_names = _load_defaults(defaults_file)
 
-    # Mandatory workspace repos (e.g. workspace-ci, ami-dataops) are always
+    # Mandatory workspace repos (e.g. workspace-ci, workspace-dataops) are always
     # installed in CI mode regardless of install-defaults.yaml content,
     # so the workspace-clones.yaml manifest stays the source of truth.
     mandatory_repo_names = [

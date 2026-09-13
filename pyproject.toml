@@ -95,13 +95,13 @@ dev = [
 package = true
 
 [tool.uv.sources]
-dataops = { path = "projects/DATAOPS", editable = true }
+dataops = { path = "projects/WORKSPACE-DATAOPS", editable = true }
 
 [tool.mypy]
 # Shared config at /opt/workspace-ci/mypy.toml (passed via --config-file in
 # Makefile and .pre-commit-config.yaml). This section adds VM-specific
 # merge keys: exclude projects/ (nested repos have their own type-check).
-# MYPYPATH=".:projects/DATAOPS" is set in Makefile and .pre-commit-config.yaml
+# MYPYPATH=".:projects/WORKSPACE-DATAOPS" is set in the Makefile
 # because mypy cannot resolve PEP 660 editable installs (mypy#12313).
 exclude = [
     "projects/",

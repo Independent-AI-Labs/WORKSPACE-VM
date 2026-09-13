@@ -304,6 +304,12 @@ for _pid in $_agent_pids; do
 done
 printf '    %-52s %s (%s open, top: %s with %s)\n' \
     "open fds of user $TARGET_USER" "sum across procs" "$_fd_total" "$_fd_top" "$_fd_top_n"
+echo "  pressure stall ratios (PSI):"
+for _psi in io cpu memory; do
+    _flat=""
+    _flat="$(tr '\n' ';' < /proc/pressure/$_psi)"
+    printf '    %-52s %s\n' "psi/$_psi" "$_flat"
+done
 echo "  sockets / connection tracking:"
 _echo_sysctls net.core.somaxconn net.core.netdev_max_backlog \
     net.ipv4.tcp_max_syn_backlog net.ipv4.ip_local_port_range \

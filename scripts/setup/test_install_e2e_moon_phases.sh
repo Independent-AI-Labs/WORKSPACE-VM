@@ -10,7 +10,7 @@
 #   Phase 10: tag filtering - --tags python returns >0 projects
 #   Phase 11: bootstrap-repos data-driven walk (no-op against
 #             already-cloned workspace; catches script regressions)
-#   Phase 12: cacheable check task - cold ci:lint vs cached run
+#   Phase 12: cacheable check task - cold workspace-ci:lint vs cached run
 #   Phase 13: update-walk topology - workspace:update graph
 #             includes ci:update + dataops:update nodes
 #
@@ -116,20 +116,20 @@ echo "=========================================="
 if [ -n "$MOON" ]; then
     # rc captured for inspection; cache warmup is the intent.
     cold_start=$(date +%s%N)
-    "$MOON" run ci:lint > moon_cold.log 2>&1; cold_rc=$?
+    "$MOON" run workspace-ci:lint > moon_cold.log 2>&1; cold_rc=$?
     cold_end=$(date +%s%N)
     cold_ms=$(( (cold_end - cold_start) / 1000000 ))
-    echo "[INFO] cold ci:lint = ${cold_ms}ms (rc=$cold_rc)"
+    echo "[INFO] cold workspace-ci:lint = ${cold_ms}ms (rc=$cold_rc)"
 
     # rc captured; assertion is on duration + 'cached' marker.
     cached_start=$(date +%s%N)
-    "$MOON" run ci:lint > moon_cached.log 2>&1; cached_rc=$?
+    "$MOON" run workspace-ci:lint > moon_cached.log 2>&1; cached_rc=$?
     cached_end=$(date +%s%N)
     cached_ms=$(( (cached_end - cached_start) / 1000000 ))
-    echo "[INFO] cached ci:lint = ${cached_ms}ms"
+    echo "[INFO] cached workspace-ci:lint = ${cached_ms}ms"
 
     if [ "$cached_ms" -gt 1000 ]; then
-        echo "[FAIL] second run of ci:lint took ${cached_ms}ms - cache not working"
+        echo "[FAIL] second run of workspace-ci:lint took ${cached_ms}ms - cache not working"
         exit 1
     fi
     if ! grep -q "cached" moon_cached.log; then

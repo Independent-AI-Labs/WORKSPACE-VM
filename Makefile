@@ -268,6 +268,23 @@ configure-fast-storage: ## (ROOT) Provision second NVMe as fast ext4 (preview: F
 migrate-fast-storage: ## Move podman store/models/QEMU/caches onto fast storage (preview: MIGRATE_ARGS='--dry-run')
 	$(SCRIPT_BASH) scripts/setup/migrate-fast-storage.sh $$(MIGRATE_ARGS)
 
+.PHONY: install-diagnostics
+install-diagnostics: ## Install + start the hang-evidence sampler user unit
+	install -D -m 644 scripts/setup/hang-evidence-sampler.service \
+		"$(HOME)/.config/systemd/user/hang-evidence-sampler.service"
+	systemctl --user daemon-reload
+	systemctl --user enable --now hang-evidence-sampler.service
+	sleep 3
+	systemctl --user --no-pager status hang-evidence-sampler.service
+
+.PHONY: diagnostics-status
+diagnostics-status: ## Tail the hang-evidence sampler output
+	ls -la /mnt/ws-fast/diag/
+	for f in psi load mem disk kern; do \
+		echo "--- $$f (last 3) ---"; \
+		tail -n 3 "/mnt/ws-fast/diag/$$f.log"; \
+	done
+
 # =============================================================================
 # Repos
 # =============================================================================

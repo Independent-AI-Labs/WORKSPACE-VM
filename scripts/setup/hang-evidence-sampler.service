@@ -1,0 +1,13 @@
+[Unit]
+Description=Hang evidence sampler (PSI/disk/mem/kernel to /mnt/ws-fast/diag)
+Documentation=file://%h/WORKSPACE-VM/docs/OPS-FAST-STORAGE.md
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=%h/WORKSPACE-VM/scripts/setup/hang-evidence-sampler.sh 10
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target

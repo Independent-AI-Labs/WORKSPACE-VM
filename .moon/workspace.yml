@@ -34,8 +34,8 @@ projects:
     - 'projects/*/moon.yml'
   sources:
     workspace: '.'
-    ci: 'projects/WORKSPACE-CI'
-    dataops: 'projects/DATAOPS'
+    workspace-ci: 'projects/WORKSPACE-CI'
+    workspace-dataops: 'projects/WORKSPACE-DATAOPS'
     workspace-guard: 'projects/WORKSPACE-GUARD'
     workspace-portal: 'projects/WORKSPACE-PORTAL'
     workspace-streams: 'projects/WORKSPACE-STREAMS'
