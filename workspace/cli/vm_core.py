@@ -17,7 +17,7 @@ from jinja2 import Environment, FileSystemLoader
 from workspace.cli.vpn_core import boot_name
 from workspace.types.vm import VMConfig
 
-_VMS_DIR = Path(".vms")
+_VMS_DIR = Path(os.environ.get("WS_VM_DIR", ".vms"))
 _TEMPLATES_DIR = Path("workspace/scripts/templates")
 _CERTS_SCRIPT = Path("workspace/scripts/bootstrap/bootstrap_certs.sh")
 
@@ -44,7 +44,7 @@ def _podman_binary() -> Path:
     return binary
 
 
-def _podman(*args: str) -> subprocess.CompletedProcess[str]:
+def _podman(*args: str, quiet: bool = False) -> subprocess.CompletedProcess[str]:
     try:
         return subprocess.run(
             [str(_podman_binary()), *args],
@@ -55,10 +55,14 @@ def _podman(*args: str) -> subprocess.CompletedProcess[str]:
             env={**os.environ},
         )
     except subprocess.CalledProcessError as exc:
-        if exc.stderr:
-            sys.stderr.write(exc.stderr)
-        if exc.stdout:
-            sys.stdout.write(exc.stdout)
+        # quiet=True is for handled-outcome probes (e.g. status() treating
+        # a missing container as absent) where the caller translates the
+        # failure; printing per-miss stderr would spam listings.
+        if not quiet:
+            if exc.stderr:
+                sys.stderr.write(exc.stderr)
+            if exc.stdout:
+                sys.stdout.write(exc.stdout)
         raise
 
 

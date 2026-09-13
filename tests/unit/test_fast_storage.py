@@ -80,6 +80,20 @@ class TestConfigureFastStorage:
         assert "/swap2.img" in text
         assert "moved-to-fast-storage" in text
 
+    def test_finite_resources_snapshot(self) -> None:
+        """Step [6/6] reports the raised limits + live usage counters."""
+        text = CONFIGURE.read_text(encoding="utf-8")
+        assert "[6/6] Finite resources snapshot" in text
+        assert "fs.inotify.max_user_instances" in text
+        assert "fs.inotify.max_user_watches" in text
+        assert "DefaultLimitNOFILE" in text
+        assert "net.core.somaxconn" in text
+        assert "tcp_max_tw_buckets" in text
+        assert "nf_conntrack_count" in text
+        assert "tcp time-wait sockets now" in text
+        assert "vm.swappiness" in text
+        assert "/proc/swaps" in text
+
     def test_guard_clean(self) -> None:
         _assert_guard_clean(CONFIGURE.read_text(encoding="utf-8"))
 

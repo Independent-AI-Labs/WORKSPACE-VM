@@ -152,7 +152,7 @@ class PodmanBackend:
     def status(self, uuid: str) -> dict[str, str]:
         fmt = "{{.State.Running}}"
         try:
-            running = _podman("inspect", "-f", fmt, uuid).stdout.strip()
+            running = _podman("inspect", "-f", fmt, uuid, quiet=True).stdout.strip()
         except subprocess.CalledProcessError:
             # No such container (e.g. stale .vms dir after a store reset):
             # report absent rather than crashing the whole listing.

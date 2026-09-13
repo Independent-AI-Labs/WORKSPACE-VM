@@ -72,7 +72,7 @@ def test_status_absent_container_reports_absent(
     """A stale .vms dir whose container no longer exists must not crash
     `vm list` - it reports state=absent."""
 
-    def _missing(*_args: str) -> None:
+    def _missing(*_args: str, **_kwargs: bool) -> None:
         raise subprocess.CalledProcessError(125, "podman")
 
     monkeypatch.setattr(pb, "_podman", _missing)

@@ -260,6 +260,80 @@ for old_swap in /swap.img /swap2.img; do
     fi
 done
 
+# --- 6. Finite resources snapshot (limits we raised + live usage) ---
+# Quick tracking view of the capacity raised by configure-multi-server-
+# limits.sh plus the fast-storage swap, alongside current consumption.
+echo "[6/6] Finite resources snapshot ..."
+_echo_sysctls() {
+    for key in "$@"; do
+        _val=""
+        _vrc=0
+        _val="$(sysctl -n "$key")" || _vrc=$?
+        if [ "$_vrc" -ne 0 ]; then
+            _val="unreadable"
+        fi
+        printf '    %-52s %s\n' "$key" "$_val"
+    done
+}
+echo "  inotify:"
+_echo_sysctls fs.inotify.max_user_instances fs.inotify.max_user_watches \
+    fs.inotify.max_queued_events
+echo "  file descriptors:"
+_echo_sysctls fs.nr_open fs.aio-max-nr
+_runrc=0
+_sys_nofile="$(systemctl show -p DefaultLimitNOFILE | cut -d= -f2)" || _runrc=$?
+_usr_nofile="$(runuser -u "$TARGET_USER" -- systemctl --user show -p DefaultLimitNOFILE | cut -d= -f2)" || _runrc=$?
+printf '    %-52s %s\n' "systemd DefaultLimitNOFILE (system)" "${_sys_nofile:-unreadable}"
+printf '    %-52s %s\n' "systemd DefaultLimitNOFILE (user $TARGET_USER)" "${_usr_nofile:-unreadable}"
+_fd_total=0
+_fd_top=""
+_fd_top_n=0
+_pgreprc=0
+_agent_pids="$(pgrep -u "$TARGET_USER" -x .)" || _pgreprc=$?
+for _pid in $_agent_pids; do
+    _nrc=0
+    _n="$(ls "/proc/$_pid/fd" | wc -l)" || _nrc=$?
+    if [ "$_nrc" -ne 0 ]; then
+        _n=0
+    fi
+    _fd_total=$((_fd_total + _n))
+    if [ "$_n" -gt "$_fd_top_n" ]; then
+        _fd_top_n=$_n
+        _fd_top="$(ps -o comm= -p "$_pid" 2>&1)" || _fd_top="pid-$_pid"
+    fi
+done
+printf '    %-52s %s (%s open, top: %s with %s)\n' \
+    "open fds of user $TARGET_USER" "sum across procs" "$_fd_total" "$_fd_top" "$_fd_top_n"
+echo "  sockets / connection tracking:"
+_echo_sysctls net.core.somaxconn net.core.netdev_max_backlog \
+    net.ipv4.tcp_max_syn_backlog net.ipv4.ip_local_port_range \
+    net.ipv4.tcp_max_tw_buckets net.ipv4.tcp_fin_timeout
+_twrc=0
+_tw_now="$(ss -H -o state time-wait | wc -l)" || _twrc=$?
+if [ "$_twrc" -ne 0 ]; then
+    _tw_now=0
+fi
+printf '    %-52s %s\n' "tcp time-wait sockets now" "$_tw_now"
+_cnrc=0
+_conn_count="$(cat /proc/sys/net/netfilter/nf_conntrack_count)" || _cnrc=$?
+if [ "$_cnrc" -ne 0 ]; then
+    _conn_count=0
+fi
+_cmrc=0
+_conn_max="$(cat /proc/sys/net/netfilter/nf_conntrack_max)" || _cmrc=$?
+if [ "$_cmrc" -ne 0 ]; then
+    _conn_max=0
+fi
+printf '    %-52s %s / %s\n' "nf_conntrack entries used / max" "$_conn_count" "$_conn_max"
+echo "  swap:"
+_echo_sysctls vm.swappiness
+free -h | grep -i '^swap' | sed 's/^/    /'
+if [ -r /proc/swaps ]; then
+    grep -v '^Filename' /proc/swaps | while read -r _swdev _swtype _swsize _swused _swprio; do
+        printf '    %-52s used %s kB of %s kB (prio %s)\n' "$_swdev" "$_swused" "$_swsize" "$_swprio"
+    done
+fi
+
 echo ""
 echo "=== Done ==="
 echo "Fast storage ready at $FAST_MOUNT (persistent via /etc/fstab)."
