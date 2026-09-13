@@ -1,5 +1,5 @@
 # Per-repo overrides for ci.check_markdown_docs.
-# Merged with projects/CI/config/markdown_docs.yaml at runtime.
+# Merged with /opt/workspace-ci/config/markdown_docs.yaml at runtime.
 
 ignore:
   - "**/archive/**"
