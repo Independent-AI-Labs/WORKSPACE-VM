@@ -105,6 +105,8 @@ class TestConfigureFastStorage:
         assert "/proc/pressure" in text
         assert "/proc/diskstats" in text
         assert "/proc/meminfo" in text
+        assert "/proc/sys/fs/file-nr" in text
+        assert "fd.log" in text
         assert "hung_task" in text
         assert "Atomic update failure" in text
         assert "journalctl -k" in text

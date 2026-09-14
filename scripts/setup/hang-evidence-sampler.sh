@@ -15,6 +15,9 @@ set -euo pipefail
 #                  (analysis computes deltas: io_ticks delta = busy ms)
 #   kern.log     - any new hang-class kernel lines (hung_task, blocked-for,
 #                  OOM, I/O error, i915 atomic update failure, GPU reset)
+#   fd.log       - /proc/sys/fs/file-nr + top FD-holding processes
+#                  (2026-09-14 postmortem: the guard clamps agent chains to
+#                  4096 NOFILE hard, so builds die EMFILE; watch counts grow)
 #
 # Intentionally agent-owned user units: /proc/* and journalctl -k are
 # readable from uid 1000 (adm group). Runs forever; systemd restarts it.
@@ -66,6 +69,34 @@ while :; do
     # --- memory ---
     _mi="$(grep -E '^(MemAvailable|SwapFree|Dirty|Writeback):' /proc/meminfo | tr '\n' ' ')"
     printf '%s %s\n' "$_ts" "$_mi" >> "$OUT_DIR/mem.log"
+
+    # --- FD usage: system file-nr + top holders visible to this uid ---
+    _fnr="NA"
+    _fnrc=0
+    _fnr="$(cat /proc/sys/fs/file-nr)" || _fnrc=$?
+    if [ "$_fnrc" -ne 0 ]; then
+        _fnr="NA"
+    fi
+    _fdall=""
+    _fdrc=0
+    _fdall="$(
+        for _p in /proc/[0-9]*/; do
+            _fds=( "$_p"fd/* )
+            [ -e "${_fds[0]}" ] || continue
+            _pid="${_p#/proc/}"
+            printf '%s %s %s\n' "${#_fds[@]}" "${_pid%/}" "$(<"${_p}comm")"
+        done | sort -rn
+    )" || _fdrc=$?
+    if [ "$_fdrc" -ne 0 ]; then
+        _fdall="scan-failed"
+    fi
+    _fdn=0
+    _fdtop=""
+    while IFS= read -r _fdl && [ "$_fdn" -lt 8 ]; do
+        _fdtop+=" ${_fdl}"
+        _fdn=$((_fdn+1))
+    done <<< "$_fdall"
+    printf '%s file-nr=[%s] top=[%s]\n' "$_ts" "$_fnr" "${_fdtop# }" >> "$OUT_DIR/fd.log"
 
     # --- diskstats (absolute counters; analysis deltas them) ---
     {

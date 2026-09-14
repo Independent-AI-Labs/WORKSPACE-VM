@@ -280,7 +280,7 @@ install-diagnostics: ## Install + start the hang-evidence sampler user unit
 .PHONY: diagnostics-status
 diagnostics-status: ## Tail the hang-evidence sampler output
 	ls -la /mnt/ws-fast/diag/
-	for f in psi load mem disk kern; do \
+	for f in psi load mem disk kern fd; do \
 		echo "--- $$f (last 3) ---"; \
 		tail -n 3 "/mnt/ws-fast/diag/$$f.log"; \
 	done
