@@ -1,6 +1,6 @@
 # Workspace Notification Engine - Technical Specification
 
-**Document ID:** WS-SPEC-NOTIFICATIONS-v0.3
+**Document ID:** WS-SPEC-NOTIFICATIONS-v0.4
 **Status:** Draft - Operator decisions recorded (REQ §9); ready for implementation
 **Date:** 2026-09-13
 **Classification:** Internal - Enterprise
@@ -189,14 +189,14 @@ fi
 
 Title embeds the alert key as the stable search handle; no label
 dependencies. `GH_TOKEN` is exported per-invocation only (never written).
-Each channel is rc-captured: one channel failing logs the failure and lets
-the other proceed; overall exit reflects the worst channel outcome
-(partial delivery is visible and non-fatal, exit `4`).
+Each channel is rc-captured so one failing channel does not abort the
+other's attempt, but the outcome is atomic: **any channel failure fails the
+send** (exit `4`, the notifier unit enters `failed`, the journal names the
+failing channel). There is no partial-success outcome.
 
 ### 3.5 Dry run
 
-`WORKSPACE_NOTIFY_DRY_RUN=1` (or the pre-existing
-`WORKSPACE_FAILURE_NOTIFY_DRY_RUN=1`)
+`WORKSPACE_NOTIFY_DRY_RUN=1`
 composes, resolves priority/cooldown/escalation, logs the full message, and
 exits `0` without touching OpenBao or any channel. Cooldown state is NOT
 advanced in dry-run.

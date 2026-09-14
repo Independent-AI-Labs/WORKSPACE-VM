@@ -1,6 +1,6 @@
 # Workspace Notification Engine - Enterprise Requirements Specification
 
-**Document ID:** WS-REQ-NOTIFICATIONS-v0.3
+**Document ID:** WS-REQ-NOTIFICATIONS-v0.4
 **Status:** Draft - Operator decisions recorded (§9); ready for implementation
 **Date:** 2026-09-13
 **Classification:** Internal - Enterprise
@@ -156,10 +156,11 @@ queued. **Escalation fast-track:** a delivery whose priority rank exceeds
 the stored rank SHALL bypass the remaining cooldown and send immediately
 (REQ-NOT-011 mapping: critical > urgent > normal).
 
-**FR-1.3 (REQ-NOT-003)** `WORKSPACE_NOTIFY_DRY_RUN=1` (and the pre-existing
-`WORKSPACE_FAILURE_NOTIFY_DRY_RUN=1`) SHALL compose and log the full message
-and resolved priority without invoking any channel. Tests and self-tests use
-this mode.
+**FR-1.3 (REQ-NOT-003)** `WORKSPACE_NOTIFY_DRY_RUN=1` SHALL compose and log
+the full message and resolved priority without invoking any channel. Tests
+and self-tests use this mode. The refactored adapter (FR-1.4) switches to
+this variable name exclusively - the previous
+`WORKSPACE_FAILURE_NOTIFY_DRY_RUN` name is removed, not aliased.
 
 **FR-1.4 (REQ-NOT-004)** `ami_failure_notify.sh` SHALL be refactored into a
 thin adapter: systemd-state/journal capture stays, send logic delegates to
@@ -178,7 +179,10 @@ respectively.
 
 **FR-2.2 (REQ-NOT-007)** Channel fan-out SHALL be priority-driven:
 `critical` and `urgent` deliver to **both** email and GitHub issue;
-`normal` delivers email only.
+`normal` delivers email only. Every configured channel is attempted;
+**failure of any channel fails the send** (exit `4`, notifier unit enters
+`failed`, journal names the failing channel). There is no partial-success
+outcome.
 
 **FR-2.3 (REQ-NOT-008)** GitHub issue creation SHALL be idempotent per
 incident: before creating, the channel searches the target repository for an
