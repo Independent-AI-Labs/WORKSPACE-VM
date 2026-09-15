@@ -28,7 +28,7 @@ workspaceClones:
     path: 'projects/WORKSPACE-CI'
     mandatory: true
   dataops:
-    remote: 'git@example.com:ami-dataops.git'
+    remote: 'git@example.com:workspace-dataops.git'
     path: 'projects/DATAOPS'
     mandatory: true
 """
@@ -52,18 +52,18 @@ class TestAlignmentCheck:
         assert "aligned" in capsys.readouterr().out
 
     def test_drift_only_in_moon(self, tmp_path, capsys) -> None:
-        moon = MOON_OK + "    ami-stray: 'projects/STRAY'\n"
+        moon = MOON_OK + "    ws-stray: 'projects/STRAY'\n"
         root = _make_workspace(tmp_path, moon, CLONES_OK)
         with patch.object(mod, "_find_workspace_root", return_value=root):
             assert mod.main() == mod.EXIT_DRIFT
         err = capsys.readouterr().err
         assert "missing from workspace-clones.yaml" in err
-        assert "ami-stray" in err
+        assert "ws-stray" in err
 
     def test_optional_clone_under_glob_is_not_drift(self, tmp_path, capsys) -> None:
         """Clones-only entries covered by projects.globs are by design."""
         clones = CLONES_OK + (
-            "  ami-extra:\n"
+            "  ws-extra:\n"
             "    remote: 'git@example.com:extra.git'\n"
             "    path: 'projects/EXTRA'\n"
             "    mandatory: false\n"
@@ -75,7 +75,7 @@ class TestAlignmentCheck:
 
     def test_drift_only_in_clones(self, tmp_path, capsys) -> None:
         clones = CLONES_OK + (
-            "  ami-extra:\n"
+            "  ws-extra:\n"
             "    remote: 'git@example.com:extra.git'\n"
             "    path: 'vendor/EXTRA'\n"
             "    mandatory: false\n"
@@ -85,7 +85,7 @@ class TestAlignmentCheck:
             assert mod.main() == mod.EXIT_DRIFT
         err = capsys.readouterr().err
         assert "missing from .moon/workspace.yml" in err
-        assert "ami-extra" in err
+        assert "ws-extra" in err
 
     def test_drift_path_mismatch(self, tmp_path, capsys) -> None:
         moon = (
@@ -110,7 +110,7 @@ class TestAlignmentCheck:
         assert "cannot find workspace root" in capsys.readouterr().err
 
     def test_infra_error_on_invalid_yaml(self, tmp_path, capsys) -> None:
-        bad_clones = "workspaceClones:\n  ami-ci: : :\n"
+        bad_clones = "workspaceClones:\n  workspace-ci: : :\n"
         root = _make_workspace(tmp_path, MOON_OK, bad_clones)
         with patch.object(mod, "_find_workspace_root", return_value=root):
             assert mod.main() == mod.EXIT_INFRA

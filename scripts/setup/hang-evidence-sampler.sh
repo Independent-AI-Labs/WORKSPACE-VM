@@ -16,8 +16,9 @@ set -euo pipefail
 #   kern.log     - any new hang-class kernel lines (hung_task, blocked-for,
 #                  OOM, I/O error, i915 atomic update failure, GPU reset)
 #   fd.log       - /proc/sys/fs/file-nr + top FD-holding processes
-#                  (2026-09-14 postmortem: the guard clamps agent chains to
-#                  4096 NOFILE hard, so builds die EMFILE; watch counts grow)
+#                  (2026-09-14 postmortem: the guard clamped agent chains
+#                  to 4096 NOFILE hard and builds died EMFILE; the policy
+#                  is 65536 since the same-day guard fix - watch counts)
 #
 # Intentionally agent-owned user units: /proc/* and journalctl -k are
 # readable from uid 1000 (adm group). Runs forever; systemd restarts it.

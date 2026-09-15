@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# AMI Orchestrator Banner - delegates to banner_helper.py for
+# WORKSPACE Orchestrator Banner - delegates to banner_helper.py for
 # manifest-based extension discovery and rendering.
 
 # Colors for output
@@ -9,13 +9,13 @@ RED='\033[38;5;203m'
 NC='\033[0m'
 
 # The shell guard runs staged scripts under a scrubbed PATH, so bare `uv`
-# resolves from nothing. Prepend the AMI boot dirs (same as bin/run) so
+# resolves from nothing. Prepend the WORKSPACE boot dirs (same as bin/run) so
 # `uv run python` finds the hermetic uv + project venv.
-if [[ -n "${AMI_ROOT:-}" ]]; then
-    _ami_boot_dir=".boot-linux"
-    [[ "$(uname -s)" == "Darwin" ]] && _ami_boot_dir=".boot-macos"
-    export PATH="$AMI_ROOT/$_ami_boot_dir/bin:$AMI_ROOT/.venv/bin:$PATH"
-    unset _ami_boot_dir
+if [[ -n "${WORKSPACE_ROOT:-}" ]]; then
+    _workspace_boot_dir=".boot-linux"
+    [[ "$(uname -s)" == "Darwin" ]] && _workspace_boot_dir=".boot-macos"
+    export PATH="$WORKSPACE_ROOT/$_workspace_boot_dir/bin:$WORKSPACE_ROOT/.venv/bin:$PATH"
+    unset _workspace_boot_dir
 fi
 
 # Unset colors when --plain is active
@@ -29,8 +29,8 @@ for arg in "$@"; do
 done
 
 # Define quiet mode echo function
-_ami_echo() {
-    if [[ "$AMI_QUIET_MODE" != "1" ]]; then
+_workspace_echo() {
+    if [[ "$WORKSPACE_QUIET_MODE" != "1" ]]; then
         echo -e "$@"
     fi
 }
@@ -46,25 +46,25 @@ display_banner() {
         shift
     done
 
-    _ami_echo "${GREEN}✓${NC} AMI Orchestrator shell environment configured successfully!"
-    _ami_echo ""
+    _workspace_echo "${GREEN}✓${NC} WORKSPACE Orchestrator shell environment configured successfully!"
+    _workspace_echo ""
     local banner_output
-    banner_output=$(uv run python "$AMI_ROOT/workspace/utils/banner.py" --project-root "$AMI_ROOT")
+    banner_output=$(uv run python "$WORKSPACE_ROOT/workspace/utils/banner.py" --project-root "$WORKSPACE_ROOT")
     if [[ -n "$banner_output" ]]; then
         while IFS= read -r line; do
-            _ami_echo " $line"
+            _workspace_echo " $line"
         done <<< "$banner_output"
     else
-        _ami_echo "  OpenAMI"
+        _workspace_echo "  OpenWORKSPACE"
     fi
-    _ami_echo ""
+    _workspace_echo ""
 
     # Display extensions via Python helper (manifest-based discovery)
-    local _banner_helper="$AMI_ROOT/workspace/scripts/shell/banner_helper.py"
+    local _banner_helper="$WORKSPACE_ROOT/workspace/scripts/shell/banner_helper.py"
     if [[ -f "$_banner_helper" ]]; then
         local _quiet_flag=""
         local _plain_flag=""
-        [[ "$AMI_QUIET_MODE" == "1" ]] && _quiet_flag="--quiet"
+        [[ "$WORKSPACE_QUIET_MODE" == "1" ]] && _quiet_flag="--quiet"
         [[ -z "$GREEN" ]] && _plain_flag="--plain"
         uv run python "$_banner_helper" --mode banner $_quiet_flag $_plain_flag
     fi
@@ -72,7 +72,7 @@ display_banner() {
 
 # Function to display system status
 display_system_status() {
-    local sys_info_script="$AMI_ROOT/workspace/scripts/utils/sys_info.py"
+    local sys_info_script="$WORKSPACE_ROOT/workspace/scripts/utils/sys_info.py"
     if [[ -f "$sys_info_script" ]]; then
         # Use uv run to ensure we have psutil available
         uv run python "$sys_info_script" 2>&1 || {
@@ -92,8 +92,8 @@ display_system_status() {
 
 # Standalone invocation support
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-    if [[ -z "${AMI_ROOT:-}" ]]; then
-        echo "Error: AMI_ROOT not set" >&2
+    if [[ -z "${WORKSPACE_ROOT:-}" ]]; then
+        echo "Error: WORKSPACE_ROOT not set" >&2
         exit 1
     fi
     display_banner "$@"

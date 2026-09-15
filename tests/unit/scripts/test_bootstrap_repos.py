@@ -1,4 +1,4 @@
-"""Unit tests for ami/scripts/bin/bootstrap-repos bash walker.
+"""Unit tests for workspace/scripts/bin/bootstrap-repos bash walker.
 
 The walker is bash but its YAML-parsing logic and clone/skip/pull
 control flow are critical infrastructure: a misread of
@@ -17,13 +17,14 @@ import os
 import shutil
 import stat
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
 
 from workspace.config_utils import PROJECT_ROOT as REPO_ROOT
 
-WALKER = REPO_ROOT / "ami" / "scripts" / "bin" / "bootstrap-repos"
+WALKER = REPO_ROOT / "workspace" / "scripts" / "bin" / "bootstrap-repos"
 
 
 def _make_fake_repo_root(tmp_path: Path, clones_yaml_text: str) -> Path:
@@ -31,14 +32,17 @@ def _make_fake_repo_root(tmp_path: Path, clones_yaml_text: str) -> Path:
 
     The walker walks up looking for a directory containing both
     pyproject.toml and moon.yml. The yaml parser inside the walker reads
-    ami/config/workspace-clones.yaml.
+    workspace/config/workspace-clones.yaml.
     """
     (tmp_path / "pyproject.toml").write_text("[project]\nname='fake'\n")
     (tmp_path / "moon.yml").write_text("language: 'python'\n")
-    cfg_dir = tmp_path / "ami" / "config"
+    boot_bin = tmp_path / ".boot-linux" / "bin"
+    boot_bin.mkdir(parents=True)
+    (boot_bin / "python").symlink_to(sys.executable)
+    cfg_dir = tmp_path / "workspace" / "config"
     cfg_dir.mkdir(parents=True)
     (cfg_dir / "workspace-clones.yaml").write_text(clones_yaml_text)
-    bin_dir = tmp_path / "ami" / "scripts" / "bin"
+    bin_dir = tmp_path / "workspace" / "scripts" / "bin"
     bin_dir.mkdir(parents=True)
     walker_copy = bin_dir / "bootstrap-repos"
     shutil.copy(WALKER, walker_copy)
@@ -97,17 +101,17 @@ workspaceClones:
     remote: 'git@github.com:Independent-AI-Labs/WORKSPACE-CI.git'
     path: 'projects/WORKSPACE-CI'
     mandatory: true
-  ami-dataops:
-    remote: 'git@github.com:Independent-AI-Labs/AMI-DATAOPS.git'
-    path: 'projects/AMI-DATAOPS'
+  workspace-dataops:
+    remote: 'git@github.com:Independent-AI-Labs/WORKSPACE-DATAOPS.git'
+    path: 'projects/WORKSPACE-DATAOPS'
     mandatory: true
   workspace-portal:
     remote: 'git@github.com:Independent-AI-Labs/WORKSPACE-PORTAL.git'
     path: 'projects/WORKSPACE-PORTAL'
     mandatory: false
-  ami-srp:
-    remote: 'git@github.com:Independent-AI-Labs/AMI-SRP.git'
-    path: 'projects/AMI-SRP'
+  workspace-rp:
+    remote: 'git@github.com:Independent-AI-Labs/WORKSPACE-RP.git'
+    path: 'projects/WORKSPACE-RP'
     mandatory: false
 """
 
@@ -125,11 +129,11 @@ class TestMandatoryOnly:
 
         assert result.returncode == 0, result.stderr
         log = log_file.read_text() if log_file.exists() else ""
-        assert "clone git@github.com:Independent-AI-Labs/AMI-CI.git" in log
-        assert "clone git@github.com:Independent-AI-Labs/AMI-DATAOPS.git" in log
+        assert "clone git@github.com:Independent-AI-Labs/WORKSPACE-CI.git" in log
+        assert "clone git@github.com:Independent-AI-Labs/WORKSPACE-DATAOPS.git" in log
         # Optionals must not be cloned.
         assert "WORKSPACE-PORTAL" not in log
-        assert "AMI-SRP" not in log
+        assert "WORKSPACE-RP" not in log
         assert "2 processed" in result.stdout
         assert "2 optional skipped" in result.stdout
 
@@ -149,7 +153,7 @@ class TestIncludeSelection:
         log = log_file.read_text() if log_file.exists() else ""
         assert "WORKSPACE-PORTAL.git" in log
         # Other optional still skipped.
-        assert "AMI-SRP" not in log
+        assert "WORKSPACE-RP" not in log
 
     def test_include_multiple_csv(self, tmp_path: Path) -> None:
         walker = _make_fake_repo_root(tmp_path, SAMPLE_YAML)
@@ -158,13 +162,13 @@ class TestIncludeSelection:
         _make_fake_git(stub, log_file)
 
         result = _run_walker(
-            walker, "--include", "workspace-portal,ami-srp", stub_dir=stub
+            walker, "--include", "workspace-portal,workspace-rp", stub_dir=stub
         )
 
         assert result.returncode == 0, result.stderr
         log = log_file.read_text() if log_file.exists() else ""
         assert "WORKSPACE-PORTAL.git" in log
-        assert "AMI-SRP.git" in log
+        assert "WORKSPACE-RP.git" in log
 
 
 class TestAllOptional:
@@ -182,9 +186,9 @@ class TestAllOptional:
         log = log_file.read_text() if log_file.exists() else ""
         for repo in (
             "WORKSPACE-CI.git",
-            "AMI-DATAOPS.git",
+            "WORKSPACE-DATAOPS.git",
             "WORKSPACE-PORTAL.git",
-            "AMI-SRP.git",
+            "WORKSPACE-RP.git",
         ):
             assert repo in log
         assert "0 optional skipped" in result.stdout
@@ -196,7 +200,7 @@ class TestPullExisting:
     def test_pull_runs_pull_on_existing(self, tmp_path: Path) -> None:
         walker = _make_fake_repo_root(tmp_path, SAMPLE_YAML)
         # Pre-create one of the mandatory targets as if already cloned.
-        already = tmp_path / "projects" / "CI" / ".git"
+        already = tmp_path / "projects" / "WORKSPACE-CI" / ".git"
         already.mkdir(parents=True)
         log_file = tmp_path / "git-calls.log"
         stub = tmp_path / "stub-bin"

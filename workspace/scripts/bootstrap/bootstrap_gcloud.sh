@@ -7,12 +7,12 @@
 # This allows the backup script to use service account impersonation
 # without requiring system-wide gcloud installation.
 #
-# Usage: ./ami/scripts/bootstrap/bootstrap_gcloud.sh
+# Usage: ./workspace/scripts/bootstrap/bootstrap_gcloud.sh
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# Script is in ami/scripts/bootstrap/, project root is 3 levels up
+# Script is in workspace/scripts/bootstrap/, project root is 3 levels up
 ROOT_DIR="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 BOOT_DIR="${BOOT_LINUX_DIR:-$ROOT_DIR/.boot-linux}"
 GCLOUD_DIR="$BOOT_DIR/gcloud"
@@ -186,5 +186,5 @@ echo "   GDRIVE_AUTH_METHOD=impersonation"
 echo "   GDRIVE_SERVICE_ACCOUNT_EMAIL=backup@project.iam.gserviceaccount.com"
 echo
 echo "4. Run backup:"
-echo "   ami-backup"
+echo "   workspace-backup"
 echo

@@ -36,7 +36,7 @@ extensions:
 
   - name: ssl
     binary: workspace/scripts/bin/openssl.py
-    description: OpenSSL with AMI cert paths
+    description: OpenSSL with WORKSPACE cert paths
     category: infra
     features:
       - x509

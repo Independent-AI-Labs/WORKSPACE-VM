@@ -10,7 +10,7 @@ log_info() { echo "$1" >&2; }
 log_error() { echo "ERROR: $1" >&2; }
 log_success() { echo "✓ $1" >&2; }
 
-# Calculate paths - script is in ami/scripts/bootstrap/, project root is 3 levels up
+# Calculate paths - script is in workspace/scripts/bootstrap/, project root is 3 levels up
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 

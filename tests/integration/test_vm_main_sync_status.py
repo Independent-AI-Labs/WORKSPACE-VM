@@ -380,12 +380,12 @@ class TestStatusDisplayIntegration:
         self, capsys: pytest.CaptureFixture[str]
     ) -> None:
         svc = SystemdService(
-            name="ami-test",
+            name="workspace-test",
             active="active",
             sub="running",
             enabled="enabled",
             pid="12345",
-            path="/etc/systemd/user/ami-test.service",
+            path="/etc/systemd/user/workspace-test.service",
             restart="always",
         )
         info = ServiceDisplayInfo(
@@ -395,7 +395,7 @@ class TestStatusDisplayIntegration:
         )
         status_mod._print_service_entry(svc, info, [], [])
         out = capsys.readouterr().out
-        assert "ami-test" in out
+        assert "workspace-test" in out
         assert "PID:" in out
         assert "Ports:" in out
 
@@ -403,37 +403,37 @@ class TestStatusDisplayIntegration:
         self, capsys: pytest.CaptureFixture[str]
     ) -> None:
         svc = SystemdService(
-            name="ami-dead",
+            name="workspace-dead",
             active="inactive",
             sub="dead",
             pid="0",
-            path="/etc/systemd/system/ami-dead.service",
+            path="/etc/systemd/system/workspace-dead.service",
         )
         info = ServiceDisplayInfo(row_type="service")
         status_mod._print_service_entry(svc, info, [], [])
         out = capsys.readouterr().out
-        assert "ami-dead" in out
+        assert "workspace-dead" in out
         assert "PID:" not in out
 
     def test_print_service_entry_failed(
         self, capsys: pytest.CaptureFixture[str]
     ) -> None:
         svc = SystemdService(
-            name="ami-fail",
+            name="workspace-fail",
             active="failed",
             sub="failed",
-            path="/tmp/ami-fail.service",
+            path="/tmp/workspace-fail.service",
         )
         info = ServiceDisplayInfo(row_type="service")
         status_mod._print_service_entry(svc, info, [], [])
         out = capsys.readouterr().out
-        assert "ami-fail" in out
+        assert "workspace-fail" in out
 
     def test_print_service_entry_activating(
         self, capsys: pytest.CaptureFixture[str]
     ) -> None:
         svc = SystemdService(
-            name="ami-starting",
+            name="workspace-starting",
             active="activating",
             sub="auto-restart",
             path="/tmp/x.service",
@@ -441,13 +441,13 @@ class TestStatusDisplayIntegration:
         info = ServiceDisplayInfo(row_type="service")
         status_mod._print_service_entry(svc, info, [], [])
         out = capsys.readouterr().out
-        assert "ami-starting" in out
+        assert "workspace-starting" in out
 
     def test_print_service_entry_unknown_status(
         self, capsys: pytest.CaptureFixture[str]
     ) -> None:
         svc = SystemdService(
-            name="ami-unknown",
+            name="workspace-unknown",
             active="maintenance",
             sub="",
             path="/tmp/u.service",
@@ -455,13 +455,13 @@ class TestStatusDisplayIntegration:
         info = ServiceDisplayInfo(row_type="service")
         status_mod._print_service_entry(svc, info, [], [])
         out = capsys.readouterr().out
-        assert "ami-unknown" in out
+        assert "workspace-unknown" in out
 
     def test_print_service_entry_with_containers(
         self, capsys: pytest.CaptureFixture[str]
     ) -> None:
         svc = SystemdService(
-            name="ami-with-kids",
+            name="workspace-with-kids",
             active="active",
             sub="running",
             enabled="enabled",
@@ -486,4 +486,4 @@ class TestStatusDisplayIntegration:
         ]
         status_mod._print_service_entry(svc, info, stats, sizes)
         out = capsys.readouterr().out
-        assert "ami-with-kids" in out
+        assert "workspace-with-kids" in out

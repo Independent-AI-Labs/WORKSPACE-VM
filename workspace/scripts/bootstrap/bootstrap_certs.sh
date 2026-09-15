@@ -21,10 +21,10 @@ mkdir -p "$CERT_DIR"
 CA_KEY="${CERT_DIR}/ca.key"
 CA_CRT="${CERT_DIR}/ca.crt"
 SERVER_KEY="${CERT_DIR}/server.key"
-SERVER_CSR="/tmp/ami-vm-server-${VM_UUID}.csr"
+SERVER_CSR="/tmp/workspace-vm-server-${VM_UUID}.csr"
 SERVER_CRT="${CERT_DIR}/server.crt"
 CLIENT_KEY="${CERT_DIR}/client.key"
-CLIENT_CSR="/tmp/ami-vm-client-${VM_UUID}.csr"
+CLIENT_CSR="/tmp/workspace-vm-client-${VM_UUID}.csr"
 CLIENT_CRT="${CERT_DIR}/client.crt"
 SERIAL="${CERT_DIR}/ca.srl"
 
@@ -47,10 +47,10 @@ openssl req -new -key "$SERVER_KEY" -out "$SERVER_CSR" \
 openssl x509 -req -in "$SERVER_CSR" -CA "$CA_CRT" -CAkey "$CA_KEY" \
     -CAcreateserial -out "$SERVER_CRT" -days 3650 -sha512
 
-echo "[${OP}] Generating client cert (CN=ami-admin)..."
+echo "[${OP}] Generating client cert (CN=workspace-admin)..."
 openssl genrsa -out "$CLIENT_KEY" 4096
 openssl req -new -key "$CLIENT_KEY" -out "$CLIENT_CSR" \
-    -subj "/CN=ami-admin"
+    -subj "/CN=workspace-admin"
 openssl x509 -req -in "$CLIENT_CSR" -CA "$CA_CRT" -CAkey "$CA_KEY" \
     -CAserial "$SERIAL" -out "$CLIENT_CRT" -days 3650 -sha512
 

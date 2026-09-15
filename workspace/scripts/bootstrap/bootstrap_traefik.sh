@@ -4,8 +4,8 @@ OP="bootstrap_traefik"
 TRAEFIK_VERSION="3.7.4"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-AMI_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
-BOOT_DIR="${BOOT_LINUX_DIR:-${AMI_ROOT}/.boot-linux}"
+WORKSPACE_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
+BOOT_DIR="${BOOT_LINUX_DIR:-${WORKSPACE_ROOT}/.boot-linux}"
 BIN_DIR="${BOOT_DIR}/bin"
 
 TARGET="${BIN_DIR}/traefik"

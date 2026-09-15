@@ -5,11 +5,11 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "workspace"
 version = "0.5"
-description = "AMI Agent Orchestration System with shared code quality infrastructure"
+description = "WORKSPACE VM orchestration system with shared code quality infrastructure"
 readme = "README.md"
 requires-python = "==3.13.*"
 license = {text = "MIT"}
-authors = [{name = "AMI Team", email = "ami@example.com"}]
+authors = [{name = "WORKSPACE Team", email = "team@workspace.local"}]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
@@ -70,9 +70,6 @@ markers = [
 where = ["."]
 include = ["workspace.*"]
 namespaces = true
-
-[tool.setuptools.package-data]
-ami = []
 
 [project.optional-dependencies]
 chat = [

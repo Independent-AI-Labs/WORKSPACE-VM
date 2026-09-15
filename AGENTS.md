@@ -20,7 +20,7 @@ Rules (mirrored by banned-words gates `bfall-back-b`, `parents`, `parent-parent`
   access, chained `.parent` walks, and upward `joinpath` segments are all
   banned. Resolve through the seam above.
 - Shell scripts walk up to the `pyproject.toml` marker (see
-  `workspace/scripts/bin/vm` AMI_ROOT resolution) — same semantics, marker file.
+  `workspace/scripts/bin/vm` WORKSPACE_ROOT resolution) — same semantics, marker file.
 - Runtime binaries come from the deployed trust boundary
   `/opt/workspace-ci/<boot>/bin` (provisioned by deploy-ci); the checkout boot
   dir is a dev-toolchain overlay (uv, python, gcc). Provisioning fixes mean

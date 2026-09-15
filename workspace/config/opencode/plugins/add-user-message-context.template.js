@@ -31,7 +31,7 @@ const BLOCK_PATTERNS: Array<{ regex: RegExp; instruction: string }> = [
 
 let matched: string[] = []
 
-export const amiContext = async () => {
+export const workspaceContext = async () => {
   return {
     "experimental.chat.messages.transform": async (
       _input: {},

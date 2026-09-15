@@ -21,7 +21,7 @@ workspaceClones:
     path: 'projects/WORKSPACE-CI'
     mandatory: true
   dataops:
-    remote: 'git@github.com:Independent-AI-Labs/AMI-DATAOPS.git'
+    remote: 'git@github.com:Independent-AI-Labs/WORKSPACE-DATAOPS.git'
     path: 'projects/DATAOPS'
     mandatory: true
 """

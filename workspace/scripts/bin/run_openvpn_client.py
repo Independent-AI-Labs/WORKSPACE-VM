@@ -35,9 +35,9 @@ _TIMEOUT_EXIT = 124
 
 
 def _workspace_root() -> Path:
-    ami_root = os.environ.get("AMI_ROOT", "").strip()
-    if ami_root:
-        return Path(ami_root).resolve()
+    workspace_root = os.environ.get("WORKSPACE_ROOT", "").strip()
+    if workspace_root:
+        return Path(workspace_root).resolve()
     return find_workspace_root()
 
 

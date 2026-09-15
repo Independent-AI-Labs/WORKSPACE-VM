@@ -98,7 +98,7 @@ fi
 if [[ ${#MISSING_LIBS[@]} -eq 0 ]]; then
     log_info "Verifying chromium..."
     VERIFY_IMG="/tmp/playwright-verify-$$.png"
-    if timeout 30 "$PLAYWRIGHT" screenshot --browser chromium "data:text/html,<h1>AMI</h1>" "$VERIFY_IMG" 2>&1; then
+    if timeout 30 "$PLAYWRIGHT" screenshot --browser chromium "data:text/html,<h1>WORKSPACE</h1>" "$VERIFY_IMG" 2>&1; then
         rm -f "$VERIFY_IMG"
         log_success "Chromium operational"
     else

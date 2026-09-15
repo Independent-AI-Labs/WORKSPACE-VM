@@ -1,4 +1,4 @@
-"""Utility functions for the AMI status display."""
+"""Utility functions for the WORKSPACE status display."""
 
 import re
 import subprocess

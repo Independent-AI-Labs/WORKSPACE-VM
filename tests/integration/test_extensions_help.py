@@ -120,7 +120,7 @@ EXTENSIONS_HELP_READY = sorted(
 def make_test_env():
     """Create environment for running extension tests."""
     env = os.environ.copy()
-    env["AMI_ROOT"] = str(PROJECT_ROOT)
+    env["WORKSPACE_ROOT"] = str(PROJECT_ROOT)
     env["PATH"] = f"{PROJECT_ROOT}/.venv/bin:{env.get('PATH', '')}"
     env["PYTHONPATH"] = str(PROJECT_ROOT)
     return env

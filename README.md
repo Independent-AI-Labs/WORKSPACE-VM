@@ -58,7 +58,7 @@ git clone git@github.com:Independent-AI-Labs/WORKSPACE-VM.git && cd WORKSPACE-VM
 make install
 ```
 
-The bootstrap TUI installs selected components from the federated dependency graph. When finished, `ami-oc` (opencode wrapper) is on your PATH.
+The bootstrap TUI installs selected components from the federated dependency graph. When finished, `workspace-oc` (opencode wrapper) is on your PATH.
 
 ### Post-install (requires sudo)
 

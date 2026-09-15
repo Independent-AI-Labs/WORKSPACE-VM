@@ -1,6 +1,6 @@
 # Specification: Agent Policy Engine
 
-**Document ID:** AMI-SPEC-POLICY-v1.0
+**Document ID:** WORKSPACE-SPEC-POLICY-v1.0
 **Status:** Draft
 **Date:** 2026-06-08
 **Classification:** Internal - Enterprise
@@ -358,7 +358,7 @@ The `run` action executes an external script via Bun's built-in `$` shell API (n
 ```yaml
 action:
   type: run
-  command: "path/to/script.sh"               # absolute or relative to AMI_ROOT
+  command: "path/to/script.sh"               # absolute or relative to WORKSPACE_ROOT
   timeout_ms: 5000                           # max execution time in ms (default: 5000)
   cwd: "$HOME/project"                  # optional working directory (default: plugin's directory)
 ```
@@ -568,7 +568,7 @@ try {
   const policyPath = path.join(__dirname, "policies.json");
   POLICIES = JSON.parse(fs.readFileSync(policyPath, "utf-8"));
 } catch (e) {
-  console.error("[ami-policy] Failed to load policies.json:", e.message);
+  console.error("[workspace-policy] Failed to load policies.json:", e.message);
 }
 
 // ── Match engine (static, generic) ──
@@ -605,8 +605,8 @@ async function executeRunAction(policy, context, input, output) {
       .nothrow()
       .quiet()
       .env({
-        AMI_POLICY_NAME: policy.name,
-        AMI_SESSION_ID: input.sessionID || "",
+        WORKSPACE_POLICY_NAME: policy.name,
+        WORKSPACE_SESSION_ID: input.sessionID || "",
       })
       .cwd(policy.action.cwd || process.cwd());
 
@@ -736,7 +736,7 @@ export const amiContext = async () => {
           switch (policy.action.type) {
             case "block": throw new Error(`[POLICY BLOCK] ${policy.name}: ${policy.action.reason}`);
             case "allow": return;
-            case "ask": return { __ami_ask: true, policy: policy.name, reason: policy.action.reason };
+            case "ask": return { __workspace_ask: true, policy: policy.name, reason: policy.action.reason };
             case "modify": applyModifications(output.args, policy.action.fields); break;
             case "run": await executeRunAction(policy, ctx, input, output); break;
           }
@@ -835,11 +835,11 @@ No changes to the rendering pipeline, CLI scripts, or profile system.
 set -euo pipefail
 
 # ── Path resolution ──
-_ami_root() { ... }                           # walk up to find pyproject.toml
-_policy_dir() { echo "$(_ami_root)/workspace/config/opencode/policies"; }
+_workspace_root() { ... }                           # walk up to find pyproject.toml
+_policy_dir() { echo "$(_workspace_root)/workspace/config/opencode/policies"; }
 _template_dir() { echo "$(_policy_dir)/template"; }
-_static_plugin() { echo "$(_ami_root)/workspace/config/opencode/plugins/add-user-message-context.js"; }
-_rendered_json() { echo "$(_ami_root)/workspace/config/opencode/plugins/policies.json"; }
+_static_plugin() { echo "$(_workspace_root)/workspace/config/opencode/plugins/add-user-message-context.js"; }
+_rendered_json() { echo "$(_workspace_root)/workspace/config/opencode/plugins/policies.json"; }
 _deploy_dir() { echo "${HOME}/.config/opencode/plugins"; }
 _audit_dir() { echo "${HOME}/.config/opencode/logs"; }
 

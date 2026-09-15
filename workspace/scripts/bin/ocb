@@ -3,15 +3,15 @@ set -euo pipefail
 
 SCRIPT_SOURCE="${SHG_SCRIPT_PATH:-${BASH_SOURCE[0]}}"
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$SCRIPT_SOURCE")")" && pwd)"
-AMI_ROOT="$SCRIPT_DIR"
-while [[ "$AMI_ROOT" != "/" && ! -f "$AMI_ROOT/pyproject.toml" ]]; do
-    AMI_ROOT="$(dirname "$AMI_ROOT")"
+WORKSPACE_ROOT="$SCRIPT_DIR"
+while [[ "$WORKSPACE_ROOT" != "/" && ! -f "$WORKSPACE_ROOT/pyproject.toml" ]]; do
+    WORKSPACE_ROOT="$(dirname "$WORKSPACE_ROOT")"
 done
 ORIG_PWD="$PWD"
-export AMI_ROOT && cd "$AMI_ROOT"
+export WORKSPACE_ROOT && cd "$WORKSPACE_ROOT"
 
-OPN="${OPENCODE_BINARY:-${AMI_ROOT}/projects/opencode/packages/opencode/dist/opencode-linux-x64/bin/opencode}"
-source "$AMI_ROOT/workspace/scripts/opencode-wrapper.sh" || exit 1
+OPN="${OPENCODE_BINARY:-${WORKSPACE_ROOT}/projects/opencode/packages/opencode/dist/opencode-linux-x64/bin/opencode}"
+source "$WORKSPACE_ROOT/workspace/scripts/opencode-wrapper.sh" || exit 1
 
 case "$(uname -s):$(uname -m)" in
     Linux:x86_64) ;;
@@ -67,6 +67,6 @@ fi
 
 WELCOME="$(oc_wrapper_welcome)"
 printf '%b\n' "$WELCOME" && echo ""
-oc_wrapper_prepare "$AMI_ROOT" "$WELCOME"
+oc_wrapper_prepare "$WORKSPACE_ROOT" "$WELCOME"
 cd "$ORIG_PWD"
 oc_wrapper_dispatch "$OPN" "$ORIG_PWD" "$@"

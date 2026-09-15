@@ -1,6 +1,6 @@
 # Workflow: Research Requirements
 
-**Purpose:** Standard process for researching requirements before building or extending any AMI extension or feature. This is the generic workflow - feature-specific research documents go in `docs/REQUIREMENTS-*.md`.
+**Purpose:** Standard process for researching requirements before building or extending any WORKSPACE extension or feature. This is the generic workflow - feature-specific research documents go in `docs/REQUIREMENTS-*.md`.
 
 ---
 
@@ -14,15 +14,15 @@ Find ALL code, config, scripts, ansible roles, docker-compose services, and CLI 
 
 | Location | What lives there |
 |----------|-----------------|
-| `ami/scripts/bin/` | CLI tools (Python + Bash) |
-| `ami/config/` | Configuration files (extensions.yaml, hooks.yaml, automation.yaml, policies/) |
-| `ami/config/extensions.yaml` | Registered CLI extensions (single source of truth for banner + `.boot-linux/bin/`) |
+| `workspace/scripts/bin/` | CLI tools (Python + Bash) |
+| `workspace/config/` | Configuration files (extensions.yaml, hooks.yaml, automation.yaml, policies/) |
+| `workspace/config/extensions.yaml` | Registered CLI extensions (single source of truth for banner + `.boot-linux/bin/`) |
 | `projects/*/` | Project-specific implementations - **often contain prototypes** that already solve part of the problem |
 | `projects/WORKSPACE-STREAMS/ansible/` | Infrastructure-as-code - deployed services, roles, playbooks |
 | `docs/` and `docs/specifications/` | Specs, architecture docs, requirement docs |
 | `.boot-linux/bin/` | Bootstrapped binaries (134+ executables) |
-| `ami/scripts/bootstrap/` | Bootstrap scripts that install tools |
-| `ami/scripts/bootstrap_component_defs.py` | Component definitions for the bootstrap installer |
+| `workspace/scripts/bootstrap/` | Bootstrap scripts that install tools |
+| `workspace/scripts/bootstrap_component_defs.py` | Component definitions for the bootstrap installer |
 
 ### 1.2 Infrastructure Scan
 
@@ -44,14 +44,14 @@ Look for:
 
 ### 1.4 Integration Points
 
-Map how the feature connects to existing AMI systems:
+Map how the feature connects to existing WORKSPACE systems:
 
 | System | What it provides |
 |--------|-----------------|
 | **OpenBao** | Secrets - KV v2 at `platform/secrets/service/` and `platform/secrets/infra/` |
 | **Keycloak** | Auth/identity - JWT auth, OIDC, OAuth2 |
-| **ami-cron** | Scheduled automation - AMI-tagged crontab entries |
-| **ami-docs** | Document generation - pandoc, wkhtmltopdf, pdflatex, etc. |
+| **workspace-cron** | Scheduled automation - WORKSPACE-tagged crontab entries |
+| **workspace-docs** | Document generation - pandoc, wkhtmltopdf, pdflatex, etc. |
 | **Ansible** | Infrastructure provisioning - playbooks in WORKSPACE-STREAMS |
 | **Docker/Podman** | Containerized services |
 | **Exim relay** | SMTP relay to external providers (port 2525/2526) |
@@ -73,14 +73,14 @@ Search for:
 
 ### 2.2 Evaluate Candidates
 
-Evaluate against AMI constraints:
+Evaluate against WORKSPACE constraints:
 
 | Constraint | Question |
 |------------|----------|
 | **Bootstrappable** | Can it be downloaded as a binary and installed to `.boot-linux/bin/`? |
 | **Offline-capable** | Does it work on internal networks without internet? |
 | **Dependency footprint** | How many deps does it pull in? Prefer minimal. |
-| **AMI patterns** | Does it integrate with YAML config, OpenBao secrets, Jinja2 templates? |
+| **WORKSPACE patterns** | Does it integrate with YAML config, OpenBao secrets, Jinja2 templates? |
 | **JSON output** | Does it support `--output json` for scripting? |
 | **Multi-account** | Does it support multiple configurations/accounts natively? |
 | **Maturity** | Stars, version, maintenance activity, known issues? |
@@ -89,10 +89,10 @@ Evaluate against AMI constraints:
 
 Always consider at least:
 - **Option A: Pure Python** - extend existing code, no new binary deps
-- **Option B: External tool as backend** - bootstrap a CLI tool, wrap with Python for AMI integration (like ami-docs wraps pandoc)
+- **Option B: External tool as backend** - bootstrap a CLI tool, wrap with Python for WORKSPACE integration (like workspace-docs wraps pandoc)
 - **Option C: Hybrid** - split responsibilities between Python and external tool
 
-The ami-docs pattern (thin Python wrapper → external tool passthrough) is the established AMI pattern for tool integration.
+The workspace-docs pattern (thin Python wrapper → external tool passthrough) is the established WORKSPACE pattern for tool integration.
 
 ---
 

@@ -55,7 +55,7 @@ def _write_manifest(directory: Path, data: dict) -> Path:
 
 def _valid_entry(**overrides: object) -> ExtensionEntry:
     base: ExtensionEntry = {
-        "name": "ami-test",
+        "name": "workspace-test",
         "binary": "bin/test",
         "description": "A test extension",
         "category": "core",
@@ -200,7 +200,7 @@ class TestResolveExtensions:
         result = resolve_extensions([manifest], tmp_path)
         assert len(result) == 1
         assert result[0].status == Status.READY
-        assert result[0].entry["name"] == "ami-test"
+        assert result[0].entry["name"] == "workspace-test"
 
     def test_invalid_yaml(self, tmp_path: Path) -> None:
         manifest = tmp_path / "bad" / "extension.manifest.yaml"
@@ -286,13 +286,13 @@ class TestResolveExtensions:
             {
                 "extensions": [
                     {"name": "bad"},
-                    _valid_entry(name="ami-good", binary="bin/good"),
+                    _valid_entry(name="workspace-good", binary="bin/good"),
                 ]
             },
         )
         result = resolve_extensions([manifest], tmp_path)
         assert len(result) == 1
-        assert result[0].entry["name"] == "ami-good"
+        assert result[0].entry["name"] == "workspace-good"
 
     def test_required_dep_missing_is_unavailable(self, tmp_path: Path) -> None:
         _make_executable(tmp_path / "bin" / "tool")

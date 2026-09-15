@@ -1,5 +1,5 @@
 # Python Fast Pattern Validation
-# Used by validate_python_patterns() in ami/hooks/validators.py
+# Used by validate_python_patterns() in workspace/hooks/validators.py
 #
 # These patterns define fast checks that run BEFORE expensive LLM audits.
 # Fast pattern checks prevent obvious violations from wasting LLM tokens.
@@ -39,7 +39,7 @@ patterns:
                   sys.path.insert(0, str(current))
                   return current
               current = current.parent
-          raise RuntimeError("Unable to locate AMI orchestrator root")
+          raise RuntimeError("Unable to locate WORKSPACE orchestrator root")
 
   # Code quality suppressions without justification
   - name: "code_suppression"

@@ -5,10 +5,10 @@
 **Type:** Requirements
 **Specification:** [SPEC-A2A](../specifications/SPEC-A2A.md)
 **Classification:** Internal - Enterprise
-**Document ID:** AMI-REQ-A2A-v1.0
+**Document ID:** WORKSPACE-REQ-A2A-v1.0
 
 > Contract for integrating Agent-to-Agent (A2A) protocol client support into
-> AMI-Agents: discover, authenticate to, and delegate tasks to remote A2A
+> WORKSPACE-VM: discover, authenticate to, and delegate tasks to remote A2A
 > agents, with EU AI Act / GDPR / OWASP regulatory controls. This document is
 > the single source of truth for A2A client requirements. Explicitly excluded:
 > hosting an A2A Server endpoint and implementation/stack choices. Not yet
@@ -35,11 +35,11 @@
 
 ## 1. Scope
 
-This document specifies the hard functional, non-functional, and regulatory requirements for integrating Agent-to-Agent (A2A) protocol support into AMI-Agents. It governs the capability to discover, communicate with, authenticate to, and delegate tasks to remote AI agents over the A2A protocol as defined by the A2A Protocol Specification v1.0 (Linux Foundation, contributed by Google).
+This document specifies the hard functional, non-functional, and regulatory requirements for integrating Agent-to-Agent (A2A) protocol support into WORKSPACE-VM. It governs the capability to discover, communicate with, authenticate to, and delegate tasks to remote AI agents over the A2A protocol as defined by the A2A Protocol Specification v1.0 (Linux Foundation, contributed by Google).
 
 **Out of scope:**
 - Implementation details, architecture decisions, or technology stack choices.
-- Hosting an A2A Server endpoint (exposing AMI-Agents as a remote agent).
+- Hosting an A2A Server endpoint (exposing WORKSPACE-VM as a remote agent).
 - MCP (Model Context Protocol) integration, except where A2A and MCP interact at a requirement level.
 
 ---
@@ -364,7 +364,7 @@ The system SHALL respect data residency requirements:
 - The system SHALL NOT automatically send data to remote agents in jurisdictions without adequate data protection (per GDPR Art. 44-49 adequacy decisions)
 - Project-level and user-level token isolation SHALL enable team-managed credentials for different deployment environments
 
-> Per WS-4 §3.5.3 and WS-7 §4: EU data sovereignty is the single dimension where AMI currently leads the competitive landscape. This advantage MUST be preserved in A2A design.
+> Per WS-4 §3.5.3 and WS-7 §4: EU data sovereignty is the single dimension where WORKSPACE currently leads the competitive landscape. This advantage MUST be preserved in A2A design.
 
 ---
 
@@ -464,4 +464,4 @@ codebase and requires rewrite before it can satisfy these requirements.
 
 ---
 
-*This requirements specification incorporates material from the A2A Protocol Specification v1.0 (a2aproject/A2A, Linux Foundation), the EU AI Act (Regulation (EU) 2024/1689), GDPR, ISO/IEC standards, OWASP guidance, and the AMI-Agents research programme (docs/research/). All quotations from the A2A specification are reproduced verbatim from the official source document. Regulatory quotations are excerpted from WS-4 Regulatory Deep Dive, which references the primary legal sources.*
+*This requirements specification incorporates material from the A2A Protocol Specification v1.0 (a2aproject/A2A, Linux Foundation), the EU AI Act (Regulation (EU) 2024/1689), GDPR, ISO/IEC standards, OWASP guidance, and the WORKSPACE-VM research programme (docs/research/). All quotations from the A2A specification are reproduced verbatim from the official source document. Regulatory quotations are excerpted from WS-4 Regulatory Deep Dive, which references the primary legal sources.*

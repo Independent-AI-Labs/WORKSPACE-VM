@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# GCC/musl Bootstrap Script for AMI-ORCHESTRATOR
+# GCC/musl Bootstrap Script for WORKSPACE-ORCHESTRATOR
 # Downloads pre-built static GCC 15.1.0 + musl libc toolchain from Dyne.org
 # Provides a compatible C compiler without requiring apt/sudo
 #

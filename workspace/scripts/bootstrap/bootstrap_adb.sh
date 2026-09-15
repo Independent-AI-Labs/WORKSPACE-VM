@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# ADB Bootstrap Script for AMI-ORCHESTRATOR
+# ADB Bootstrap Script for WORKSPACE-ORCHESTRATOR
 # Downloads and installs Android Platform Tools to .boot-linux
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# Script is in ami/scripts/bootstrap/, project root is 3 levels up
+# Script is in workspace/scripts/bootstrap/, project root is 3 levels up
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 
 # Use BOOT_LINUX_DIR env var if set, otherwise default

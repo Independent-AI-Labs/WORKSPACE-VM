@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# --- Resolve AMI_ROOT ---
+# --- Resolve WORKSPACE_ROOT ---
 SCRIPT_SOURCE="${SHG_SCRIPT_PATH:-${BASH_SOURCE[0]}}"
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$SCRIPT_SOURCE")")" && pwd)"
-AMI_ROOT="$SCRIPT_DIR"
-while [[ "$AMI_ROOT" != "/" && ! -f "$AMI_ROOT/pyproject.toml" ]]; do
-    AMI_ROOT="$(dirname "$AMI_ROOT")"
+WORKSPACE_ROOT="$SCRIPT_DIR"
+while [[ "$WORKSPACE_ROOT" != "/" && ! -f "$WORKSPACE_ROOT/pyproject.toml" ]]; do
+    WORKSPACE_ROOT="$(dirname "$WORKSPACE_ROOT")"
 done
-export AMI_ROOT && cd "$AMI_ROOT"
+export WORKSPACE_ROOT && cd "$WORKSPACE_ROOT"
 
 _VMS_DIR="${WS_VM_DIR:-.vms}"
-_BOOT_DIR="${BOOT_DIR:-${AMI_ROOT}/.boot-linux}"
+_BOOT_DIR="${BOOT_DIR:-${WORKSPACE_ROOT}/.boot-linux}"
 _UV="${_BOOT_DIR}/bin/uv"
 _VM_RUN=("$_UV" run python)
 _CERTS_SCRIPT="workspace/scripts/bootstrap/bootstrap_certs.sh"

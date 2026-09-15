@@ -1,6 +1,6 @@
-"""Debug log writer for ami-banner / ami doctor tool-check runs.
+"""Debug log writer for workspace-banner / workspace doctor tool-check runs.
 
-Opens a JSON-lines log file under AMI_ROOT/logs/ each time the banner
+Opens a JSON-lines log file under WORKSPACE_ROOT/logs/ each time the banner
 runs its tool health checks. The log captures every tool's status,
 the full command executed, stdout, stderr, returncode, elapsed time,
 and exceptions. Use it to diagnose why a tool is showing as

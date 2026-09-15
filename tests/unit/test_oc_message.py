@@ -3,7 +3,7 @@
 The agent must receive the welcome banner properly separated
 from the user's task by two actual newline characters, not literal
 backslash-n text. This test validates the bash string construction
-pattern used in ami/scripts/bin/oc.
+pattern used in workspace/scripts/bin/oc.
 """
 
 from __future__ import annotations

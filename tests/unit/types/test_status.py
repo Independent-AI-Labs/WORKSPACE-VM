@@ -77,8 +77,8 @@ class TestPodmanContainer:
 
 class TestSystemdService:
     def test_minimal_construction(self) -> None:
-        s = SystemdService(name="ami-serve-web")
-        assert s.name == "ami-serve-web"
+        s = SystemdService(name="workspace-serve-web")
+        assert s.name == "workspace-serve-web"
         assert s.scope == ""
         assert s.active == ""
         assert s.sub == ""
@@ -132,8 +132,8 @@ class TestSystemdService:
         assert s.pid == "12345"
 
     def test_managed_container_none(self) -> None:
-        s = SystemdService(name="svc", managed_container="ami-container")
-        assert s.managed_container == "ami-container"
+        s = SystemdService(name="svc", managed_container="workspace-container")
+        assert s.managed_container == "workspace-container"
 
 
 class TestServiceDisplayInfo:

@@ -34,8 +34,8 @@ def _run_cmd_matcher(outputs: dict[str, str]):
 # ── _parse_systemd_details ────────────────────────────────────────────────
 
 _SAMPLE_SHOW_OUTPUT = (
-    "Id=ami-web.service\n"
-    "Description=AMI Web Service\n"
+    "Id=workspace-web.service\n"
+    "Description=WORKSPACE Web Service\n"
     "LoadState=loaded\n"
     "ActiveState=active\n"
     "SubState=running\n"
@@ -43,8 +43,8 @@ _SAMPLE_SHOW_OUTPUT = (
     "ExecMainStartTimestamp=Tue 2025-01-01 00:00:00 UTC\n"
     "MemoryCurrent=104857600\n"
     "CPUUsageNSec=5000000000\n"
-    "FragmentPath=/etc/systemd/system/ami-web.service\n"
-    "ExecStart=/usr/bin/podman start ami-web\n"
+    "FragmentPath=/etc/systemd/system/workspace-web.service\n"
+    "ExecStart=/usr/bin/podman start workspace-web\n"
     "Restart=always\n"
     "UnitFileState=enabled\n"
 )
@@ -52,8 +52,8 @@ _SAMPLE_SHOW_OUTPUT = (
 
 def test_parse_systemd_details_parses_full_output() -> None:
     result = _parse_systemd_details(_SAMPLE_SHOW_OUTPUT)
-    assert result["Id"] == "ami-web.service"
-    assert result["Description"] == "AMI Web Service"
+    assert result["Id"] == "workspace-web.service"
+    assert result["Description"] == "WORKSPACE Web Service"
     assert result["LoadState"] == "loaded"
     assert result["ActiveState"] == "active"
     assert result["SubState"] == "running"
@@ -61,8 +61,8 @@ def test_parse_systemd_details_parses_full_output() -> None:
     assert result["ExecMainStartTimestamp"] == "Tue 2025-01-01 00:00:00 UTC"
     assert result["MemoryCurrent"] == "104857600"
     assert result["CPUUsageNSec"] == "5000000000"
-    assert result["FragmentPath"] == "/etc/systemd/system/ami-web.service"
-    assert result["ExecStart"] == "/usr/bin/podman start ami-web"
+    assert result["FragmentPath"] == "/etc/systemd/system/workspace-web.service"
+    assert result["ExecStart"] == "/usr/bin/podman start workspace-web"
     assert result["Restart"] == "always"
     assert result["UnitFileState"] == "enabled"
 
@@ -110,8 +110,8 @@ def test_parse_systemd_details_correct_structure_with_all_13_fields() -> None:
 
 
 def test_extract_compose_info_container_name_from_podman_start() -> None:
-    result = _extract_compose_info("/usr/bin/podman start -a ami-mycontainer")
-    assert result.managed_container == "ami-mycontainer"
+    result = _extract_compose_info("/usr/bin/podman start -a workspace-mycontainer")
+    assert result.managed_container == "workspace-mycontainer"
     assert result.compose_file is None
     assert result.compose_profiles == []
 
@@ -171,8 +171,10 @@ def _make_show_output(name: str, exec_start: str = "/usr/bin/app") -> str:
 
 def test_get_systemd_services_user_scope() -> None:
     outputs = {
-        _list_units("--user "): "ami-web.service loaded active running\n",
-        _show("--user ", "ami-web.service"): _make_show_output("ami-web.service"),
+        _list_units("--user "): "workspace-web.service loaded active running\n",
+        _show("--user ", "workspace-web.service"): _make_show_output(
+            "workspace-web.service"
+        ),
         _list_units(""): "",
     }
     with patch(
@@ -180,7 +182,7 @@ def test_get_systemd_services_user_scope() -> None:
     ):
         services = get_systemd_services()
     assert len(services) == 1
-    assert services[0].name == "ami-web.service"
+    assert services[0].name == "workspace-web.service"
     assert services[0].scope == "user"
 
 
@@ -205,10 +207,12 @@ def test_get_systemd_services_filters_by_prefixes() -> None:
     outputs = {
         _list_units("--user "): (
             "random.service loaded active running\n"
-            "ami-keep.service loaded active running\n"
+            "workspace-keep.service loaded active running\n"
             "git-daemon.service loaded active running\n"
         ),
-        _show("--user ", "ami-keep.service"): _make_show_output("ami-keep.service"),
+        _show("--user ", "workspace-keep.service"): _make_show_output(
+            "workspace-keep.service"
+        ),
         _show("--user ", "git-daemon.service"): _make_show_output("git-daemon.service"),
         _list_units(""): "",
     }
@@ -218,19 +222,19 @@ def test_get_systemd_services_filters_by_prefixes() -> None:
         services = get_systemd_services()
     names = {s.name for s in services}
     assert "random.service" not in names
-    assert "ami-keep.service" in names
+    assert "workspace-keep.service" in names
     assert "git-daemon.service" in names
 
 
 def test_get_systemd_services_deduplicates_preferring_user_scope() -> None:
     outputs = {
-        _list_units("--user "): "ami-web.service loaded active running\n",
-        _show("--user ", "ami-web.service"): _make_show_output(
-            "ami-web.service", exec_start="/usr/bin/user-scope"
+        _list_units("--user "): "workspace-web.service loaded active running\n",
+        _show("--user ", "workspace-web.service"): _make_show_output(
+            "workspace-web.service", exec_start="/usr/bin/user-scope"
         ),
-        _list_units(""): "ami-web.service loaded active running\n",
-        _show("", "ami-web.service"): _make_show_output(
-            "ami-web.service", exec_start="/usr/bin/system-scope"
+        _list_units(""): "workspace-web.service loaded active running\n",
+        _show("", "workspace-web.service"): _make_show_output(
+            "workspace-web.service", exec_start="/usr/bin/system-scope"
         ),
     }
     with patch(
@@ -249,8 +253,12 @@ def test_get_systemd_services_empty_when_no_services() -> None:
 
 def test_get_systemd_services_handles_malformed_lines() -> None:
     outputs = {
-        _list_units("--user "): ("\n   \nami-web.service loaded active running\n"),
-        _show("--user ", "ami-web.service"): _make_show_output("ami-web.service"),
+        _list_units("--user "): (
+            "\n   \nworkspace-web.service loaded active running\n"
+        ),
+        _show("--user ", "workspace-web.service"): _make_show_output(
+            "workspace-web.service"
+        ),
         _list_units(""): "",
     }
     with patch(
@@ -288,7 +296,9 @@ def test_find_container_by_name_handles_empty_list() -> None:
 
 def test_process_service_unified_stack_type() -> None:
     svc = SystemdService(
-        name="ami-web", compose_file="/etc/compose/web.yml", compose_profiles=["prod"]
+        name="workspace-web",
+        compose_file="/etc/compose/web.yml",
+        compose_profiles=["prod"],
     )
     result = _process_service(svc, [], set())
     assert result.row_type == "Unified Stack"
@@ -296,18 +306,20 @@ def test_process_service_unified_stack_type() -> None:
 
 
 def test_process_service_container_wrapper_type() -> None:
-    managed = PodmanContainer(id="c1", name="ami-nginx")
-    svc = SystemdService(name="ami-nginx-svc", managed_container="ami-nginx")
+    managed = PodmanContainer(id="c1", name="workspace-nginx")
+    svc = SystemdService(
+        name="workspace-nginx-svc", managed_container="workspace-nginx"
+    )
     processed: set[str] = set()
     result = _process_service(svc, [managed], processed)
     assert result.row_type == "Container Wrapper"
     assert len(result.child_items) == 1
-    assert result.child_items[0].name == "ami-nginx"
-    assert "ami-nginx" in processed
+    assert result.child_items[0].name == "workspace-nginx"
+    assert "workspace-nginx" in processed
 
 
 def test_process_service_local_process_type() -> None:
-    svc = SystemdService(name="ami-local", pid="9999")
+    svc = SystemdService(name="workspace-local", pid="9999")
     with patch(
         "workspace.cli.status_systemd.get_local_ports", return_value=["8080", "443"]
     ):
@@ -317,7 +329,7 @@ def test_process_service_local_process_type() -> None:
 
 
 def test_process_service_matches_containers_by_compose_config_labels() -> None:
-    svc = SystemdService(name="ami-stack", compose_file="/etc/compose/app.yml")
+    svc = SystemdService(name="workspace-stack", compose_file="/etc/compose/app.yml")
     child = PodmanContainer(
         id="c1",
         name="app-container",
@@ -336,14 +348,14 @@ def test_process_service_matches_containers_by_compose_config_labels() -> None:
 
 
 def test_process_service_local_process_gets_ports_from_pid() -> None:
-    svc = SystemdService(name="ami-svc", pid="42")
+    svc = SystemdService(name="workspace-svc", pid="42")
     with patch("workspace.cli.status_systemd.get_local_ports", return_value=["3000"]):
         result = _process_service(svc, [], set())
     assert result.ports_str == "3000"
 
 
 def test_process_service_inactive_returns_empty_display() -> None:
-    svc = SystemdService(name="ami-inactive", pid="0")
+    svc = SystemdService(name="workspace-inactive", pid="0")
     result = _process_service(svc, [], set())
     assert result.row_type == "Local Process"
     assert result.row_details == []
@@ -356,7 +368,7 @@ def test_process_service_inactive_returns_empty_display() -> None:
 
 def test_print_orphan_services_does_nothing_when_no_orphans() -> None:
     with patch("workspace.cli.status_systemd.print_box_line") as mock_print:
-        _print_orphan_services([], {"ami-test.service"})
+        _print_orphan_services([], {"workspace-test.service"})
         mock_print.assert_not_called()
 
 
@@ -403,11 +415,11 @@ def test_print_orphan_services_only_checks_user_scope_units() -> None:
 
 def test_print_orphan_services_shows_origin_path_shortened() -> None:
     orphan = SystemdService(
-        name="ami-test.service",
+        name="workspace-test.service",
         scope="user",
         active="inactive",
         sub="dead",
-        path="/tmp/testuser/.config/systemd/user/ami-test.service",
+        path="/tmp/testuser/.config/systemd/user/workspace-test.service",
         enabled="disabled",
         restart="no",
     )

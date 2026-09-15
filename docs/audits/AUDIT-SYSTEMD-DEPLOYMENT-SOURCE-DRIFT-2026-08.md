@@ -114,8 +114,8 @@ workspace-level installer and templates.
 ### High: Portal Failure Notification Was Invalid
 
 Both Portal service templates declared
-`OnFailure=ami-failure-notify@%n.service`. No
-`ami-failure-notify@.service` template was deployed or provisioned. `%n`
+`OnFailure=workspace-failure-notify@%n.service`. No
+`workspace-failure-notify@.service` template was deployed or provisioned. `%n`
 already includes the failed unit's suffix, so the expression also requested a
 unit ending in `.service.service`.
 
@@ -147,8 +147,8 @@ ownership must be represented in the root managed-service inventory.
 ### Medium: Managed-Service Inventory and Status Were Blind
 
 `workspace/cli/status_systemd.py` only discovered outdated prefixes such as
-`ami-`, `matrix-`, and `postgres`. It ignored all eight deployed project units.
-Orphan reporting then narrowed discovery again to `ami-*` user services.
+`workspace-`, `matrix-`, and `postgres`. It ignored all eight deployed project units.
+Orphan reporting then narrowed discovery again to `workspace-*` user services.
 
 Several declaration files also used unsupported keys. The loader accepts only
 `compose_services` and `local_services`, while CI used `services` and Portal
@@ -223,7 +223,7 @@ verification on 2026-08-16 established:
   Prometheus, OpenBao, and Keycloak healthy. Direct Podman inspection is blocked
   only in the audited agent execution context by the command guard.
 - Root checks pass (`1,302 passed`, `21 skipped`; `71 passed` in the focused
-  status suite), Portal's full check passes, and AMI-SRP's complete Rust and
+  status suite), Portal's full check passes, and WORKSPACE-RP's complete Rust and
   Node checks pass.
 - The restored OpenVPN bootstrap script passes `bash -n`, is executable, and is
   below the 512-line source limit.

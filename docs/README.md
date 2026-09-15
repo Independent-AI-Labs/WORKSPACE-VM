@@ -1,9 +1,9 @@
-# AMI-Agents V3 - Documentation
+# WORKSPACE-VM V3 - Documentation
 
 **Date:** 2026-07-17
 **Status:** Active index
 
-Active documentation for the AMI-Agents V3 workspace. Pre-V3 docs have been
+Active documentation for the WORKSPACE-VM V3 workspace. Pre-V3 docs have been
 removed from the repo and are preserved in git history.
 
 Documents are organized by type: requirement contracts (REQ-*), implementation
@@ -55,7 +55,7 @@ Start here for onboarding: [`../README.md`](../README.md)
 | [`proposals/RESEARCH-OPENCODE-API-FEASIBILITY-AGENTCI.md`](proposals/RESEARCH-OPENCODE-API-FEASIBILITY-AGENTCI.md) | OpenCode V1, experimental, and V2 API feasibility for AgentCI (Informative) |
 | [`proposals/MIGRATION-PLAN.md`](proposals/MIGRATION-PLAN.md) | V3 migration master plan (Active; see banner for current phase) |
 | [`proposals/IMPLEMENTATION-PLAN-OPENCODE-MODERATOR-FSM.md`](proposals/IMPLEMENTATION-PLAN-OPENCODE-MODERATOR-FSM.md) | Detailed finite-state-machine refactor backlog (Approved) |
-| [`proposals/MIGRATION-CLI-COMPONENTS-TO-DATAOPS.md`](proposals/MIGRATION-CLI-COMPONENTS-TO-DATAOPS.md) | CLI components move to AMI-DATAOPS (Executed 2026-06-01) |
+| [`proposals/MIGRATION-CLI-COMPONENTS-TO-DATAOPS.md`](proposals/MIGRATION-CLI-COMPONENTS-TO-DATAOPS.md) | CLI components move to WORKSPACE-DATAOPS (Executed 2026-06-01) |
 
 ### audits/ - dated audit reports
 

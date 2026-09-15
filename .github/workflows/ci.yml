@@ -42,7 +42,7 @@ jobs:
         with:
           auto-install: true
 
-      - name: Bootstrap AMI workspace (install-ci)
+      - name: Bootstrap WORKSPACE workspace (install-ci)
         run: make install-ci
         env:
           # CI is not a TTY; the bootstrap installer must never prompt.

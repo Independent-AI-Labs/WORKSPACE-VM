@@ -2,12 +2,12 @@
 # scripts/bootstrap_kubernetes.sh
 set -euo pipefail
 
-# Kubernetes Bootstrap Script for AMI-ORCHESTRATOR
+# Kubernetes Bootstrap Script for WORKSPACE-ORCHESTRATOR
 # Downloads and installs Kubernetes tools (kubectl, helm) to .boot-linux
 # Ensures availability for Kubernetes operations without relying on system PATH
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# Script is in ami/scripts/bootstrap/, project root is 3 levels up
+# Script is in workspace/scripts/bootstrap/, project root is 3 levels up
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 
 # Use BOOT_DIR env var if set, otherwise default

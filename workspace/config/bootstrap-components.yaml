@@ -1,5 +1,5 @@
-# Bootstrap component manifest - loaded by ami/scripts/bootstrap_component_defs.py
-# and ami/scripts/bootstrap_installer.py (via inline Python YAML parsing).
+# Bootstrap component manifest - loaded by workspace/scripts/bootstrap_component_defs.py
+# and workspace/scripts/bootstrap_installer.py (via inline Python YAML parsing).
 #
 # Single source of truth for:
 #   1. Bootstrap components (components) - installed by make install / make install-ci
@@ -14,7 +14,7 @@
 #   label          - short human label.
 #   description    - one-line description.
 #   type           - script | uv | workspace_repo. Determines installer path.
-#   script         - bash script under ami/scripts/bootstrap/ (script type only).
+#   script         - bash script under workspace/scripts/bootstrap/ (script type only).
 #   detect_path    - relative path; existence => installed.
 #   version_cmd    - argv to invoke for version detection (relative to repo root).
 #   version_pattern- regex with one capture group; first match wins.
@@ -209,7 +209,7 @@ components:
 
   - name: cron
     label: 'Cron'
-    description: 'AMI crontab manager via system cron package'
+    description: 'WORKSPACE crontab manager via system cron package'
     type: script
     group: 'Infrastructure & Orchestration'
 

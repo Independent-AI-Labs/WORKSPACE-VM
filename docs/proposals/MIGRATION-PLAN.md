@@ -1,9 +1,9 @@
 # WORKSPACE-VM V3 - Complete Migration Plan
 
-**Document ID:** AMI-MIGRATION-V3-v1.1
+**Document ID:** WORKSPACE-MIGRATION-V3-v1.1
 **Status:** Active - Phase 2 largely complete, Phase 3 in progress
 **Last Updated:** 2026-07-13
-**Author:** AMI-Agents Engineering
+**Author:** WORKSPACE-VM Engineering
 
 > **Current state (2026-07-13):** Phase 1 (code deletions) complete. Phase 2 largely done (opencode, shell aliases, platform boot dirs, CI-owned Node/bootstrap). Phase 3 **in progress**: `make vm` with Podman + QEMU backends, `make install-qemu`, OpenVPN host client (`make vpn-*`), and llama inference stack (`make llama-setup`, llamafile bundles, systemd deploy). Phases 4-6 (full Traefik/mTLS parity in QEMU guests, gateway integration, production hardening) not complete. For operator onboarding use [`README.md`](../../README.md) and [`docs/README.md`](../README.md) rather than this plan's historical phase labels alone.
 
@@ -31,25 +31,25 @@
 ### 1.1 What WORKSPACE-VM Is Today
 
 WORKSPACE-VM is a federated AI-agent workspace with:
-- **Python agent orchestration layer** - `ami/` package (CLI entrypoints, provider routing, transcript storage, bootloader agent, TUI components)
+- **Python agent orchestration layer** - `workspace/` package (CLI entrypoints, provider routing, transcript storage, bootloader agent, TUI components)
 - **Three proprietary CLI agents** installed via npm: `@anthropic-ai/claude-code`, `@google/gemini-cli`, `@qwen-code/qwen-code` (in `scripts/package.json`)
-- **Custom Python CLI/TUI** - `ami/cli/` (claude_cli.py, gemini_cli.py, qwen_cli.py), `ami/cli_components/` (dialogs, text editor, status, containers), `ami/core/` (bootloader agent, conversation, guards)
+- **Custom Python CLI/TUI** - `workspace/cli/` (claude_cli.py, gemini_cli.py, qwen_cli.py), `workspace/cli_components/` (dialogs, text editor, status, containers), `workspace/core/` (bootloader agent, conversation, guards)
 - **Existing opencode source clone** at `projects/opencode/` (anomalyco/opencode `dev` branch, full git history)
 - **Container specification** (DRAFT) - `docs/specifications/SPEC-AGENT-CONTAINERS.md` plans container isolation
-- **Docker infrastructure** - AMI-DATAOPS compose stack (postgres, redis, dgraph, mongo, keycloak, vaultwarden, prometheus, searxng) - no reverse proxy deployed yet (per-VM Traefik planned, see §5)
+- **Docker infrastructure** - WORKSPACE-DATAOPS compose stack (postgres, redis, dgraph, mongo, keycloak, vaultwarden, prometheus, searxng) - no reverse proxy deployed yet (per-VM Traefik planned, see §5)
 - **Ansible** - llamaserver deployment playbooks
-- **CI/quality** - AMI-CI enforcement, pre-commit hooks, WORKSPACE-GUARD git immutability
+- **CI/quality** - WORKSPACE-CI enforcement, pre-commit hooks, WORKSPACE-GUARD git immutability
 
 ### 1.2 What Changes
 
 | Component | Current State | Target State |
 |-----------|--------------|--------------|
 | Agent CLI runtime | Claude Code + Gemini + Qwen (npm) | **opencode-ai only** (npm) |
-| Python agent orchestration | `ami/cli/`, `ami/core/`, `ami/cli_components/`, `ami/types/`, `ami/tools/` | **Archived** - all agent orchestration delegated to opencode |
+| Python agent orchestration | `workspace/cli/`, `workspace/core/`, `workspace/cli_components/`, `workspace/types/`, `workspace/tools/` | **Archived** - all agent orchestration delegated to opencode |
 | Agent CLI wrappers | `claude_cli.py`, `gemini_cli.py`, `qwen_cli.py` | **Deleted** |
 | CLI version manager | `update_cli_versions.py` | **Deleted** - opencode-ai version managed via npm |
 | Agent bootstrap | `bootstrap_agents.sh` (installs 3 CLIs) | **Replaced** - installs `opencode-ai` only |
-| Shell extensions | `extension_registry.py`, custom `ami-*` commands | **Replaced** - aliases to `opencode` |
+| Shell extensions | `extension_registry.py`, custom `workspace-*` commands | **Replaced** - aliases to `opencode` |
 | Docs archive | Active requirements, research, specs for A2A | **Moved** to `docs/archive/v2/` |
 | Container spec | DRAFT SPEC-AGENT-CONTAINERS.md | **Superseded** by this plan's Dockerisation |
 | Reverse proxy | **None** | **Traefik** with mutual TLS |
@@ -60,8 +60,8 @@ WORKSPACE-VM is a federated AI-agent workspace with:
 | Component | Reason |
 |-----------|--------|
 | `projects/opencode/` | **Source clone** - continues as the development branch for opencode itself |
-| `projects/AMI-DATAOPS/` | Data infrastructure (postgres, keycloak, etc.) - independent of agent choice |
-| `projects/AMI-CI/` | CI enforcement - independent of agent choice |
+| `projects/WORKSPACE-DATAOPS/` | Data infrastructure (postgres, keycloak, etc.) - independent of agent choice |
+| `projects/WORKSPACE-CI/` | CI enforcement - independent of agent choice |
 | `projects/WORKSPACE-GUARD/` | Git immutability - security infrastructure |
 | `workspace/config/` | Configuration (automation, bootstrap components, hooks) - still used by Makefile |
 | `workspace/scripts/bootstrap/` | System tool bootstrapping (uv, Python runtime, rust, podman, moon, etc.) - independent |
@@ -104,14 +104,14 @@ docs/archive/v2/
 | Action | Items |
 |--------|-------|
 | **Archive** (move to `docs/archive/v2/`) | All doc files in `docs/` except `requirements/REQ-A2A.md`, `audits/GAP-ANALYSIS-A2A.md`, and this plan |
-| **Delete** | All Python agent orchestration code: `ami/cli/`, `ami/core/`, `ami/tools/` |
-| **Keep** | `ami/cli_components/` - status/storage/legend files (ops extension entry points) |
-| **Keep** | `ami/types/` - needed by surviving cli_components (LegendRender, ContainerStatusDisplay, etc.) |
-| **Delete** | Duplicated `ami/cli_components/text_input_utils.py` - resolved from AMI-DATAOPS via namespace packages |
+| **Delete** | All Python agent orchestration code: `workspace/cli/`, `workspace/core/`, `workspace/tools/` |
+| **Keep** | `workspace/cli_components/` - status/storage/legend files (ops extension entry points) |
+| **Keep** | `workspace/types/` - needed by surviving cli_components (LegendRender, ContainerStatusDisplay, etc.) |
+| **Delete** | Duplicated `workspace/cli_components/text_input_utils.py` - resolved from WORKSPACE-DATAOPS via namespace packages |
 | **Delete** | `scripts/package.json` (claude, gemini, qwen deps) |
 | **Delete** | `scripts/setup/node.sh` |
-| **Delete** | `ami/tools/update_cli_versions.py` |
-| **Delete** | `ami/scripts/bootstrap/bootstrap_agents.sh` |
+| **Delete** | `workspace/tools/update_cli_versions.py` |
+| **Delete** | `workspace/scripts/bootstrap/bootstrap_agents.sh` |
 | **Rewrite** | `README.md` - point to opencode-ai as primary agent |
 | **Rewrite** | `AGENTS.md` - V3 rules (opencode-focused, no claude/gemini/qwen) |
 
@@ -124,7 +124,7 @@ docs/archive/v2/
 The Python agent layer was a full custom agent runtime. Every file below is **deleted** because opencode-ai handles all of this:
 
 ```
-ami/cli/                           # Custom CLI entrypoints
+workspace/cli/                           # Custom CLI entrypoints
   ├── base_provider.py             # Provider abstraction
   ├── claude_cli.py                # Claude Code CLI wrapper
   ├── gemini_cli.py                # Gemini CLI wrapper
@@ -150,7 +150,7 @@ ami/cli/                           # Custom CLI entrypoints
   ├── constants.py                 # Constants
   └── __init__.py
 
-ami/core/                          # Agent core
+workspace/core/                          # Agent core
   ├── bootloader_agent.py          # Bootloader agent
   ├── config.py                    # Core config
   ├── constants.py                 # Constants
@@ -165,21 +165,21 @@ ami/core/                          # Agent core
   ├── policies/                    # Policy enforcers
   └── __init__.py
 
-ami/cli_components/                # PARTIALLY DELETED - see below
-                                   # Files moved to AMI-DATAOPS: dialogs, format_utils, keys,
+workspace/cli_components/                # PARTIALLY DELETED - see below
+                                   # Files moved to WORKSPACE-DATAOPS: dialogs, format_utils, keys,
                                    # menu_selector, selection_dialog, selection_dialog_render,
                                    # selector, tui, terminal/ansi, text_input_utils
                                    # Files KEPT (ops extension entry points): status, storage,
                                    # legend, status_containers, status_systemd, status_utils
                                    # Details: docs/MIGRATION-CLI-COMPONENTS-TO-DATAOPS.md §4.2
 
-ami/types/                         # KEPT - surviving cli_components need types
+workspace/types/                         # KEPT - surviving cli_components need types
                                    # (LegendRender, ContainerStatusDisplay, ContainerInspectInfo,
                                    # ComposeInfo, ContainerSizeData, ContainerStatsData, etc.)
                                    # that the slim DATAOPS consolidated results.py does not provide.
                                    # Details: docs/MIGRATION-CLI-COMPONENTS-TO-DATAOPS.md §5.4
 
-ami/tools/                         # Agent tools (deleted: replaced by opencode tools)
+workspace/tools/                         # Agent tools (deleted: replaced by opencode tools)
   ├── update_cli_versions.py       # CLI version updater
   ├── test_qwen_silence.py         # Qwen test utility
   └── clean_temp_files.py          # Temp file cleanup
@@ -193,7 +193,7 @@ scripts/
   ├── package.json.backup          # Same
   └── setup/node.sh                # Node agent installer
 
-ami/scripts/bootstrap/bootstrap_agents.sh   # Agent bootstrap script
+workspace/scripts/bootstrap/bootstrap_agents.sh   # Agent bootstrap script
 ```
 
 **Replacement:** `workspace/scripts/bootstrap/bootstrap_opencode.sh` - single-file installer that runs `npm install -g opencode-ai@latest`. No local `package.json` needed - opencode is a single npm package.
@@ -283,35 +283,35 @@ has no models baked in. The host config includes models for direct CLI use):
 
 **`~/.bashrc` addition:**
 ```bash
-# AMI-Agents V3 - opencode-ai as primary agent CLI
-export PATH="$HOME/.ami/bin:$PATH"
+# WORKSPACE-VM V3 - opencode-ai as primary agent CLI
+export PATH="$HOME/.workspace/bin:$PATH"
 alias @="oc"
 alias msg="oc"
 ```
 
-**`oc` wrapper** (`workspace/scripts/bin/oc`): Prints the AMI welcome banner (system paths, tool versions, extension status) fresh on each invocation as environment context, writes it to the `OPENCODE_CONFIG_DIR` or XDG-resolved config directory for the agent to pick up, copies config template from `workspace/config/opencode/`, then delegates to `npx opencode`.
+**`oc` wrapper** (`workspace/scripts/bin/oc`): Prints the WORKSPACE welcome banner (system paths, tool versions, extension status) fresh on each invocation as environment context, writes it to the `OPENCODE_CONFIG_DIR` or XDG-resolved config directory for the agent to pick up, copies config template from `workspace/config/opencode/`, then delegates to `npx opencode`.
 
 ```bash
 #!/usr/bin/env bash
 set -e
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
-AMI_ROOT="$SCRIPT_DIR"
-while [[ "$AMI_ROOT" != "/" && ! -f "$AMI_ROOT/pyproject.toml" ]]; do
-    AMI_ROOT="$(dirname "$AMI_ROOT")"
+WORKSPACE_ROOT="$SCRIPT_DIR"
+while [[ "$WORKSPACE_ROOT" != "/" && ! -f "$WORKSPACE_ROOT/pyproject.toml" ]]; do
+    WORKSPACE_ROOT="$(dirname "$WORKSPACE_ROOT")"
 done
 ORIG_PWD="$PWD"
-export AMI_ROOT && cd "$AMI_ROOT"
-BOOT_DIR="${BOOT_LINUX_DIR:-${AMI_ROOT}/.boot-linux}"
+export WORKSPACE_ROOT && cd "$WORKSPACE_ROOT"
+BOOT_DIR="${BOOT_LINUX_DIR:-${WORKSPACE_ROOT}/.boot-linux}"
 NPX="${BOOT_DIR}/bin/npx"
 
-WELCOME=$("$AMI_ROOT/workspace/scripts/bin/welcome" --plain 2>/dev/null || echo "WORKSPACE-VM workspace")
+WELCOME=$("$WORKSPACE_ROOT/workspace/scripts/bin/welcome" --plain 2>/dev/null || echo "WORKSPACE-VM workspace")
 printf '%b\n' "$WELCOME" && echo ""
-printf '%b\n' "$WELCOME" > "${HOME}/.config/opencode/ami-environment.md"
-OC_SRC="$AMI_ROOT/workspace/config/opencode"
+printf '%b\n' "$WELCOME" > "${HOME}/.config/opencode/workspace-environment.md"
+OC_SRC="$WORKSPACE_ROOT/workspace/config/opencode"
 OC_DIR="${HOME}/.config/opencode"
 mkdir -p "$OC_DIR/plugins"
 [ ! -f "$OC_DIR/opencode.jsonc" ] && cp "$OC_SRC/opencode.jsonc" "$OC_DIR/opencode.jsonc"
-[ ! -f "$OC_DIR/plugins/ami-context.ts" ] && cp "$OC_SRC/plugins/ami-context.ts" "$OC_DIR/plugins/ami-context.ts"
+[ ! -f "$OC_DIR/plugins/workspace-context.ts" ] && cp "$OC_SRC/plugins/workspace-context.ts" "$OC_DIR/plugins/workspace-context.ts"
 export OPENCODE_ENABLE_EXA=1
 if [[ $# -gt 0 ]]; then
     exec "$NPX" opencode run --dir "$ORIG_PWD" "$*"
@@ -331,7 +331,7 @@ Full details in `docs/MIGRATION-CLI-COMPONENTS-TO-DATAOPS.md` §14.
 | `install-opencode` | **New** - `npm install -g opencode-ai` via `bootstrap_opencode.sh`, added to `make install` chain |
 | `update-opencode` | **New** - `npm update -g opencode-ai` |
 | `install` | Add `$(MAKE) install-opencode` dependency after `core`, before `register-extensions` |
-| `install-hooks` | **Unchanged** - AMI-CI hooks are agent-agnostic |
+| `install-hooks` | **Unchanged** - WORKSPACE-CI hooks are agent-agnostic |
 | `sync` | **Unchanged** - uv sync for Python CI tools |
 | `test` | **Unchanged** - pytest for Python CI tests |
 | `help` | Add opencode-ai targets |
@@ -360,7 +360,7 @@ graph TD
             OC2["opencode web UI<br/>127.0.0.1:4096"]
             T2 --> OC2
         end
-        NET["Podman Network: ami-vm-net<br/>(optional, only if network.mode != none)"]
+        NET["Podman Network: workspace-vm-net<br/>(optional, only if network.mode != none)"]
         VM1 -.-> NET
         VM2 -.-> NET
     end
@@ -421,10 +421,10 @@ tls:
       clientAuth:
         clientAuthType: RequireAndVerifyClientCert
         caFiles:
-          - /etc/ssl/ami/ca.crt
+          - /etc/ssl/workspace/ca.crt
   certificates:
-    - certFile: /etc/ssl/ami/server.crt
-      keyFile: /etc/ssl/ami/server.key
+    - certFile: /etc/ssl/workspace/server.crt
+      keyFile: /etc/ssl/workspace/server.key
 http:
   routers:
     opencode:
@@ -444,12 +444,12 @@ Systemd unit (`traefik.service`):
 ```ini
 [Unit]
 Description=Traefik reverse proxy
-After=network.target ami-network.service opencode.service
+After=network.target workspace-network.service opencode.service
 
 [Service]
 Type=simple
-User=ami
-ExecStart=/opt/ami-agents/.boot-linux/bin/traefik --configfile=/etc/traefik/traefik.yml
+User=workspace
+ExecStart=/opt/workspace-vm/.boot-linux/bin/traefik --configfile=/etc/traefik/traefik.yml
 Restart=on-failure
 RestartSec=5
 StandardOutput=journal
@@ -476,7 +476,7 @@ Per-VM certificates live at `.vms/<uuid>/certs/`. The `make vm cert
 |------|---------|
 | `ca.crt` / `ca.key` | Per-VM CA (4096-bit RSA, SHA-512, 3650 days) |
 | `server.crt` / `server.key` | Traefik server cert (CN=`<uuid>.vm.local`) |
-| `client.crt` / `client.key` | Client cert for browser import (CN=ami-admin) |
+| `client.crt` / `client.key` | Client cert for browser import (CN=workspace-admin) |
 
 Client certs are the "diagonal" - only someone holding the client key
 can establish an mTLS connection to that VM. Keys are gitignored; certs
@@ -484,9 +484,9 @@ are generated per-VM and also gitignored (they contain per-UUID hostnames
 and are not reusable across deployments). The `make vm cert <id>` command
 prints the client cert for out-of-band distribution.
 
-### 5.5 Integration with AMI-DATAOPS Stack
+### 5.5 Integration with WORKSPACE-DATAOPS Stack
 
-The existing AMI-DATAOPS `docker-compose.yml` remains independent. VMs
+The existing WORKSPACE-DATAOPS `docker-compose.yml` remains independent. VMs
 with `network.mode: bridge` on the same named Podman network can reach
 DATAOPS services (postgres, keycloak, etc.) at their host ports.
 
@@ -545,7 +545,7 @@ other component.
 
 ```yaml
 ---
-- name: AMI-Agents V3 - Full Stack Deployment
+- name: WORKSPACE-VM V3 - Full Stack Deployment
   hosts: localhost
   gather_facts: true
 
@@ -648,9 +648,9 @@ an independent security domain.
 | 1.2 | Delete Python agent orchestration code (§3.1): `workspace/cli/`, `workspace/core/`, `workspace/tools/`, duplicated `workspace/cli_components/text_input_utils.py`. Keep status/storage/legend (ops extensions) and `workspace/types/` (surviving cli_components dependency chain). |
 | 1.3 | Delete agent CLI scripts (§3.2) |
 | 1.4 | Write new `AGENTS.md` and `README.md` |
-| 1.5 | **EXECUTED 2026-06-01** - Code deletions complete: `ami/cli/` ✓, `ami/core/` ✓, `ami/tools/` ✓, `ami-agent` ✓, `scripts/package.json` ✓, moved 11 cli_components files to AMI-DATAOPS ✓. `ami/cli_components/` (status/storage/legend) and `ami/types/` intentionally KEPT (ops extensions). |
+| 1.5 | **EXECUTED 2026-06-01** - Code deletions complete: `workspace/cli/` ✓, `workspace/core/` ✓, `workspace/tools/` ✓, `workspace-agent` ✓, `scripts/package.json` ✓, moved 11 cli_components files to WORKSPACE-DATAOPS ✓. `workspace/cli_components/` (status/storage/legend) and `workspace/types/` intentionally KEPT (ops extensions). |
 
-**Artifacts:** Updated docs, cleaned repo. Agent orchestration code (`ami/cli/`, `ami/core/`, `ami/tools/`) deleted. 11 cli_components files moved to AMI-DATAOPS (imported via namespace packages). Remaining cli_components files (status, storage, legend, status_*) stay for `ops` extension entry points.
+**Artifacts:** Updated docs, cleaned repo. Agent orchestration code (`workspace/cli/`, `workspace/core/`, `workspace/tools/`) deleted. 11 cli_components files moved to WORKSPACE-DATAOPS (imported via namespace packages). Remaining cli_components files (status, storage, legend, status_*) stay for `ops` extension entry points.
 
 ### Phase 2: Base opencode Integration (Days 3-4) - ~80% DONE
 
@@ -661,16 +661,16 @@ an independent security domain.
 | 2.3 | **Replace** `install-node-agents` + `update-node-agents` with `install-opencode` + `update-opencode` in Makefile | **NOT DONE** |
 | 2.4 | **Create** `workspace/scripts/bootstrap/bootstrap_opencode.sh` - `npm install -g opencode-ai@latest` | **DONE** ✓ (exists at workspace/scripts/bootstrap/bootstrap_opencode.sh; installs via hermetic npm) |
 | 2.5 | **Add** `$(MAKE) install-opencode` to `make install` dependency chain (after `core`, before `register-extensions`) | **NOT DONE** |
-| 2.6 | **NUKE** `ami-agent` and `ami-transcripts` - replaced by single `oc` wrapper | **DONE** ✓ |
+| 2.6 | **NUKE** `workspace-agent` and `workspace-transcripts` - replaced by single `oc` wrapper | **DONE** ✓ |
 | 2.7 | **NUKE** `scripts/package.json`, `scripts/package.json.backup`, `workspace/scripts/bootstrap/bootstrap_agents.sh` | **DONE** ✓ |
-| 2.8 | **CREATE** `workspace/scripts/bin/oc` - prints `welcome` banner fresh as agent context, delegates to `npx opencode` | **DONE** ✓ (`oc` not `ami-oc`; see §4.2) |
+| 2.8 | **CREATE** `workspace/scripts/bin/oc` - prints `welcome` banner fresh as agent context, delegates to `npx opencode` | **DONE** ✓ (`oc` not `workspace-oc`; see §4.2) |
 | 2.9 | Update `shell-setup`: `@` and `msg` aliases → `oc` | **DONE** ✓ (aliases at shell-setup lines 216-217) |
 | 2.10 | Update `extension.manifest.yaml`: register `oc` as core extension | **DONE** ✓ (line 2-13 of workspace/scripts/bin/extension.manifest.yaml) |
 | 2.11 | **NUKE** agent test files (27 files - see §12.1) | **DONE** ✓ |
 | 2.12 | Update `test_setup_shell_aliases.py`: replace agent aliases with `oc` | **NOT DONE** |
 | 2.13 | Verify opencode CLI + `oc` work in dev shell | **DONE** ✓ |
 
-**The only surviving agent wrapper:** `oc` - prints the AMI welcome banner (system paths, tool versions, extension status) fresh on each invocation as environment context, copies config template from `workspace/config/opencode/`, then delegates to `npx opencode`.
+**The only surviving agent wrapper:** `oc` - prints the WORKSPACE welcome banner (system paths, tool versions, extension status) fresh on each invocation as environment context, copies config template from `workspace/config/opencode/`, then delegates to `npx opencode`.
 
 **Full command mapping and migration sequence:** `docs/MIGRATION-CLI-COMPONENTS-TO-DATAOPS.md` §14.
 
@@ -734,7 +734,7 @@ credentials:
   #         connection time. Keys never touch the host filesystem.
 
 # --- SSH & Host Configs ---
-# SSH keys and host dotfiles provisioned at build time into /home/ami/.
+# SSH keys and host dotfiles provisioned at build time into /home/workspace/.
 ssh:
   mode: none                    # none | inherit | custom (default: none)
   # none    - no SSH keys or host configs. Container starts blank.
@@ -742,11 +742,11 @@ ssh:
   #           Copied files: ~/.ssh/id_*, ~/.ssh/config, ~/.ssh/known_hosts,
   #           ~/.gitconfig, ~/.aws/*, ~/.npmrc.
   # custom  - user provides explicit file list. Each file copied from
-  #           host path into the container image at /home/ami/.
+  #           host path into the container image at /home/workspace/.
   #   files:
   #     - "~/.ssh/id_ed25519"
   #     - "~/.gitconfig"
-  #     - "/path/to/custom-ssh-config:/home/ami/.ssh/config"
+  #     - "/path/to/custom-ssh-config:/home/workspace/.ssh/config"
 
 # --- Filesystem ---
 files:                         # pre-copied into /workspace volume before first start
@@ -766,7 +766,7 @@ sync:                          # directory-based file sync, user-invoked via mak
     strategy: overwrite
 
 mounts:                        # read-only bind mounts (absolute paths; ${HOME} expanded)
-  - "${HOME}/.ssh:/home/ami/.ssh:ro"
+  - "${HOME}/.ssh:/home/workspace/.ssh:ro"
 
 # --- Network ---
 # DEFAULT: none - container has zero network interfaces (fully air-gapped).
@@ -777,7 +777,7 @@ network:
   # --- mode: bridge ---
   # Container joins a named Podman bridge network.
   # mode: bridge
-  #   network_name: "ami-vm-net"         # podman network (created if missing)
+  #   network_name: "workspace-vm-net"         # podman network (created if missing)
   #   policy: unrestricted                # none | internet | proxy | unrestricted
   #     none         - --internal flag: containers communicate, no external access
   #     internet     - MASQUERADE to internet, iptables blocks host gateway
@@ -848,10 +848,10 @@ make vm stop <id>               - podman stop <id> + remove PID file
 make vm resume <id>             - alias for start (restores from stopped state)
 make vm delete <id> [--purge]   - podman rm + optional volume rm
 make vm kill <id>               - read .vms/<id>/pid, send SIGKILL directly (bypasses podman)
-make vm shell <id>              - podman exec -it -u ami <id> /bin/bash
+make vm shell <id>              - podman exec -it -u workspace <id> /bin/bash
 make vm exec <id> -- <cmd>      - podman exec <id> <cmd> (one-off, no TTY)
 make vm logs <id> [-f]          - podman logs [--follow] <id>
-make vm list                    - podman ps -a --filter label=ami.type=vm
+make vm list                    - podman ps -a --filter label=workspace.type=vm
 make vm status <id>             - podman inspect + podman stats --no-stream
 make vm rebuild <id>            - re-run init + install-ci inside container, restart
 make vm sync <id>               - file sync per config.sync rules
@@ -866,10 +866,10 @@ copied into `.vms/<uuid>/vm.yaml` so the mapping is durable.
 
 ```mermaid
 graph TD
-    BASE["FROM ubuntu:22.04 AS base<br/>apt install systemd, iptables, ...<br/>useradd ami (temp sudo)"]
-    INIT["FROM base AS init<br/>make init → make core<br/>revoke sudo from ami"]
+    BASE["FROM ubuntu:22.04 AS base<br/>apt install systemd, iptables, ...<br/>useradd workspace (temp sudo)"]
+    INIT["FROM base AS init<br/>make init → make core<br/>revoke sudo from workspace"]
     INSTALL["FROM init AS installer<br/>make ensure-repos<br/>make sync-package<br/>make install-ci"]
-    RUNTIME["FROM installer AS runtime<br/>ARG OPENCODE_SERVER_PASSWORD<br/>ARG AGENT_UID<br/>── if purge_sudo: apt purge sudo<br/>── generate opencode.json<br/>── if ssh.mode == inherit: COPY ~/.ssh/ ~/.gitconfig ~/.aws/<br/>── if ssh.mode == custom: COPY explicit files<br/>── if credentials.mode == clone: COPY ~/.config/opencode/<br/>── COPY certs/ → /etc/ssl/ami/<br/>── generate systemd units<br/>── HEALTHCHECK curl :4096<br/>── ENTRYPOINT /sbin/init"]
+    RUNTIME["FROM installer AS runtime<br/>ARG OPENCODE_SERVER_PASSWORD<br/>ARG AGENT_UID<br/>── if purge_sudo: apt purge sudo<br/>── generate opencode.json<br/>── if ssh.mode == inherit: COPY ~/.ssh/ ~/.gitconfig ~/.aws/<br/>── if ssh.mode == custom: COPY explicit files<br/>── if credentials.mode == clone: COPY ~/.config/opencode/<br/>── COPY certs/ → /etc/ssl/workspace/<br/>── generate systemd units<br/>── HEALTHCHECK curl :4096<br/>── ENTRYPOINT /sbin/init"]
     BASE --> INIT
     INIT --> INSTALL
     INSTALL --> RUNTIME
@@ -896,7 +896,7 @@ The generated `opencode.json` inside the container:
 No model is baked in. Models are selected by the caller at connection
 time (web UI model picker, or `opencode run --model <provider/model>`).
 
-**SSH & host configs** (copied at build time into `/home/ami/`):
+**SSH & host configs** (copied at build time into `/home/workspace/`):
 
 | `ssh.mode` | Files copied | Source |
 |------------|-------------|--------|
@@ -906,7 +906,7 @@ time (web UI model picker, or `opencode run --model <provider/model>`).
 
 For `inherit` mode, only files that exist on the host are copied -
 missing files are skipped and logged. File permissions are preserved.
-The container's `/home/ami/.ssh/` directory gets mode `0700`, private
+The container's `/home/workspace/.ssh/` directory gets mode `0700`, private
 key files get `0600`.
 
 `custom` mode file format:
@@ -915,8 +915,8 @@ key files get `0600`.
 ssh:
   mode: custom
   files:
-    - "~/.ssh/id_ed25519"                      # → /home/ami/.ssh/id_ed25519
-    - "~/.gitconfig"                            # → /home/ami/.gitconfig
+    - "~/.ssh/id_ed25519"                      # → /home/workspace/.ssh/id_ed25519
+    - "~/.gitconfig"                            # → /home/workspace/.gitconfig
     - "/host/path/config:~/.ssh/config"         # src:dst override
 ```
 
@@ -925,7 +925,7 @@ ssh:
 | `credentials.mode` | Effect |
 |-------------------|--------|
 | `none` (default) | Container has no API keys. User configures after connecting. |
-| `clone` | Copy host `~/.config/opencode/` → `/home/ami/.config/opencode/` |
+| `clone` | Copy host `~/.config/opencode/` → `/home/workspace/.config/opencode/` |
 | `api` | Future: provision from OpenBAO vault or user API at connection time. |
 
 All credential copies are baked into the image at build time and
@@ -937,7 +937,7 @@ gitignored (Dockerfile references paths outside the build context).
 |---------|---------------|---------|
 | `opencode.service` | Always (if `web_ui: true`) | opencode web on `127.0.0.1:4096` |
 | `traefik.service` | `network.mode != none` AND `web_ui: true` | mTLS proxy `:443 → :4096` |
-| `ami-network.service` | `network.mode: bridge` + `network.policy: internet\|proxy` | iptables rules |
+| `workspace-network.service` | `network.mode: bridge` + `network.policy: internet\|proxy` | iptables rules |
 | `openvpn.service` | `network.mode: openvpn` + `vpn_type: container` | OpenVPN client |
 
 `opencode.service`:
@@ -945,17 +945,17 @@ gitignored (Dockerfile references paths outside the build context).
 ```ini
 [Unit]
 Description=opencode web UI
-After=network.target ami-network.service
+After=network.target workspace-network.service
 Before=traefik.service
 
 [Service]
 Type=simple
-User=ami
-Group=ami
+User=workspace
+Group=workspace
 WorkingDirectory=/workspace
 Environment=OPENCODE_ENABLE_EXA=1
 Environment=OPENCODE_SERVER_PASSWORD=<generated password>
-ExecStart=/opt/ami-agents/.boot-linux/bin/opencode web --port 4096
+ExecStart=/opt/workspace-vm/.boot-linux/bin/opencode web --port 4096
 Restart=on-failure
 RestartSec=5
 StandardOutput=journal
@@ -965,23 +965,23 @@ StandardError=journal
 WantedBy=multi-user.target
 ```
 
-`ami-network.service` (only for `bridge: internet` or `bridge: proxy`):
+`workspace-network.service` (only for `bridge: internet` or `bridge: proxy`):
 
 ```ini
 [Unit]
-Description=AMI VM network isolation
+Description=WORKSPACE VM network isolation
 Before=opencode.service
 
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-Environment=AMI_NETWORK_POLICY=<policy>
-Environment=AMI_PROXY_URL=<proxy_url if policy=proxy>
-EnvironmentFile=/etc/ami/network-whitelist
-ExecStart=/usr/local/sbin/ami-network-setup
+Environment=WORKSPACE_NETWORK_POLICY=<policy>
+Environment=WORKSPACE_PROXY_URL=<proxy_url if policy=proxy>
+EnvironmentFile=/etc/workspace/network-whitelist
+ExecStart=/usr/local/sbin/workspace-network-setup
 ```
 
-`ami-network-setup` applies mode-specific iptables rules (see §3.7).
+`workspace-network-setup` applies mode-specific iptables rules (see §3.7).
 
 The build requires `--privileged` during the init stage (apt + iptables).
 At runtime, security flags are driven by `config.security` (see §3.1).
@@ -1041,16 +1041,16 @@ Host bind mounts:
 #### 3.7 Network Isolation
 
 Network isolation is driven by `config.network.mode` and
-`config.network.policy`. At runtime, `ami-network-setup` (called by
-`ami-network.service`, only generated when needed) applies iptables
+`config.network.policy`. At runtime, `workspace-network-setup` (called by
+`workspace-network.service`, only generated when needed) applies iptables
 rules. `NET_ADMIN` capability is auto-derived from the mode:
 
 | Mode + Policy | cap_add | iptables? | Systemd service |
 |---|---|---|---|
 | `none` | `[]` | No | None needed |
 | `bridge: none` | `[]` | No (`--internal`) | None |
-| `bridge: internet` | `["NET_ADMIN"]` | Yes | `ami-network.service` |
-| `bridge: proxy` | `["NET_ADMIN"]` | Yes | `ami-network.service` |
+| `bridge: internet` | `["NET_ADMIN"]` | Yes | `workspace-network.service` |
+| `bridge: proxy` | `["NET_ADMIN"]` | Yes | `workspace-network.service` |
 | `bridge: unrestricted` | `[]` | No | None |
 | `host` | `[]` | No (host stack) | None |
 | `openvpn: container` | `["NET_ADMIN"]` | VPN manages | `openvpn.service` |
@@ -1112,7 +1112,7 @@ LaunchAgent (macOS). OpenVPN Connect is not managed.
 7.  Generate .vms/<uuid>/.dockerignore
 8.  If network.mode == bridge:
       Create podman network <network_name> if it doesn't exist
-9.  podman build -t ami-vm:<uuid> \
+9.  podman build -t workspace-vm:<uuid> \
        --build-arg AGENT_UID=$(id -u) \
        --build-arg OPENCODE_SERVER_PASSWORD=$(cat .vms/<uuid>/password) \
        -f .vms/<uuid>/Dockerfile .
@@ -1125,14 +1125,14 @@ LaunchAgent (macOS). OpenVPN Connect is not managed.
       $(for cap in cap_add; echo "--cap-add=$cap")  # auto-derived or user override
       $(security.no_new_privileges && echo "--security-opt=no-new-privileges")
       $(security.read_only_rootfs && echo "--read-only --tmpfs /tmp:rw,... --tmpfs /run:rw,...")
-      -e AMI_NETWORK_MODE=<mode> -e AMI_NETWORK_POLICY=<policy>
-      -e AMI_NETWORK_WHITELIST="<entries>"
-      -e AMI_PROXY_URL=<proxy_url if policy=proxy>
+      -e WORKSPACE_NETWORK_MODE=<mode> -e WORKSPACE_NETWORK_POLICY=<policy>
+      -e WORKSPACE_NETWORK_WHITELIST="<entries>"
+      -e WORKSPACE_PROXY_URL=<proxy_url if policy=proxy>
       $(if openvpn:container then --device /dev/net/tun)
       --env-file=<generated env file from config.env>
 14. podman run -d --name <uuid> \
-       --label ami.type=vm --label ami.uuid=<uuid> \
-       --label ami.config=<sha256> \
+       --label workspace.type=vm --label workspace.uuid=<uuid> \
+       --label workspace.config=<sha256> \
        -v <uuid>-workspace:/workspace \
        -v <uuid>-transcripts:/transcripts \
        -v <uuid>-cache:/cache \
@@ -1141,7 +1141,7 @@ LaunchAgent (macOS). OpenVPN Connect is not managed.
        --memory=<mem> --cpus=<cpus> --pids-limit=<limit> \
        <network + security flags from step 13> \
        --health-on-failure=stop \
-       ami-vm:<uuid>
+       workspace-vm:<uuid>
 15. Write host PID: podman inspect -f '{{.State.Pid}}' <uuid> → .vms/<uuid>/pid
 16. If bridge mode: get container IP, add to host /etc/hosts:
       <container-ip> <uuid>.vm.local
@@ -1165,7 +1165,7 @@ workspace/scripts/vm_manager.py                           # Python CLI - all VM 
 workspace/config/vm-template.yaml                          # canonical VM config reference + schema
 workspace/scripts/templates/Dockerfile.vm.j2              # Jinja2 Dockerfile template
 workspace/scripts/templates/systemd-opencode.service.j2    # systemd unit template
-workspace/scripts/templates/systemd-ami-network.service.j2 # iptables systemd unit template
+workspace/scripts/templates/systemd-workspace-network.service.j2 # iptables systemd unit template
 workspace/scripts/templates/systemd-traefik.service.j2     # per-VM Traefik service template
 workspace/scripts/templates/traefik-static.yml.j2          # per-VM Traefik static config template
 workspace/scripts/templates/traefik-dynamic.yml.j2         # per-VM Traefik dynamic config template
@@ -1197,7 +1197,7 @@ Specific changes:
 | llamaserver in compose | External - VMs connect over bridge or host IP |
 | Shared Traefik proxy | **Per-VM Traefik** systemd service inside each container |
 | Shared certs at `docker/traefik/certs/` | Per-VM certs at `.vms/<uuid>/certs/` |
-| `ami-agent.local` hostname | `<uuid>.vm.local` via host `/etc/hosts` |
+| `workspace-agent.local` hostname | `<uuid>.vm.local` via host `/etc/hosts` |
 | Default: network on whitelist mode | **Default: `network.mode: none`** (air-gapped) |
 | Hand-rolled gosu entrypoint | systemd as PID 1 + conditional services |
 | Key provisioning via bind mount | Three modes: clone (host copy), none, api (future OpenBAO) |
@@ -1230,7 +1230,7 @@ and documents which existing facilities are reused.
 | Bootstrap: certs | `workspace/scripts/bootstrap/bootstrap_certs.sh` | Shell script (see `bootstrap_podman.sh`) |
 | Dockerfile template | `workspace/scripts/templates/Dockerfile.vm.j2` | Jinja2 template |
 | Systemd templates | `workspace/scripts/templates/systemd-*.j2` | Jinja2 template |
-| Iptables setup | `res/systemd/ami-network-setup` | Shell script (existing `res/` dir) |
+| Iptables setup | `res/systemd/workspace-network-setup` | Shell script (existing `res/` dir) |
 | VM CLI | `workspace/cli/vm_manager.py` | CLI module (see `workspace/cli/status.py`) |
 | VM bash wrapper | `workspace/scripts/bin/vm` | Bash wrapper (see `workspace/scripts/bin/oc`) |
 | VM tests | `tests/unit/cli/test_vm_manager.py` | pytest + strict mypy (see existing tests) |
@@ -1299,7 +1299,7 @@ and Traefik config generation. Required for Commit 3 (templates).
 | AC-1 | `opencode` is the only agent CLI installed | `which claude` → not found; `which opencode` → found |
 | AC-2 | No old agent source code in repo | `find workspace -name "*claude*" -o -name "*gemini*" -o -name "*qwen*"` → empty |
 | AC-3 | Old docs are archived | `ls docs/archive/v2/` → populated |
-| AC-4 | `make vm <config.yaml>` builds and runs a VM container | `podman build` succeeds; `podman ps --filter label=ami.type=vm` shows running VM |
+| AC-4 | `make vm <config.yaml>` builds and runs a VM container | `podman build` succeeds; `podman ps --filter label=workspace.type=vm` shows running VM |
 | AC-5 | Default: VM has no network | `podman exec <uuid> ip link` → only `lo` present |
 | AC-6 | Bridge mode: VM gets network IP | `podman inspect <uuid>` shows bridge network IP |
 | AC-7 | Bridge internet mode: blocks host access | With `network.mode: bridge` + `policy: internet`: `podman exec <uuid> curl <gateway-ip>` → timeout; `curl 1.1.1.1` → OK |
@@ -1338,7 +1338,7 @@ and Traefik config generation. Required for Commit 3 (templates).
 |------|-----------|--------|------------|
 | opencode-ai npm package incompatible with LLM endpoint | Low | High | Test against llamaserver before migration; opencode supports OpenAI-compatible API |
 | Traefik misconfiguration or cert expiry | Low | Critical | Each VM has its own Traefik (not shared); cert expiry printed at creation; `make vm cert <id>` regenerates; Traefik restart picks up new cert |
-| Loss of functionality from old agent CLIs | Medium | Medium | Audit all `ami-*` commands before deletion; map each to opencode equivalent |
+| Loss of functionality from old agent CLIs | Medium | Medium | Audit all `workspace-*` commands before deletion; map each to opencode equivalent |
 | Container build fails on non-Linux | Low | Low | V3 targets Linux x86_64 only (no change from V2) |
 | opencode-ai version drift | Low | Low | Pin major version in bootstrap; test upgrade in CI |
 | Client certificate leaked | Low | Critical | `gitignore` all `.vms/**/*.key` and `.vms/**/password`; deployer rotates per-VM CA; `make vm cert` reissues |
@@ -1350,80 +1350,80 @@ and Traefik config generation. Required for Commit 3 (templates).
 ### 12.1 Files to Delete (47 files)
 
 ```
-ami/cli/__init__.py
-ami/cli/base_provider.py
-ami/cli/claude_cli.py
-ami/cli/config.py
-ami/cli/constants.py
-ami/cli/editor_utils.py
-ami/cli/env_utils.py
-ami/cli/exceptions.py
-ami/cli/exec_utils.py
-ami/cli/factory.py
-ami/cli/gemini_cli.py
-ami/cli/interface.py
-ami/cli/main.py
-ami/cli/mode_handlers.py
-ami/cli/process_utils.py
-ami/cli/provider_type.py
-ami/cli/qwen_cli.py
-ami/cli/streaming.py
-ami/cli/streaming_utils.py
-ami/cli/stream_processor.py
-ami/cli/timer_utils.py
-ami/cli/transcript_search.py
-ami/cli/transcript_store.py
-ami/cli/validation_utils.py
-ami/cli_components/confirmation_dialog.py
-ami/cli_components/cursor_manager.py
-ami/cli_components/dialogs.py
-ami/cli_components/editor_display.py
-ami/cli_components/editor_saving.py
-ami/cli_components/format_utils.py
-ami/cli_components/keys.py
-ami/cli_components/menu_selector.py
-ami/cli_components/selection_dialog.py
-ami/cli_components/selection_dialog_render.py
-ami/cli_components/selector.py
-ami/cli_components/session_browser.py
-ami/cli_components/session_detail.py
-ami/cli_components/stream_renderer.py
-ami/cli_components/text_editor.py
-ami/cli_components/text_input_cli.py
-ami/cli_components/text_input_utils.py      # duplicated - imported from DATAOPS
-ami/cli_components/tui.py
-ami/cli_components/__init__.py
-# ── KEPT in ami/cli_components/ (ops extensions) ──
+workspace/cli/__init__.py
+workspace/cli/base_provider.py
+workspace/cli/claude_cli.py
+workspace/cli/config.py
+workspace/cli/constants.py
+workspace/cli/editor_utils.py
+workspace/cli/env_utils.py
+workspace/cli/exceptions.py
+workspace/cli/exec_utils.py
+workspace/cli/factory.py
+workspace/cli/gemini_cli.py
+workspace/cli/interface.py
+workspace/cli/main.py
+workspace/cli/mode_handlers.py
+workspace/cli/process_utils.py
+workspace/cli/provider_type.py
+workspace/cli/qwen_cli.py
+workspace/cli/streaming.py
+workspace/cli/streaming_utils.py
+workspace/cli/stream_processor.py
+workspace/cli/timer_utils.py
+workspace/cli/transcript_search.py
+workspace/cli/transcript_store.py
+workspace/cli/validation_utils.py
+workspace/cli_components/confirmation_dialog.py
+workspace/cli_components/cursor_manager.py
+workspace/cli_components/dialogs.py
+workspace/cli_components/editor_display.py
+workspace/cli_components/editor_saving.py
+workspace/cli_components/format_utils.py
+workspace/cli_components/keys.py
+workspace/cli_components/menu_selector.py
+workspace/cli_components/selection_dialog.py
+workspace/cli_components/selection_dialog_render.py
+workspace/cli_components/selector.py
+workspace/cli_components/session_browser.py
+workspace/cli_components/session_detail.py
+workspace/cli_components/stream_renderer.py
+workspace/cli_components/text_editor.py
+workspace/cli_components/text_input_cli.py
+workspace/cli_components/text_input_utils.py      # duplicated - imported from DATAOPS
+workspace/cli_components/tui.py
+workspace/cli_components/__init__.py
+# ── KEPT in workspace/cli_components/ (ops extensions) ──
 #   status.py          - ops status entry point
 #   storage.py         - ops storage entry point
 #   legend.py          - imported by status.py
 #   status_containers.py  - imported by status.py
 #   status_systemd.py  - imported by status.py
 #   status_utils.py    - imported by status*.py
-ami/core/__init__.py
-ami/core/bootloader_agent.py
-ami/core/config.py
-ami/core/constants.py
-ami/core/conversation.py
-ami/core/env.py
-ami/core/factory.py
-ami/core/guards.py
-ami/core/interfaces.py
-ami/core/logic.py
-ami/core/models.py
-ami/core/utils.py
-ami/tools/clean_temp_files.py
-ami/tools/test_qwen_silence.py
-ami/tools/update_cli_versions.py
-# ── KEPT: ami/types/ entire directory - needed by surviving cli_components
+workspace/core/__init__.py
+workspace/core/bootloader_agent.py
+workspace/core/config.py
+workspace/core/constants.py
+workspace/core/conversation.py
+workspace/core/env.py
+workspace/core/factory.py
+workspace/core/guards.py
+workspace/core/interfaces.py
+workspace/core/logic.py
+workspace/core/models.py
+workspace/core/utils.py
+workspace/tools/clean_temp_files.py
+workspace/tools/test_qwen_silence.py
+workspace/tools/update_cli_versions.py
+# ── KEPT: workspace/types/ entire directory - needed by surviving cli_components
 #   (LegendRender, ContainerStatusDisplay, ContainerInspectInfo, ComposeInfo, etc.)
 #   See MIGRATION-CLI-COMPONENTS-TO-DATAOPS.md §5.4
 scripts/package.json
 scripts/package.json.backup
 scripts/setup/node.sh
-ami/scripts/bootstrap/bootstrap_agents.sh
-ami/scripts/bin/ami-agent                  # nuked - replaced by oc (§4.2)
-ami/scripts/bin/ami_transcripts.py          # nuked - replaced by opencode session
+workspace/scripts/bootstrap/bootstrap_agents.sh
+workspace/scripts/bin/workspace-agent                  # nuked - replaced by oc (§4.2)
+workspace/scripts/bin/workspace_transcripts.py          # nuked - replaced by opencode session
 
 # Agent test files (nuked - tested deleted agent code)
 tests/unit/test_edge_cases_basic.py
@@ -1452,12 +1452,12 @@ workspace/scripts/vm_manager.py                                     # NOT YET CR
 workspace/config/vm-template.yaml                                    # NOT YET CREATED - canonical VM config + schema
 workspace/scripts/templates/Dockerfile.vm.j2                        # NOT YET CREATED - Jinja2 Dockerfile template
 workspace/scripts/templates/systemd-opencode.service.j2              # NOT YET CREATED - systemd unit template
-workspace/scripts/templates/systemd-ami-network.service.j2           # NOT YET CREATED - iptables systemd unit template
+workspace/scripts/templates/systemd-workspace-network.service.j2           # NOT YET CREATED - iptables systemd unit template
 workspace/scripts/templates/systemd-traefik.service.j2               # NOT YET CREATED - Traefik systemd unit template
 workspace/scripts/templates/systemd-openvpn.service.j2               # NOT YET CREATED - OpenVPN service template
 workspace/scripts/templates/traefik-static.yml.j2                    # NOT YET CREATED - Traefik static config template
 workspace/scripts/templates/traefik-dynamic.yml.j2                   # NOT YET CREATED - Traefik dynamic config template
-res/systemd/ami-network-setup                                       # NOT YET CREATED - iptables setup shell script
+res/systemd/workspace-network-setup                                       # NOT YET CREATED - iptables setup shell script
 .vms/.gitkeep                                                        # NOT YET CREATED
 workspace/scripts/bootstrap/bootstrap_certs.sh                      # NOT YET CREATED - CA + server + client cert generation
 workspace/scripts/bootstrap/bootstrap_traefik.sh                    # NOT YET CREATED - Traefik bootstrap component
@@ -1482,7 +1482,7 @@ README.md                           - V3 architecture                           
 AGENTS.md                           - V3 rules (opencode focus)                               # DONE ✓
 opencode.template.json              - web UI config                                           # NOT VERIFIED
 workspace/scripts/shell/shell-setup - opencode aliases (oc, @, msg)                           # DONE ✓
-workspace/scripts/bin/extension.manifest.yaml - oc replaces ami-agent/ami-transcripts         # DONE ✓
+workspace/scripts/bin/extension.manifest.yaml - oc replaces workspace-agent/workspace-transcripts         # DONE ✓
 workspace/config/install-defaults.yaml - already includes podman + opencode (+ traefik if added)  # DONE ✓ (pre-existing)
 workspace/scripts/register_extensions.py - opencode extensions                                # NOT YET MODIFIED
 .gitignore                          - Add .vms/**/Dockerfile .vms/**/password .vms/**/*.key .vms/**/*.crt  # NOT YET MODIFIED

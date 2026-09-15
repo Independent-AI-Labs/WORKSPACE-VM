@@ -1,4 +1,4 @@
-"""Integration tests for AMI bootstrap and utility scripts.
+"""Integration tests for WORKSPACE bootstrap and utility scripts.
 
 Exercises find_duplicates, banner_log, run_check, bootstrap components,
 and workspace alignment checks against the live project tree.
@@ -156,7 +156,7 @@ class TestBannerLog:
 
 
 class TestRunCheck:
-    def test_ami_welcome_healthy(self):
+    def test_workspace_welcome_healthy(self):
         entry = {
             "name": "welcome",
             "binary": "workspace/scripts/bin/welcome",

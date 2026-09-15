@@ -8,9 +8,9 @@
 **References:**
 - [REQ-NOTIFICATIONS](../requirements/REQ-NOTIFICATIONS.md)
 - [AUDIT-SYSTEMD-DEPLOYMENT-SOURCE-DRIFT-2026-08](../audits/AUDIT-SYSTEMD-DEPLOYMENT-SOURCE-DRIFT-2026-08.md)
-- [scripts/services/ami_failure_notify.sh](../../scripts/services/ami_failure_notify.sh)
+- [scripts/services/workspace_failure_notify.sh](../../scripts/services/workspace_failure_notify.sh)
 - [projects/WORKSPACE-GATEWAY/res/docker/openbao-entrypoint.sh](../../projects/WORKSPACE-GATEWAY/res/docker/openbao-entrypoint.sh) (OpenBao house pattern)
-- [WORKSPACE-STREAMS docs/AMI-MAIL.md](../../projects/WORKSPACE-STREAMS/docs/AMI-MAIL.md) (mail channel: build, config, ansible role)
+- [WORKSPACE-STREAMS docs/WORKSPACE-MAIL.md](../../projects/WORKSPACE-STREAMS/docs/WORKSPACE-MAIL.md) (mail channel: build, config, ansible role)
 - [WORKSPACE-STREAMS docs/SPEC-MAIL.md](../../projects/WORKSPACE-STREAMS/docs/SPEC-MAIL.md) (channel architecture; §2 "managed build, not a bootstrap")
 - [scripts/setup/hang-evidence-sampler.service](../../scripts/setup/hang-evidence-sampler.service) (deploy-pattern precedent)
 
@@ -33,22 +33,22 @@ runtime dependencies, user scope only.
 flowchart TB
     subgraph events [event sources]
     OnFail[OnFailure= via drop-ins<br/>unit enters failed]
-    HC[ami-health-check.timer<br/>every 2 min]
-    GS[ami-gitleaks-sweep.timer<br/>weekly]
+    HC[workspace-health-check.timer<br/>every 2 min]
+    GS[workspace-gitleaks-sweep.timer<br/>weekly]
     end
 
     subgraph engine [notifier core]
-    Adapter[ami_failure_notify.sh<br/>adapter: systemd state + journal tail]
-    Checker[ami_health_check.sh<br/>NRestarts + PSI + mem + disk + D-state]
-    Sweep[ami_gitleaks_sweep.sh<br/>migrated: findings = urgent]
-    Core[ami_notify_send.sh<br/>priority + cooldown + escalation + fan-out]
-    Secret[ami_notify_secret.sh<br/>OpenBao KV fetch, 5s bound]
+    Adapter[workspace_failure_notify.sh<br/>adapter: systemd state + journal tail]
+    Checker[workspace_health_check.sh<br/>NRestarts + PSI + mem + disk + D-state]
+    Sweep[workspace_gitleaks_sweep.sh<br/>migrated: findings = urgent]
+    Core[workspace_notify_send.sh<br/>priority + cooldown + escalation + fan-out]
+    Secret[workspace_notify_secret.sh<br/>OpenBao KV fetch, 5s bound]
     end
 
     subgraph channels [delivery]
     State[(/mnt/ws-fast/notify/state/<br/>per-key ts + priority)]
     Bao[(gw-prod-pod OpenBao<br/>127.0.0.1:8201)]
-    Mail[ami-mail / himalaya → Gmail SMTP<br/>built + provisioned by WORKSPACE-STREAMS]
+    Mail[workspace-mail / himalaya → Gmail SMTP<br/>built + provisioned by WORKSPACE-STREAMS]
     Gh[gh issue create / comment]
     end
 
@@ -88,15 +88,15 @@ Design boundaries:
 
 | Path | Purpose |
 |------|---------|
-| `scripts/services/ami_notify_send.sh` | Notifier core: priority, cooldown, escalation, fan-out, delivery |
-| `scripts/services/ami_notify_secret.sh` | Bounded OpenBao KV fetch (one field per call) |
-| `scripts/services/ami_health_check.sh` | Probe battery: NRestarts, PSI, mem, disk, D-state |
-| `scripts/services/ami-failure-notify@.service` | systemd user template unit |
-| `scripts/services/ami-health-check.service` | oneshot wrapper for the checker |
-| `scripts/services/ami-health-check.timer` | 2-min cadence, `Persistent=true` |
-| `scripts/services/ami-gitleaks-sweep.service` | oneshot wrapper for the migrated sweep |
-| `scripts/services/ami-gitleaks-sweep.timer` | weekly cadence (`OnCalendar=Mon 04:00`, `Persistent=true`) |
-| `scripts/services/ami-notify-selftest.service` | canary (`ExecStart=/bin/false`), dry-run wired |
+| `scripts/services/workspace_notify_send.sh` | Notifier core: priority, cooldown, escalation, fan-out, delivery |
+| `scripts/services/workspace_notify_secret.sh` | Bounded OpenBao KV fetch (one field per call) |
+| `scripts/services/workspace_health_check.sh` | Probe battery: NRestarts, PSI, mem, disk, D-state |
+| `scripts/services/workspace-failure-notify@.service` | systemd user template unit |
+| `scripts/services/workspace-health-check.service` | oneshot wrapper for the checker |
+| `scripts/services/workspace-health-check.timer` | 2-min cadence, `Persistent=true` |
+| `scripts/services/workspace-gitleaks-sweep.service` | oneshot wrapper for the migrated sweep |
+| `scripts/services/workspace-gitleaks-sweep.timer` | weekly cadence (`OnCalendar=Mon 04:00`, `Persistent=true`) |
+| `scripts/services/workspace-notify-selftest.service` | canary (`ExecStart=/bin/false`), dry-run wired |
 | `scripts/services/himalaya.config.toml` | secret-free himalaya config template (`passwd.cmd` → secret helper) |
 | `tests/unit/services/test_notify_send.py` | Cooldown, escalation, fan-out, dry-run, exit codes |
 | `tests/unit/services/test_notify_secret.py` | KV response parsing, timeout/retry contract |
@@ -106,8 +106,8 @@ Design boundaries:
 
 | Path | Change |
 |------|--------|
-| `scripts/services/ami_failure_notify.sh` | Send block replaced by `ami_notify_send.sh --priority urgent` call; capture logic unchanged |
-| `scripts/services/ami_gitleaks_sweep.sh` | Send block replaced by core calls (findings `urgent`, clean-sweep `normal` digest); cron header removed |
+| `scripts/services/workspace_failure_notify.sh` | Send block replaced by `workspace_notify_send.sh --priority urgent` call; capture logic unchanged |
+| `scripts/services/workspace_gitleaks_sweep.sh` | Send block replaced by core calls (findings `urgent`, clean-sweep `normal` digest); cron header removed |
 | `Makefile` | `install-notifications`, `notifications-status`, `test-notifications`, `install-himalaya` (delegates to STREAMS build) targets |
 
 ### Unchanged
@@ -118,12 +118,12 @@ Design boundaries:
 
 ---
 
-## 3. Notifier Core (`ami_notify_send.sh`)
+## 3. Notifier Core (`workspace_notify_send.sh`)
 
 ### 3.1 Interface
 
 ```bash
-ami_notify_send.sh --key <alert-key> --subject <text> \
+workspace_notify_send.sh --key <alert-key> --subject <text> \
     [--priority critical|urgent|normal] [--body <text>] [--body-file <path>]
 ```
 
@@ -205,16 +205,16 @@ advanced in dry-run.
 
 ## 4. Unit-Failure Path
 
-### 4.1 Template unit (`ami-failure-notify@.service`)
+### 4.1 Template unit (`workspace-failure-notify@.service`)
 
 ```ini
 [Unit]
-Description=AMI failure notifier for %i
+Description=WORKSPACE failure notifier for %i
 
 [Service]
 Type=oneshot
 Environment=WORKSPACE_NOTIFY_STATE_DIR=/mnt/ws-fast/notify/state
-ExecStart=%h/WORKSPACE-VM/scripts/services/ami_failure_notify.sh %i
+ExecStart=%h/WORKSPACE-VM/scripts/services/workspace_failure_notify.sh %i
 TimeoutStartSec=5min
 ```
 
@@ -226,11 +226,11 @@ delegates to the core with priority `urgent`.
 
 ```ini
 [Unit]
-OnFailure=ami-failure-notify@%N.service
+OnFailure=workspace-failure-notify@%N.service
 ```
 
 `%N` is the unit name **without** the `.service` suffix; instance expansion
-yields `ami-failure-notify@zk-portal-dev.service` - no `…service.service`
+yields `workspace-failure-notify@zk-portal-dev.service` - no `…service.service`
 artifact (2026-08 audit finding). Drop-ins are written by the installer to
 `~/.config/systemd/user/<unit>.d/` for the REQ §6 list; unit sources in
 other repositories are never edited, so wiring survives their redeploys.
@@ -240,7 +240,7 @@ way: an `ExecStart` failure transitions them to `failed`.
 
 ### 4.3 Self-test canary
 
-`ami-notify-selftest.service` (`ExecStart=/bin/false`) carries the standard
+`workspace-notify-selftest.service` (`ExecStart=/bin/false`) carries the standard
 drop-in plus a `20-dryrun.conf` override setting
 `WORKSPACE_NOTIFY_DRY_RUN=1`, so `make test-notifications` proves template
 resolution, drop-in wiring, and adapter execution without touching OpenBao
@@ -249,7 +249,7 @@ skip reason and exits `0` (house NFR precedent - skip honestly).
 
 ---
 
-## 5. Health Checker (`ami_health_check.sh`)
+## 5. Health Checker (`workspace_health_check.sh`)
 
 Oneshot, timer-driven: `OnBootSec=2min`,
 `OnUnitActiveSec=2min` with `AccuracySec=30s` and `Persistent=true` (missed
@@ -317,17 +317,17 @@ install-himalaya: ## Build/install himalaya via the STREAMS managed build
 ```
 
 `make -C projects/WORKSPACE-STREAMS build-himalaya` compiles the vendored
-fork (`projects/WORKSPACE-STREAMS/himalaya/`, branch `ami`) and installs
-`.boot-linux/bin/himalaya` plus the `ami-mail` symlink - the exact path the
-existing `ami_failure_notify.sh` already assumes. `install-notifications`
+fork (`projects/WORKSPACE-STREAMS/himalaya/`, branch `workspace`) and installs
+`.boot-linux/bin/himalaya` plus the `workspace-mail` symlink - the exact path the
+existing `workspace_failure_notify.sh` already assumes. `install-notifications`
 SHALL verify the binary through the boot-dir seam and fail with the
 remediation `make install-himalaya` when absent (REQ FR-7.4).
 
-Config provisioning has two documented shapes (AMI-MAIL.md):
+Config provisioning has two documented shapes (WORKSPACE-MAIL.md):
 
 | Shape | Where | Mechanism |
 |-------|-------|-----------|
-| Full server provisioning | Matrix deployments | STREAMS Ansible role `ami_mail` (renders config.toml, OAuth2 via Secret Service keyring, SMTP via exim-relay `127.0.0.1:2525`) |
+| Full server provisioning | Matrix deployments | STREAMS Ansible role `workspace_mail` (renders config.toml, OAuth2 via Secret Service keyring, SMTP via exim-relay `127.0.0.1:2525`) |
 | Workstation engine config (v1) | this machine | tracked secret-free template installed by `install-notifications` (§7.2): direct Gmail SMTP, password via `passwd.cmd` → OpenBao |
 
 The `gh` binary is already bootstrapped in the boot dir; no
@@ -338,10 +338,10 @@ OpenBao (REQ FR-7.2).
 
 ## 7. Secrets - OpenBao (design + runbook)
 
-### 7.1 Runtime contract (`ami_notify_secret.sh`)
+### 7.1 Runtime contract (`workspace_notify_secret.sh`)
 
 ```bash
-ami_notify_secret.sh <field>   # field: gmail_app_password | gh_token
+workspace_notify_secret.sh <field>   # field: gmail_app_password | gh_token
 ```
 
 - Address: `WORKSPACE_NOTIFY_BAO_ADDR` default `http://127.0.0.1:8201`
@@ -374,7 +374,7 @@ host = "smtp.gmail.com"
 port = 465
 encryption = "ssl"
 login = "independentailabs@gmail.com"
-passwd.cmd = "%h/WORKSPACE-VM/scripts/services/ami_notify_secret.sh gmail_app_password"
+passwd.cmd = "%h/WORKSPACE-VM/scripts/services/workspace_notify_secret.sh gmail_app_password"
 ```
 
 `passwd.cmd` executes at send time - the password exists only in OpenBao and
@@ -382,7 +382,7 @@ in himalaya's process memory.
 
 ### 7.3 Operator-only provisioning runbook
 
-Precedent: STREAMS' ami-mail already reads SMTP credentials from OpenBao on
+Precedent: STREAMS' workspace-mail already reads SMTP credentials from OpenBao on
 server deployments (STREAMS README FAQ); this engine applies the same
 rule to the workstation. The agent never performs these steps and no secret
 ever enters a repository or a test fixture:
@@ -402,7 +402,7 @@ curl -fsS -H "X-Vault-Token: $BAO_TOKEN" \
 ```
 
 4. Round-trip both channels (REQ AC-7):
-   `make install-notifications && ami_notify_send.sh --key selftest \
+   `make install-notifications && workspace_notify_send.sh --key selftest \
    --subject round-trip --priority urgent --body "channel verification"`
    then confirm the email arrived and the issue exists; close the issue
 5. Optional hardening (later phase): replace the shared service token with
@@ -432,7 +432,7 @@ units, `install -d` for drop-in dirs, `systemctl --user daemon-reload`,
 | Unit | Cooldown skip/rearm per priority; escalation bypass + rank logic; state-file lifecycle incl. malformed line; fan-out selection; dry-run non-advancing; exit codes | `tests/unit/services/test_notify_send.py`, `WORKSPACE_NOTIFY_STATE_DIR` on tmpdir, dry-run env |
 | Unit | KV JSON extraction; timeout/retry contract; no-secret-in-output invariant | `tests/unit/services/test_notify_secret.py` against fixture responses |
 | Unit | Probe → priority mapping table; PSI/meminfo/df/NRestarts parsing as pure functions fed fixture lines | `tests/unit/services/test_health_check.py` |
-| E2E | Template + drop-in + adapter wiring | `make test-notifications`: start canary, poll journal for `[ami-failure-notify]` dry-run lines, assert instance id; explicit skip without a systemd user session |
+| E2E | Template + drop-in + adapter wiring | `make test-notifications`: start canary, poll journal for `[workspace-failure-notify]` dry-run lines, assert instance id; explicit skip without a systemd user session |
 | Operator | Real channel round-trip, both channels | Runbook §7.3 step 4, manual sign-off (REQ AC-7) |
 
 All unit tests run inside the standard pytest suite: `make check`, the
@@ -444,17 +444,17 @@ chain.
 
 ## 10. Gitleaks Sweep Migration
 
-`ami_gitleaks_sweep.sh` keeps its scan logic and report layout; only the
+`workspace_gitleaks_sweep.sh` keeps its scan logic and report layout; only the
 send block changes:
 
-- findings > 0 → `ami_notify_send.sh --key gitleaks --priority urgent
+- findings > 0 → `workspace_notify_send.sh --key gitleaks --priority urgent
   --body-file <summary>` (email + gh issue; the issue accumulates per-week
   comments for one open incident until closed)
 - clean week → `--key gitleaks-clean --priority normal` digest (email only,
   weekly cooldown is naturally satisfied by cadence)
 - himalaya call and its env plumbing deleted from the sweep - the core owns
   delivery end-to-end
-- weekly cron entry retired; `ami-gitleaks-sweep.timer`
+- weekly cron entry retired; `workspace-gitleaks-sweep.timer`
   (`OnCalendar=Mon 04:00`, `Persistent=true`) deployed by
   `install-notifications`
 - sweep unit tests: arg-parse and core-invocation lines asserted in dry-run
@@ -482,11 +482,11 @@ Maps 1:1 to REQ §7; execution status tracked there.
 ## 12. Implementation Order
 
 1. REQ/SPEC committed (this pair, v0.2)
-2. `ami_notify_secret.sh` + `ami_notify_send.sh` + unit tests (core first -
+2. `workspace_notify_secret.sh` + `workspace_notify_send.sh` + unit tests (core first -
    everything else delegates; OpenBao contract is the riskiest seam)
-3. Adapter refactor (`ami_failure_notify.sh`) + template unit + drop-ins +
+3. Adapter refactor (`workspace_failure_notify.sh`) + template unit + drop-ins +
    installer target
-4. `ami_health_check.sh` + timer + tests
+4. `workspace_health_check.sh` + timer + tests
 5. `make install-himalaya` (delegation to the STREAMS managed build) +
    config template; operator runs runbook §7.3
 6. gitleaks sweep migration + timers; retire cron entry (operator removes

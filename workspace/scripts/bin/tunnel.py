@@ -1,13 +1,13 @@
-"""AMI Cloudflare Tunnel Wrapper.
+"""WORKSPACE Cloudflare Tunnel Wrapper.
 
 Passthrough to cloudflared. Binary and config paths are env-driven to avoid
-hard dependencies on AMI_ROOT (prevents circular bootstrap deps).
+hard dependencies on WORKSPACE_ROOT (prevents circular bootstrap deps).
 
 Environment:
   CLOUDFLARED_BIN    - explicit path to cloudflared binary
   TUNNEL_CONFIG      - config file passed as --config when not overridden on CLI
   CLOUDFLARED_CONFIG - alias for TUNNEL_CONFIG
-  AMI_ROOT           - optional alternate root for boot-binary discovery only
+  WORKSPACE_ROOT           - optional alternate root for boot-binary discovery only
 """
 
 from __future__ import annotations
@@ -21,7 +21,7 @@ from pathlib import Path
 
 
 def _resolve_cloudflared() -> str | None:
-    """Resolve cloudflared binary: CLOUDFLARED_BIN, then AMI boot bin, then PATH."""
+    """Resolve the cloudflared binary: CLOUDFLARED_BIN, boot bin, then PATH."""
     explicit = os.environ.get("CLOUDFLARED_BIN", "").strip()
     if explicit:
         path = Path(explicit)
@@ -29,10 +29,10 @@ def _resolve_cloudflared() -> str | None:
             return str(path)
         return None
 
-    ami_root = os.environ.get("AMI_ROOT", "").strip()
-    if ami_root:
+    workspace_root = os.environ.get("WORKSPACE_ROOT", "").strip()
+    if workspace_root:
         boot_name = ".boot-macos" if platform.system() == "Darwin" else ".boot-linux"
-        boot_bin = Path(ami_root) / boot_name / "bin" / "cloudflared"
+        boot_bin = Path(workspace_root) / boot_name / "bin" / "cloudflared"
         if boot_bin.is_file() and os.access(boot_bin, os.X_OK):
             return str(boot_bin)
 
@@ -53,13 +53,13 @@ def _resolve_config() -> str | None:
 
 
 def _wrapper_usage() -> str:
-    return """AMI Cloudflare Tunnel wrapper (cloudflared passthrough)
+    return """WORKSPACE Cloudflare Tunnel wrapper (cloudflared passthrough)
 
 Environment:
-  CLOUDFLARED_BIN     Path to cloudflared (optional; else AMI_ROOT boot bin or PATH)
+  CLOUDFLARED_BIN     Path to cloudflared (optional; else boot bin or PATH)
   TUNNEL_CONFIG       Config file auto-passed as --config when set
   CLOUDFLARED_CONFIG  Alias for TUNNEL_CONFIG
-  AMI_ROOT            Optional; used only to locate .boot-linux/bin/cloudflared
+  WORKSPACE_ROOT            Optional; used only to locate .boot-linux/bin/cloudflared
 
 Examples:
   tunnel tunnel login

@@ -215,7 +215,7 @@ case "$out" in
 esac
 out="$(runuser -u "$AGENT_USER" -- env LD_PRELOAD=/tmp/shg-evil.so "$SCRATCH" -c 'echo "${LD_PRELOAD:-unset}"')"
 [ "$out" = "unset" ] && ok "env: LD_PRELOAD stripped" || bad "env: LD_PRELOAD stripped ($out)"
-out="$(runuser -u "$AGENT_USER" -- env LC_SHG=1 WORKSPACE_TAG=abc AMI_SHG=keep SHG_JUNK=no "$SCRATCH" -c 'echo "$LC_SHG:$WORKSPACE_TAG:$AMI_SHG:${SHG_JUNK:-unset}"')"
+out="$(runuser -u "$AGENT_USER" -- env LC_SHG=1 WORKSPACE_TAG=abc WORKSPACE_SHG=keep SHG_JUNK=no "$SCRATCH" -c 'echo "$LC_SHG:$WORKSPACE_TAG:$WORKSPACE_SHG:${SHG_JUNK:-unset}"')"
 [ "$out" = "1:abc:keep:unset" ] && ok "env: allow-list filtering" || bad "env: allow-list filtering ($out)"
 
 # Resource limits.

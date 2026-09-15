@@ -1,6 +1,6 @@
 # Workspace clone manifest - read by workspace/scripts/bin/bootstrap-repos.
 #
-# Single source of truth for "what repos belong to the AMI workspace."
+# Single source of truth for "what repos belong to the WORKSPACE workspace."
 # Mandatory entries always clone; optional entries opt-in via
 # `bootstrap-repos --include <id>,<id>` or `--all`.
 # minTag (optional) - abort if the cloned working tree's nearest tag
@@ -19,8 +19,8 @@ workspaceClones:
     remote: 'git@github.com:Independent-AI-Labs/WORKSPACE-DATAOPS.git'
     path: 'projects/WORKSPACE-DATAOPS'
     mandatory: true
-  ami-docs:
-    remote: 'git@github.com:Independent-AI-Labs/AMI-DOCS.git'
+  workspace-docs:
+    remote: 'git@github.com:Independent-AI-Labs/WORKSPACE-DOCS.git'
     path: 'projects/docs'
     mandatory: false
   workspace-portal:
@@ -39,9 +39,9 @@ workspaceClones:
     remote: 'git@github.com:Independent-AI-Labs/WORKSPACE-STREAMS.git'
     path: 'projects/WORKSPACE-STREAMS'
     mandatory: false
-  ami-trading:
-    remote: 'git@github.com:Independent-AI-Labs/AMI-TRADING.git'
-    path: 'projects/AMI-TRADING'
+  workspace-trading:
+    remote: 'git@github.com:Independent-AI-Labs/WORKSPACE-Trading.git'
+    path: 'projects/WORKSPACE-Trading'
     mandatory: false
   rust-trading:
     remote: 'git@github.com:Independent-AI-Labs/RUST-TRADING.git'

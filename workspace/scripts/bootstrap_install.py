@@ -21,7 +21,7 @@ from workspace.scripts.bootstrap_components import (
 )
 from workspace.types.results import InstallationResult
 
-_PROJECT_ROOT = Path(os.environ.get("AMI_ROOT", str(_config_root)))
+_PROJECT_ROOT = Path(os.environ.get("WORKSPACE_ROOT", str(_config_root)))
 _BOOT_NAME = ".boot-macos" if sys.platform == "darwin" else ".boot-linux"
 
 

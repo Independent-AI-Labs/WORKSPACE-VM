@@ -170,7 +170,7 @@ The feature provides:
 
 **NFR-5** Every test SHALL exercise the function it claims to cover; platform branches SHALL have unit tests with mocked subprocess.
 
-**NFR-6** Legacy duplicate `workspace/scripts/ami/scripts/bin/run_openvpn_client.py` SHALL be deleted once the new CLI lands.
+**NFR-6** Legacy duplicate `workspace/scripts/workspace/scripts/bin/run_openvpn_client.py` SHALL be deleted once the new CLI lands.
 
 ---
 
@@ -182,7 +182,7 @@ The feature provides:
 | AC-2 | `vpn --action install-service` installs the correct platform unit without starting when config is absent |
 | AC-3 | `vpn --action health` returns `connected: true` only when workspace CLI openvpn is running with tunnel up |
 | AC-4 | `make vm` with container openvpn mode builds an image containing `/etc/openvpn/client.ovpn` and enabled `openvpn.service` |
-| AC-5 | Container `ExecStart` uses `/opt/workspace/.boot-linux/bin/openvpn`, not `/opt/ami-agents/...` |
+| AC-5 | Container `ExecStart` uses `/opt/workspace/.boot-linux/bin/openvpn`, not `/opt/workspace-vm/...` |
 | AC-6 | `make vm` with netns mode on Linux pre-creates netns and attaches container |
 | AC-7 | Netns VM config on Darwin fails at validation time |
 | AC-8 | Unit test coverage gate passes (≥90% workspace threshold) |

@@ -68,8 +68,8 @@ class TestVMCreate:
         )
         labels = json.loads(labels_raw.stdout.strip())
         assert labels.get("workspace.type") == "vm"
-        assert labels.get("ami.uuid") == uuid_val
-        assert "ami.config" in labels
+        assert labels.get("workspace.uuid") == uuid_val
+        assert "workspace.config" in labels
 
     def test_volumes_created(
         self,

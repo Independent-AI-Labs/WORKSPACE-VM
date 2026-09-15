@@ -20,7 +20,7 @@ from workspace.scripts.shell.extension_registry import (
     ResolvedExtension,
     Status,
     discover_manifests,
-    find_ami_root,
+    find_workspace_root,
     resolve_extensions,
 )
 from workspace.scripts.shell.version_enforcer import enforce_versions
@@ -47,10 +47,10 @@ def _maybe_chown(path: Path) -> None:
         sys.stderr.write(f"Warning: chown {path} to {sudo_user} failed: {exc}\n")
 
 
-def create_wrapper(path: Path, ami_root: Path, script: str) -> None:
+def create_wrapper(path: Path, workspace_root: Path, script: str) -> None:
     """Create wrapper script that calls run with the script."""
     wrapper = f"""#!/usr/bin/env bash
-exec "{ami_root}/workspace/scripts/bin/run" "{ami_root}/{script}" "$@"
+exec "{workspace_root}/workspace/scripts/bin/run" "{workspace_root}/{script}" "$@"
 """
     path.unlink(missing_ok=True)
     path.write_text(wrapper)
@@ -58,7 +58,7 @@ exec "{ami_root}/workspace/scripts/bin/run" "{ami_root}/{script}" "$@"
     _maybe_chown(path)
 
 
-def fix_stale_shebang(binary: Path, ami_root: Path) -> None:
+def fix_stale_shebang(binary: Path, workspace_root: Path) -> None:
     """Fix stale shebangs in pip-installed entry points (e.g. matrix-commander, synadm).
 
     When the project moves to a new directory, pip-installed console_scripts retain
@@ -74,8 +74,8 @@ def fix_stale_shebang(binary: Path, ami_root: Path) -> None:
         sys.stderr.write(f"Warning: cannot read {binary.name}, skipping shebang fix\n")
         return
 
-    correct_python = str(ami_root / ".venv" / "bin" / "python3")
-    correct_python_no3 = str(ami_root / ".venv" / "bin" / "python")
+    correct_python = str(workspace_root / ".venv" / "bin" / "python3")
+    correct_python_no3 = str(workspace_root / ".venv" / "bin" / "python")
     stale = False
 
     lines = content.split("\n")
@@ -87,7 +87,7 @@ def fix_stale_shebang(binary: Path, ami_root: Path) -> None:
             lines[0] = f"#!{correct_python}"
             stale = True
 
-    # Fix inline interpreter paths in bash wrappers (e.g. ami-synadm)
+    # Fix inline interpreter paths in bash wrappers (e.g. workspace-synadm)
     for i in range(1, len(lines)):
         if "/python" in lines[i]:
             new_line = re.sub(
@@ -111,41 +111,43 @@ def create_symlink(link: Path, target: Path) -> None:
     _maybe_chown(link)
 
 
-def _register_one(ext: ResolvedExtension, bin_dir: Path, ami_root: Path) -> None:
+def _register_one(ext: ResolvedExtension, bin_dir: Path, workspace_root: Path) -> None:
     """Register a single resolved extension into bin_dir."""
     entry = ext.entry
     name = entry["name"]
     binary = entry["binary"]
     target_path = bin_dir / name
-    source_path = ami_root / binary
+    source_path = workspace_root / binary
 
     if source_path == target_path:
         print(f"  \u2713 {name} \u2192 {binary} (self, skip)")
         return
 
     if binary.endswith(".py"):
-        create_wrapper(target_path, ami_root, binary)
+        create_wrapper(target_path, workspace_root, binary)
         print(f"  \u2713 {name} \u2192 wrapper({binary})")
     else:
-        fix_stale_shebang(source_path, ami_root)
+        fix_stale_shebang(source_path, workspace_root)
         create_symlink(target_path, source_path)
         print(f"  \u2713 {name} \u2192 {binary}")
 
 
 def register_extensions() -> None:
     """Register all extensions as symlinks/wrappers in the boot dir."""
-    ami_root = find_ami_root()
+    workspace_root = find_workspace_root()
     boot_name = ".boot-macos" if platform.system() == "Darwin" else ".boot-linux"
-    bin_dir = ami_root / boot_name / "bin"
+    bin_dir = workspace_root / boot_name / "bin"
     bin_dir.mkdir(parents=True, exist_ok=True)
     _maybe_chown(bin_dir)
 
-    manifests = discover_manifests(ami_root)
+    manifests = discover_manifests(workspace_root)
     if not manifests:
         print("[WARN] No extension.manifest.yaml files found.")
         return
 
-    resolved = enforce_versions(resolve_extensions(manifests, ami_root), ami_root)
+    resolved = enforce_versions(
+        resolve_extensions(manifests, workspace_root), workspace_root
+    )
 
     print("\U0001f517 Creating extension symlinks/wrappers...")
 
@@ -161,7 +163,7 @@ def register_extensions() -> None:
             print(f"  \u26a0 {name} skipped: {ext.reason}")
             skipped_mismatch += 1
             continue
-        _register_one(ext, bin_dir, ami_root)
+        _register_one(ext, bin_dir, workspace_root)
         registered += 1
 
     print(f"\n\u2705 Registered {registered} commands in {bin_dir}")

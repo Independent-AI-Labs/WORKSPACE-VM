@@ -4,7 +4,7 @@ set -euo pipefail
 # Bootstrap matrix-commander into .boot-linux
 # Usage: ./scripts/bootstrap_matrix_commander.sh
 
-# Script is in ami/scripts/bootstrap/, project root is 3 levels up
+# Script is in workspace/scripts/bootstrap/, project root is 3 levels up
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 

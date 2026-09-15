@@ -1,4 +1,4 @@
-"""System status display for AMI services and containers."""
+"""System status display for WORKSPACE services and containers."""
 
 import argparse
 import os
@@ -199,11 +199,11 @@ def main() -> None:
     services = {svc.name: svc for svc in services_list}
     _ = {c.name: c for c in containers_list}  # Build for potential future use
 
-    # Separate managed vs orphan services (ami-* user services not in Ansible)
+    # Separate managed vs orphan services (workspace-* user services not in Ansible)
     orphan_svc_names = {
         name
         for name, svc in services.items()
-        if name.startswith("ami-")
+        if name.startswith("workspace-")
         and svc.scope == "user"
         and name not in managed_services
     }

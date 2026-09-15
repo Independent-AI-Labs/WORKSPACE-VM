@@ -1,8 +1,8 @@
-"""ami storage: aggregated disk-usage report.
+"""workspace storage: aggregated disk-usage report.
 
 Composes existing utilities:
-- ami.scripts.utils.sys_info: ProgressBar + get_size_str (root filesystem usage)
-- ami.scripts.utils.analyze_disk_usage: du-based top-25 directory breakdown
+- workspace.scripts.utils.sys_info: ProgressBar + get_size_str (root filesystem usage)
+- workspace.scripts.utils.analyze_disk_usage: du-based top-25 directory breakdown
 - dataops.cli_components.status_containers.get_container_sizes: podman volume sizes
 """
 

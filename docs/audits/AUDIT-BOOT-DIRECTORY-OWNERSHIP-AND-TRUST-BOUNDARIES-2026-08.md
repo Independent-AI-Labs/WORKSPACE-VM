@@ -592,7 +592,7 @@ component installer and must reject foreign-owned or non-writable local boots.
 ### Phase 2: Centralize path resolution
 
 1. Introduce one platform-aware local tools path resolver.
-2. Replace script-specific defaults such as `AMI_ROOT/.boot-linux` and
+2. Replace script-specific defaults such as `WORKSPACE_ROOT/.boot-linux` and
    `BOOT_LINUX_DIR` where they select developer destinations.
 3. Keep protected path resolution fixed and non-overridable.
 4. Preserve explicit path parameters only for tests and controlled build

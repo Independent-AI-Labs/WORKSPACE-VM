@@ -1,5 +1,5 @@
 """
-Bootstrap Installer TUI for AMI Orchestrator.
+Bootstrap Installer TUI for WORKSPACE Orchestrator.
 
 Provides an interactive multi-select interface for installing optional
 bootstrap components with status detection.
@@ -21,7 +21,7 @@ import yaml
 sys.path.insert(
     0,
     os.environ.get(
-        "AMI_PROJECT_ROOT",
+        "WORKSPACE_PROJECT_ROOT",
         str(
             next(
                 p
@@ -420,7 +420,7 @@ def main() -> int:
 def _main_impl() -> int:
     """Main entry point for the bootstrap installer TUI."""
     parser = argparse.ArgumentParser(
-        description="Bootstrap Installer for AMI Orchestrator"
+        description="Bootstrap Installer for WORKSPACE Orchestrator"
     )
     parser.add_argument(
         "--defaults",

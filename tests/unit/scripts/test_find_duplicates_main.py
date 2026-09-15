@@ -1,4 +1,4 @@
-"""Unit tests for ami/scripts/find_duplicates.py main() entrypoint."""
+"""Unit tests for workspace/scripts/find_duplicates.py main() entrypoint."""
 
 from __future__ import annotations
 

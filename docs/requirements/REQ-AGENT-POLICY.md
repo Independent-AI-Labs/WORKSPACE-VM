@@ -1,11 +1,11 @@
 # Agent Policy Engine - Enterprise Requirements Specification
 
-**Document ID:** AMI-REQ-POLICY-v1.0
+**Document ID:** WORKSPACE-REQ-POLICY-v1.0
 **Status:** Draft
 **Date:** 2026-06-08
 **Classification:** Internal - Enterprise
 **Specification:** [SPEC-AGENT-POLICY](../specifications/SPEC-AGENT-POLICY.md)
-**Authors:** AMI-Agents Engineering
+**Authors:** WORKSPACE-VM Engineering
 **References:**
 - A2A Protocol Specification v1.0 (a2aproject/A2A, Linux Foundation)
 - opencode Plugin Hooks Interface (24 hook types, `@opencode-ai/plugin`)
@@ -493,7 +493,7 @@ For deployments in financial services (DORA) or critical infrastructure (NIS2):
 | A-1 | opencode's 24 hook types (as defined in `@opencode-ai/plugin` Hooks interface) will maintain backward-compatible signatures through opencode 1.x. |
 | A-2 | The `experimental.chat.messages.transform` and `experimental.chat.system.transform` hooks (currently experimental) will be promoted to stable in opencode 2.0. If removed, the static plugin must be updated. |
 | A-3 | opencode's plugin runtime environment (Bun or Node.js) will remain available for executing the static plugin JS file. |
-| A-4 | The AMI workspace directory structure (`workspace/config/opencode/`) is writable by the user running the CLI commands. |
+| A-4 | The WORKSPACE workspace directory structure (`workspace/config/opencode/`) is writable by the user running the CLI commands. |
 | A-5 | The EU AI Act 2 August 2026 deadline is not extended by the Digital Omnibus. If extended, the REG requirements remain valid but with delayed enforcement. |
 | A-6 | The A2A Protocol Specification v1.0 AgentCard schema remains stable. Extensions to the AgentCard (governance metadata proposal #1717) will be adopted in a future version. |
 | A-7 | opencode continues to load plugins from `~/.config/opencode/plugins/` as the primary auto-discovery path. |
@@ -620,4 +620,4 @@ For deployments in financial services (DORA) or critical infrastructure (NIS2):
 
 ---
 
-*This requirements specification incorporates material from: the A2A Protocol Specification v1.0 (a2aproject/A2A, Linux Foundation), opencode Plugin Hooks Interface (`@opencode-ai/plugin`), the EU AI Act (Regulation (EU) 2024/1689), GDPR, ISO/IEC 42001:2023, OWASP guidance, NIST AI RMF, and the AMI-Agents research programme (docs/research/). Industry pattern analysis covers 10+ AI agent policy systems (harness, Mirage, Aegis, AgentSpec, open-guardrail, OpenGuardrails, Veto, Agent RuleZ, hook-bridge, mcp-claude-hooks, hooksmith, Zrb, hookify, AgentContract, Cohorte, Microsoft Agent Governance Toolkit, OpenAI Guardrails). Quotations from regulatory sources are excerpted from WS-4 Regulatory Deep Dive, which references primary legal sources.*
+*This requirements specification incorporates material from: the A2A Protocol Specification v1.0 (a2aproject/A2A, Linux Foundation), opencode Plugin Hooks Interface (`@opencode-ai/plugin`), the EU AI Act (Regulation (EU) 2024/1689), GDPR, ISO/IEC 42001:2023, OWASP guidance, NIST AI RMF, and the WORKSPACE-VM research programme (docs/research/). Industry pattern analysis covers 10+ AI agent policy systems (harness, Mirage, Aegis, AgentSpec, open-guardrail, OpenGuardrails, Veto, Agent RuleZ, hook-bridge, mcp-claude-hooks, hooksmith, Zrb, hookify, AgentContract, Cohorte, Microsoft Agent Governance Toolkit, OpenAI Guardrails). Quotations from regulatory sources are excerpted from WS-4 Regulatory Deep Dive, which references primary legal sources.*

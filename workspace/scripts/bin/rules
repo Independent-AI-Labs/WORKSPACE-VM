@@ -13,13 +13,13 @@ set -euo pipefail
 #   rules hooks update NUM -r REGEX -t TEXT  → update hook N
 
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
-AMI_ROOT="$SCRIPT_DIR"
-while [[ "$AMI_ROOT" != "/" && ! -f "$AMI_ROOT/pyproject.toml" ]]; do
-    AMI_ROOT="$(dirname "$AMI_ROOT")"
+WORKSPACE_ROOT="$SCRIPT_DIR"
+while [[ "$WORKSPACE_ROOT" != "/" && ! -f "$WORKSPACE_ROOT/pyproject.toml" ]]; do
+    WORKSPACE_ROOT="$(dirname "$WORKSPACE_ROOT")"
 done
 
-TEMPLATE="$AMI_ROOT/workspace/config/opencode/plugins/add-user-message-context.template.js"
-USERFILE="$AMI_ROOT/workspace/config/opencode/plugins/add-user-message-context.js"
+TEMPLATE="$WORKSPACE_ROOT/workspace/config/opencode/plugins/add-user-message-context.template.js"
+USERFILE="$WORKSPACE_ROOT/workspace/config/opencode/plugins/add-user-message-context.js"
 DEPLOY_DIR="${HOME}/.config/opencode/plugins"
 DEPLOY_FILE="${DEPLOY_DIR}/add-user-message-context.js"
 

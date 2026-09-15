@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# sd Bootstrap Script for AMI-ORCHESTRATOR
+# sd Bootstrap Script for WORKSPACE-ORCHESTRATOR
 # Downloads and installs sd (search & displace) in the .boot-linux environment
 # FORCE INSTALLS TO .boot-linux - NO FALLBACKS
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# Script is in ami/scripts/bootstrap/, project root is 3 levels up
+# Script is in workspace/scripts/bootstrap/, project root is 3 levels up
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 
 # Use BOOT_LINUX_DIR env var if set, otherwise default

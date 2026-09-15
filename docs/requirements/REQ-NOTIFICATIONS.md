@@ -9,10 +9,10 @@
 **References:**
 - [SPEC-NOTIFICATIONS](../specifications/SPEC-NOTIFICATIONS.md) (Technical Specification)
 - [AUDIT-SYSTEMD-DEPLOYMENT-SOURCE-DRIFT-2026-08](../audits/AUDIT-SYSTEMD-DEPLOYMENT-SOURCE-DRIFT-2026-08.md) (prior OnFailure defect ruling)
-- [scripts/services/ami_failure_notify.sh](../../scripts/services/ami_failure_notify.sh) (existing notifier adapter)
-- [scripts/services/ami_gitleaks_sweep.sh](../../scripts/services/ami_gitleaks_sweep.sh) (migrated onto this engine in v1)
+- [scripts/services/workspace_failure_notify.sh](../../scripts/services/workspace_failure_notify.sh) (existing notifier adapter)
+- [scripts/services/workspace_gitleaks_sweep.sh](../../scripts/services/workspace_gitleaks_sweep.sh) (migrated onto this engine in v1)
 - [scripts/setup/hang-evidence-sampler.sh](../../scripts/setup/hang-evidence-sampler.sh) (forensic sampler; adjacent but distinct)
-- [WORKSPACE-STREAMS docs/AMI-MAIL.md](../../projects/WORKSPACE-STREAMS/docs/AMI-MAIL.md) (mail channel authority - `ami-mail` operator guide)
+- [WORKSPACE-STREAMS docs/WORKSPACE-MAIL.md](../../projects/WORKSPACE-STREAMS/docs/WORKSPACE-MAIL.md) (mail channel authority - `workspace-mail` operator guide)
 - [WORKSPACE-STREAMS docs/SPEC-MAIL.md](../../projects/WORKSPACE-STREAMS/docs/SPEC-MAIL.md) (mail channel architecture; §2: "managed build, not a bootstrap")
 - [WORKSPACE-STREAMS docs/MONITORING.md](../../projects/WORKSPACE-STREAMS/docs/MONITORING.md) (server-side Alertmanager precedent; alert-rule threshold catalog)
 - [AGENTS.md](../../AGENTS.md) (Universal Agent Rules)
@@ -27,32 +27,32 @@ operational events (unit failures, restart loops, resource exhaustion) into
 operator-visible alerts over two remote channels with priorities, escalation
 fast-tracking, deduplication, and secrets served from OpenBao.
 
-The engine unifies the send path that `ami_failure_notify.sh` and
-`ami_gitleaks_sweep.sh` currently duplicate, closes the
-`ami-failure-notify@.service` deployment gap identified by the 2026-08 audit,
+The engine unifies the send path that `workspace_failure_notify.sh` and
+`workspace_gitleaks_sweep.sh` currently duplicate, closes the
+`workspace-failure-notify@.service` deployment gap identified by the 2026-08 audit,
 and adds restart-loop plus resource-threshold alerting motivated by the
 2026-09 hang incidents.
 
 **In scope (v1):**
 
 - REQ/SPEC documentation (this pair)
-- One shared notifier core script (`ami_notify_send.sh`): priorities,
+- One shared notifier core script (`workspace_notify_send.sh`): priorities,
   escalation fast-track, per-alert-key cooldown, channel fan-out
 - Two channels: **email** (himalaya over Gmail SMTP) and **GitHub issue**
   (`gh issue create` with per-invocation token) - fan-out by priority
 - **All credentials from OpenBao KV** (gateway pod, `127.0.0.1:8201`);
   nothing secret at rest anywhere else, nothing secret in any repo
-- `ami-failure-notify@.service` systemd user template unit wired via
+- `workspace-failure-notify@.service` systemd user template unit wired via
   `OnFailure=` **drop-in files** for workspace-managed user units
-- Timer-driven health checker (`ami-health-check.*`): restart-loop detection
+- Timer-driven health checker (`workspace-health-check.*`): restart-loop detection
   (`NRestarts`), PSI, memory, disk, D-state thresholds, priority-mapped
-- himalaya (`ami-mail`) provisioning **delegated to WORKSPACE-STREAMS**
+- himalaya (`workspace-mail`) provisioning **delegated to WORKSPACE-STREAMS**
   (`make -C projects/WORKSPACE-STREAMS build-himalaya` - the managed build
   per SPEC-MAIL §2); this engine adds no binary bootstrap of its own
 - Operator credential runbook (Gmail app password + GitHub token written to
   OpenBao KV once; secret never enters any repository)
 - `make install-notifications` / `notifications-status` / dry-run self-test
-- `ami_gitleaks_sweep.sh` migrated onto the shared core; cron replaced by a
+- `workspace_gitleaks_sweep.sh` migrated onto the shared core; cron replaced by a
   systemd timer
 - Unit tests wired into the standard pytest suite (`make check`) and the
   workspace hook/gate chain, like every other project
@@ -80,18 +80,18 @@ Single-owner-per-artifact; no duplicate boundaries (AGENTS.md Rule 7).
 
 | Layer | Owner | Artifacts |
 |-------|-------|-----------|
-| Event capture (systemd OnFailure template, drop-ins, timers, canary) | **WORKSPACE-VM** (this repo) | `scripts/services/ami-failure-notify@.service`, `ami-health-check.*`, `ami-gitleaks-sweep.*` |
-| Engine core (priority, cooldown, escalation, fan-out, state) | **WORKSPACE-VM** | `ami_notify_send.sh`, `/mnt/ws-fast/notify/state/` |
-| Probes of this machine (NRestarts, PSI, mem, disk, D-state) + managed-unit list | **WORKSPACE-VM** | `ami_health_check.sh` (machine topology lives here, not in a comms repo) |
-| Email channel: binary build, config provisioning, upstream features | **WORKSPACE-STREAMS** | `himalaya/` fork, `make build-himalaya`, `ansible/roles/ami_mail/`, `config/himalaya/config.sample.toml` |
-| Server-side alerting stack (Prometheus rules, Alertmanager routing) | **WORKSPACE-STREAMS** | `alertmanager/ami-alerts.rules` (threshold catalog precedent) |
+| Event capture (systemd OnFailure template, drop-ins, timers, canary) | **WORKSPACE-VM** (this repo) | `scripts/services/workspace-failure-notify@.service`, `workspace-health-check.*`, `workspace-gitleaks-sweep.*` |
+| Engine core (priority, cooldown, escalation, fan-out, state) | **WORKSPACE-VM** | `workspace_notify_send.sh`, `/mnt/ws-fast/notify/state/` |
+| Probes of this machine (NRestarts, PSI, mem, disk, D-state) + managed-unit list | **WORKSPACE-VM** | `workspace_health_check.sh` (machine topology lives here, not in a comms repo) |
+| Email channel: binary build, config provisioning, upstream features | **WORKSPACE-STREAMS** | `himalaya/` fork, `make build-himalaya`, `ansible/roles/workspace_mail/`, `config/himalaya/config.sample.toml` |
+| Server-side alerting stack (Prometheus rules, Alertmanager routing) | **WORKSPACE-STREAMS** | `alertmanager/workspace-alerts.rules` (threshold catalog precedent) |
 | Secrets storage (KV v2 `secret/workspace/notify`) | **WORKSPACE-GATEWAY** | `gw-prod-pod` OpenBao (`127.0.0.1:8201`), fixed-ID service token |
 | GitHub channel (`gh` binary) | **WORKSPACE-VM** boot dir | token from OpenBao per-invocation |
 
 Cross-repo documentation follows the established pattern (REQ-VM-HYPERVISOR
 references WORKSPACE-GUARD's REQ-SANDBOX): this REQ/SPEC pair is the engine
-authority; STREAMS' AMI-MAIL/SPEC-MAIL are the channel authority. STREAMS'
-AMI-MAIL.md records this engine as a documented consumer.
+authority; STREAMS' WORKSPACE-MAIL/SPEC-MAIL are the channel authority. STREAMS'
+WORKSPACE-MAIL.md records this engine as a documented consumer.
 
 ---
 
@@ -104,7 +104,7 @@ AMI-MAIL.md records this engine as a documented consumer.
 | **Priority** | `critical` \| `urgent` \| `normal`; drives cooldown, fan-out, subject prefix |
 | **Escalation fast-track** | A higher-priority delivery for a key bypasses the remaining cooldown of a lower-priority prior delivery |
 | **Cooldown** | Minimum seconds between two deliveries for the same alert key at the same priority |
-| **OnFailure template** | `ami-failure-notify@.service` instantiated per failed unit |
+| **OnFailure template** | `workspace-failure-notify@.service` instantiated per failed unit |
 | **Drop-in** | `~/.config/systemd/user/<unit>.d/10-workspace-notify.conf` adding `OnFailure=` without editing unit sources across repos |
 | **Restart loop** | Service repeatedly failing while `Restart=` keeps it out of `failed` state; invisible to `OnFailure=` |
 | **Channel** | Delivery transport; v1: himalaya email + GitHub issue |
@@ -118,7 +118,7 @@ AMI-MAIL.md records this engine as a documented consumer.
 Three concrete operational failures motivate the engine:
 
 1. **Broken OnFailure wiring.** Portal templates declared
-   `OnFailure=ami-failure-notify@%n.service`; no template unit was ever
+   `OnFailure=workspace-failure-notify@%n.service`; no template unit was ever
    deployed, and `%n` (which already includes the `.service` suffix) produced
    a `…service.service` unit id. `zk-portal-dev.service` carries the same
    dangling reference today.
@@ -133,7 +133,7 @@ Three concrete operational failures motivate the engine:
 
 ```
 unit failure ──────► OnFailure= template ─┐
-restart loop ──────► NRestarts probe ─────┤──► ami_notify_send ─► priority + cooldown ─► fan-out ─┬─► email
+restart loop ──────► NRestarts probe ─────┤──► workspace_notify_send ─► priority + cooldown ─► fan-out ─┬─► email
 resource limits ───► threshold probe ─────┘   (state on /mnt/ws-fast)                            └─► gh issue
                                                                         secrets ◄─ OpenBao KV (send-time fetch)
 ```
@@ -144,7 +144,7 @@ resource limits ───► threshold probe ─────┘   (state on /mnt
 
 ### FR-1: Shared notifier core
 
-**FR-1.1 (REQ-NOT-001)** A single script `scripts/services/ami_notify_send.sh`
+**FR-1.1 (REQ-NOT-001)** A single script `scripts/services/workspace_notify_send.sh`
 SHALL accept `--key <alert-key> --subject <s> --priority <critical|urgent|normal>`
 (default `normal`) plus `--body <text>` / `--body-file <path>` and own
 priority handling, cooldown evaluation, channel fan-out, and delivery.
@@ -162,13 +162,13 @@ and self-tests use this mode. The refactored adapter (FR-1.4) switches to
 this variable name exclusively - the previous
 `WORKSPACE_FAILURE_NOTIFY_DRY_RUN` name is removed, not aliased.
 
-**FR-1.4 (REQ-NOT-004)** `ami_failure_notify.sh` SHALL be refactored into a
+**FR-1.4 (REQ-NOT-004)** `workspace_failure_notify.sh` SHALL be refactored into a
 thin adapter: systemd-state/journal capture stays, send logic delegates to
 the core with priority `urgent`. Exit-code contract (0/2/3/4) preserved.
 
 **FR-1.5 (REQ-NOT-005)** Every channel invocation SHALL hard-timeout (60s
 send; 5s secret fetch) and surface transport failure as a distinct non-zero
-exit so notifier failure is visible in `journalctl -u ami-failure-notify@*`.
+exit so notifier failure is visible in `journalctl -u workspace-failure-notify@*`.
 
 ### FR-2: Priorities and fan-out
 
@@ -196,13 +196,13 @@ cooldown was bypassed.
 
 ### FR-3: Unit-failure path (OnFailure)
 
-**FR-3.1 (REQ-NOT-010)** An `ami-failure-notify@.service` user template unit
+**FR-3.1 (REQ-NOT-010)** An `workspace-failure-notify@.service` user template unit
 SHALL be deployed by `make install-notifications` to
 `~/.config/systemd/user/`, invoking the adapter with the failed unit id.
 
 **FR-3.2 (REQ-NOT-011)** Wiring SHALL use drop-in files
 (`<unit>.d/10-workspace-notify.conf`) containing
-`OnFailure=ami-failure-notify@%N.service` - `%N` (name without suffix)
+`OnFailure=workspace-failure-notify@%N.service` - `%N` (name without suffix)
 avoids the audit's `…service.service` defect. Unit sources in other repos are
 not edited.
 
@@ -236,7 +236,7 @@ environment-overridable, with defaults **calibrated to observed machine
 baselines** (2026-09-13 idle: PSI ≈ 0.00 all domains, MemAvailable ≈ 87 GiB
 of 128 GiB, `/` 56%, fast store 22%; the 2026-09 hang class pinned PSI io
 avg10 near 100 - see SPEC §6 table) and **aligned with the STREAMS
-Alertmanager precedent** (`alertmanager/ami-alerts.rules`: disk 85%/95%,
+Alertmanager precedent** (`alertmanager/workspace-alerts.rules`: disk 85%/95%,
 memory 90%, CPU 90%) so workstation and server alerting speak the same
 numbers.
 
@@ -273,7 +273,7 @@ status gw-prod-pod.service`) - never a quiet no-send.
 WORKSPACE-STREAMS, the mail-channel owner: `make install-himalaya` in this
 repo is a thin delegation to `make -C projects/WORKSPACE-STREAMS
 build-himalaya`, which compiles the vendored fork and installs
-`.boot-linux/bin/himalaya` + the `ami-mail` symlink (SPEC-MAIL §2: "a
+`.boot-linux/bin/himalaya` + the `workspace-mail` symlink (SPEC-MAIL §2: "a
 managed build, not a bootstrap; all build logic lives in
 WORKSPACE-STREAMS"). This engine SHALL NOT carry its own download, pin
 manifest, or bootstrap script for himalaya. The engine SHALL resolve the
@@ -314,10 +314,10 @@ mapping, threshold math, and issue-dedup logic SHALL live in the standard
 pytest suite and run under `make check` / the workspace commit gates,
 identical to every other component in this repository.
 
-**FR-8.5 (REQ-NOT-031)** `ami_gitleaks_sweep.sh` SHALL migrate onto the
+**FR-8.5 (REQ-NOT-031)** `workspace_gitleaks_sweep.sh` SHALL migrate onto the
 shared core (same key/priority/cooldown/fan-out machinery; findings =
 `urgent`, sweep failure = `normal` informational) and its weekly cron entry
-SHALL be replaced by `ami-gitleaks-sweep.timer` (deployed by
+SHALL be replaced by `workspace-gitleaks-sweep.timer` (deployed by
 `install-notifications`, `Persistent=true`).
 
 ---
@@ -385,14 +385,14 @@ transitions to `failed` and fires `OnFailure=`.
 |----|-----------|
 | AC-1 | REQ/SPEC pair committed and cross-linked |
 | AC-2 | Core unit tests pass under `make check`: cooldown, escalation bypass, priority→cooldown/fan-out mapping, threshold math, issue-dedup search invocation |
-| AC-3 | Drop-ins installed for §6 list; `systemctl --user cat <unit>` shows `OnFailure=ami-failure-notify@%N.service` |
+| AC-3 | Drop-ins installed for §6 list; `systemctl --user cat <unit>` shows `OnFailure=workspace-failure-notify@%N.service` |
 | AC-4 | `make test-notifications` canary proves template + drop-in + adapter in dry-run; skips honestly without a user session |
 | AC-5 | Same-priority send inside cooldown skipped+logged; escalated priority bypasses and logs `escalation old→new` |
 | AC-6 | `make install-himalaya` delegates to the STREAMS managed build and the binary lands in the boot dir |
 | AC-7 | Operator runbook executed: both OpenBao KV entries written; email round-trip AND gh issue round-trip signed off by operator |
 | AC-8 | `grep`-clean secret audit: no app password, GH token, or OpenBao token in any repo file or fixture |
 | AC-9 | `make check` green; shell-guard + banned-words gates clean |
-| AC-10 | `ami_failure_notify.sh` delegates to core; exit-code contract unchanged |
+| AC-10 | `workspace_failure_notify.sh` delegates to core; exit-code contract unchanged |
 | AC-11 | Gitleaks sweep sends through the core (dry-run asserted in tests); weekly timer active, cron entry retired |
 
 Execution status tracked in §11.
@@ -403,12 +403,12 @@ Execution status tracked in §11.
 
 | Requirement | Spec section | Primary artifact |
 |-------------|--------------|------------------|
-| FR-1 | SPEC §3 Core | `scripts/services/ami_notify_send.sh` |
+| FR-1 | SPEC §3 Core | `scripts/services/workspace_notify_send.sh` |
 | FR-2 | SPEC §3.2-3.4 | same |
-| FR-3 | SPEC §4 OnFailure path | `scripts/services/ami-failure-notify@.service`, drop-ins |
-| FR-4 | SPEC §5 Checker | `scripts/services/ami_health_check.sh` |
+| FR-3 | SPEC §4 OnFailure path | `scripts/services/workspace-failure-notify@.service`, drop-ins |
+| FR-4 | SPEC §5 Checker | `scripts/services/workspace_health_check.sh` |
 | FR-5 | SPEC §5-6 Checker | same |
-| FR-6 | SPEC §7 Secrets | `scripts/services/ami_notify_secret.sh` |
+| FR-6 | SPEC §7 Secrets | `scripts/services/workspace_notify_secret.sh` |
 | FR-7 | SPEC §6-7 Channel build + secrets | STREAMS `build-himalaya` delegation, runbook |
 | FR-8 | SPEC §9-10 Deploy/test/CI | Makefile targets, tests, canary |
 

@@ -1,4 +1,4 @@
-# Makefile for AMI Agents
+# Makefile for WORKSPACE Agents
 MAKEFILE_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 # Platform detection. On macOS, prefer Homebrew bash 5.x over /bin/bash
 # (3.2) for nameref support. The Homebrew gnubin directories are
@@ -65,7 +65,7 @@ export CMAKE_POLICY_VERSION_MINIMUM := 3.5
 
 .PHONY: help
 help: ## Show this help message
-	echo "AMI Agents - Available targets:"
+	echo "WORKSPACE Agents - Available targets:"
 	echo ""
 	awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  %-28s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
@@ -132,8 +132,8 @@ core: require-non-root ## Bootstrap CI tools (uv + ansible + node) + VM-specific
 	echo "🔧 Verifying deployed CI tools..."
 	test -x "$(UV)" && test -x "$(ANSIBLE_PLAYBOOK)" && test -x "$(CI_BOOT_BIN)/node"
 	echo "🔧 Bootstrapping VM-specific tools..."
-	AMI_ROOT="$$(pwd)" bash workspace/scripts/bootstrap/bootstrap_python.sh
-	AMI_ROOT="$$(pwd)" bash workspace/scripts/bootstrap/bootstrap_git_xet.sh
+	WORKSPACE_ROOT="$$(pwd)" bash workspace/scripts/bootstrap/bootstrap_python.sh
+	WORKSPACE_ROOT="$$(pwd)" bash workspace/scripts/bootstrap/bootstrap_git_xet.sh
 	echo "✅ Core bootstrap complete"
 
 # =============================================================================
@@ -342,13 +342,13 @@ register-extensions: ## (CONTROL PLANE) Register extensions in the platform boot
 # =============================================================================
 
 .PHONY: install-shell
-install-shell: ## Install AMI shell environment to ~/.bashrc
+install-shell: ## Install WORKSPACE shell environment to ~/.bashrc
 	echo "🐚 Installing shell environment..."
 	bash workspace/scripts/shell/shell-setup --install
 	echo "✅ Shell environment installed"
 
 .PHONY: uninstall-shell
-uninstall-shell: ## Remove AMI shell environment from ~/.bashrc
+uninstall-shell: ## Remove WORKSPACE shell environment from ~/.bashrc
 	bash workspace/scripts/shell/shell-setup --uninstall
 
 # =============================================================================

@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
-# pwd: AMI root directory management
-# Gets or sets the AMI_ROOT persistently
+# pwd: WORKSPACE root directory management
+# Gets or sets the WORKSPACE_ROOT persistently
 #
 # Usage:
-#   pwd              # Print current AMI_ROOT
-#   pwd --set PATH   # Set AMI_ROOT persistently
+#   pwd              # Print current WORKSPACE_ROOT
+#   pwd --set PATH   # Set WORKSPACE_ROOT persistently
 #   pwd --reset      # Reset to default (agents/ directory)
 #   pwd --env        # Output shell export statement
 #
-# The root is stored in ~/.config/ami/root and exported as AMI_ROOT
+# The root is stored in ~/.config/workspace/root and exported as WORKSPACE_ROOT
 set -euo pipefail
 
-CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/ami"
+CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/workspace"
 ROOT_FILE="$CONFIG_DIR/root"
 
 _SELF="${BASH_SOURCE[0]:-$0}"
@@ -35,7 +35,7 @@ get_default_root() {
     if git rev-parse --show-toplevel; then
         return 0
     fi
-    echo "Error: cannot determine AMI root (no pyproject.toml/.git marker, not in a git repo)" >&2
+    echo "Error: cannot determine WORKSPACE root (no pyproject.toml/.git marker, not in a git repo)" >&2
     return 1
 }
 
@@ -43,8 +43,8 @@ get_default_root() {
 get_root() {
     if [[ -f "$ROOT_FILE" ]]; then
         cat "$ROOT_FILE"
-    elif [[ -n "${AMI_ROOT:-}" ]]; then
-        echo "$AMI_ROOT"
+    elif [[ -n "${WORKSPACE_ROOT:-}" ]]; then
+        echo "$WORKSPACE_ROOT"
     else
         get_default_root
     fi
@@ -64,7 +64,7 @@ set_root() {
 
     mkdir -p "$CONFIG_DIR"
     echo "$new_root" > "$ROOT_FILE"
-    echo "AMI_ROOT set to: $new_root"
+    echo "WORKSPACE_ROOT set to: $new_root"
 }
 
 # Reset to default
@@ -72,7 +72,7 @@ reset_root() {
     if [[ -f "$ROOT_FILE" ]]; then
         rm "$ROOT_FILE"
     fi
-    echo "AMI_ROOT reset to default: $(get_default_root)"
+    echo "WORKSPACE_ROOT reset to default: $(get_default_root)"
 }
 
 # Main
@@ -85,14 +85,14 @@ case "${1:-}" in
         reset_root
         ;;
     --env)
-        echo "export AMI_ROOT=\"$(get_root)\""
+        echo "export WORKSPACE_ROOT=\"$(get_root)\""
         ;;
     --help|-h)
-        echo "pwd: AMI root directory management"
+        echo "pwd: WORKSPACE root directory management"
         echo ""
         echo "Usage:"
-        echo "  pwd              Print current AMI_ROOT"
-        echo "  pwd --set PATH   Set AMI_ROOT persistently"
+        echo "  pwd              Print current WORKSPACE_ROOT"
+        echo "  pwd --set PATH   Set WORKSPACE_ROOT persistently"
         echo "  pwd --reset      Reset to default (agents/)"
         echo "  pwd --env        Output shell export statement"
         echo ""

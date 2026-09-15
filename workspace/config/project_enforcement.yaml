@@ -72,4 +72,4 @@ exemptions:
     reason: "Third-party playbook mirror; not part of the workspace CI contract"
   - path: projects/WORKSPACE-RP/research/
     tier: vendored
-    reason: Third-party research code mirrors; not part of the AMI contract
+    reason: Third-party research code mirrors - not part of the WORKSPACE contract

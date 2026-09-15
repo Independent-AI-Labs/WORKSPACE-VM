@@ -5,8 +5,8 @@ case "$SCRIPT_SOURCE" in
     /proc/self/fd/*) SCRIPT_SOURCE="${SHG_SCRIPT_PATH:-$SCRIPT_SOURCE}" ;;
 esac
 SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_SOURCE")" && pwd)"
-AMI_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
-BOOT_DIR="${BOOT_LINUX_DIR:-${AMI_ROOT}/.boot-linux}"
+WORKSPACE_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
+BOOT_DIR="${BOOT_LINUX_DIR:-${WORKSPACE_ROOT}/.boot-linux}"
 BOOT_BIN="${BOOT_DIR}/bin"
 NPM="${BOOT_BIN}/npm"
 

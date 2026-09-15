@@ -24,7 +24,7 @@ def _run_tunnel(
     env: dict[str, str] | None = None,
 ) -> subprocess.CompletedProcess[str]:
     run_env = os.environ.copy()
-    run_env.pop("AMI_ROOT", None)
+    run_env.pop("WORKSPACE_ROOT", None)
     run_env.pop("CLOUDFLARED_BIN", None)
     run_env.pop("TUNNEL_CONFIG", None)
     run_env.pop("CLOUDFLARED_CONFIG", None)
@@ -114,10 +114,10 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
     not (REPO_ROOT / ".boot-linux/bin/cloudflared").exists(),
     reason="cloudflared not bootstrapped in this environment",
 )
-def test_ami_root_alternate_root_finds_boot_binary() -> None:
+def test_workspace_root_alternate_root_finds_boot_binary() -> None:
     result = _run_tunnel(
         "--help",
-        env={"AMI_ROOT": str(REPO_ROOT)},
+        env={"WORKSPACE_ROOT": str(REPO_ROOT)},
     )
     assert result.returncode == 0
     assert "cloudflared" in result.stdout.lower()

@@ -102,7 +102,7 @@ flowchart TB
 
 | Path | Reason |
 |------|--------|
-| `workspace/scripts/ami/scripts/bin/run_openvpn_client.py` | Duplicate superseded by workspace CLI |
+| `workspace/scripts/workspace/scripts/bin/run_openvpn_client.py` | Duplicate superseded by workspace CLI |
 
 ---
 
@@ -217,7 +217,7 @@ Extension name: `vpn` (hidden infra, `extension.manifest.yaml`).
 
 Flags: `--ovpn-file`, `--auth-file`, `--daemon`.
 
-AMI_ROOT / workspace root: use `find_workspace_root()` from cwd or `AMI_ROOT` when set.
+WORKSPACE_ROOT / workspace root: use `find_workspace_root()` from cwd or `WORKSPACE_ROOT` when set.
 
 ---
 
@@ -421,9 +421,9 @@ network:
 
 Section 3.1 (`network.mode: openvpn`) in `MIGRATION-PLAN.md` SHALL point to this spec for authoritative field definitions. Stale references to:
 
-- `ami-vm:<uuid>` → `workspace-vm:<uuid>`
-- `/opt/ami-agents` → `/opt/workspace`
-- `~/.ami/vpn/client.ovpn` → `workspace/config/vpn/client.ovpn`
-- `ami-network.service` → `workspace-network.service`
+- `workspace-vm:<uuid>` → `workspace-vm:<uuid>`
+- `/opt/workspace-vm` → `/opt/workspace`
+- `~/.workspace/vpn/client.ovpn` → `workspace/config/vpn/client.ovpn`
+- `workspace-network.service` → `workspace-network.service`
 
 Implementation MUST NOT proceed without matching this spec (REQ-OPENVPN acceptance criteria).

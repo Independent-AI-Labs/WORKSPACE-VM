@@ -1,4 +1,4 @@
-"""UUID utilities for AMI Agents.
+"""UUID utilities for WORKSPACE Agents.
 
 Provides a pure Python implementation of UUIDv7 (RFC 9562) to avoid
 external dependencies or waiting for Python 3.14.

@@ -1,4 +1,4 @@
-"""API type definitions for AMI Agents.
+"""API type definitions for WORKSPACE Agents.
 
 Provides Pydantic models for API responses, stream messages, and configurations.
 """

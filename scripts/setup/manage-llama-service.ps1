@@ -10,7 +10,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 $TaskName = "LlamaCpp-CPU-Service"
-$TaskPath = "\AMI\"
+$TaskPath = "\WORKSPACE\"
 
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
 $ProjectRoot = (Get-Item (Split-Path -Parent $ScriptDir)).Parent.FullName

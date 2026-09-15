@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# ami_gitleaks_sweep.sh - weekly gitleaks history scan across every repo in
+# workspace_gitleaks_sweep.sh - weekly gitleaks history scan across every repo in
 # the workspace. Emails the operator on any finding so re-leaks get caught
 # early, instead of waiting for the next pre-commit run on a touched repo.
 #
-# Mirrors the `ami_failure_notify.sh` send pattern (himalaya account
+# Mirrors the `workspace_failure_notify.sh` send pattern (himalaya account
 # `polymarket`, To = WORKSPACE_FAILURE_NOTIFY_TO or independentailabs@gmail.com).
 # Per-repo `.gitleaksignore` allowlists are honored automatically by gitleaks
 # itself, so documented false positives stay quiet.
@@ -16,7 +16,7 @@
 #
 # Run via cron weekly:
 #   _ws_root="$(git -C "$HOME/WORKSPACE-VM" rev-parse --show-toplevel)"
-#   cron add "0 4 * * 1" "${_ws_root:-$HOME/WORKSPACE-VM}/scripts/services/ami_gitleaks_sweep.sh" -label gitleaks-sweep
+#   cron add "0 4 * * 1" "${_ws_root:-$HOME/WORKSPACE-VM}/scripts/services/workspace_gitleaks_sweep.sh" -label gitleaks-sweep
 
 set -euo pipefail
 
@@ -29,7 +29,7 @@ readonly REPORT_DIR="${XDG_STATE_HOME:-${HOME}/.local/state}/workspace/gitleaks-
 readonly TIMESTAMP="$(date -u +%Y-%m-%dT%H%M%SZ)"
 
 # --dry-run: scan + report locally but never invoke himalaya. Useful for
-# manual `bash ami_gitleaks_sweep.sh --dry-run` after adding new
+# manual `bash workspace_gitleaks_sweep.sh --dry-run` after adding new
 # .gitleaksignore entries to confirm zero findings before unleashing the
 # weekly cron's mail.
 DRY_RUN=0
@@ -38,7 +38,7 @@ if [[ "${1:-}" == "--dry-run" || "${WORKSPACE_GITLEAKS_SWEEP_DRY_RUN:-}" == "1" 
 fi
 
 log() {
-    printf '[ami-gitleaks-sweep] %s\n' "$*" >&2
+    printf '[workspace-gitleaks-sweep] %s\n' "$*" >&2
 }
 
 die() {
@@ -115,7 +115,7 @@ if [[ ! -x "$HIMALAYA_BIN" ]]; then
     exit 3
 fi
 
-readonly SUBJECT="[AMI] gitleaks weekly sweep: ${total_findings} repo(s) flagged (${TIMESTAMP})"
+readonly SUBJECT="[WORKSPACE] gitleaks weekly sweep: ${total_findings} repo(s) flagged (${TIMESTAMP})"
 body=$(cat <<EOF
 gitleaks weekly history sweep run at $TIMESTAMP found new (or unallowlisted) secrets in $total_findings of ${#repos[@]} workspace repos.
 

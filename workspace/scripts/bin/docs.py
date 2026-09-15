@@ -1,4 +1,4 @@
-"""AMI Document Production CLI.
+"""WORKSPACE Document Production CLI.
 
 Passthrough facade for bootstrapped document tools.
 """
@@ -23,11 +23,11 @@ TOOLS = {
 
 
 def _boot_bin() -> str:
-    ami_root = os.environ.get("AMI_ROOT")
-    if not ami_root:
-        print("Error: AMI_ROOT not set", file=sys.stderr)
+    workspace_root = os.environ.get("WORKSPACE_ROOT")
+    if not workspace_root:
+        print("Error: WORKSPACE_ROOT not set", file=sys.stderr)
         sys.exit(1)
-    return str(Path(ami_root) / ".boot-linux" / "bin")
+    return str(Path(workspace_root) / ".boot-linux" / "bin")
 
 
 def _find_tool(name: str) -> str | None:

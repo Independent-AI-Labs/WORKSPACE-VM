@@ -52,9 +52,9 @@ echo "=========================================="
 echo "PHASE 3: Filesystem verification"
 echo "=========================================="
 
-podman run --rm --entrypoint bash --network none "ami-vm:$VM_UUID" -c '
+podman run --rm --entrypoint bash --network none "workspace-vm:$VM_UUID" -c '
 set -euo pipefail
-cd /opt/ami-agents
+cd /opt/workspace-vm
 echo "=== venv ==="
 test -d .venv && echo "[PASS] .venv exists" || { echo "[FAIL] .venv missing"; exit 1; }
 py_ver=$(uv run python --version) && echo "[PASS] uv run python works ($py_ver)" || { echo "[FAIL] interpreter missing"; exit 1; }
@@ -87,8 +87,8 @@ echo "=========================================="
 echo "PHASE 4: Git hooks"
 echo "=========================================="
 
-podman run --rm --entrypoint bash --network none "ami-vm:$VM_UUID" -c '
-cd /opt/ami-agents
+podman run --rm --entrypoint bash --network none "workspace-vm:$VM_UUID" -c '
+cd /opt/workspace-vm
 if test -f .git/hooks/pre-commit; then echo "[PASS] pre-commit hook installed"; else echo "[WARN] pre-commit hook missing"; fi
 if test -f .git/hooks/pre-push; then echo "[PASS] pre-push hook installed"; else echo "[WARN] pre-push hook missing"; fi
 '
@@ -100,8 +100,8 @@ echo "=========================================="
 echo "PHASE 5: Bootstrap environment"
 echo "=========================================="
 
-podman run --rm --entrypoint bash --network none "ami-vm:$VM_UUID" -c '
-cd /opt/ami-agents
+podman run --rm --entrypoint bash --network none "workspace-vm:$VM_UUID" -c '
+cd /opt/workspace-vm
 test -d .boot-linux && echo "[PASS] .boot-linux directory exists" || { echo "[FAIL] .boot-linux missing"; exit 1; }
 test -d .boot-linux/bin && echo "[PASS] .boot-linux/bin exists"
 if command -v .boot-linux/bin/uv ; then echo "[PASS] uv bootstrapped"; else echo "[WARN] uv not found in boot-linux"; fi

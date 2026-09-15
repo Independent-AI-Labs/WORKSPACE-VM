@@ -18,14 +18,14 @@ def _find_project_root() -> Path:
     return Path(__file__).resolve().parent
 
 
-# Find AMI_ROOT (agents/ directory)
-AMI_ROOT = _find_project_root()
+# Find WORKSPACE_ROOT (agents/ directory)
+WORKSPACE_ROOT = _find_project_root()
 _BOOT_NAME = ".boot-macos" if platform.system() == "Darwin" else ".boot-linux"
 
 
 def test_aliases_exist_and_respond_to_help() -> None:
     """Test that all aliases and functions from shell-setup exist and respond to -h."""
-    script_path = AMI_ROOT / "workspace" / "scripts" / "shell" / "shell-setup"
+    script_path = WORKSPACE_ROOT / "workspace" / "scripts" / "shell" / "shell-setup"
 
     assert script_path.exists(), f"Setup script does not exist: {script_path}"
 
@@ -42,8 +42,8 @@ def test_aliases_exist_and_respond_to_help() -> None:
             "bash",
             "-c",
             (
-                f'export PATH="{AMI_ROOT}/.venv/bin:'
-                f'{AMI_ROOT}/{_BOOT_NAME}/bin:$PATH" && '
+                f'export PATH="{WORKSPACE_ROOT}/.venv/bin:'
+                f'{WORKSPACE_ROOT}/{_BOOT_NAME}/bin:$PATH" && '
                 f"source {script_path} --quiet && type -t {func_name}"
             ),
         ]
@@ -64,9 +64,10 @@ def test_aliases_exist_and_respond_to_help() -> None:
 
         try:
             test_script = rf"""
-                export AMI_ROOT="{AMI_ROOT}"
-                export PYTHONPATH="{AMI_ROOT}"
-                export PATH="{AMI_ROOT}/.venv/bin:{AMI_ROOT}/{_BOOT_NAME}/bin:$PATH"
+                export WORKSPACE_ROOT="{WORKSPACE_ROOT}"
+                export PYTHONPATH="{WORKSPACE_ROOT}"
+                export PATH="{WORKSPACE_ROOT}/.venv/bin:" \
+                    "{WORKSPACE_ROOT}/{_BOOT_NAME}/bin:$PATH"
 
                 source "{script_path}" --quiet
 
@@ -88,7 +89,7 @@ def test_aliases_exist_and_respond_to_help() -> None:
                 capture_output=True,
                 timeout=10,
                 text=True,
-                cwd=AMI_ROOT,
+                cwd=WORKSPACE_ROOT,
             )
         except subprocess.TimeoutExpired:
             continue  # Skip to next function

@@ -88,7 +88,7 @@ def test_bootstrap_certs_generates_files(tmp_path: Path) -> None:
         check=True,
     )
     assert "CN" in decoded.stdout
-    assert "ami-admin" in decoded.stdout
+    assert "workspace-admin" in decoded.stdout
 
 
 def test_bootstrap_certs_idempotent(tmp_path: Path) -> None:

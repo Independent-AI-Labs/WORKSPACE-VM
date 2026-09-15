@@ -10,7 +10,7 @@ $schema: 'https://moonrepo.dev/schemas/project.json'
 
 project:
   name: 'workspace'
-  description: 'AMI workspace umbrella repo and Python orchestrator'
+  description: 'WORKSPACE umbrella repo and Python orchestrator'
   inherited_boot_dirs:
     - '/opt/workspace-ci'
 
@@ -24,7 +24,7 @@ tags:
 # Workspace clone manifest lives in workspace/config/workspace-clones.yaml
 # (moon.yml schema doesn't accept arbitrary top-level metadata fields).
 # That separate file is the single source of truth for "what repos
-# belong to the AMI workspace" - read by workspace/scripts/bin/bootstrap-repos.
+# belong to the WORKSPACE workspace" - read by workspace/scripts/bin/bootstrap-repos.
 
 dependsOn:
   - 'workspace-ci'

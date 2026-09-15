@@ -3,13 +3,13 @@
 # WORKSPACE-VM workspace: moon (moonrepo) configuration.
 #
 # moon is the task runner + project-graph dep validator for the federated
-# AMI workspace. Each project below is a separate sibling git repo under
-# $AMI_ROOT/projects/, except `workspace` which is the umbrella
+# WORKSPACE workspace. Each project below is a separate sibling git repo under
+# $WORKSPACE_ROOT/projects/, except `workspace` which is the umbrella
 # repo at the workspace root.
 #
 # Per-project `moon.yml` files live inside each repo and declare:
 #   - language / type
-#   - dependsOn (cross-AMI edges, validated by `moon ci`)
+#   - dependsOn (cross-repo edges, validated by `moon ci`)
 #   - tasks (typically thin wrappers over each repo's existing `make` targets)
 #
 # Toolchain is intentionally NOT managed by moon. We have our own
@@ -17,7 +17,7 @@
 # language hints for the graph but moon will not auto-install runtimes.
 
 # Project discovery: globs auto-discover any project with a moon.yml
-# under projects/. Optional repos (workspace-portal, ami-srp, etc.)
+# under projects/. Optional repos (workspace-portal, workspace-rp, etc.)
 # are only registered when actually cloned, avoiding "missing source"
 # errors for repos that workspace-clones.yaml declares optional.
 # Mandatory repos are listed explicitly in sources so their IDs stay
@@ -38,6 +38,7 @@ projects:
     workspace-dataops: 'projects/WORKSPACE-DATAOPS'
     workspace-guard: 'projects/WORKSPACE-GUARD'
     workspace-portal: 'projects/WORKSPACE-PORTAL'
+    workspace-rp: 'projects/WORKSPACE-RP'
     workspace-streams: 'projects/WORKSPACE-STREAMS'
 
 vcs:

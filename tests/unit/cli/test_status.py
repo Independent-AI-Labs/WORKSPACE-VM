@@ -16,7 +16,7 @@ _MIN_HEADER_BOX_CALLS = 4
 
 def _build_svc(**overrides):
     defaults = {
-        "name": "ami-test",
+        "name": "workspace-test",
         "scope": "system",
         "active": "active",
         "sub": "running",
@@ -384,7 +384,7 @@ class TestMain:
 
     def test_processes_managed_services_separately_from_orphans(self):
         managed_svc = _build_svc(name="managed-svc")
-        orphan_svc = _build_svc(name="ami-orphan", scope="user")
+        orphan_svc = _build_svc(name="workspace-orphan", scope="user")
         mock_info = _build_display()
         mock_legend = MagicMock()
         mock_legend.render.return_value = LegendRender("I", "L")

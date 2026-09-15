@@ -19,7 +19,7 @@ class TestGetProjectRoot:
             _ProjectRootCache._value = None
 
     def test_uses_env_var(self, monkeypatch) -> None:
-        monkeypatch.setenv("AMI_PROJECT_ROOT", "/env/project")
+        monkeypatch.setenv("WORKSPACE_PROJECT_ROOT", "/env/project")
         _ProjectRootCache._value = None
         try:
             result = get_project_root()

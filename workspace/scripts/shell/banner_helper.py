@@ -1,6 +1,6 @@
 """Banner helper: renders extension banner and extra-info output.
 
-Replaces bash YAML parsing for the AMI banner display.
+Replaces bash YAML parsing for the WORKSPACE banner display.
 Imports shared logic from extension_registry in the same directory.
 """
 
@@ -25,7 +25,7 @@ from workspace.scripts.shell.extension_registry import (
     Status,
     check_dep,
     discover_manifests,
-    find_ami_root,
+    find_workspace_root,
     group_by_category,
     resolve_extensions,
     run_check,
@@ -38,7 +38,7 @@ if TYPE_CHECKING:
     from workspace.scripts.shell.banner_log import LogFn
     from workspace.scripts.shell.extension_registry import ResolvedExtension
 
-# ANSI color codes matching ami-banner.sh
+# ANSI color codes matching workspace-banner.sh
 _COLORS = {
     "gold": "\033[38;5;214m",
     "cyan": "\033[0;36m",
@@ -291,7 +291,7 @@ def _print_extension(
         suffix = f"{green}v{version}{_Style.NC}"
     elif skip_check:
         # Don't render green ✓ when we never ran the check. INCIDENT-2026-
-        # 05-05: kcadm needs `podman exec` into ami-keycloak; if the
+        # 05-05: kcadm needs `podman exec` into workspace-keycloak; if the
         # container isn't running we skip the live --help and previously
         # defaulted to ✓ (because health_ok stayed True), then later the
         # user's actual `kcadm` invocation would fail with no warning.
@@ -487,9 +487,9 @@ def main() -> None:
             _COLORS[k] = ""
         _enable_plain()
 
-    quiet = args.quiet or os.environ.get("AMI_QUIET_MODE") == "1"
+    quiet = args.quiet or os.environ.get("WORKSPACE_QUIET_MODE") == "1"
 
-    root = find_ami_root()
+    root = find_workspace_root()
     manifests = discover_manifests(root)
     resolved = resolve_extensions(manifests, root)
     # Doctor mode shows full taxonomy including version mismatches;

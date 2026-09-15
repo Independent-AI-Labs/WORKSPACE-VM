@@ -10,7 +10,7 @@ Pattern validation provides fast, consistent checks that run **before** expensiv
 
 ### bash_commands.yaml
 
-Defines forbidden Bash command patterns checked by `CommandValidator` in `agents/ami/hooks.py`.
+Defines forbidden Bash command patterns checked by `CommandValidator` in `agents/workspace/hooks.py`.
 
 **Purpose**: Enforce use of Claude Code tools and approved wrappers instead of raw shell commands.
 
@@ -29,7 +29,7 @@ deny_patterns:
 
 ### python_fast.yaml
 
-Defines Python code patterns checked by `validate_python_patterns()` in `agents/ami/validators.py`.
+Defines Python code patterns checked by `validate_python_patterns()` in `agents/workspace/validators.py`.
 
 **Purpose**: Fast pattern checks before LLM diff audit (non-empty __init__.py, path manipulation, code suppressions).
 
@@ -103,8 +103,8 @@ Lists files exempt from **ALL** pattern checks.
 **Structure**:
 ```yaml
 pattern_check_exemptions:
-  - "agents/ami/hooks.py"
-  - "agents/ami/validators.py"
+  - "agents/workspace/hooks.py"
+  - "agents/workspace/validators.py"
   - "scripts/config/patterns/*.yaml"
 ```
 
@@ -114,7 +114,7 @@ pattern_check_exemptions:
 
 ### Loading Patterns
 
-Patterns are loaded via cached functions in `agents/ami/validators.py`:
+Patterns are loaded via cached functions in `agents/workspace/validators.py`:
 
 ```python
 from scripts.automation.validators import (

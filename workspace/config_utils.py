@@ -1,6 +1,6 @@
-"""Configuration utilities for ami-agents package.
+"""Configuration utilities for workspace-vm package.
 
-Project root discovery utilities - moved here from ami/core/env.py during
+Project root discovery utilities - moved here from workspace/core/env.py during
 the V3 migration to avoid deleting infrastructure used by staying scripts.
 """
 
@@ -28,13 +28,13 @@ def get_project_root() -> Path:
     """Get the project root directory.
 
     Finds root by looking for pyproject.toml or .git marker files.
-    Falls back to AMI_PROJECT_ROOT environment variable if set.
+    Falls back to WORKSPACE_PROJECT_ROOT environment variable if set.
     """
     cached = _ProjectRootCache.get()
     if cached is not None:
         return cached
 
-    env_root = os.environ.get("AMI_PROJECT_ROOT")
+    env_root = os.environ.get("WORKSPACE_PROJECT_ROOT")
     if env_root:
         result = Path(env_root)
         _ProjectRootCache.set(result)

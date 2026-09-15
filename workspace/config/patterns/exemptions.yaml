@@ -1,5 +1,5 @@
 # Pattern Check Exemptions
-# Used by CodeQualityValidator in ami/hooks/validators.py
+# Used by CodeQualityValidator in workspace/hooks/validators.py
 #
 # Files listed here are exempt from ALL fast pattern checks.
 # Patterns can be:
@@ -10,8 +10,8 @@ version: "1.0.0"
 
 # Files exempt from pattern checks (contain error messages with forbidden patterns)
 pattern_check_exemptions:
-  - "ami/hooks/validators.py"
-  - "ami/hooks/manager.py"
+  - "workspace/hooks/validators.py"
+  - "workspace/hooks/manager.py"
   - "scripts/config/patterns/bash_commands.yaml"
   - "scripts/config/patterns/python_fast.yaml"
   - "scripts/config/patterns/exemptions.yaml"

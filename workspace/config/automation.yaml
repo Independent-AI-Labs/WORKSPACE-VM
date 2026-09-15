@@ -1,8 +1,8 @@
-# AMI Automation Configuration
+# WORKSPACE Automation Configuration
 version: "2.0.0"
 
 # Environment
-environment: "${AMI_ENV:development}"
+environment: "${WORKSPACE_ENV:development}"
 
 # Paths (all relative to ORCHESTRATOR_ROOT)
 paths:
@@ -23,23 +23,23 @@ logging:
     compress: true
 
 # Hooks - validation pipeline config.
-# Override path: AMI_HOOKS_FILE env var, or set hooks.file below.
+# Override path: WORKSPACE_HOOKS_FILE env var, or set hooks.file below.
 hooks:
-  file: "${AMI_HOOKS_FILE:ami/config/hooks.yaml}"
+  file: "${WORKSPACE_HOOKS_FILE:workspace/config/hooks.yaml}"
 
 # Agent CLI settings (multi-provider support)
 agent:
-  provider: "${AMI_AGENT_PROVIDER:qwen}"  # Global default provider: claude or gemini
+  provider: "${WORKSPACE_AGENT_PROVIDER:qwen}"  # Global default provider: claude or gemini
 
   # Worker defaults (for task execution, code generation)
   worker:
-    provider: "${AMI_AGENT_WORKER_PROVIDER:claude}"  # claude or gemini
-    model: "${AMI_AGENT_WORKER_MODEL:}"  # Empty = use provider's model_default
+    provider: "${WORKSPACE_AGENT_WORKER_PROVIDER:claude}"  # claude or gemini
+    model: "${WORKSPACE_AGENT_WORKER_MODEL:}"  # Empty = use provider's model_default
 
   # Moderator defaults (for validation, verification)
   moderator:
-    provider: "${AMI_AGENT_MODERATOR_PROVIDER:claude}"  # claude or gemini
-    model: "${AMI_AGENT_MODERATOR_MODEL:}"  # Empty = use provider's model_default
+    provider: "${WORKSPACE_AGENT_MODERATOR_PROVIDER:claude}"  # claude or gemini
+    model: "${WORKSPACE_AGENT_MODERATOR_MODEL:}"  # Empty = use provider's model_default
 
   # Claude Code CLI settings
   claude:

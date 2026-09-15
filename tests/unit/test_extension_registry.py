@@ -17,7 +17,7 @@ from workspace.scripts.shell.extension_registry import (
     check_additional_deps,
     check_dep,
     discover_manifests,
-    find_ami_root,
+    find_workspace_root,
     validate_entry,
 )
 
@@ -51,7 +51,7 @@ def _write_manifest(directory: Path, data: dict) -> Path:
 
 def _valid_entry(**overrides: object) -> ExtensionEntry:
     base: ExtensionEntry = {
-        "name": "ami-test",
+        "name": "workspace-test",
         "binary": "bin/test",
         "description": "A test extension",
         "category": "core",
@@ -84,14 +84,14 @@ class TestStatus:
 
 
 # ---------------------------------------------------------------------------
-# find_ami_root
+# find_workspace_root
 # ---------------------------------------------------------------------------
 
 
 class TestFindAmiRoot:
     def test_uses_env_var(self, tmp_path: Path) -> None:
-        with patch.dict(os.environ, {"AMI_ROOT": str(tmp_path)}):
-            assert find_ami_root() == tmp_path
+        with patch.dict(os.environ, {"WORKSPACE_ROOT": str(tmp_path)}):
+            assert find_workspace_root() == tmp_path
 
     def test_walks_up_to_pyproject(self, tmp_path: Path) -> None:
         (tmp_path / "pyproject.toml").touch()
@@ -101,12 +101,12 @@ class TestFindAmiRoot:
         fake_file.touch()
 
         env = os.environ.copy()
-        env.pop("AMI_ROOT", None)
+        env.pop("WORKSPACE_ROOT", None)
         with (
             patch.dict(os.environ, env, clear=True),
             patch.object(reg, "__file__", str(fake_file)),
         ):
-            result = find_ami_root()
+            result = find_workspace_root()
             assert result == tmp_path
 
     def test_raises_when_not_found(self, tmp_path: Path) -> None:
@@ -119,10 +119,10 @@ class TestFindAmiRoot:
             patch.object(reg, "__file__", str(fake_file)),
             pytest.raises(
                 RuntimeError,
-                match="Cannot determine AMI_ROOT",
+                match="Cannot determine WORKSPACE_ROOT",
             ),
         ):
-            find_ami_root()
+            find_workspace_root()
 
 
 # ---------------------------------------------------------------------------

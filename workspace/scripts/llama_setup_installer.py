@@ -13,7 +13,7 @@ import yaml
 sys.path.insert(
     0,
     os.environ.get(
-        "AMI_PROJECT_ROOT",
+        "WORKSPACE_PROJECT_ROOT",
         str(
             next(
                 p

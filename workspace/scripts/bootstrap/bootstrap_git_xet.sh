@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Git LFS and Git Xet Bootstrap Script for AMI-ORCHESTRATOR
+# Git LFS and Git Xet Bootstrap Script for WORKSPACE-ORCHESTRATOR
 # Downloads git-lfs and git-xet binaries for HuggingFace large file support
 
 _SELF="${BASH_SOURCE[0]}"

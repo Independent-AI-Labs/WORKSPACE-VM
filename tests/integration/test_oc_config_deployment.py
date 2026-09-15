@@ -33,10 +33,10 @@ class TestOcWrappers:
             "normal task",
         ]
         assert (expected_config / "opencode.jsonc").is_file()
-        assert (expected_config / "ami-environment.md").is_file()
+        assert (expected_config / "workspace-environment.md").is_file()
         instruction_files = configured_instruction_files(expected_config)
         assert instruction_files == [
-            expected_config / "ami-environment.md",
+            expected_config / "workspace-environment.md",
             expected_config / "system-instruction.md",
         ]
         assert all(instruction_file.is_file() for instruction_file in instruction_files)

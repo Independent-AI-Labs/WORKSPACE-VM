@@ -56,7 +56,7 @@ class RequiresEntry(BaseModel):
 
 
 class ComponentManifestEntry(BaseModel):
-    """One entry in ami/config/bootstrap-components.yaml::components."""
+    """One entry in workspace/config/bootstrap-components.yaml::components."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -97,7 +97,7 @@ class ComponentManifestEntry(BaseModel):
 
 
 class BootstrapManifest(BaseModel):
-    """Schema for ami/config/bootstrap-components.yaml."""
+    """Schema for workspace/config/bootstrap-components.yaml."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -120,7 +120,7 @@ class WorkspaceCloneEntry(BaseModel):
 
 
 class WorkspaceClonesManifest(BaseModel):
-    """Schema for ami/config/workspace-clones.yaml."""
+    """Schema for workspace/config/workspace-clones.yaml."""
 
     model_config = ConfigDict(extra="forbid")
 

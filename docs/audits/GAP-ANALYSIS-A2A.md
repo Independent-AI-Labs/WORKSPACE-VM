@@ -1,6 +1,6 @@
 # A2A Remote Agent Integration - Codebase Gap Analysis
 
-**Document ID:** AMI-GAP-A2A-v1.0
+**Document ID:** WORKSPACE-GAP-A2A-v1.0
 **Status:** Final
 **Date:** 2026-06-01
 **Target Branch:** `dev` (commit `fd2278eef`)

@@ -1,4 +1,4 @@
-"""Integration tests for AMI core utilities.
+"""Integration tests for WORKSPACE core utilities.
 
 Exercises config_utils, banner, uuid_utils, and version_enforcer
 through direct function calls against the live project tree.
@@ -49,11 +49,11 @@ class TestConfigUtils:
         assert r1 == r2
 
     def test_env_var_fallback(self, monkeypatch):
-        monkeypatch.setenv("AMI_PROJECT_ROOT", "/tmp/fake_ami_root")
+        monkeypatch.setenv("WORKSPACE_PROJECT_ROOT", "/tmp/fake_workspace_root")
         _ProjectRootCache.set(None)
         root = get_project_root()
-        assert str(root) == "/tmp/fake_ami_root"
-        monkeypatch.delenv("AMI_PROJECT_ROOT")
+        assert str(root) == "/tmp/fake_workspace_root"
+        monkeypatch.delenv("WORKSPACE_PROJECT_ROOT")
         _ProjectRootCache.set(None)
 
 

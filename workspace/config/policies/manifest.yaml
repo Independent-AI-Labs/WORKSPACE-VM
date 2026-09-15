@@ -4,14 +4,14 @@
 version: "1.0.0"
 
 policies:
-  tiers: "ami/config/policies/command_tiers.yaml"
+  tiers: "workspace/config/policies/command_tiers.yaml"
   python:
-    fast: "ami/config/patterns/python_fast.yaml"
+    fast: "workspace/config/patterns/python_fast.yaml"
   sensitive:
-    files: "ami/config/patterns/sensitive_files.yaml"
+    files: "workspace/config/patterns/sensitive_files.yaml"
   communication:
-    prohibited: "ami/config/patterns/prohibited_communication_patterns.yaml"
+    prohibited: "workspace/config/patterns/prohibited_communication_patterns.yaml"
   api_limits:
-    files: "ami/config/patterns/api_limit_patterns.yaml"
+    files: "workspace/config/patterns/api_limit_patterns.yaml"
   exemptions:
-    files: "ami/config/patterns/exemptions.yaml"
+    files: "workspace/config/patterns/exemptions.yaml"

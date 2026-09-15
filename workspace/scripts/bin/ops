@@ -1,32 +1,32 @@
 #!/usr/bin/env bash
-# ops: System orchestration and container management for AMI Orchestrator
+# ops: System orchestration and container management for WORKSPACE Orchestrator
 set -euo pipefail
 
 SCRIPT_SOURCE="${SHG_SCRIPT_PATH:-${BASH_SOURCE[0]}}"
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$SCRIPT_SOURCE")")" && pwd)"
-AMI_ROOT="$("$SCRIPT_DIR/pwd")"
-export AMI_ROOT
+WORKSPACE_ROOT="$("$SCRIPT_DIR/pwd")"
+export WORKSPACE_ROOT
 
-VENV_DIR="$AMI_ROOT/.venv"
+VENV_DIR="$WORKSPACE_ROOT/.venv"
 VENV_PYTHON="$VENV_DIR/bin/python"
-BOOT_DIR="$AMI_ROOT/.boot-linux"
+BOOT_DIR="$WORKSPACE_ROOT/.boot-linux"
 
-if [[ -f "$AMI_ROOT/.env" ]]; then
-    export $(grep -v '^#' "$AMI_ROOT/.env" | xargs)
+if [[ -f "$WORKSPACE_ROOT/.env" ]]; then
+    export $(grep -v '^#' "$WORKSPACE_ROOT/.env" | xargs)
 fi
 
 export PATH="$BOOT_DIR/bin:$VENV_DIR/bin:$PATH"
 
 PROJECT_PATHS=""
-if [[ -d "$AMI_ROOT/projects" ]]; then
-    for project_dir in "$AMI_ROOT/projects"/*/; do
-        [[ -d "${project_dir%/}/ami" ]] && PROJECT_PATHS="${project_dir%/}:${PROJECT_PATHS}"
+if [[ -d "$WORKSPACE_ROOT/projects" ]]; then
+    for project_dir in "$WORKSPACE_ROOT/projects"/*/; do
+        [[ -d "${project_dir%/}/workspace" ]] && PROJECT_PATHS="${project_dir%/}:${PROJECT_PATHS}"
     done
 fi
-export PYTHONPATH="$AMI_ROOT:${PROJECT_PATHS}${PYTHONPATH:-}"
+export PYTHONPATH="$WORKSPACE_ROOT:${PROJECT_PATHS}${PYTHONPATH:-}"
 
 if [[ "$#" -gt 0 && ("$1" == "-h" || "$1" == "--help") ]]; then
-    echo "ops: System orchestration and container management for AMI Orchestrator"
+    echo "ops: System orchestration and container management for WORKSPACE Orchestrator"
     echo ""
     echo "Usage: ops [subcommand] [args...]"
     echo ""
@@ -35,12 +35,12 @@ if [[ "$#" -gt 0 && ("$1" == "-h" || "$1" == "--help") ]]; then
 fi
 
 if [[ "$#" -gt 0 && "$1" == "--version" ]]; then
-    if VERSION="$(git -C "$AMI_ROOT" describe --always --dirty 2>&1)"; then
+    if VERSION="$(git -C "$WORKSPACE_ROOT" describe --always --dirty 2>&1)"; then
         :
     else
         VERSION="unknown"
     fi
-    echo "ops (AMI Orchestrator) ${VERSION}"
+    echo "ops (WORKSPACE Orchestrator) ${VERSION}"
     exit 0
 fi
 
@@ -50,7 +50,7 @@ if [[ $# -gt 0 ]] && [[ " $KNOWN_CMDS " == *" $1 "* ]]; then
     shift
     ARGS=("$@")
 elif [[ $# -eq 0 ]]; then
-    echo "ops: System orchestration and container management for AMI Orchestrator"
+    echo "ops: System orchestration and container management for WORKSPACE Orchestrator"
     echo ""
     echo "Usage: ops [subcommand] [args...]"
     echo ""
@@ -79,10 +79,10 @@ case "$SUBCOMMAND" in
         exec "$BOOT_DIR/bin/helm" "${ARGS[@]}"
         ;;
     status)
-        exec "$VENV_PYTHON" "$AMI_ROOT/workspace/cli/status.py"
+        exec "$VENV_PYTHON" "$WORKSPACE_ROOT/workspace/cli/status.py"
         ;;
     storage)
-        exec "$VENV_PYTHON" "$AMI_ROOT/workspace/cli/storage.py" "${ARGS[@]}"
+        exec "$VENV_PYTHON" "$WORKSPACE_ROOT/workspace/cli/storage.py" "${ARGS[@]}"
         ;;
     cron)
         exec "$BOOT_DIR/bin/cron" "${ARGS[@]}"

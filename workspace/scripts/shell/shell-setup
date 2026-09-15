@@ -1,36 +1,36 @@
 #!/usr/bin/env bash
-# AMI Orchestrator Shell Environment Setup
+# WORKSPACE Orchestrator Shell Environment Setup
 #
-# This script configures the shell environment for the AMI Orchestrator system.
-# All ami-* commands are loaded from extensions in ami/scripts/extensions/*.sh
+# This script configures the shell environment for the WORKSPACE Orchestrator system.
+# All workspace-* commands are loaded from extensions in workspace/scripts/extensions/*.sh
 #
 # USAGE:
-#   source agents/ami/scripts/shell/shell-setup           # Load environment temporarily
-#   . agents/ami/scripts/shell/shell-setup               # Alternative to 'source' command
+#   source agents/workspace/scripts/shell/shell-setup           # Load environment temporarily
+#   . agents/workspace/scripts/shell/shell-setup               # Alternative to 'source' command
 #
 # PERMANENT INSTALLATION:
-#   agents/ami/scripts/shell/shell-setup --install             # Install to ~/.bashrc
-#   agents/ami/scripts/shell/shell-setup --install --no-backup # Install without backup
+#   agents/workspace/scripts/shell/shell-setup --install             # Install to ~/.bashrc
+#   agents/workspace/scripts/shell/shell-setup --install --no-backup # Install without backup
 #
 # UNINSTALL:
-#   agents/ami/scripts/shell/shell-setup --uninstall          # Remove from ~/.bashrc
+#   agents/workspace/scripts/shell/shell-setup --uninstall          # Remove from ~/.bashrc
 
 # ============================================================================
 # Path calculation helper
 # ============================================================================
-_get_ami_root() {
+_get_workspace_root() {
     cd "$(dirname "${BASH_SOURCE[0]}")/../../../" && pwd
 }
 
 _get_agents_scripts() {
-    echo "$AMI_ROOT/workspace/scripts"
+    echo "$WORKSPACE_ROOT/workspace/scripts"
 }
 
 # ============================================================================
 # .bashrc / .zshrc marker management
 # ============================================================================
-BEGIN_MARKER="# >>> AMI Orchestrator >>>"
-END_MARKER="# <<< AMI Orchestrator <<<"
+BEGIN_MARKER="# >>> WORKSPACE Orchestrator >>>"
+END_MARKER="# <<< WORKSPACE Orchestrator <<<"
 
 _grep_rc() {
     local err
@@ -75,42 +75,42 @@ _strip_legacy_markers() {
         fi
     fi
 
-    if _grep_rc "# AMI Orchestrator Shell Setup" "$rc"; then
-        grep -vF "# AMI Orchestrator Shell Setup" "$rc" > "${rc}.tmp" && \
+    if _grep_rc "# WORKSPACE Orchestrator Shell Setup" "$rc"; then
+        grep -vF "# WORKSPACE Orchestrator Shell Setup" "$rc" > "${rc}.tmp" && \
             mv "${rc}.tmp" "$rc"
         changed=true
     fi
 
-    if _grep_rc "# AMI PATH" "$rc"; then
-        grep -vF "# AMI PATH" "$rc" > "${rc}.tmp" && \
+    if _grep_rc "# WORKSPACE PATH" "$rc"; then
+        grep -vF "# WORKSPACE PATH" "$rc" > "${rc}.tmp" && \
             mv "${rc}.tmp" "$rc"
         changed=true
     fi
 
-    if _grep_rc "# AMI Orchestrator - auto-registered" "$rc"; then
-        grep -vF "# AMI Orchestrator - auto-registered" "$rc" > "${rc}.tmp" && \
+    if _grep_rc "# WORKSPACE Orchestrator - auto-registered" "$rc"; then
+        grep -vF "# WORKSPACE Orchestrator - auto-registered" "$rc" > "${rc}.tmp" && \
             mv "${rc}.tmp" "$rc"
         changed=true
     fi
 
-    if _grep_rc "# AMI Orchestrator - auto-installed" "$rc"; then
-        grep -vF "# AMI Orchestrator - auto-installed" "$rc" > "${rc}.tmp" && \
+    if _grep_rc "# WORKSPACE Orchestrator - auto-installed" "$rc"; then
+        grep -vF "# WORKSPACE Orchestrator - auto-installed" "$rc" > "${rc}.tmp" && \
             mv "${rc}.tmp" "$rc"
         changed=true
     fi
 
-    if _grep_rc "alias ami-run=" "$rc"; then
-        grep -vF "alias ami-run=" "$rc" > "${rc}.tmp" && \
+    if _grep_rc "alias workspace-run=" "$rc"; then
+        grep -vF "alias workspace-run=" "$rc" > "${rc}.tmp" && \
             mv "${rc}.tmp" "$rc"
         changed=true
     fi
 
-    if _grep_rc "AMI AGENT EXTENSIONS START" "$rc"; then
+    if _grep_rc "WORKSPACE AGENT EXTENSIONS START" "$rc"; then
         local tmp
         tmp=$(awk '
             BEGIN { skip=0 }
-            /AMI AGENT EXTENSIONS START/ { skip=1; next }
-            /AMI AGENT EXTENSIONS END/   { skip=0; next }
+            /WORKSPACE AGENT EXTENSIONS START/ { skip=1; next }
+            /WORKSPACE AGENT EXTENSIONS END/   { skip=0; next }
             !skip { print }
         ' "$rc")
         echo "$tmp" > "$rc"
@@ -123,7 +123,7 @@ _strip_legacy_markers() {
         changed=true
     fi
 
-    [[ "$changed" == "true" ]] && echo -e "${BLUE}→${NC} Stripped outdated AMI markers from ~/$(basename "$rc")"
+    [[ "$changed" == "true" ]] && echo -e "${BLUE}→${NC} Stripped outdated WORKSPACE markers from ~/$(basename "$rc")"
 }
 
 _install_to_bashrc() {
@@ -131,8 +131,8 @@ _install_to_bashrc() {
     local force="${2:-false}"
     local _boot_name=".boot-macos"
     [[ "$(uname -s)" == "Darwin" ]] || _boot_name=".boot-linux"
-    local bin_dir="${BOOT_LINUX_DIR:-${AMI_ROOT}/${_boot_name}}/bin"
-    local setup_script="$AMI_ROOT/workspace/scripts/shell/shell-setup"
+    local bin_dir="${BOOT_LINUX_DIR:-${WORKSPACE_ROOT}/${_boot_name}}/bin"
+    local setup_script="$WORKSPACE_ROOT/workspace/scripts/shell/shell-setup"
     local candidates=("$HOME/.bashrc" "$HOME/.zshrc")
 
     for bashrc in "${candidates[@]}"; do
@@ -146,23 +146,23 @@ _install_to_bashrc() {
 
         if _grep_rc "$BEGIN_MARKER" "$bashrc"; then
             if _grep_rc "$setup_script" "$bashrc" && [[ "$force" != "true" ]]; then
-                echo -e "${YELLOW}⚠${NC} AMI shell setup already installed in ~/$(basename "$bashrc")"
+                echo -e "${YELLOW}⚠${NC} WORKSPACE shell setup already installed in ~/$(basename "$bashrc")"
                 continue
             fi
-            echo -e "${BLUE}→${NC} Updating AMI shell setup in ~/$(basename "$bashrc")..."
+            echo -e "${BLUE}→${NC} Updating WORKSPACE shell setup in ~/$(basename "$bashrc")..."
             _strip_legacy_markers "$bashrc"
         fi
 
         cat >> "$bashrc" <<'AMISHELL'
-# >>> AMI Orchestrator >>>
+# >>> WORKSPACE Orchestrator >>>
 AMISHELL
         echo "export PATH=\"${bin_dir}:\$PATH\"" >> "$bashrc"
         echo "[ -f \"$setup_script\" ] && . \"$setup_script\" --welcome" >> "$bashrc"
         cat >> "$bashrc" <<'AMISHELL'
-# <<< AMI Orchestrator <<<
+# <<< WORKSPACE Orchestrator <<<
 AMISHELL
 
-        echo -e "${GREEN}✓${NC} Installed AMI shell setup to ~/$(basename "$bashrc")"
+        echo -e "${GREEN}✓${NC} Installed WORKSPACE shell setup to ~/$(basename "$bashrc")"
     done
     echo -e "${YELLOW}→${NC} Run 'source ~/.bashrc' or restart your shell to activate"
 }
@@ -174,15 +174,15 @@ _uninstall_from_bashrc() {
         [[ -f "$bashrc" ]] || continue
 
         if ! _grep_rc "$BEGIN_MARKER" "$bashrc" && \
-           ! _grep_rc "# AMI Orchestrator Shell Setup" "$bashrc" && \
-           ! _grep_rc "# AMI PATH" "$bashrc"; then
-            echo -e "${YELLOW}⚠${NC} AMI shell setup not found in ~/$(basename "$bashrc")"
+           ! _grep_rc "# WORKSPACE Orchestrator Shell Setup" "$bashrc" && \
+           ! _grep_rc "# WORKSPACE PATH" "$bashrc"; then
+            echo -e "${YELLOW}⚠${NC} WORKSPACE shell setup not found in ~/$(basename "$bashrc")"
             continue
         fi
 
         cp "$bashrc" "${bashrc}.backup-$(date +%Y%m%d-%H%M%S)"
         _strip_legacy_markers "$bashrc"
-        echo -e "${GREEN}✓${NC} Removed AMI shell setup from ~/$(basename "$bashrc")"
+        echo -e "${GREEN}✓${NC} Removed WORKSPACE shell setup from ~/$(basename "$bashrc")"
     done
     echo -e "${YELLOW}→${NC} Run 'source ~/.bashrc' or restart your shell to apply"
 }
@@ -191,19 +191,19 @@ _uninstall_from_bashrc() {
 # Verify extensions are available in PATH
 # ============================================================================
 # Delegates to the Python manifest registry - single source of truth for what
-# extensions exist (see ami/scripts/shell/extension_registry.py).
+# extensions exist (see workspace/scripts/shell/extension_registry.py).
 _verify_extensions() {
     # Skip the extension doctor in non-interactive/tool subshells.
     [[ -t 1 ]] || return 0
 
-    local helper="$AMI_ROOT/workspace/scripts/shell/banner_helper.py"
+    local helper="$WORKSPACE_ROOT/workspace/scripts/shell/banner_helper.py"
     [[ -f "$helper" ]] || return 0
     # Use --mode doctor with --quiet: prints errored/mismatched/unavailable
     # lists without running per-extension health checks. Any output means the
     # user has something to look at.
     local doctor py_err
     py_err="$(mktemp)"
-    doctor="$(AMI_QUIET_MODE=1 uv run python "$helper" --mode doctor 2>"$py_err")" || {
+    doctor="$(WORKSPACE_QUIET_MODE=1 uv run python "$helper" --mode doctor 2>"$py_err")" || {
         [[ -s "$py_err" ]] && echo "[shell-setup] extension doctor check failed: $(cat "$py_err")" >&2
         rm -f "$py_err"
         return 0
@@ -217,15 +217,15 @@ _verify_extensions() {
 # ============================================================================
 # Flag handling and initialization
 # ============================================================================
-export AMI_SHOW_WELCOME=0
-export AMI_QUIET_MODE=0
+export WORKSPACE_SHOW_WELCOME=0
+export WORKSPACE_QUIET_MODE=0
 
 if [[ "${1:-}" == "--install" ]]; then
-    AMI_ROOT="$(_get_ami_root)"
-    export AMI_ROOT
+    WORKSPACE_ROOT="$(_get_workspace_root)"
+    export WORKSPACE_ROOT
     AGENTS_SCRIPTS="$(_get_agents_scripts)"
     export AGENTS_SCRIPTS
-    if ! source "$AGENTS_SCRIPTS/shell/ami-banner.sh"; then echo "[shell-setup] failed to source $AGENTS_SCRIPTS/shell/ami-banner.sh" >&2; return 1; fi
+    if ! source "$AGENTS_SCRIPTS/shell/workspace-banner.sh"; then echo "[shell-setup] failed to source $AGENTS_SCRIPTS/shell/workspace-banner.sh" >&2; return 1; fi
 
     backup="true"
     force="false"
@@ -241,49 +241,49 @@ if [[ "${1:-}" == "--install" ]]; then
     _install_to_bashrc "$backup" "$force"
     exit 0
 elif [[ "${1:-}" == "--uninstall" ]]; then
-    AMI_ROOT="$(_get_ami_root)"
-    export AMI_ROOT
+    WORKSPACE_ROOT="$(_get_workspace_root)"
+    export WORKSPACE_ROOT
     AGENTS_SCRIPTS="$(_get_agents_scripts)"
     export AGENTS_SCRIPTS
-    if ! source "$AGENTS_SCRIPTS/shell/ami-banner.sh"; then echo "[shell-setup] failed to source $AGENTS_SCRIPTS/shell/ami-banner.sh" >&2; return 1; fi
+    if ! source "$AGENTS_SCRIPTS/shell/workspace-banner.sh"; then echo "[shell-setup] failed to source $AGENTS_SCRIPTS/shell/workspace-banner.sh" >&2; return 1; fi
 
     _uninstall_from_bashrc
     exit 0
 elif [[ "${1:-}" == "--welcome" ]]; then
-    AMI_ROOT="$(_get_ami_root)"
-    export AMI_ROOT
+    WORKSPACE_ROOT="$(_get_workspace_root)"
+    export WORKSPACE_ROOT
     AGENTS_SCRIPTS="$(_get_agents_scripts)"
     export AGENTS_SCRIPTS
-    export AMI_SHOW_WELCOME=1
-    if ! source "$AGENTS_SCRIPTS/shell/ami-banner.sh"; then echo "[shell-setup] failed to source $AGENTS_SCRIPTS/shell/ami-banner.sh" >&2; return 1; fi
-    cd "$AMI_ROOT"
+    export WORKSPACE_SHOW_WELCOME=1
+    if ! source "$AGENTS_SCRIPTS/shell/workspace-banner.sh"; then echo "[shell-setup] failed to source $AGENTS_SCRIPTS/shell/workspace-banner.sh" >&2; return 1; fi
+    cd "$WORKSPACE_ROOT"
 elif [[ "${1:-}" == "--quiet" ]] || [[ "${1:-}" == "-q" ]]; then
-    AMI_ROOT="$(_get_ami_root)"
-    export AMI_ROOT
+    WORKSPACE_ROOT="$(_get_workspace_root)"
+    export WORKSPACE_ROOT
     AGENTS_SCRIPTS="$(_get_agents_scripts)"
     export AGENTS_SCRIPTS
-    export AMI_QUIET_MODE=1
-    if ! source "$AGENTS_SCRIPTS/shell/ami-banner.sh"; then echo "[shell-setup] failed to source $AGENTS_SCRIPTS/shell/ami-banner.sh" >&2; return 1; fi
-    cd "$AMI_ROOT"
+    export WORKSPACE_QUIET_MODE=1
+    if ! source "$AGENTS_SCRIPTS/shell/workspace-banner.sh"; then echo "[shell-setup] failed to source $AGENTS_SCRIPTS/shell/workspace-banner.sh" >&2; return 1; fi
+    cd "$WORKSPACE_ROOT"
 else
-    AMI_ROOT="$(_get_ami_root)"
-    export AMI_ROOT
+    WORKSPACE_ROOT="$(_get_workspace_root)"
+    export WORKSPACE_ROOT
     AGENTS_SCRIPTS="$(_get_agents_scripts)"
     export AGENTS_SCRIPTS
-    if ! source "$AGENTS_SCRIPTS/shell/ami-banner.sh"; then echo "[shell-setup] failed to source $AGENTS_SCRIPTS/shell/ami-banner.sh" >&2; return 1; fi
-    cd "$AMI_ROOT"
+    if ! source "$AGENTS_SCRIPTS/shell/workspace-banner.sh"; then echo "[shell-setup] failed to source $AGENTS_SCRIPTS/shell/workspace-banner.sh" >&2; return 1; fi
+    cd "$WORKSPACE_ROOT"
 fi
 
 # ============================================================================
 # Environment setup
 # ============================================================================
-if ! source "$AGENTS_SCRIPTS/shell/ami-banner.sh"; then echo "[shell-setup] failed to source $AGENTS_SCRIPTS/shell/ami-banner.sh" >&2; return 1; fi
+if ! source "$AGENTS_SCRIPTS/shell/workspace-banner.sh"; then echo "[shell-setup] failed to source $AGENTS_SCRIPTS/shell/workspace-banner.sh" >&2; return 1; fi
 
-AMI_QUIET_MODE=${AMI_QUIET_MODE:-0}
+WORKSPACE_QUIET_MODE=${WORKSPACE_QUIET_MODE:-0}
 
 # Keep non-interactive/tool subshells quiet; only chatter on a real TTY.
-if [[ "$AMI_QUIET_MODE" != "1" ]] && [[ -t 1 ]]; then
-    _ami_echo "${BLUE}🚀 Setting up AMI Orchestrator shell environment...${NC}"
+if [[ "$WORKSPACE_QUIET_MODE" != "1" ]] && [[ -t 1 ]]; then
+    _workspace_echo "${BLUE}🚀 Setting up WORKSPACE Orchestrator shell environment...${NC}"
 fi
 
 # Setup PATH and PYTHONPATH
@@ -293,15 +293,15 @@ setup_paths
 # Playwright browsers path (installed to boot dir instead of ~/.cache/)
 _playwright_boot=".boot-macos"
 [[ "$(uname -s)" == "Darwin" ]] || _playwright_boot=".boot-linux"
-export PLAYWRIGHT_BROWSERS_PATH="$AMI_ROOT/${_playwright_boot}/playwright-browsers"
+export PLAYWRIGHT_BROWSERS_PATH="$WORKSPACE_ROOT/${_playwright_boot}/playwright-browsers"
 unset _playwright_boot
 
 # Headless X server for browser automation (Xvfb on display :99)
 export DISPLAY="${DISPLAY:-:99}"
 
-# AMI SSH keys - auto-add to ssh-agent if project .ssh/ keys exist
-_ami_ssh_setup() {
-    local ssh_dir="$AMI_ROOT/.ssh"
+# WORKSPACE SSH keys - auto-add to ssh-agent if project .ssh/ keys exist
+_workspace_ssh_setup() {
+    local ssh_dir="$WORKSPACE_ROOT/.ssh"
     [[ -d "$ssh_dir" ]] || return 0
     command -v ssh-add  || return 0
     for key in "$ssh_dir"/*; do
@@ -330,8 +330,8 @@ _ami_ssh_setup() {
         rm -f "$add_err"
     done
 }
-_ami_ssh_setup
-unset _ami_ssh_setup
+_workspace_ssh_setup
+unset _workspace_ssh_setup
 
 # Import helper functions
 if ! source "$AGENTS_SCRIPTS/utils/module_helpers.sh"; then echo "[shell-setup] failed to source $AGENTS_SCRIPTS/utils/module_helpers.sh" >&2; return 1; fi
@@ -350,7 +350,7 @@ alias msg="oc"
 # ============================================================================
 # Only draw the welcome banner when stdout is a real TTY (skip the noisy
 # banner for every non-interactive subshell/tool invocation).
-if [[ "${AMI_SHOW_WELCOME:-0}" == "1" ]] && [[ "${AMI_QUIET_MODE:-0}" != "1" ]] && [[ -t 1 ]]; then
+if [[ "${WORKSPACE_SHOW_WELCOME:-0}" == "1" ]] && [[ "${WORKSPACE_QUIET_MODE:-0}" != "1" ]] && [[ -t 1 ]]; then
     display_banner
     display_system_status
 fi

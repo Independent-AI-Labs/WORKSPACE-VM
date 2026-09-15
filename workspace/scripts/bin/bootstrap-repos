@@ -9,7 +9,7 @@
 # nearest tag is older than the declared minimum.
 #
 # Chicken-egg-safe: this script runs BEFORE moon may exist on the
-# box (it might be the first thing the user runs after cloning AMI-
+# box (it might be the first thing the user runs after cloning WORKSPACE-
 # AGENTS). YAML parsing uses .boot-linux/bin/python which is set up
 # by bootstrap_python.sh in bootstrap-core, well before any project-
 # graph operation.
@@ -29,20 +29,20 @@ if [ -n "${SHG_SCRIPT_PATH:-}" ]; then _SELF="$SHG_SCRIPT_PATH"; fi
 SCRIPT_DIR="$(cd "$(dirname "$_SELF")" && pwd)"
 
 # Find WORKSPACE-VM root by walking up to the dir containing pyproject.toml + moon.yml.
-AMI_ROOT="$SCRIPT_DIR"
-while [[ "$AMI_ROOT" != "/" ]]; do
-    if [[ -f "$AMI_ROOT/pyproject.toml" && -f "$AMI_ROOT/moon.yml" ]]; then
+WORKSPACE_ROOT="$SCRIPT_DIR"
+while [[ "$WORKSPACE_ROOT" != "/" ]]; do
+    if [[ -f "$WORKSPACE_ROOT/pyproject.toml" && -f "$WORKSPACE_ROOT/moon.yml" ]]; then
         break
     fi
-    AMI_ROOT="$(dirname "$AMI_ROOT")"
+    WORKSPACE_ROOT="$(dirname "$WORKSPACE_ROOT")"
 done
-if [[ "$AMI_ROOT" == "/" ]]; then
+if [[ "$WORKSPACE_ROOT" == "/" ]]; then
     echo "ERROR: could not locate WORKSPACE-VM root (pyproject.toml + moon.yml) from $SCRIPT_DIR" >&2
     exit 1
 fi
 
-CLONES_YAML="$AMI_ROOT/workspace/config/workspace-clones.yaml"
-PYTHON="$AMI_ROOT/.boot-linux/bin/python"
+CLONES_YAML="$WORKSPACE_ROOT/workspace/config/workspace-clones.yaml"
+PYTHON="$WORKSPACE_ROOT/.boot-linux/bin/python"
 if [[ ! -x "$PYTHON" ]]; then
     echo "ERROR: $PYTHON missing; run the Python bootstrap component first (make bootstrap)" >&2
     exit 1
@@ -195,8 +195,8 @@ install_hooks_for_fresh_repo() {
     [[ -f "$repo/.pre-commit-config.yaml" ]] || return 0
     if [[ -x "/opt/workspace-ci/scripts/reinstall-hooks" ]]; then
         installer="/opt/workspace-ci/scripts/reinstall-hooks"
-    elif [[ -x "$AMI_ROOT/projects/WORKSPACE-CI/scripts/reinstall-hooks" ]]; then
-        installer="$AMI_ROOT/projects/WORKSPACE-CI/scripts/reinstall-hooks"
+    elif [[ -x "$WORKSPACE_ROOT/projects/WORKSPACE-CI/scripts/reinstall-hooks" ]]; then
+        installer="$WORKSPACE_ROOT/projects/WORKSPACE-CI/scripts/reinstall-hooks"
     else
         echo "ERROR: no shared hook installer is available for fresh repo $repo" >&2
         return 1
@@ -213,7 +213,7 @@ while IFS='|' read -r entry_id remote path mandatory min_tag; do
         continue
     fi
 
-    target="$AMI_ROOT/$path"
+    target="$WORKSPACE_ROOT/$path"
     fresh_clone=0
     if [[ ! -d "$target/.git" ]]; then
         echo "📦 cloning $entry_id from $remote → $path"

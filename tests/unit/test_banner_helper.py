@@ -278,7 +278,7 @@ class TestMain:
     def test_banner_mode(self) -> None:
         with (
             patch(
-                "workspace.scripts.shell.banner_helper.find_ami_root",
+                "workspace.scripts.shell.banner_helper.find_workspace_root",
                 return_value=Path("/tmp"),
             ),
             patch(
@@ -298,7 +298,7 @@ class TestMain:
     def test_extras_mode(self) -> None:
         with (
             patch(
-                "workspace.scripts.shell.banner_helper.find_ami_root",
+                "workspace.scripts.shell.banner_helper.find_workspace_root",
                 return_value=Path("/tmp"),
             ),
             patch(
@@ -318,7 +318,7 @@ class TestMain:
     def test_doctor_mode(self) -> None:
         with (
             patch(
-                "workspace.scripts.shell.banner_helper.find_ami_root",
+                "workspace.scripts.shell.banner_helper.find_workspace_root",
                 return_value=Path("/tmp"),
             ),
             patch(
@@ -343,7 +343,7 @@ class TestMain:
     def test_quiet_from_env(self) -> None:
         with (
             patch(
-                "workspace.scripts.shell.banner_helper.find_ami_root",
+                "workspace.scripts.shell.banner_helper.find_workspace_root",
                 return_value=Path("/tmp"),
             ),
             patch(
@@ -356,7 +356,7 @@ class TestMain:
             ),
             patch("workspace.scripts.shell.banner_helper.output_banner") as mock_banner,
             patch("sys.argv", ["banner_helper.py"]),
-            patch.dict("os.environ", {"AMI_QUIET_MODE": "1"}),
+            patch.dict("os.environ", {"WORKSPACE_QUIET_MODE": "1"}),
         ):
             main()
             _, kwargs = mock_banner.call_args

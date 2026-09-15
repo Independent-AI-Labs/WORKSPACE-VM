@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # kcadm: Keycloak Admin CLI wrapper
-# Executes kcadm.sh inside the ami-keycloak container
+# Executes kcadm.sh inside the workspace-keycloak container
 set -euo pipefail
 
 case "${1:-}" in
@@ -9,8 +9,8 @@ case "${1:-}" in
         echo ""
         echo "Usage: kcadm <command> [options]"
         echo ""
-        echo "Executes kcadm.sh inside the ami-keycloak container."
-        echo "Requires: podman running with ami-keycloak container."
+        echo "Executes kcadm.sh inside the workspace-keycloak container."
+        echo "Requires: podman running with workspace-keycloak container."
         echo ""
         echo "Common commands:"
         echo "  config              Configure server connection"
@@ -19,12 +19,12 @@ case "${1:-}" in
         echo "  update <resource>   Update resources"
         echo "  delete <resource>   Delete resources"
         echo ""
-        echo "Setup: make compose-deploy in AMI-DATAOPS"
+        echo "Setup: make compose-deploy in WORKSPACE-DATAOPS"
         exit 0
         ;;
     --version|-V)
         _err_tmp="$(mktemp)"
-        if ! podman exec ami-keycloak java -jar /opt/keycloak/lib/quarkus-run.jar -version 2>"$_err_tmp"; then
+        if ! podman exec workspace-keycloak java -jar /opt/keycloak/lib/quarkus-run.jar -version 2>"$_err_tmp"; then
             if [[ -s "$_err_tmp" ]]; then cat "$_err_tmp" >&2; fi
             echo "unknown"
         fi
@@ -33,4 +33,4 @@ case "${1:-}" in
         ;;
 esac
 
-exec podman exec -it ami-keycloak /opt/keycloak/bin/kcadm.sh "$@"
+exec podman exec -it workspace-keycloak /opt/keycloak/bin/kcadm.sh "$@"

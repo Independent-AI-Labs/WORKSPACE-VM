@@ -1,6 +1,6 @@
-"""AMI OpenSSL Wrapper.
+"""WORKSPACE OpenSSL Wrapper.
 
-Smart wrapper for openssl with AMI-aware certificate path defaults.
+Smart wrapper for openssl with WORKSPACE-aware certificate path defaults.
 """
 
 from __future__ import annotations
@@ -12,18 +12,18 @@ import sys
 from pathlib import Path
 
 
-def _ami_root() -> str:
-    """Get AMI_ROOT."""
-    root = os.environ.get("AMI_ROOT")
+def _workspace_root() -> str:
+    """Get WORKSPACE_ROOT."""
+    root = os.environ.get("WORKSPACE_ROOT")
     if not root:
-        print("Error: AMI_ROOT not set", file=sys.stderr)
+        print("Error: WORKSPACE_ROOT not set", file=sys.stderr)
         sys.exit(1)
     return root
 
 
 def _find_openssl() -> str | None:
     """Find the bootstrapped openssl binary."""
-    root = Path(_ami_root())
+    root = Path(_workspace_root())
     boot = root / ".boot-linux" / "bin" / "openssl"
     if boot.exists():
         return str(boot)
@@ -31,17 +31,17 @@ def _find_openssl() -> str | None:
 
 
 def _find_cert_dir() -> str | None:
-    """Find AMI certificate directory."""
-    root = Path(_ami_root())
+    """Find WORKSPACE certificate directory."""
+    root = Path(_workspace_root())
     for name in ["certs", "ssl", "tls"]:
-        cert_dir = root / "ami" / "config" / name
+        cert_dir = root / "workspace" / "config" / name
         if cert_dir.is_dir():
             return str(cert_dir)
     return None
 
 
 def main() -> int:
-    """Main entry point - pass through to openssl with AMI defaults."""
+    """Main entry point - pass through to openssl with WORKSPACE defaults."""
     binary = _find_openssl()
     if not binary:
         print("Error: openssl not found. Run bootstrap to install it.", file=sys.stderr)
@@ -49,7 +49,7 @@ def main() -> int:
 
     args = list(sys.argv[1:])
 
-    # Inject CApath if user hasn't specified one and we have AMI certs
+    # Inject CApath if user hasn't specified one and we have WORKSPACE certs
     has_capath = any(a in ("-CApath", "-CAfile") for a in args)
     if not has_capath:
         cert_dir = _find_cert_dir()

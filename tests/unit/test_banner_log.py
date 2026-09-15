@@ -1,4 +1,4 @@
-"""Unit tests for ami/scripts/shell/banner_log.py."""
+"""Unit tests for workspace/scripts/shell/banner_log.py."""
 
 from __future__ import annotations
 
@@ -79,7 +79,7 @@ class TestMakeCheckHook:
         def log(record: dict) -> None:
             captured.append(record)
 
-        hook = make_check_hook(log, "ami-test")
+        hook = make_check_hook(log, "workspace-test")
         hook(
             CheckRecord(
                 command=["/bin/echo", "x"],
@@ -95,7 +95,7 @@ class TestMakeCheckHook:
         assert len(captured) == 1
         record = captured[0]
         assert record["event"] == "check"
-        assert record["name"] == "ami-test"
+        assert record["name"] == "workspace-test"
         assert record["command"] == ["/bin/echo", "x"]
         assert record["returncode"] == 0
         assert record["stdout"] == "out"
@@ -111,7 +111,7 @@ class TestMakeCheckHook:
         def on_failure() -> None:
             failures.append(None)
 
-        hook = make_check_hook(captured.append, "ami-broken", on_failure)
+        hook = make_check_hook(captured.append, "workspace-broken", on_failure)
         hook(
             CheckRecord(
                 command=["/bin/false"],
@@ -127,7 +127,7 @@ class TestMakeCheckHook:
         record = captured[0]
         assert record["healthy"] is False
         assert record["exception"] == "TimeoutExpired"
-        assert record["name"] == "ami-broken"
+        assert record["name"] == "workspace-broken"
         assert len(failures) == 1
 
     def test_hook_healthy_does_not_call_on_failure(self) -> None:
@@ -137,7 +137,7 @@ class TestMakeCheckHook:
         def on_failure() -> None:
             failures.append(None)
 
-        hook = make_check_hook(captured.append, "ami-ok", on_failure)
+        hook = make_check_hook(captured.append, "workspace-ok", on_failure)
         hook(
             CheckRecord(
                 command=["/bin/true"],

@@ -188,13 +188,13 @@ class ResolvedExtension(NamedTuple):
 # Root discovery
 
 
-def find_ami_root() -> Path:
-    """Return the AMI project root directory.
+def find_workspace_root() -> Path:
+    """Return the WORKSPACE project root directory.
 
-    Checks ``AMI_ROOT`` env var first, then walks up from this
+    Checks ``WORKSPACE_ROOT`` env var first, then walks up from this
     file looking for ``pyproject.toml``.
     """
-    env_root = os.environ.get("AMI_ROOT")
+    env_root = os.environ.get("WORKSPACE_ROOT")
     if env_root:
         return Path(env_root)
     current = Path(__file__).resolve()
@@ -202,7 +202,7 @@ def find_ami_root() -> Path:
         if (current / "pyproject.toml").exists():
             return current
         current = current.parent
-    msg = "Cannot determine AMI_ROOT"
+    msg = "Cannot determine WORKSPACE_ROOT"
     raise RuntimeError(msg)
 
 
@@ -290,7 +290,7 @@ def check_container(name: str) -> bool:
 
     Uses ``ps`` (no ``-a``) so a stopped/created/exited container is NOT
     counted as present. INCIDENT-2026-05-05: previously this used
-    ``ps -a`` which classified ami-keycloak as "present" even when the
+    ``ps -a`` which classified workspace-keycloak as "present" even when the
     container was exited; the resolve pass therefore marked kcadm
     READY, but the banner's live ``kcadm --help`` (which execs into
     the container) failed and rendered ✗ - an unflagged disagreement

@@ -1,4 +1,4 @@
-"""Stream event types for AMI Agents.
+"""Stream event types for WORKSPACE Agents.
 
 Defines the event types used in the streaming pipeline.
 """

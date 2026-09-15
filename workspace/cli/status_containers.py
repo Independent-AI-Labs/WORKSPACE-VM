@@ -1,4 +1,4 @@
-"""Container-related functions for the AMI status display."""
+"""Container-related functions for the WORKSPACE status display."""
 
 import json
 import os

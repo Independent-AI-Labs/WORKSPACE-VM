@@ -358,7 +358,7 @@ def test_find_size_by_name_not_found() -> None:
 
 
 def test_systemd_prefixes() -> None:
-    assert "ami-" in SYSTEMD_PREFIXES
+    assert "workspace-" in SYSTEMD_PREFIXES
     assert "postgres" in SYSTEMD_PREFIXES
 
 
@@ -389,8 +389,8 @@ def test_extract_compose_info_podman_compose() -> None:
 
 
 def test_extract_compose_info_podman_start() -> None:
-    info = _extract_compose_info("podman start -a ami-web-container")
-    assert info[0] == "ami-web-container"
+    info = _extract_compose_info("podman start -a workspace-web-container")
+    assert info[0] == "workspace-web-container"
 
 
 def test_find_container_by_name() -> None:

@@ -1,4 +1,4 @@
-"""Systemd-related functions for the AMI status display."""
+"""Systemd-related functions for the WORKSPACE status display."""
 
 import os
 import re
@@ -32,7 +32,7 @@ from workspace.types.status import (
 )
 
 SYSTEMD_PREFIXES = [
-    "ami-",
+    "workspace-",
     "gateway-",
     "llamafile-",
     "matrix-",

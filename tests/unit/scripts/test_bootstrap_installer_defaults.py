@@ -103,20 +103,22 @@ class TestRunFromDefaults:
 
         # Simulate one mandatory + one optional repo.
         fake_mandatory = Component(
-            name="ami-fake",
-            label="ami-fake",
-            description="[mandatory] git@example.com:fake.git -> projects/AMI-FAKE",
+            name="ws-fake",
+            label="ws-fake",
+            description=(
+                "[mandatory] git@example.com:fake.git -> projects/WORKSPACE-FAKE"
+            ),
             type=ComponentType.WORKSPACE_REPO,
             group="Workspace Repositories",
-            detect_path="projects/AMI-FAKE",
+            detect_path="projects/WORKSPACE-FAKE",
         )
         fake_optional = Component(
-            name="ami-opt",
-            label="ami-opt",
-            description="[optional] git@example.com:opt.git -> projects/AMI-OPT",
+            name="ws-opt",
+            label="ws-opt",
+            description="[optional] git@example.com:opt.git -> projects/WORKSPACE-OPT",
             type=ComponentType.WORKSPACE_REPO,
             group="Workspace Repositories",
-            detect_path="projects/AMI-OPT",
+            detect_path="projects/WORKSPACE-OPT",
         )
 
         uv_component = Component(
@@ -129,8 +131,8 @@ class TestRunFromDefaults:
         )
         resolver_table = {
             "uv": uv_component,
-            "ami-fake": fake_mandatory,
-            "ami-opt": fake_optional,
+            "ws-fake": fake_mandatory,
+            "ws-opt": fake_optional,
         }
 
         def _resolve(name: str) -> Component | None:
@@ -154,8 +156,8 @@ class TestRunFromDefaults:
         components = mock_run.call_args[0][0]
         names = {c.name for c in components}
         # Mandatory must be auto-included; optional must NOT be.
-        assert "ami-fake" in names
-        assert "ami-opt" not in names
+        assert "ws-fake" in names
+        assert "ws-opt" not in names
         assert "uv" in names
 
 

@@ -121,7 +121,7 @@ class TestRegisterExtensions:
         binary.write_text("#!/bin/bash\necho hi")
         binary.chmod(binary.stat().st_mode | stat.S_IXUSR)
 
-        # Create pyproject.toml so find_ami_root works
+        # Create pyproject.toml so find_workspace_root works
         (tmp_path / "pyproject.toml").write_text("[project]\nname='test'\n")
 
         # Create boot dir
@@ -132,7 +132,7 @@ class TestRegisterExtensions:
         (tmp_path / ".bashrc").write_text("")
 
         with (
-            patch.dict(os.environ, {"AMI_ROOT": str(tmp_path)}),
+            patch.dict(os.environ, {"WORKSPACE_ROOT": str(tmp_path)}),
             patch.object(Path, "home", return_value=tmp_path),
         ):
             register_extensions()
@@ -148,7 +148,7 @@ class TestRegisterExtensions:
         boot_bin = tmp_path / _BOOT_NAME / "bin"
         boot_bin.mkdir(parents=True)
 
-        with patch.dict(os.environ, {"AMI_ROOT": str(tmp_path)}):
+        with patch.dict(os.environ, {"WORKSPACE_ROOT": str(tmp_path)}):
             register_extensions()
 
         captured = capsys.readouterr()

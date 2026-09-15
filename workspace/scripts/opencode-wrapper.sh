@@ -12,7 +12,7 @@ oc_wrapper_config_dir() {
 oc_wrapper_welcome() {
     local welcome_file
 
-    welcome_file="$(oc_wrapper_config_dir)/ami-environment.md"
+    welcome_file="$(oc_wrapper_config_dir)/workspace-environment.md"
     if [[ -s "$welcome_file" ]]; then
         printf '%s\n' "$(< "$welcome_file")"
     else
@@ -21,14 +21,14 @@ oc_wrapper_welcome() {
 }
 
 oc_wrapper_prepare() {
-    local ami_root="$1"
+    local workspace_root="$1"
     local welcome="$2"
     local oc_dir
-    local oc_src="${ami_root}/workspace/config/opencode"
+    local oc_src="${workspace_root}/workspace/config/opencode"
 
     oc_dir="$(oc_wrapper_config_dir)"
     mkdir -p "$oc_dir"
-    printf '%b\n' "$welcome" > "${oc_dir}/ami-environment.md"
+    printf '%b\n' "$welcome" > "${oc_dir}/workspace-environment.md"
     if [[ ! -f "${oc_dir}/opencode.jsonc" ]]; then
         cp "${oc_src}/opencode.jsonc" "${oc_dir}/opencode.jsonc"
     fi

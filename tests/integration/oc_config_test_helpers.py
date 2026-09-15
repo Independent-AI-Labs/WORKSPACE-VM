@@ -15,11 +15,11 @@ def _find_project_root() -> Path:
     return Path(__file__).resolve().parent
 
 
-AMI_ROOT = _find_project_root()
-OC_SRC = AMI_ROOT / "workspace" / "config" / "opencode"
+WORKSPACE_ROOT = _find_project_root()
+OC_SRC = WORKSPACE_ROOT / "workspace" / "config" / "opencode"
 WRAPPERS = (
-    AMI_ROOT / "workspace" / "scripts" / "bin" / "oc",
-    AMI_ROOT / "workspace" / "scripts" / "bin" / "ocb",
+    WORKSPACE_ROOT / "workspace" / "scripts" / "bin" / "oc",
+    WORKSPACE_ROOT / "workspace" / "scripts" / "bin" / "ocb",
 )
 
 

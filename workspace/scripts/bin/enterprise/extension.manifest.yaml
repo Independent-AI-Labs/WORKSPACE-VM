@@ -10,17 +10,17 @@ extensions:
       - update
       - delete
     bannerPriority: 130
-    container: ami-keycloak
-    installHint: "make compose-deploy in AMI-DATAOPS"
+    container: workspace-keycloak
+    installHint: "make compose-deploy in WORKSPACE-DATAOPS"
     check:
       command: ["{binary}", "--version"]
       versionPattern: "(\\d+\\.\\d+\\.\\d+)"
       healthExpect: "."
       timeout: 5
     deps:
-      - name: ami-keycloak
+      - name: workspace-keycloak
         type: container
-        container: ami-keycloak
+        container: workspace-keycloak
         required: false
 
   - name: browser

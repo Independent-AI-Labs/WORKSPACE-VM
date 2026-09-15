@@ -1,4 +1,4 @@
-"""Configuration types for AMI Agents.
+"""Configuration types for WORKSPACE Agents.
 
 Provides Pydantic models for agent configuration, replacing dataclasses.
 """
