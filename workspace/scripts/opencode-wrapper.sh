@@ -60,6 +60,39 @@ oc_wrapper_shard_db() {
     fi
 }
 
+oc_wrapper_resolve_session_db() {
+    # Cross-db session resume: find the database owning $1 (a ses_* id)
+    # by probing every db in the data dir. Prints nothing when absent.
+    local sid="$1" data_dir f n
+    if [ -z "$(command -v sqlite3)" ]; then
+        return 1
+    fi
+    data_dir="${XDG_DATA_HOME:-${HOME}/.local/share}/opencode"
+    sid="${sid//\'/\'\'}"
+    for f in "$data_dir"/*.db; do
+        [ -f "$f" ] || continue
+        n=$(sqlite3 "$f" "SELECT count(*) FROM session WHERE id='${sid}';" 2>&1)
+        if [ "$n" = "1" ]; then
+            export OPENCODE_DB="$(basename "$f")"
+            printf '[oc] db: session owner %s (cross-db resume)\n' "$OPENCODE_DB" >&2
+            return 0
+        fi
+    done
+    return 1
+}
+
+oc_wrapper_session_arg() {
+    # Echo the first ses_* argument, or nothing.
+    local arg
+    for arg in "$@"; do
+        if [[ "$arg" =~ ^ses_[A-Za-z0-9]+$ ]]; then
+            printf '%s\n' "$arg"
+            return 0
+        fi
+    done
+    return 1
+}
+
 oc_wrapper_dispatch() {
     local opencode="$1"
     local original_pwd="$2"
@@ -113,7 +146,12 @@ oc_wrapper_dispatch() {
     elif [[ $has_db -eq 1 ]]; then
         export OPENCODE_DB="$db"
     else
-        oc_wrapper_shard_db
+        local sid
+        if sid=$(oc_wrapper_session_arg "${args[@]}"); then
+            oc_wrapper_resolve_session_db "$sid" || oc_wrapper_shard_db
+        else
+            oc_wrapper_shard_db
+        fi
     fi
     if [[ $direct -eq 1 ]]; then
         exec "$opencode" "${args[@]}"

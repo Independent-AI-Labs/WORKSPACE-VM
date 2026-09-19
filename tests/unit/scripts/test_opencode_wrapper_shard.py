@@ -114,6 +114,45 @@ def test_mono_and_db_conflict_rejected(tmp_path: Path) -> None:
     assert "mutually exclusive" in excinfo.value.output
 
 
+def _seed_shard_with_session(data_home: Path, shard_name: str, session_id: str) -> None:
+    db = data_home / "opencode" / shard_name
+    db.parent.mkdir(parents=True, exist_ok=True)
+    sql = (
+        "CREATE TABLE session (id TEXT PRIMARY KEY); "
+        f"INSERT INTO session VALUES('{session_id}');"
+    )
+    subprocess.check_output(
+        ["sqlite3", str(db), sql],
+        stderr=subprocess.STDOUT,
+    )
+
+
+def test_cross_repo_session_resume_targets_owning_shard(tmp_path: Path) -> None:
+    repo_a = _make_git_repo(tmp_path, "repo-a")
+    repo_b = _make_git_repo(tmp_path, "repo-b")
+    _seed_shard_with_session(
+        tmp_path / "xdg-data", _expected_shard(repo_a), "ses_crossdb123"
+    )
+    out = _run_dispatch(tmp_path, repo_b, "-s", "ses_crossdb123")
+    assert f"DB={_expected_shard(repo_a)}" in out
+
+
+def test_mono_ignores_session_resolver(tmp_path: Path) -> None:
+    repo_a = _make_git_repo(tmp_path, "repo-a")
+    repo_b = _make_git_repo(tmp_path, "repo-b")
+    _seed_shard_with_session(
+        tmp_path / "xdg-data", _expected_shard(repo_a), "ses_crossdb123"
+    )
+    out = _run_dispatch(tmp_path, repo_b, "--mono", "-s", "ses_crossdb123")
+    assert "DB=UNSET" in out
+
+
+def test_unknown_session_id_falls_through_to_shard(tmp_path: Path) -> None:
+    repo_a = _make_git_repo(tmp_path, "repo-a")
+    out = _run_dispatch(tmp_path, repo_a, "-s", "ses_doesnotexist")
+    assert f"DB={_expected_shard(repo_a)}" in out
+
+
 def test_non_git_directory_passthrough(tmp_path: Path) -> None:
     plain = tmp_path / "plain-dir"
     plain.mkdir()

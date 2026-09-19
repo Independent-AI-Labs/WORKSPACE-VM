@@ -1,7 +1,7 @@
 # Requirements: Install-Time Storage Planning Step
 
 **Document ID:** WS-REQ-INSTALL-STORAGE-v0.1
-**Status:** Draft , pending operator review
+**Status:** Draft:pending operator review
 **Parent Docs:** docs/OPS-FAST-STORAGE.md, workspace/scripts/bootstrap_installer.py, workspace/config/install-defaults.yaml
 **Last Updated:** 2026-09-16
 
@@ -29,7 +29,7 @@ the user confirm or override two storage locations before any component runs.
   Consumers with hardcoded paths today: `hang-evidence-sampler.sh` (diag),
   `~/.config/containers/storage.conf` (graphroot), HF model env, nspawn disk, QEMU overlays.
 - Incident finding 2026-09-14: the backup bind mount pointed at the **same device**
-  as fast storage , zero added failure tolerance. Backup-on-same-device must be
+  as fast storage:zero added failure tolerance. Backup-on-same-device must be
   detected and warned, never accepted quietly.
 - Provisioning of the live tree was a `/tmp` one-off (`enable-fast-storage.sh`);
   nothing in the repo can reproduce it. This REQ codifies it.
@@ -49,7 +49,7 @@ the user confirm or override two storage locations before any component runs.
 
 ### Out of Scope (v1)
 
-- Auto-formatting, partitioning, RAID/LVM composition , operator-run only.
+- Auto-formatting, partitioning, RAID/LVM composition:operator-run only.
 - Migrating existing data between locations (containers store, models).
 - Encryption provisioning (creating LUKS volumes).
 - Network/remote backup targets.
@@ -58,32 +58,32 @@ the user confirm or override two storage locations before any component runs.
 
 ### Detection
 
-- **R1 , Checkout encryption detection.** Before the component menu renders, the
+- **R1:Checkout encryption detection.** Before the component menu renders, the
   installer resolves the mount source of the checkout root via `findmnt`, walks
   the device ancestry via `lsblk`, and reports **encrypted / not encrypted**
   (a node with TYPE `crypt` or FSTYPE `crypto_LUKS` anywhere in the chain).
   Detection uses rootless commands only; failure to resolve must abort the step
   with a named error, never guess.
-- **R2 , Detection drives the recommendation.** When the checkout is encrypted,
+- **R2:Detection drives the recommendation.** When the checkout is encrypted,
   the TUI explains that builds pay dm-crypt IO overhead on root and recommends a
   dedicated fast location; when not encrypted, the step still runs but the
   rationale line changes (capacity/isolation instead of IO overhead).
 
 ### TUI Step
 
-- **R3 , Placement.** The step runs after installer start and before
+- **R3:Placement.** The step runs after installer start and before
   `select_workspace_repos()`; its outcome is available to later phases.
-- **R4 , Fast storage prompt.** Free-text path with default `/mnt/ws-fast`
+- **R4:Fast storage prompt.** Free-text path with default `/mnt/ws-fast`
   (mount name `ws-fast`). Validated: absolute path; if the path exists it must
   be a mounted filesystem or a directory the user can write; free space is shown.
-- **R5 , Backup prompt.** Free-text path with default `/mnt/ws-backup`
+- **R5:Backup prompt.** Free-text path with default `/mnt/ws-backup`
   (mount name `ws-backup`). Same validation as R4.
-- **R6 , Same-device guard.** If the backup path resolves to the same block
+- **R6:Same-device guard.** If the backup path resolves to the same block
   device as the fast path, the TUI shows the 2026-09-14 finding (a backup that
   dies with the data it protects) and requires explicit confirmation to proceed.
-- **R7 , Existing topology pre-fill.** When a recorded config already exists
+- **R7:Existing topology pre-fill.** When a recorded config already exists
   (R8), its values pre-fill the prompts; accepting them is a no-change pass.
-- **R8 , Recorded config.** The chosen locations are written to a machine-local
+- **R8:Recorded config.** The chosen locations are written to a machine-local
   YAML (not committed): `workspace/config/storage-locations.yaml` with schema
   `fast: <path>`, `backup: <path>`. This file is the single seam consumers
   (sampler diag dir, container graphroot, model dir, qemu dir, caches) read;
@@ -91,14 +91,14 @@ the user confirm or override two storage locations before any component runs.
 
 ### CI / Non-Interactive
 
-- **R9 , Declarative parity.** `install-defaults.yaml` gains a `storage:` section
+- **R9:Declarative parity.** `install-defaults.yaml` gains a `storage:` section
   (`fast:`, `backup:`). Absent section = step skipped, no locations recorded
   (current behaviour). Present section = validated exactly as R4-R6 (the
   same-device warning aborts CI unless `allow_same_device: true` is set).
 
 ### Provisioning Boundary
 
-- **R10 , Never destructive.** The installer creates missing directories under an
+- **R10:Never destructive.** The installer creates missing directories under an
   already-mounted filesystem and records the config. Mounting, fstab entries,
   mkfs, and RAID assembly are reported to the user as operator steps (exact
   commands printed), matching the trusted-input security posture of

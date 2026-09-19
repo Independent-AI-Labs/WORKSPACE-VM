@@ -38,6 +38,7 @@ ENV/
 
 # Chrome/Selenium
 *.log
+.liveaudit
 scripts/workspace-automation/profiles.txt
 scripts/workspace-automation/*.app/
 chromedriver*

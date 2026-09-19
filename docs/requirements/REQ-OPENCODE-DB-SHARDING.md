@@ -1,7 +1,7 @@
 # Requirements: opencode Per-Repo Database Sharding
 
 **Document ID:** WS-REQ-OPENCODE-DB-SHARDING-v0.1
-**Status:** Approved , operator decision 2026-09-17, implemented same day
+**Status:** Approved:operator decision 2026-09-17, implemented same day
 **Parent Docs:** workspace/scripts/opencode-wrapper.sh, projects/opencode/packages/core/src/database/database.ts
 **Last Updated:** 2026-09-17
 
@@ -15,12 +15,12 @@ one sqlite DB per git repository, derived in the `oc`/`ocb` wrappers.
 ## 2. Decision Log (verified this session)
 
 - Benchmarks (`/tmp/opencode/sqlite-bench-v3.sh`, opencode-realistic WAL
-  workload): LUKS adds no measurable cost , encrypted nvme1n1 beat plain
+  workload): LUKS adds no measurable cost:encrypted nvme1n1 beat plain
   nvme0n1 4.5x on fsync churn because nvme0n1 is a QLC DRAM-less Crucial P3
   Plus (tProg 2.3ms); commit latency, not encryption, is the cost.
 - Security posture: opencode DBs hold **non-redacted transcripts**; the
   Gateway database holds the redacted mirror. Therefore shards stay on the
-  encrypted home , sharding must NOT relocate data to unencrypted mounts.
+  encrypted home:sharding must NOT relocate data to unencrypted mounts.
 - Upstream seam exists: `database.ts` honors `OPENCODE_DB` (absolute path, or
   relative to the data dir). No upstream change required.
 - `opencode-wrapper.sh` already plumbs explicit `--db` → `OPENCODE_DB`;
@@ -28,27 +28,33 @@ one sqlite DB per git repository, derived in the `oc`/`ocb` wrappers.
 
 ## 3. Requirements
 
-- **R1 , Automatic shard derivation.** When `OPENCODE_DB` is unset and no
+- **R1:Automatic shard derivation.** When `OPENCODE_DB` is unset and no
   `--db` flag is given, the wrapper resolves the git toplevel of the
   invocation directory and sets `OPENCODE_DB=shard-<sha256(path)[0:16]>.db`
   (relative name → stored in the opencode data dir).
-- **R2 , Explicit override wins.** A pre-set `OPENCODE_DB` or the `--db`
+- **R2:Explicit override wins.** A pre-set `OPENCODE_DB` or the `--db`
   flag bypasses derivation entirely.
-- **R3 , Shard registry.** The wrapper appends `hash<TAB>git-root` to
+- **R3:Shard registry.** The wrapper appends `hash<TAB>git-root` to
   `<data-dir>/shards.tsv` (once per hash) so shards are inspectable.
-- **R4 , Encrypted storage only.** Shards live under the opencode data dir in
+- **R4:Encrypted storage only.** Shards live under the opencode data dir in
   the home directory. The wrapper must not emit paths outside it.
-- **R5 , Outside git.** When the invocation directory is not in a git
+- **R5:Outside git.** When the invocation directory is not in a git
   repository, derivation is skipped and opencode's own channel-based naming
   applies.
-- **R6 , Startup visibility.** The wrapper prints the chosen shard to stderr.
-- **R7 , Test coverage.** Pytest coverage for: derivation inside a temp git
+- **R6:Startup visibility.** The wrapper prints the chosen shard to stderr.
+- **R7:Test coverage.** Pytest coverage for: derivation inside a temp git
   repo, override preservation, registry append, non-git passthrough.
-- **R8 , Runtime monolith override.** `oc --mono` / `ocb --mono` unset
+- **R8:Runtime monolith override.** `oc --mono` / `ocb --mono` unset
   `OPENCODE_DB` for that invocation, forcing opencode's default (monolith)
   naming. `--mono` also wins over a pre-set `OPENCODE_DB`; combining `--mono`
   with `--db` is rejected with exit code 2. The decision is per-invocation,
   never persisted.
+- **R9: Cross-db session resume.** When a `ses_*` argument is present and
+  neither `--db` nor `--mono` was given, the wrapper probes every database in
+  the data dir (alphabetical glob; the monolith sorts first) for the owning
+  session row and opens that database, so resuming a session created under
+  another repository works. When no owner is found, the git-root shard
+  derivation applies as before.
 
 ## 4. Non-Goals (v1)
 
@@ -66,3 +72,6 @@ one sqlite DB per git repository, derived in the `oc`/`ocb` wrappers.
 - **AC-5** `pytest tests/unit/scripts/test_opencode_wrapper_shard.py` green.
 - **AC-6** `oc --mono` launches with `OPENCODE_DB` unset (monolith) even when
   a shard would derive or `OPENCODE_DB` is pre-set; `oc --mono --db x` exits 2.
+- **AC-7** A session created in repo A's shard resumes via `oc -s <id>` from
+  repo B with `OPENCODE_DB` set to A's shard; `--mono -s <id>` ignores the
+  resolver and stays on the monolith.
