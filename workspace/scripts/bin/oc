@@ -18,9 +18,10 @@ source "$WORKSPACE_ROOT/workspace/scripts/opencode-wrapper.sh" || exit 1
 
 _oc_help() {
     echo "oc - opencode AI agent wrapper with WORKSPACE welcome context"
-    echo "Usage: oc [--db NAME|--db=NAME] [task...]"
+    echo "Usage: oc [--db NAME|--db=NAME|--mono] [task...]"
     echo "  Without arguments: starts interactive opencode session"
     echo "  With arguments:    runs opencode with the given task"
+    echo "  Default: one sqlite shard per git root; --mono forces the monolith DB"
     echo "  Use -- before an upstream command to bypass task conversion"
 }
 

@@ -41,17 +41,41 @@ oc_wrapper_prepare() {
     export OPENCODE_EXPERIMENTAL_BASH_DEFAULT_TIMEOUT_MS=600000
 }
 
+oc_wrapper_shard_db() {
+    if [[ -n "${OPENCODE_DB:-}" ]]; then
+        return 0
+    fi
+    local root hash data_dir map
+    if root=$(git rev-parse --show-toplevel 2>&1); then
+        hash=$(printf '%s' "$root" | sha256sum | cut -c1-16)
+        export OPENCODE_DB="shard-${hash}.db"
+        data_dir="${XDG_DATA_HOME:-${HOME}/.local/share}/opencode"
+        mkdir -p "$data_dir"
+        map="${data_dir}/shards.tsv"
+        touch "$map"
+        if ! grep -qF "$hash" "$map"; then
+            printf '%s\t%s\n' "$hash" "$root" >> "$map"
+        fi
+        printf '[oc] db shard: %s (%s)\n' "$OPENCODE_DB" "$root" >&2
+    fi
+}
+
 oc_wrapper_dispatch() {
     local opencode="$1"
     local original_pwd="$2"
     local db=""
     local has_db=0
+    local mono=0
     local direct=0
     local -a args=()
     shift 2
 
     while [[ $# -gt 0 ]]; do
         case "$1" in
+            --mono)
+                mono=1
+                shift
+                ;;
             --db)
                 if [[ $# -lt 2 ]]; then
                     echo "oc: --db requires a name" >&2
@@ -79,8 +103,17 @@ oc_wrapper_dispatch() {
         esac
     done
 
-    if [[ $has_db -eq 1 ]]; then
+    if [[ $mono -eq 1 && $has_db -eq 1 ]]; then
+        echo "oc: --mono and --db are mutually exclusive" >&2
+        return 2
+    fi
+    if [[ $mono -eq 1 ]]; then
+        unset OPENCODE_DB
+        echo "[oc] db: monolith (opencode default naming)" >&2
+    elif [[ $has_db -eq 1 ]]; then
         export OPENCODE_DB="$db"
+    else
+        oc_wrapper_shard_db
     fi
     if [[ $direct -eq 1 ]]; then
         exec "$opencode" "${args[@]}"
