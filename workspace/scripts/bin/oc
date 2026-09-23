@@ -23,6 +23,11 @@ _oc_help() {
     echo "  With arguments:    runs opencode with the given task"
     echo "  Default: one sqlite shard per git root; --mono forces the monolith DB"
     echo "  Use -- before an upstream command to bypass task conversion"
+    echo ""
+    echo "  --set-ctx <provider>/<model> <size>"
+    echo "      Override the model's limit.context for this run. <provider> and"
+    echo "      <model> may be the config keys or their configured names."
+    echo "  --persist  Also write the --set-ctx override into the config file"
 }
 
 if [[ "${1:-}" == "--help" ]] || [[ "${1:-}" == "-h" ]]; then

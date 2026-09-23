@@ -64,6 +64,7 @@ def run_wrapper(
         "OC_CAPTURE": str(capture),
     }
     env.pop("OPENCODE_CONFIG_DIR", None)
+    env.pop("OPENCODE_DB", None)
     if config_dir is not None:
         env["OPENCODE_CONFIG_DIR"] = str(config_dir)
     if extra_env is not None:

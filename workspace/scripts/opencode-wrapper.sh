@@ -41,6 +41,108 @@ oc_wrapper_prepare() {
     export OPENCODE_EXPERIMENTAL_BASH_DEFAULT_TIMEOUT_MS=600000
 }
 
+# Path of the OpenCode config file that holds provider/model blocks.
+oc_wrapper_config_file() {
+    local dir
+    dir="$(oc_wrapper_config_dir)"
+    if [[ -f "${dir}/opencode.jsonc" ]]; then
+        printf '%s\n' "${dir}/opencode.jsonc"
+    elif [[ -f "${dir}/opencode.json" ]]; then
+        printf '%s\n' "${dir}/opencode.json"
+    else
+        printf '%s\n' "${dir}/opencode.jsonc"
+    fi
+}
+
+# Resolve "<provider>/<model>" to "<providerID>\t<modelSlug>", matching the
+# provider/model keys first and their configured names second. Prints an ERR
+# line with a candidate list when the spec is unknown or ambiguous.
+oc_wrapper_resolve_target() {
+    local jq_bin="$1" spec="$2" cfg="$3"
+    local provider_spec model_spec
+    if [[ "$spec" != */* ]]; then
+        echo "oc: --set-ctx expects <provider>/<model>, got '${spec}'" >&2
+        return 2
+    fi
+    provider_spec="${spec%%/*}"
+    model_spec="${spec#*/}"
+    "$jq_bin" -r --arg ps "$provider_spec" --arg ms "$model_spec" '
+        (.provider // {}) as $p
+        | [ $p | to_entries[] | select(.key == $ps or .value.name == $ps) ] as $pm
+        | if ($pm | length) == 0 then
+            "ERR\tNo provider matches \($ps). Known providers: " + ([ $p | keys[] ] | join(", "))
+          elif ($pm | length) > 1 then
+            "ERR\tProvider \($ps) is ambiguous: " + ([ $pm[].key ] | join(", "))
+          else
+            $pm[0].key as $pid
+            | [ ($pm[0].value.models // {}) | to_entries[] | select(.key == $ms or .value.name == $ms) ] as $mm
+            | if ($mm | length) == 0 then
+                "ERR\tNo model matches \($ms) in \($pid). Known models: " + ([ ($pm[0].value.models // {}) | keys[] ] | join(", "))
+              elif ($mm | length) > 1 then
+                "ERR\tModel \($ms) is ambiguous in \($pid): " + ([ $mm[].key ] | join(", "))
+              else
+                "OK\t\($pid)\t\($mm[0].key)"
+              end
+          end
+    ' "$cfg"
+}
+
+# Write limit.context into the config file in place, keeping a .bak copy.
+oc_wrapper_persist_ctx() {
+    local jq_bin="$1" cfg="$2" provider_id="$3" model_slug="$4" size="$5"
+    local tmp
+    tmp="$(mktemp "${cfg}.XXXXXX")"
+    if ! "$jq_bin" --arg p "$provider_id" --arg m "$model_slug" --argjson n "$size" \
+        '.provider[$p].models[$m].limit.context = $n' "$cfg" > "$tmp"; then
+        rm -f "$tmp"
+        echo "oc: --set-ctx could not update ${cfg}" >&2
+        return 2
+    fi
+    cp -p "$cfg" "${cfg}.bak"
+    mv "$tmp" "$cfg"
+}
+
+# Override limit.context for one model, this run only unless $3 is 1.
+oc_wrapper_set_ctx() {
+    local spec="$1" size="$2" persist="$3"
+    local jq_bin cfg resolved status provider_id model_slug override base contents
+    if [[ ! "$size" =~ ^[1-9][0-9]*$ ]]; then
+        echo "oc: --set-ctx size must be a positive integer, got '${size}'" >&2
+        return 2
+    fi
+    if ! jq_bin="$(command -v jq)"; then
+        echo "oc: --set-ctx requires jq" >&2
+        return 2
+    fi
+    cfg="$(oc_wrapper_config_file)"
+    if [[ ! -f "$cfg" ]]; then
+        echo "oc: --set-ctx: config file not found at ${cfg}" >&2
+        return 2
+    fi
+    if ! resolved="$(oc_wrapper_resolve_target "$jq_bin" "$spec" "$cfg")"; then
+        return 2
+    fi
+    IFS=$'\t' read -r status provider_id model_slug <<< "$resolved"
+    if [[ "$status" != "OK" ]]; then
+        echo "oc: ${provider_id}" >&2
+        return 2
+    fi
+    override="$("$jq_bin" -cn --arg p "$provider_id" --arg m "$model_slug" --argjson n "$size" \
+        '{provider:{($p):{models:{($m):{limit:{context:$n}}}}}}')"
+    base="${OPENCODE_CONFIG_CONTENT:-}"
+    if [[ -z "$base" ]]; then
+        base='{}'
+    fi
+    contents="$("$jq_bin" -cn --argjson a "$base" --argjson b "$override" '$a * $b')"
+    export OPENCODE_CONFIG_CONTENT="$contents"
+    if [[ "$persist" == "1" ]]; then
+        oc_wrapper_persist_ctx "$jq_bin" "$cfg" "$provider_id" "$model_slug" "$size" || return 2
+        printf '[oc] ctx: %s/%s context=%s (persisted to %s)\n' "$provider_id" "$model_slug" "$size" "$cfg" >&2
+    else
+        printf '[oc] ctx: %s/%s context=%s (this run)\n' "$provider_id" "$model_slug" "$size" >&2
+    fi
+}
+
 oc_wrapper_shard_db() {
     if [[ -n "${OPENCODE_DB:-}" ]]; then
         return 0
@@ -100,6 +202,9 @@ oc_wrapper_dispatch() {
     local has_db=0
     local mono=0
     local direct=0
+    local set_ctx_spec=""
+    local set_ctx_size=""
+    local persist_ctx=0
     local -a args=()
     shift 2
 
@@ -107,6 +212,19 @@ oc_wrapper_dispatch() {
         case "$1" in
             --mono)
                 mono=1
+                shift
+                ;;
+            --set-ctx)
+                if [[ $# -lt 3 ]]; then
+                    echo "oc: --set-ctx requires <provider>/<model> <size>" >&2
+                    return 2
+                fi
+                set_ctx_spec="$2"
+                set_ctx_size="$3"
+                shift 3
+                ;;
+            --persist)
+                persist_ctx=1
                 shift
                 ;;
             --db)
@@ -152,6 +270,13 @@ oc_wrapper_dispatch() {
         else
             oc_wrapper_shard_db
         fi
+    fi
+    if [[ $persist_ctx -eq 1 && -z "$set_ctx_spec" ]]; then
+        echo "oc: --persist requires --set-ctx" >&2
+        return 2
+    fi
+    if [[ -n "$set_ctx_spec" ]]; then
+        oc_wrapper_set_ctx "$set_ctx_spec" "$set_ctx_size" "$persist_ctx" || return 2
     fi
     if [[ $direct -eq 1 ]]; then
         exec "$opencode" "${args[@]}"
