@@ -192,7 +192,9 @@ def test_set_ctx_bad_size_rejected(tmp_path: Path) -> None:
 
 def test_set_ctx_model_without_output_rejected(tmp_path: Path) -> None:
     _seed_config(tmp_path)
-    code, out = _run_dispatch(tmp_path, "--set-ctx", "workspace-gw-test/model-z", "256000")
+    code, out = _run_dispatch(
+        tmp_path, "--set-ctx", "workspace-gw-test/model-z", "256000"
+    )
     assert code == FAKE_EXIT_USAGE
     assert "has no limit.output" in out
 
