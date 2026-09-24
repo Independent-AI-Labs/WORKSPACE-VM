@@ -102,10 +102,12 @@ oc_wrapper_persist_ctx() {
     mv "$tmp" "$cfg"
 }
 
-# Override limit.context for one model, this run only unless $3 is 1.
+# Override limit.context for one model, this run only unless $3 is 1. The
+# inline OPENCODE_CONFIG_CONTENT fragment is schema-validated on its own, so it
+# must carry the model's existing limit.output too.
 oc_wrapper_set_ctx() {
     local spec="$1" size="$2" persist="$3"
-    local jq_bin cfg resolved status provider_id model_slug override base contents
+    local jq_bin cfg resolved status provider_id model_slug output override base contents
     if [[ ! "$size" =~ ^[1-9][0-9]*$ ]]; then
         echo "oc: --set-ctx size must be a positive integer, got '${size}'" >&2
         return 2
@@ -127,8 +129,14 @@ oc_wrapper_set_ctx() {
         echo "oc: ${provider_id}" >&2
         return 2
     fi
-    override="$("$jq_bin" -cn --arg p "$provider_id" --arg m "$model_slug" --argjson n "$size" \
-        '{provider:{($p):{models:{($m):{limit:{context:$n}}}}}}')"
+    output="$("$jq_bin" -r --arg p "$provider_id" --arg m "$model_slug" \
+        '.provider[$p].models[$m].limit.output // empty' "$cfg")"
+    if [[ -z "$output" ]]; then
+        echo "oc: --set-ctx: ${provider_id}/${model_slug} has no limit.output in ${cfg}; cannot build a valid limit override" >&2
+        return 2
+    fi
+    override="$("$jq_bin" -cn --arg p "$provider_id" --arg m "$model_slug" --argjson n "$size" --argjson o "$output" \
+        '{provider:{($p):{models:{($m):{limit:{context:$n,output:$o}}}}}}')"
     base="${OPENCODE_CONFIG_CONTENT:-}"
     if [[ -z "$base" ]]; then
         base='{}'

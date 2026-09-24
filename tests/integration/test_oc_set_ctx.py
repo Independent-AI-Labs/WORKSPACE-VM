@@ -72,6 +72,7 @@ class TestOcSetCtx:
         content = json.loads(values["content"])
         override = content["provider"]["workspace-gw-test"]["models"]["model-x"]
         assert override["limit"]["context"] == OVERRIDE_256K
+        assert override["limit"]["output"] == OUTPUT_LIMIT
         assert content["permission"]["task"] == "deny"
         assert args[-1] == "normal task"
         assert _context_on_disk(config_dir, "model-x") == CONTEXT_X
@@ -139,4 +140,5 @@ class TestOcSetCtx:
         content = json.loads(values["content"])
         override = content["provider"]["workspace-gw-test"]["models"]["model-y"]
         assert override["limit"]["context"] == OVERRIDE_300K
+        assert override["limit"]["output"] == OUTPUT_LIMIT
         assert _context_on_disk(config_dir, "model-y") == OVERRIDE_300K

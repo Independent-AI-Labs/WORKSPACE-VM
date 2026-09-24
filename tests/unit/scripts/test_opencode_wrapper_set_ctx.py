@@ -38,6 +38,9 @@ CONFIG = {
                     "name": "Model Y",
                     "limit": {"context": CONTEXT_Y, "output": OUTPUT_LIMIT},
                 },
+                "model-z": {
+                    "name": "Model Z",
+                },
             },
         }
     }
@@ -102,7 +105,7 @@ def test_set_ctx_overrides_context_for_this_run(tmp_path: Path) -> None:
     assert code == 0
     model = _payload(out)["provider"]["workspace-gw-test"]["models"]["model-x"]
     assert model["limit"]["context"] == OVERRIDE_256K
-    assert "output" not in model["limit"]
+    assert model["limit"]["output"] == OUTPUT_LIMIT
 
 
 def test_set_ctx_preserves_base_config_content(tmp_path: Path) -> None:
@@ -185,6 +188,13 @@ def test_set_ctx_bad_size_rejected(tmp_path: Path) -> None:
     code, out = _run_dispatch(tmp_path, "--set-ctx", "workspace-gw-test/model-x", "0")
     assert code == FAKE_EXIT_USAGE
     assert "positive integer" in out
+
+
+def test_set_ctx_model_without_output_rejected(tmp_path: Path) -> None:
+    _seed_config(tmp_path)
+    code, out = _run_dispatch(tmp_path, "--set-ctx", "workspace-gw-test/model-z", "256000")
+    assert code == FAKE_EXIT_USAGE
+    assert "has no limit.output" in out
 
 
 def test_persist_without_set_ctx_rejected(tmp_path: Path) -> None:
