@@ -3,13 +3,9 @@
 # Installed to ${BOOT_LINUX_DIR}/bin/git, calls system git
 #
 # This wrapper prevents accidental data loss from dangerous git commands.
-# It resolves the system git at runtime from known paths or a cached value.
+# It resolves the system git from the guard-relocated real binary.
 
 set -euo pipefail
-
-_SELF="${BASH_SOURCE[0]:-$0}"
-case "$_SELF" in /proc/self/fd/*) _SELF="${SHG_SCRIPT_PATH:-$_SELF}";; esac
-SCRIPT_DIR="$(cd "$(dirname "$_SELF")" && pwd)"
 
 _GG_ERR="$(mktemp)"
 trap 'rm -f "$_GG_ERR"' EXIT
@@ -18,29 +14,12 @@ _gg_log_err() {
     : > "$1"
 }
 
-# Resolve system git: env override first, then a `real-git` sibling
-# (how guard tests inject a test-provided executable), then known system locations.
-GIT_REAL="${GIT_GUARD_REAL_GIT:-}"
-
-if [[ -z "$GIT_REAL" || ! -x "$GIT_REAL" ]]; then
-    if [[ -x "$SCRIPT_DIR/real-git" ]]; then
-        GIT_REAL="$SCRIPT_DIR/real-git"
-    fi
-fi
-
-if [[ -z "$GIT_REAL" || ! -x "$GIT_REAL" ]]; then
-    # Check git.original first - system guard may have renamed real git
-    for candidate in /usr/bin/git.original /usr/local/bin/git.original /usr/bin/git /usr/local/bin/git /snap/bin/git; do
-        if [[ -x "$candidate" ]]; then
-            GIT_REAL="$candidate"
-            break
-        fi
-    done
-fi
+# The real git is the guard-relocated binary at one fixed path.
+GIT_REAL="/usr/bin/git.original"
 
 # Ensure real git exists
-if [[ -z "${GIT_REAL:-}" || ! -x "$GIT_REAL" ]]; then
-    echo "ERROR: System git not found in known locations"
+if [[ ! -x "$GIT_REAL" ]]; then
+    echo "ERROR: System git not found at $GIT_REAL"
     echo "Git is a system dependency - run: sudo make pre-req"
     exit 1
 fi

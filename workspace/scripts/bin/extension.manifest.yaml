@@ -20,7 +20,7 @@ extensions:
 
   - name: oc
     binary: workspace/scripts/bin/oc
-    description: opencode AI agent wrapper with WORKSPACE welcome context
+    description: opencode agent with LLM gateway integration
     category: core
     features:
       - run

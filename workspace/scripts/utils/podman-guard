@@ -14,13 +14,6 @@ _SELF="${BASH_SOURCE[0]:-$0}"
 case "$_SELF" in /proc/self/fd/*) _SELF="${SHG_SCRIPT_PATH:-$_SELF}";; esac
 PODMAN_REAL="$(dirname "$(readlink -f "$_SELF")")/real-podman"
 
-# Older guard binaries may not inject SHG_SCRIPT_PATH into staged children.
-# WORKSPACE_ROOT is preserved by the guard and gives the hermetic install a stable
-# resolution path without consulting the host PATH.
-if [[ ! -x "$PODMAN_REAL" && -n "${WORKSPACE_ROOT:-}" ]]; then
-    PODMAN_REAL="$WORKSPACE_ROOT/.boot-linux/bin/real-podman"
-fi
-
 # Ensure real podman exists
 if [[ ! -x "$PODMAN_REAL" ]]; then
     echo "ERROR: real-podman not found at $PODMAN_REAL"

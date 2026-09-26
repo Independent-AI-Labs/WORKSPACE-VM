@@ -44,11 +44,6 @@ def mock_env(tmp_path: Path) -> MockEnv:
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
 
-    # Copy git-guard into temp bin dir
-    guard_dest = bin_dir / "git"
-    guard_dest.write_text(GIT_GUARD.read_text())
-    guard_dest.chmod(0o755)
-
     # Create a mock real-git that handles rev-parse queries the guard
     # needs for contract enforcement, then echoes other args.
     git_real = bin_dir / "real-git"
@@ -62,10 +57,15 @@ def mock_env(tmp_path: Path) -> MockEnv:
     )
     git_real.chmod(0o755)
 
+    # Copy git-guard into temp bin dir, pointed at the mock real-git.
+    guard_dest = bin_dir / "git"
+    guard_dest.write_text(
+        GIT_GUARD.read_text().replace("/usr/bin/git.original", str(git_real))
+    )
+    guard_dest.chmod(0o755)
+
     env = os.environ.copy()
     env["PATH"] = f"{bin_dir}:{env.get('PATH', '')}"
-    # Point guard to our mock real-git via env var
-    env["GIT_GUARD_REAL_GIT"] = str(git_real)
 
     return MockEnv(env=env, bin_dir=bin_dir, git_guard=guard_dest)
 
@@ -204,7 +204,9 @@ def test_guard_no_args_passes_through(mock_env: MockEnv) -> None:
 def test_guard_fails_without_git_real(mock_env: MockEnv) -> None:
     """Verify guard errors if real-git is missing."""
     (mock_env.bin_dir / "real-git").unlink()
-    mock_env.env["GIT_GUARD_REAL_GIT"] = "/nonexistent/git"
+    (mock_env.bin_dir / "git").write_text(
+        GIT_GUARD.read_text().replace("/usr/bin/git.original", "/nonexistent/git")
+    )
     res = run_git_cmd("git status", mock_env.env)
     assert res.returncode == 1
     combined = res.stdout + res.stderr
@@ -258,7 +260,9 @@ def history_env(tmp_path: Path) -> HistoryEnv:
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
     guard_dest = bin_dir / "git"
-    guard_dest.write_text(GIT_GUARD.read_text())
+    guard_dest.write_text(
+        GIT_GUARD.read_text().replace("/usr/bin/git.original", str(real_git))
+    )
     guard_dest.chmod(0o755)
 
     origin_dir = tmp_path / "origin.git"
@@ -266,7 +270,6 @@ def history_env(tmp_path: Path) -> HistoryEnv:
 
     base_env = {
         **os.environ,
-        "GIT_GUARD_REAL_GIT": str(real_git),
         "GIT_AUTHOR_NAME": "Test",
         "GIT_AUTHOR_EMAIL": "test@example.com",
         "GIT_COMMITTER_NAME": "Test",

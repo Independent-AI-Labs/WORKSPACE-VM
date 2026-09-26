@@ -1,0 +1,27 @@
+version: 1
+project: workspace-vm
+tier: strict
+languages: [python, shell]
+hooks:
+  pre-commit:
+    - check-unstaged
+    - block-sensitive-files
+    - gitleaks
+    - check-coverage-no-devolution
+    - check-file-length
+    - check-markdown-docs
+    - check-dependency-versions
+    - check-duplicate-dependencies
+    - check-init-files
+    - check-py-not-executable
+  commit-msg:
+    - check-commit-message
+    - block-coauthored
+  pre-push:
+    - block-coauthored-history
+    - ci-check-push
+overrides:
+  check-markdown-docs:
+    entry: "uv run --project /opt/workspace-ci --no-sync python -m ci.check_markdown_docs --all-md --check-remote"
+  check-dependency-versions:
+    entry: "bash -c 'source /opt/workspace-ci/lib/checks.sh && _uv_bin=\"$(ci_uv_bin)\" && _uv_dir=\"${_uv_bin%/*}\" && export PATH=\"$_uv_dir:$PATH\" && CI_CONFIG_DIR=\"$CI_CONFIG_DIR\" CI_PROJECT_ROOT=\"$CI_PROJECT_ROOT\" exec uv run python -m ci.check_dependency_versions validate --consumer-root \"$PWD\" --exclusions config/dependency_excludes.yaml --npm-lock package.json package-lock.json --uv-lock pyproject.toml uv.lock'"
