@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import tests.e2e.qemu_cleanup as qemu_cleanup
 from tests.e2e.qemu_cleanup import (
     QemuTracker,
     _is_qemu_vm_dir,
@@ -39,7 +40,7 @@ def test_cleanup_orphan_skips_base_only(tmp_path: Path, monkeypatch) -> None:
     vms = tmp_path / ".vms"
     vms.mkdir()
     (vms / "_base").mkdir()
-    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(qemu_cleanup, "_VMS_DIR", vms)
     removed = cleanup_orphan_qemu_vms(max_age_seconds=0)
     assert removed == []
 
