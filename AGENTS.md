@@ -178,6 +178,7 @@ cargo clippy -- -D warnings                                # Rust lint (in proje
 ruff check                                                # Python lint
 All source code files under 512 lines (.rs, .py, .sh, .lua, .ts, .go, etc.)  # Length
 # NOTE: Markdown documentation files (.md) are EXEMPT from the 512-line limit.
+```
 
 The WORKSPACE-GUARD repo (projects/WORKSPACE-GUARD/) has its own pre-commit hooks
 (cargo-fmt, cargo-build, cargo-clippy) and pre-push hook (cargo-test).

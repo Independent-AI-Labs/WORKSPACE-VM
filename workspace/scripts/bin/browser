@@ -1,0 +1,30 @@
+#!/bin/bash
+set -euo pipefail
+
+# The `browser` extension delegates to the WORKSPACE-BROWSER `wsb` CLI.
+# Resolve WORKSPACE_ROOT by walking up to the pyproject.toml marker, the
+# same seam the other workspace/scripts/bin entrypoints use.
+
+SCRIPT_SOURCE="${SHG_SCRIPT_PATH:-${BASH_SOURCE[0]}}"
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$SCRIPT_SOURCE")")" && pwd)"
+WORKSPACE_ROOT="$SCRIPT_DIR"
+while [[ "$WORKSPACE_ROOT" != "/" && ! -f "$WORKSPACE_ROOT/pyproject.toml" ]]; do
+    WORKSPACE_ROOT="$(dirname "$WORKSPACE_ROOT")"
+done
+
+WSB_MAIN="${WORKSPACE_ROOT}/projects/WORKSPACE-BROWSER/dist/cli/main.js"
+if [[ ! -f "$WSB_MAIN" ]]; then
+    echo "browser: WORKSPACE-BROWSER is not built at $WSB_MAIN" >&2
+    echo "browser: run 'make setup' in projects/WORKSPACE-BROWSER" >&2
+    exit 127
+fi
+
+BOOT_DIR="${BOOT_DIR:-${WORKSPACE_ROOT}/.boot-linux}"
+NODE_BIN="${BOOT_DIR}/bin/node"
+if [[ ! -x "$NODE_BIN" ]]; then
+    echo "browser: node not found at $NODE_BIN" >&2
+    echo "browser: run 'make setup' to provision the boot toolchain" >&2
+    exit 127
+fi
+
+exec "$NODE_BIN" "$WSB_MAIN" "$@"

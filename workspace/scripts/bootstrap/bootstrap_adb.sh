@@ -7,6 +7,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Script is in workspace/scripts/bootstrap/, project root is 3 levels up
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
+source "${SCRIPT_DIR}/../utils/fetch.sh" || exit 1
 
 # Use BOOT_LINUX_DIR env var if set, otherwise default
 VENV_DIR="${BOOT_LINUX_DIR:-${PROJECT_ROOT}/.boot-linux}"
@@ -51,7 +52,7 @@ log_info "Downloading from ${URL}..."
 TEMP_DIR=$(mktemp -d)
 trap 'rm -rf "$TEMP_DIR"' EXIT
 
-curl -L -o "${TEMP_DIR}/tools.zip" "${URL}"
+fetch_file "${URL}" "${TEMP_DIR}/tools.zip"
 unzip -q "${TEMP_DIR}/tools.zip" -d "${TEMP_DIR}"
 
 # Move binaries

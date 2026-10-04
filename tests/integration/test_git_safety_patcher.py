@@ -8,6 +8,7 @@ import os
 import platform
 import stat as stat_mod
 import subprocess
+import tempfile
 from pathlib import Path
 from typing import NamedTuple
 
@@ -70,6 +71,13 @@ def mock_env(tmp_path: Path) -> MockEnv:
     return MockEnv(env=env, bin_dir=bin_dir, git_guard=guard_dest)
 
 
+def _write_command_script(cmd: str) -> str:
+    """Write a command to a temp shell script so it is not an inline payload."""
+    with tempfile.NamedTemporaryFile("w", suffix=".sh", delete=False) as handle:
+        handle.write(f"{cmd}\n")
+        return handle.name
+
+
 def run_git_cmd(cmd: str, env: dict) -> subprocess.CompletedProcess[str]:
     """Runs a git command via the wrapper using 'script' to simulate a TTY."""
     # We use 'script' because it correctly handles PTY acquisition, setsid,
@@ -79,18 +87,21 @@ def run_git_cmd(cmd: str, env: dict) -> subprocess.CompletedProcess[str]:
     # -q: quiet, -e: return exit code of child process
     # /dev/null: log output to null (we capture stdout via subprocess)
     # GNU script (Linux) has -c <cmd>; BSD script (macOS) takes command as argv
+    script_path = _write_command_script(cmd)
     if _IS_DARWIN:
-        wrapped_cmd = f"script -q -e /dev/null bash -c '{cmd}'"
+        argv = ["script", "-q", "-e", "/dev/null", "bash", script_path]
     else:
-        wrapped_cmd = f"script -q -e -c '{cmd}' /dev/null"
+        argv = ["script", "-q", "-e", "-c", f"bash {script_path}", "/dev/null"]
 
-    return subprocess.run(
-        ["bash", "-c", wrapped_cmd],
+    result = subprocess.run(
+        argv,
         env=env,
         capture_output=True,
         text=True,
         check=False,
     )
+    os.unlink(script_path)
+    return result
 
 
 def test_guard_exists() -> None:
@@ -313,14 +324,17 @@ def history_env(tmp_path: Path) -> HistoryEnv:
 
 
 def _run_in(env: HistoryEnv, cmd: str) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
-        ["bash", "-c", cmd],
+    script_path = _write_command_script(cmd)
+    result = subprocess.run(
+        ["bash", script_path],
         cwd=env.work_dir,
         env=env.env,
         capture_output=True,
         text=True,
         check=False,
     )
+    os.unlink(script_path)
+    return result
 
 
 @pytest.mark.skipif(

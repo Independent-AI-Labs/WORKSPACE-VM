@@ -62,25 +62,6 @@ exceptions:
     owner: workspace-vm
     review_date: '2026-09-10'
     removal: Remove when AGENTS.md no longer quotes this rule.
-  # Prompt catalogs define the banned patterns; they must quote them verbatim.
-  - rule: protected-bare-system-interpreter
-    path: ^workspace/config/prompts/patterns_core\.txt$
-    rationale: Pattern catalog defines this rule; quoting is its purpose.
-    owner: workspace-vm
-    review_date: '2026-09-10'
-    removal: Remove when the catalog no longer defines this rule.
-  - rule: bfallback-b
-    path: ^workspace/config/prompts/patterns_core\.txt$
-    rationale: Pattern catalog defines this rule; quoting is its purpose.
-    owner: workspace-vm
-    review_date: '2026-09-10'
-    removal: Remove when the catalog no longer defines this rule.
-  - rule: protected-bare-system-interpreter
-    path: ^workspace/config/prompts/agent\.txt$
-    rationale: Prompt file defines this rule; quoting is its purpose.
-    owner: workspace-vm
-    review_date: '2026-09-10'
-    removal: Remove when the file no longer defines this rule.
   - rule: protected-bare-system-interpreter
     path: ^workspace/config/patterns/README\.md$
     rationale: Pattern-pack documentation quoting the rules it documents.

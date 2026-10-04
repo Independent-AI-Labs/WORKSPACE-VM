@@ -29,10 +29,11 @@ if {$mode eq "agent"} {
     set interactive 1
     set cd_command "cd '$escaped_argument'\r"
 } elseif {$mode eq "admin"} {
-    lappend ssh "sudo bash -c \"cd '$escaped_argument' && exec bash -l\""
+    lappend ssh {sudo bash -l}
     set interactive 1
     set max_passwords 2
     set prompt_re {# ?$}
+    set cd_command "cd '$escaped_argument'\r"
 } elseif {$mode eq "cmd"} {
     lappend ssh $argument
     set timeout -1

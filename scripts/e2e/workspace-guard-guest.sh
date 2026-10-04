@@ -11,7 +11,7 @@ fi
 _WORKSPACE_ROOT="${WORKSPACE_ROOT:-/opt/workspace}"
 _PROJECTS="${_WORKSPACE_ROOT}/projects"
 _GUARD_ROOT="${_PROJECTS}/WORKSPACE-GUARD"
-_CI_ROOT="${_PROJECTS}/CI"
+_CI_ROOT="${_PROJECTS}/WORKSPACE-CI"
 
 if [[ ! -f "${_CI_ROOT}/scripts/bootstrap-workspace-guard" ]]; then
     echo "ERROR: bootstrap-workspace-guard not found at ${_CI_ROOT}" >&2

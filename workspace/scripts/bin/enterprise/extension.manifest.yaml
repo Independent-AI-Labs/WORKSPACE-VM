@@ -24,18 +24,27 @@ extensions:
         required: false
 
   - name: browser
-    binary: .venv/bin/playwright
-    description: Browser automation (Playwright)
+    binary: workspace/scripts/bin/browser
+    description: Chromium automation CLI (WORKSPACE-BROWSER wsb)
     category: research
     features:
-      - open
-      - codegen
-      - screenshot
-      - pdf
-      - install
+      - session
+      - navigate
+      - interact
+      - inspect
+      - extract
+      - capture
+      - execute
+      - storage
+      - profile
     bannerPriority: 420
+    installHint: "make setup in projects/WORKSPACE-BROWSER"
+    deps:
+      - name: workspace-browser-build
+        type: file
+        path: projects/WORKSPACE-BROWSER/dist/cli/main.js
+        required: true
     check:
-      command: ["{binary}", "--version"]
-      versionPattern: "(\\d+\\.\\d+\\.\\d+)"
-      healthExpect: "."
+      command: ["{binary}", "--help"]
+      healthExpect: "workspace-browser"
       timeout: 5

@@ -474,19 +474,23 @@ test-e2e: ## Run end-to-end VM integration tests
 	$(UV) run python -m pytest tests/e2e/ -v -m e2e --timeout 600
 
 .PHONY: test-e2e-qemu
-test-e2e-qemu: ## QEMU poc + guard E2E (set TEST_QEMU_FULL=1 to include full-ci)
-	$(UV) run python -m pytest tests/e2e/test_vm_qemu_poc.py tests/e2e/test_vm_qemu_guard.py -v -m e2e --timeout 3600
+test-e2e-qemu: ## QEMU poc + guard + boot posture E2E (set TEST_QEMU_FULL=1 to include full-ci)
+	$(UV) run python -m pytest tests/e2e/test_vm_qemu_poc.py tests/e2e/test_vm_qemu_guard.py tests/e2e/test_vm_qemu_boot_posture.py -v -m e2e --timeout 3600
 	if [ "$${TEST_QEMU_FULL:-0}" = "1" ]; then \
 		$(UV) run python -m pytest tests/e2e/test_vm_qemu_full_ci.py -v -m e2e --timeout 3600; \
 	fi
 
 .PHONY: test-e2e-qemu-full
-test-e2e-qemu-full: ## QEMU poc + full-ci + guard (authoritative, slow)
-	$(UV) run python -m pytest tests/e2e/test_vm_qemu_poc.py tests/e2e/test_vm_qemu_full_ci.py tests/e2e/test_vm_qemu_guard.py -v -m e2e --timeout 3600
+test-e2e-qemu-full: ## QEMU poc + full-ci + guard + boot posture (authoritative, slow)
+	$(UV) run python -m pytest tests/e2e/test_vm_qemu_poc.py tests/e2e/test_vm_qemu_full_ci.py tests/e2e/test_vm_qemu_guard.py tests/e2e/test_vm_qemu_boot_posture.py -v -m e2e --timeout 3600
 
 .PHONY: test-vm-guard
 test-vm-guard: ## Authoritative WORKSPACE-GUARD gate in QEMU guest
 	$(UV) run python -m pytest tests/e2e/test_vm_qemu_guard.py -v -m e2e --timeout 3600
+
+.PHONY: test-vm-boot-posture
+test-vm-boot-posture: ## Rehearse bpf LSM + lockdown cmdline in QEMU guest before host restart
+	$(UV) run python -m pytest tests/e2e/test_vm_qemu_boot_posture.py -v -s -m e2e --timeout 3600
 
 .PHONY: test-vm-shell-guard
 test-vm-shell-guard: ## Authoritative shell-guard gate in QEMU guest

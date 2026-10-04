@@ -2,15 +2,7 @@
 
 from pathlib import Path
 
-from workspace.cli.legend import (
-    WIDE_EMOJI,
-    Legend,
-    LegendGroup,
-    LegendItem,
-    get_visual_width,
-    pad_center,
-)
-from workspace.cli.status_containers import (
+from dataops.host.containers import (
     _find_size_by_name,
     _find_stats_by_name,
     _parse_port_mapping,
@@ -21,7 +13,26 @@ from workspace.cli.status_containers import (
     get_system_docker_containers,
     get_system_docker_stats,
 )
-from workspace.cli.status_systemd import (
+from dataops.host.legend import (
+    WIDE_EMOJI,
+    Legend,
+    LegendGroup,
+    LegendItem,
+    get_visual_width,
+    pad_center,
+)
+from dataops.host.status_utils import (
+    _format_port_string,
+    _get_container_status_display,
+    _get_restart_icon,
+    format_bytes,
+    format_ports,
+    parse_size_to_bytes,
+    print_box_line,
+    run_cmd,
+)
+from dataops.host.storage import _print_container_sizes, _print_mounts
+from dataops.host.systemd import (
     SYSTEMD_PREFIXES,
     _extract_compose_info,
     _find_container_by_name,
@@ -32,22 +43,16 @@ from workspace.cli.status_systemd import (
     get_managed_service_names,
     get_systemd_services,
 )
-from workspace.cli.status_utils import (
-    _format_port_string,
-    _get_container_status_display,
-    _get_restart_icon,
-    format_bytes,
-    format_ports,
-    parse_size_to_bytes,
-    print_box_line,
-    run_cmd,
+from dataops.types.host import (
+    LegendRender,
+    PodmanContainer,
+    PortMapping,
+    SystemdService,
 )
-from workspace.cli.storage import _print_container_sizes, _print_root_disk, _remove_path
+
 from workspace.config_utils import get_project_root
 from workspace.types.config import AgentConfig
 from workspace.types.events import StreamEvent, StreamEventType
-from workspace.types.results import LegendRender
-from workspace.types.status import PodmanContainer, PortMapping, SystemdService
 from workspace.utils.banner import (
     _find_pyproject,
     generate_banner_lines,
@@ -405,28 +410,16 @@ def test_find_container_by_name_not_found() -> None:
     assert result is None
 
 
-def test_storage_prints_root_disk(capsys) -> None:
-    _print_root_disk()
+def test_storage_prints_mounts(capsys) -> None:
+    _print_mounts()
     captured = capsys.readouterr()
-    assert "Root Disk" in captured.out
+    assert "Filesystem Usage" in captured.out
 
 
 def test_storage_prints_container_sizes(capsys) -> None:
     _print_container_sizes()
     captured = capsys.readouterr()
     assert "Container Sizes" in captured.out
-
-
-def test_storage_remove_path_dir(tmp_path) -> None:
-    d = tmp_path / "testdir"
-    d.mkdir()
-    assert _remove_path(d) is True
-
-
-def test_storage_remove_path_file(tmp_path) -> None:
-    f = tmp_path / "test.txt"
-    f.write_text("data")
-    assert _remove_path(f) is True
 
 
 def test_get_container_volumes() -> None:

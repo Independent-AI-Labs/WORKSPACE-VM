@@ -48,6 +48,25 @@ class TestFixStaleShebang:
         content = binary.read_text()
         assert ".venv/bin/python" in content
 
+    def test_preserves_variable_inline_python_path(self, tmp_path):
+        """Regression: a variable-based interpreter path is not hardcoded."""
+        binary = tmp_path / "wrapper"
+        original = '#!/usr/bin/env bash\nexec "$VENV_DIR/bin/python" "$@"\n'
+        binary.write_text(original)
+        fix_stale_shebang(binary, tmp_path)
+        assert binary.read_text() == original
+
+    def test_preserves_existing_inline_python_path(self, tmp_path):
+        """An inline path that resolves is left untouched."""
+        interp = tmp_path / "elsewhere" / "python3"
+        interp.parent.mkdir(parents=True)
+        interp.write_text("")
+        binary = tmp_path / "wrapper"
+        original = f'#!/usr/bin/env bash\nexec "{interp}" "$@"\n'
+        binary.write_text(original)
+        fix_stale_shebang(binary, tmp_path)
+        assert binary.read_text() == original
+
     def test_skips_binary_file(self, tmp_path):
         """Test skips non-text files without raising."""
         binary = tmp_path / "binary"

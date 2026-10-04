@@ -11,7 +11,11 @@ from pathlib import Path
 import pytest
 import yaml
 
-from tests.e2e.qemu_cleanup import QemuTracker, cleanup_orphan_qemu_vms
+from tests.e2e.qemu_cleanup import (
+    _VMS_DIR,
+    QemuTracker,
+    cleanup_orphan_qemu_vms,
+)
 from workspace.cli import process as proc
 
 _SUBPROCESS_ERRORS = (
@@ -21,7 +25,6 @@ _SUBPROCESS_ERRORS = (
 )
 
 _VM_SCRIPT = Path("workspace/scripts/bin/vm")
-_VMS_DIR = Path(".vms")
 
 
 def _podman_available() -> bool:

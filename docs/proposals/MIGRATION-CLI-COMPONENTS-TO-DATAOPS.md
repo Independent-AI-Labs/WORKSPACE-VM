@@ -1,7 +1,7 @@
 # WORKSPACE-VM V3 - CLI Components Migration to WORKSPACE-DATAOPS
 
 **Document ID:** WORKSPACE-MIGRATION-CLI-TO-DATAOPS-v1.0
-**Status:** Executed - 2026-06-01
+**Status:** Executed - 2026-06-01; §4.2 superseded 2026-09-28 (see §15)
 **Date:** 2026-06-01
 **Author:** WORKSPACE-VM Engineering
 
@@ -18,7 +18,7 @@
 7. [Import Path Analysis](#7-import-path-analysis)
 8. [Import Changes Required](#8-import-changes-required)
 9. [Install Order & Dependency Chain](#9-install-order-dependency-chain)
-10. [Files to Delete from WORKSPACE-VM](#10-files-to-delete-from-workspace-vm)
+10. [Files to Remove from WORKSPACE-VM](#10-files-to-remove-from-workspace-vm)
 11. [Known Issues Outside Scope](#11-known-issues-outside-scope)
 12. [Verification](#12-verification)
 13. [Risk Register](#13-risk-register)
@@ -690,7 +690,7 @@ uv run python -m pytest tests/ -q
 
 ---
 
-## 10. Files to Delete from WORKSPACE-VM
+## 10. Files to Remove from WORKSPACE-VM
 
 ### 10.1 CLI Components (moved to WORKSPACE-DATAOPS)
 
@@ -1119,3 +1119,41 @@ rm -f tests/integration/test_bootloader_agent_integration.py
 ./workspace/scripts/bin/workspace-oc
 workspace-oc "hello"
 ```
+
+---
+
+## 15. Follow-up (2026-09-28): status/storage/sys_info cluster
+
+§4.2 kept `status.py`, `storage.py`, `status_*.py`, `legend.py` in
+WORKSPACE-VM as `ops` extension entry points. That placement is superseded:
+the whole host reporting cluster moves to WORKSPACE-DATAOPS so all
+data-collection and reporting logic lives with the data operations toolkit.
+
+**Owner:** WORKSPACE-DATAOPS
+[REQ-HOST-REPORT](../../projects/WORKSPACE-DATAOPS/docs/requirements/REQ-HOST-REPORT.md)
++ [SPEC-HOST-REPORT](../../projects/WORKSPACE-DATAOPS/docs/specifications/SPEC-HOST-REPORT.md).
+
+**Moved to `dataops/host/`:**
+
+| WORKSPACE-VM source | DATAOPS destination |
+|---------------------|---------------------|
+| `workspace/cli/storage.py` | `dataops/host/storage.py` |
+| `workspace/cli/status.py` | `dataops/host/status.py` |
+| `workspace/cli/status_containers.py` | `dataops/host/containers.py` |
+| `workspace/cli/status_systemd.py` | `dataops/host/systemd.py` |
+| `workspace/cli/status_utils.py` | `dataops/host/status_utils.py` |
+| `workspace/cli/legend.py` | `dataops/host/legend.py` |
+| `workspace/scripts/utils/analyze_disk_usage.py` | `dataops/host/disk_usage.py` |
+| `workspace/scripts/utils/sys_info.py` | `dataops/host/sys_info.py` |
+
+**Rewiring:** `workspace/scripts/bin/ops` execs the DATAOPS console scripts
+(`workspace-storage`, `workspace-status`); `workspace-banner.sh` calls
+`workspace-sysinfo`. Reporting types move to `dataops/types/host.py`; any VM
+consumer that remains gets a re-export.
+
+**Also in scope:** the report gains multi-mount gauges, permission-tolerant
+`du`, podman volume/reclaimable inventory, and duplicate detection; destructive
+reclaim becomes the sudo-gated `make storage-reclaim` in WORKSPACE-DATAOPS
+(the podman guard blocks `volume prune`, so reclaim removes dangling volumes
+by name). The former `workspace/scripts/utils/free_disk_space.sh` and
+`prototypes/clean_disk_space.py` are retired into `dataops/host/reclaim.py`.

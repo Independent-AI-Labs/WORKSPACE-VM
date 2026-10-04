@@ -1,6 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 
+_OC_WRAPPER_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 oc_wrapper_config_dir() {
     if [[ -n "${OPENCODE_CONFIG_DIR:-}" ]]; then
         printf '%s\n' "$OPENCODE_CONFIG_DIR"
@@ -181,7 +183,12 @@ oc_wrapper_resolve_session_db() {
     sid="${sid//\'/\'\'}"
     for f in "$data_dir"/*.db; do
         [ -f "$f" ] || continue
-        n=$(sqlite3 "$f" "SELECT count(*) FROM session WHERE id='${sid}';" 2>&1)
+        n="$(
+            {
+                printf ".parameter set :sid '%s'\n" "${sid//\'/\'\'}"
+                cat -- "${_OC_WRAPPER_DIR}/../sql/session_exists.sql"
+            } | sqlite3 "$f"
+        )"
         if [ "$n" = "1" ]; then
             export OPENCODE_DB="$(basename "$f")"
             printf '[oc] db: session owner %s (cross-db resume)\n' "$OPENCODE_DB" >&2

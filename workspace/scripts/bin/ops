@@ -7,13 +7,13 @@ SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$SCRIPT_SOURCE")")" && pwd)"
 WORKSPACE_ROOT="$("$SCRIPT_DIR/pwd")"
 export WORKSPACE_ROOT
 
-VENV_DIR="$WORKSPACE_ROOT/.venv"
-VENV_PYTHON="$VENV_DIR/bin/python"
-BOOT_DIR="$WORKSPACE_ROOT/.boot-linux"
-
 if [[ -f "$WORKSPACE_ROOT/.env" ]]; then
     export $(grep -v '^#' "$WORKSPACE_ROOT/.env" | xargs)
 fi
+
+VENV_DIR="$WORKSPACE_ROOT/.venv"
+VENV_PYTHON="$VENV_DIR/bin/python"
+BOOT_DIR="${BOOT_LINUX_DIR:-$WORKSPACE_ROOT/.boot-linux}"
 
 export PATH="$BOOT_DIR/bin:$VENV_DIR/bin:$PATH"
 
@@ -79,10 +79,10 @@ case "$SUBCOMMAND" in
         exec "$BOOT_DIR/bin/helm" "${ARGS[@]}"
         ;;
     status)
-        exec "$VENV_PYTHON" "$WORKSPACE_ROOT/workspace/cli/status.py"
+        exec "$VENV_PYTHON" -m dataops.host.status "${ARGS[@]}"
         ;;
     storage)
-        exec "$VENV_PYTHON" "$WORKSPACE_ROOT/workspace/cli/storage.py" "${ARGS[@]}"
+        exec "$VENV_PYTHON" -m dataops.host.storage "${ARGS[@]}"
         ;;
     cron)
         exec "$BOOT_DIR/bin/cron" "${ARGS[@]}"

@@ -40,6 +40,7 @@ projects:
     workspace-portal: 'projects/WORKSPACE-PORTAL'
     workspace-rp: 'projects/WORKSPACE-RP'
     workspace-streams: 'projects/WORKSPACE-STREAMS'
+    workspace-browser: 'projects/WORKSPACE-BROWSER'
 
 vcs:
   client: 'git'

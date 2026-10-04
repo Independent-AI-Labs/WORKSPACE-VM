@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from tests.e2e.qemu_availability import qemu_e2e_available
-from tests.e2e.qemu_cleanup import QemuTracker, run_vm_create
+from tests.e2e.qemu_cleanup import _VMS_DIR, QemuTracker, run_vm_create
 from tests.e2e.qemu_host_isolation import assert_host_git_unchanged, snapshot_host_git
 from workspace.cli import process as proc
 
@@ -34,7 +34,7 @@ def test_vm_qemu_guard_e2e_guest(qemu_tracker: QemuTracker) -> None:
     assert create.returncode == 0, create.stderr + create.stdout
 
     uuid = qemu_tracker.uuids[-1]
-    vm_dir = Path(".vms") / uuid
+    vm_dir = _VMS_DIR / uuid
     port = int((vm_dir / "ssh_port").read_text().strip())
     key = vm_dir / "qemu_ssh_ed25519"
 

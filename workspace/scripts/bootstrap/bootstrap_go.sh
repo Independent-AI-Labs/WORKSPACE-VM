@@ -13,6 +13,7 @@ log_success() { echo "✓ $1" >&2; }
 # Calculate paths - script is in workspace/scripts/bootstrap/, project root is 3 levels up
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
+source "${SCRIPT_DIR}/../utils/fetch.sh" || exit 1
 
 # Use BOOT_LINUX_DIR env var if set, otherwise default
 BOOT_DIR="${BOOT_LINUX_DIR:-${PROJECT_ROOT}/.boot-linux}"
@@ -53,14 +54,7 @@ trap 'rm -rf "$TEMP_DIR"' EXIT
 cd "$TEMP_DIR"
 
 log_info "Downloading $URL..."
-if command -v curl ; then
-    curl -L --fail --retry 3 -o "$TARBALL" "$URL"
-elif command -v wget ; then
-    wget -q -O "$TARBALL" "$URL"
-else
-    log_error "Neither curl nor wget found."
-    exit 1
-fi
+fetch_file "$URL" "$TARBALL"
 
 log_info "Extracting..."
 tar -xzf "$TARBALL"

@@ -15,7 +15,7 @@ from pathlib import Path
 from workspace.cli import process as proc
 from workspace.cli.hypervisor.qemu_backend import QemuBackend
 
-_VMS_DIR = Path(".vms")
+_VMS_DIR = Path(os.environ.get("WS_VM_DIR", ".vms"))
 _BASE_CACHE = _VMS_DIR / "_base"
 _UUID_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
 

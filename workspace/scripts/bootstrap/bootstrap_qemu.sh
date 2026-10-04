@@ -100,7 +100,7 @@ write_notices() {
     source_url="https://download.qemu.org/qemu-${qemu_version}.tar.xz"
     if [[ -f "$PINS_FILE" ]]; then
         pinned=""
-        if pinned="$(cd "${PROJECT_ROOT}" && uv run python -c "import yaml; d=yaml.safe_load(open('${PINS_FILE}')); print(d.get('qemu',{}).get('source_url',''))")"; then
+        if pinned="$(cd "${PROJECT_ROOT}" && uv run python "${PROJECT_ROOT}/workspace/scripts/utils/read_pin.py" "${PINS_FILE}" qemu.source_url)"; then
             if [[ -n "$pinned" ]]; then
                 source_url="$pinned"
             fi

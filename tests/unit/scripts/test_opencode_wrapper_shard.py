@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+import sqlite3
 import stat
 import subprocess
 from pathlib import Path
@@ -16,6 +17,8 @@ WRAPPER_SH = (
     / "scripts"
     / "opencode-wrapper.sh"
 )
+
+FIXTURES = Path(__file__).resolve().parent / "fixtures"
 
 FAKE_EXIT_USAGE = 2
 
@@ -117,14 +120,12 @@ def test_mono_and_db_conflict_rejected(tmp_path: Path) -> None:
 def _seed_shard_with_session(data_home: Path, shard_name: str, session_id: str) -> None:
     db = data_home / "opencode" / shard_name
     db.parent.mkdir(parents=True, exist_ok=True)
-    sql = (
-        "CREATE TABLE session (id TEXT PRIMARY KEY); "
-        f"INSERT INTO session VALUES('{session_id}');"
-    )
-    subprocess.check_output(
-        ["sqlite3", str(db), sql],
-        stderr=subprocess.STDOUT,
-    )
+    schema = (FIXTURES / "session_schema.sql").read_text(encoding="utf-8")
+    insert = (FIXTURES / "session_insert.sql").read_text(encoding="utf-8")
+    with sqlite3.connect(db) as conn:
+        conn.executescript(schema)
+        conn.execute(insert, {"sid": session_id})
+        conn.commit()
 
 
 def test_cross_repo_session_resume_targets_owning_shard(tmp_path: Path) -> None:

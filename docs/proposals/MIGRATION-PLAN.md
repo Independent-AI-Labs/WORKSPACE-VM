@@ -873,6 +873,7 @@ graph TD
     BASE --> INIT
     INIT --> INSTALL
     INSTALL --> RUNTIME
+```
 
 The generated `opencode.json` inside the container:
 

@@ -97,11 +97,29 @@ sudo swapoff -a && sudo swapon -a
 ## Verification
 
 ```
+ops storage                          # gauges for / and /mnt/ws-fast, volumes, reclaimable
 findmnt /mnt/ws-fast
 swapon --show
 podman info | grep -i graphroot      # as agent
 cat /proc/pressure/io                # full avg10 should stay near 0
 ```
+
+`ops storage` is the read-only host report. It is owned by WORKSPACE-DATAOPS
+(`dataops.host.storage`, [SPEC-HOST-REPORT]); this repo only keeps the `ops`
+alias. It prints one disk gauge per relevant mount (root + `WS_FAST_DIR`),
+tolerates unreadable `du` subtrees, inventories podman volumes and reclaimable
+space, and flags trees duplicated between root and fast storage.
+
+Reclaim is a separate, operator-gated action (never part of the report):
+
+```
+make storage-reclaim CONFIRM=yes     # in projects/WORKSPACE-DATAOPS, as the agent
+```
+
+It removes only dangling images and unprotected dangling volumes by name; the
+podman guard blocks bulk `volume prune`, and linked or keyword-protected
+volumes are never touched. Run it as the podman store owner (the agent): the
+store is rootless, so root would target a different graphroot.
 
 ## Rollback
 

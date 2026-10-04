@@ -28,46 +28,6 @@ class ProcessEnvironment(TypedDict, total=False):
     SHELL: str
 
 
-# === Container Data ===
-class ContainerStatsData(TypedDict):
-    """CPU/memory stats for a container."""
-
-    name: str
-    cpu: str
-    mem_usage: str
-    mem_percent: str
-
-
-class ContainerSizeData(TypedDict):
-    """Disk size information for a container."""
-
-    name: str
-    writable: str
-    virtual: str
-
-
-class VolumeData(TypedDict):
-    """Volume mount information."""
-
-    dst: str
-    src: str
-    type: str
-    size: str
-
-
-class PortData(TypedDict, total=False):
-    """Raw port mapping data from JSON (multiple naming conventions)."""
-
-    hostPort: str | int
-    HostPort: str | int
-    host_port: str | int
-    containerPort: str | int
-    ContainerPort: str | int
-    container_port: str | int
-    protocol: str
-    Protocol: str
-
-
 # === Tier / Scope Overrides ===
 class ScopeOverride(TypedDict, total=False):
     """Maps tier names to action strings (allow/confirm/deny).
@@ -106,25 +66,6 @@ class BannedPatternError(TypedDict):
     pattern: str
     reason: str
     content: str
-
-
-# === Systemd Data ===
-class SystemdDetails(TypedDict, total=False):
-    """Parsed systemd service details."""
-
-    Id: str
-    Description: str
-    LoadState: str
-    ActiveState: str
-    SubState: str
-    MainPID: str
-    ExecMainStartTimestamp: str
-    MemoryCurrent: str
-    CPUUsageNSec: str
-    FragmentPath: str
-    ExecStart: str
-    Restart: str
-    UnitFileState: str
 
 
 # === JSON Response Data ===
@@ -173,16 +114,6 @@ class DriveRevisionListResponse(TypedDict, total=False):
     """Response from Google Drive revisions.list()."""
 
     revisions: list[DriveRevisionInfo]
-
-
-# Container labels are arbitrary key-value pairs from Docker/Podman,
-# so dict[str, str] is the correct type (not TypedDict).
-ContainerLabels = dict[str, str]
-
-
-def empty_labels() -> ContainerLabels:
-    """Factory for empty ContainerLabels."""
-    return {}
 
 
 # === Installation Results ===

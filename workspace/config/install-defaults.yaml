@@ -25,7 +25,7 @@ components:
   - cloudflared
 
   # Browser & Device Automation
-  - playwright
+  - browser
 
   # Document Processing
   - pandoc

@@ -11,7 +11,7 @@ components:
   - gh
   - go
   - cloudflared
-  - playwright
+  - browser
   - pandoc
   - texlive
   - adb

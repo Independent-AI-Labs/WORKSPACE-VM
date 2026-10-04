@@ -3,7 +3,7 @@
 #
 # PATH Order (first = highest priority):
 # 1. boot bin (dot-boot-macos or dot-boot-linux) - System tools (cloudflared, node, python, etc.)
-# 2. .venv/bin - Python packages (playwright, etc.)
+# 2. .venv/bin - Python packages
 # 3. .venv/node_modules/.bin - Node packages (claude, gemini, qwen)
 
 setup_paths() {

@@ -104,7 +104,7 @@ podman run --rm --entrypoint bash --network none "workspace-vm:$VM_UUID" -c '
 cd /opt/workspace-vm
 test -d .boot-linux && echo "[PASS] .boot-linux directory exists" || { echo "[FAIL] .boot-linux missing"; exit 1; }
 test -d .boot-linux/bin && echo "[PASS] .boot-linux/bin exists"
-if command -v .boot-linux/bin/uv ; then echo "[PASS] uv bootstrapped"; else echo "[WARN] uv not found in boot-linux"; fi
+if test -x .boot-linux/bin/uv ; then echo "[PASS] uv bootstrapped"; else echo "[WARN] uv not found in boot-linux"; fi
 '
 echo "[PASS] Bootstrap environment verified"
 

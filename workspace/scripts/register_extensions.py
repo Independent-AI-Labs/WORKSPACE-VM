@@ -58,12 +58,24 @@ exec "{workspace_root}/workspace/scripts/bin/run" "{workspace_root}/{script}" "$
     _maybe_chown(path)
 
 
+def _missing_absolute_python(path: str) -> bool:
+    """Return True when *path* is an absolute Python interpreter that is absent.
+
+    Only absolute paths can be classified as stale. Relative or variable-bearing
+    paths such as ``$VENV_DIR/bin/python`` are not pip console-script shebangs;
+    rewriting them to a checkout-specific absolute path hardcodes the workspace
+    location and breaks portability (and trips the hardcoded-home ban).
+    """
+    return path.startswith("/") and not Path(path).exists()
+
+
 def fix_stale_shebang(binary: Path, workspace_root: Path) -> None:
     """Fix stale shebangs in pip-installed entry points (e.g. matrix-commander, synadm).
 
     When the project moves to a new directory, pip-installed console_scripts retain
     shebangs pointing to the old venv path. This rewrites them to use the current venv.
-    Also fixes wrapper scripts that reference old Python paths.
+    Only absolute interpreter paths that no longer exist are touched; relative or
+    variable-based paths are left exactly as authored.
     """
     if not binary.exists() or not binary.is_file():
         return
@@ -80,24 +92,31 @@ def fix_stale_shebang(binary: Path, workspace_root: Path) -> None:
 
     lines = content.split("\n")
 
-    # Fix shebang (line 0)
+    # Fix shebang (line 0). Portable `#!/usr/bin/env python` shebangs are
+    # deliberately relative and are never rewritten to an absolute venv path.
     if lines[0].startswith("#!") and "/python" in lines[0]:
         shebang_path = lines[0][2:].strip()
-        if not Path(shebang_path).exists():
+        if "/env " not in shebang_path and _missing_absolute_python(shebang_path):
             lines[0] = f"#!{correct_python}"
             stale = True
 
-    # Fix inline interpreter paths in bash wrappers (e.g. workspace-synadm)
+    # Fix inline interpreter paths in bash wrappers (e.g. workspace-synadm).
+    # A `"$VENV_DIR/bin/python"` reference stays as authored.
     for i in range(1, len(lines)):
-        if "/python" in lines[i]:
-            new_line = re.sub(
-                r'"[^"]*?/python3?"',
-                f'"{correct_python_no3}"',
-                lines[i],
-            )
-            if new_line != lines[i]:
-                lines[i] = new_line
-                stale = True
+        if "/python" not in lines[i]:
+            continue
+        new_line = re.sub(
+            r'"([^"]*?/python3?)"',
+            lambda m: (
+                f'"{correct_python_no3}"'
+                if _missing_absolute_python(m.group(1))
+                else m.group(0)
+            ),
+            lines[i],
+        )
+        if new_line != lines[i]:
+            lines[i] = new_line
+            stale = True
 
     if stale:
         binary.write_text("\n".join(lines))

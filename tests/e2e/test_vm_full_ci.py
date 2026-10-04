@@ -27,7 +27,7 @@ _FULL_CI_COMPONENTS = [
     "gh",
     "go",
     "cloudflared",
-    "playwright",
+    "browser",
     "pandoc",
     "texlive",
     "adb",

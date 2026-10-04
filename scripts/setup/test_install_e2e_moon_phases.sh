@@ -17,11 +17,10 @@
 # All phases skip cleanly when moon binary isn't on PATH (sanity-test
 # mode); hard-fail when moon IS available but produces broken output.
 
-# Resolve moon binary once for all phases.
+# Resolve moon binary once for all phases. Single explicit source: the
+# checkout boot dir. Skip cleanly when it is absent (sanity-test mode).
 if [ -x ".boot-linux/bin/moon" ]; then
     MOON=".boot-linux/bin/moon"
-elif command -v moon ; then
-    MOON="moon"
 else
     MOON=""
 fi

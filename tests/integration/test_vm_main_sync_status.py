@@ -11,13 +11,17 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
+import dataops.host.status as status_mod
 import pytest
 import yaml
+from dataops.types.host import (
+    ContainerSizeData,
+    ContainerStatsData,
+    ServiceDisplayInfo,
+    SystemdService,
+)
 
-import workspace.cli.status as status_mod
 from workspace.cli import vm_lifecycle, vm_main, vm_sync
-from workspace.types.common import ContainerSizeData, ContainerStatsData
-from workspace.types.status import ServiceDisplayInfo, SystemdService
 
 # ── vm_main dispatch ─────────────────────────────────────────────────────────
 

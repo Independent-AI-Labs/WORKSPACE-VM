@@ -4,13 +4,9 @@ Provides NamedTuples that support tuple unpacking while adding named field acces
 """
 
 from selectors import SelectorKey
-from typing import TYPE_CHECKING, NamedTuple, TypedDict
+from typing import NamedTuple, TypedDict
 
 from .api import ProviderMetadata, StreamMetadata
-
-if TYPE_CHECKING:
-    from .common import ContainerLabels
-    from .status import PortMapping
 
 
 class ParseResult(NamedTuple):
@@ -39,21 +35,6 @@ class ReadLineResult(NamedTuple):
 
     line: str | None
     is_complete: bool
-
-
-class ComposeInfo(NamedTuple):
-    """Docker compose information extracted from ExecStart."""
-
-    managed_container: str | None
-    compose_file: str | None
-    compose_profiles: list[str]
-
-
-class LegendRender(NamedTuple):
-    """Rendered legend lines."""
-
-    icons_line: str
-    labels_line: str
 
 
 class BinaryCheckResult(NamedTuple):
@@ -109,13 +90,6 @@ class ComponentStatusEntry(NamedTuple):
     category: str = ""
 
 
-class ColorPair(NamedTuple):
-    """A pair of foreground and background colors."""
-
-    fg: int
-    bg: int
-
-
 class SelectorEvent(NamedTuple):
     """A selector event with key and mask."""
 
@@ -137,13 +111,6 @@ class ScanResult(NamedTuple):
     large: list[str]
 
 
-class ContainerStatusDisplay(NamedTuple):
-    """Display info for container status."""
-
-    icon: str
-    color: str
-
-
 class CharWithOrdinal(NamedTuple):
     """Character with its ordinal value."""
 
@@ -163,13 +130,6 @@ class KeyHandleResult(NamedTuple):
 
     should_continue: bool
     result: object  # SelectableItem | SelectableItemDict | list | None
-
-
-class ContainerInspectInfo(NamedTuple):
-    """Port and label info from container inspection."""
-
-    ports: "list[PortMapping]"
-    labels: "ContainerLabels"
 
 
 class NamedComponentStatus(NamedTuple):

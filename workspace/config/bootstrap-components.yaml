@@ -353,15 +353,13 @@ components:
   # =========================================================================
   # Browser & Device Automation
   # =========================================================================
-  - name: playwright
-    label: 'Playwright'
-    description: 'Browser automation (Chromium)'
+  - name: browser
+    label: 'WSB Browser'
+    description: 'Native Node Chromium automation CLI (WORKSPACE-BROWSER)'
     type: script
     group: 'Browser & Device Automation'
-    script: 'bootstrap_playwright.sh'
-    detect_path: '.boot-linux/playwright-browsers'
-    version_cmd: ['.boot-linux/bin/playwright', '--version']
-    version_pattern: '(\d+\.\d+\.\d+)'
+    script: 'bootstrap_browser.sh'
+    detect_path: 'projects/WORKSPACE-BROWSER/dist/cli/main.js'
 
   - name: adb
     label: 'ADB'
