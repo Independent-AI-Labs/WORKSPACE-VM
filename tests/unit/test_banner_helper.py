@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import time
 from pathlib import Path
 from unittest.mock import patch
 
@@ -13,6 +14,7 @@ from workspace.scripts.shell.banner_helper import (
     _has_failed_container_dep,
     _icon_for,
     _print_extension,
+    _run_check_with_countdown,
     _title_for,
     main,
     output_banner,
@@ -20,6 +22,7 @@ from workspace.scripts.shell.banner_helper import (
     output_extras,
 )
 from workspace.scripts.shell.extension_registry import (
+    HealthCheckResult,
     ResolvedExtension,
     Status,
 )
@@ -272,6 +275,47 @@ class TestOutputBanner:
         )
         out = capsys.readouterr().out
         assert "bad" in out
+
+
+class TestRunCheckWithCountdown:
+    def test_returns_result_after_countdown(self, capsys) -> None:
+        ext = _make_ext("cmd", Status.READY)
+        ext.entry["check"] = {"timeout": 5}
+        expected = HealthCheckResult(healthy=True, version="1.0.0")
+
+        def fake_run_check(_entry, _root, *, log_hook=None):
+            time.sleep(0.15)
+            return expected
+
+        with patch(
+            "workspace.scripts.shell.banner_helper.run_check",
+            side_effect=fake_run_check,
+        ):
+            got = _run_check_with_countdown(
+                ext,
+                Path("/tmp"),
+                "\033[0m",
+                log=lambda _message: None,
+            )
+        assert got == expected
+        assert "cmd" in capsys.readouterr().out
+
+    def test_timeout_returns_unhealthy(self, capsys) -> None:
+        ext = _make_ext("slow", Status.READY)
+        ext.entry["check"] = {"timeout": 0}
+
+        def slow_run_check(_entry, _root, *, log_hook=None):
+            time.sleep(0.6)
+            return HealthCheckResult(healthy=True, version="1.0.0")
+
+        with patch(
+            "workspace.scripts.shell.banner_helper.run_check",
+            side_effect=slow_run_check,
+        ):
+            got = _run_check_with_countdown(ext, Path("/tmp"), "\033[0m")
+        assert got.healthy is False
+        assert got.version is None
+        capsys.readouterr()
 
 
 class TestMain:
