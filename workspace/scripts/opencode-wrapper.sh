@@ -169,6 +169,97 @@ oc_wrapper_shard_db() {
             printf '%s\t%s\n' "$hash" "$root" >> "$map"
         fi
         printf '[oc] db shard: %s (%s)\n' "$OPENCODE_DB" "$root" >&2
+        oc_wrapper_reconcile_shard "$root"
+    fi
+}
+
+# Canonical opencode project id for a git root. opencode resolves the id as
+# origin-remote hash first, then the first root commit (ProjectV2.resolve).
+# Prints the id, or returns 1 when neither is available.
+oc_wrapper_project_id() {
+    local root="$1" url rest host path norm
+    if url="$(git -C "$root" remote get-url origin 2>&1)"; then
+        url="${url%$'\n'}"
+        url="${url%$'\r'}"
+        case "$url" in
+            file:*) ;;
+            *://*)
+                rest="${url#*://}"
+                rest="${rest#*@}"
+                host="${rest%%/*}"
+                host="${host%%:*}"
+                path="${rest#*/}"
+                ;;
+            *:*)
+                rest="${url#*@}"
+                host="${rest%%:*}"
+                path="${rest#*:}"
+                ;;
+        esac
+        if [[ -n "${host:-}" && -n "${path:-}" ]]; then
+            norm="$path"
+            while [[ "$norm" == /* ]]; do norm="${norm#/}"; done
+            case "$norm" in
+                *.git/) norm="${norm%.git/}" ;;
+                *.git) norm="${norm%.git}" ;;
+            esac
+            while [[ "$norm" == */ ]]; do norm="${norm%/}"; done
+            if [[ -n "$norm" ]]; then
+                printf '%s' "git-remote:${host,,}/${norm}" | sha1sum | cut -c1-40
+                return 0
+            fi
+        fi
+    fi
+    if norm="$(git -C "$root" rev-list --max-parents=0 HEAD 2>&1)" && [[ -n "$norm" ]]; then
+        printf '%s\n' "${norm%%$'\n'*}"
+        return 0
+    fi
+    return 1
+}
+
+# opencode's session list is filtered by the project id resolved for the
+# current process. When an origin remote is added after the first sessions,
+# the id flips (root commit -> remote hash) and the older sessions disappear
+# from every list. Fold every project id sharing this worktree into the id
+# opencode resolves today so no session is orphaned. Idempotent: no-op unless
+# a sibling project row exists. Failure only warns - opencode still runs.
+oc_wrapper_reconcile_shard() {
+    local root="$1" canonical data_dir db sql_dir count
+    if [ -z "$(command -v sqlite3)" ]; then
+        return 0
+    fi
+    if ! canonical="$(oc_wrapper_project_id "$root")"; then
+        return 0
+    fi
+    sql_dir="${_OC_WRAPPER_DIR}/../sql"
+    data_dir="${XDG_DATA_HOME:-${HOME}/.local/share}/opencode"
+    db="${data_dir}/${OPENCODE_DB}"
+    [ -f "$db" ] || return 0
+    if ! count="$(cat -- "${sql_dir}/oc_project_table_count.sql" \
+        | sqlite3 "file:${db}?mode=ro" 2>&1)"; then
+        return 0
+    fi
+    [ "$count" = "1" ] || return 0
+    if ! count="$(
+        {
+            printf ".parameter set :root '%s'\n" "${root//\'/\'\'}"
+            printf ".parameter set :canon '%s'\n" "${canonical//\'/\'\'}"
+            cat -- "${sql_dir}/oc_project_sibling_count.sql"
+        } | sqlite3 "file:${db}?mode=ro" 2>&1
+    )"; then
+        return 0
+    fi
+    if [[ ! "$count" =~ ^[0-9]+$ ]] || [ "$count" -eq 0 ]; then
+        return 0
+    fi
+    if {
+        printf ".parameter set :root '%s'\n" "${root//\'/\'\'}"
+        printf ".parameter set :canon '%s'\n" "${canonical//\'/\'\'}"
+        cat -- "${sql_dir}/oc_reconcile_project.sql"
+    } | sqlite3 -cmd ".timeout 3000" "$db"; then
+        printf '[oc] reconciled %s: project ids unified to %s\n' "$OPENCODE_DB" "$canonical" >&2
+    else
+        printf '[oc] warning: could not reconcile project ids in %s; sessions under a superseded project id stay hidden\n' "$OPENCODE_DB" >&2
     fi
 }
 

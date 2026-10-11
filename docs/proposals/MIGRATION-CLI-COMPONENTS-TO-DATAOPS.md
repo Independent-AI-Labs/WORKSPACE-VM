@@ -1,7 +1,7 @@
 # WORKSPACE-VM V3 - CLI Components Migration to WORKSPACE-DATAOPS
 
 **Document ID:** WORKSPACE-MIGRATION-CLI-TO-DATAOPS-v1.0
-**Status:** Executed - 2026-06-01; §4.2 superseded 2026-09-28 (see §15)
+**Status:** Executed - 2026-06-01; §4.2 superseded 2026-09-28 (see §15); §16 added 2026-10-10 (storage management consolidation)
 **Date:** 2026-06-01
 **Author:** WORKSPACE-VM Engineering
 
@@ -1157,3 +1157,41 @@ reclaim becomes the sudo-gated `make storage-reclaim` in WORKSPACE-DATAOPS
 (the podman guard blocks `volume prune`, so reclaim removes dangling volumes
 by name). The former `workspace/scripts/utils/free_disk_space.sh` and
 `prototypes/clean_disk_space.py` are retired into `dataops/host/reclaim.py`.
+
+---
+
+## 16. Follow-up (2026-10-10): host storage management consolidation
+
+§15 moved storage *reporting* into DATAOPS. This section moves storage
+*management* there too, so every consumer resolves paths from one seam instead
+of hardcoding `/mnt/ws-fast` / `/mnt/ws-backup`.
+
+**Owner:** WORKSPACE-DATAOPS
+[REQ-STORAGE](../../projects/WORKSPACE-DATAOPS/docs/requirements/REQ-STORAGE.md)
++ [SPEC-STORAGE](../../projects/WORKSPACE-DATAOPS/docs/specifications/SPEC-STORAGE.md)
++ [RUNBOOK-STORAGE](../../projects/WORKSPACE-DATAOPS/docs/runbooks/RUNBOOK-STORAGE.md).
+
+**Absorbed into DATAOPS `scripts/storage/`:**
+
+| Source repo | Source | DATAOPS destination |
+|-------------|--------|---------------------|
+| WORKSPACE-GUARD | `scripts/mount-storage-device.sh` | `scripts/storage/mount-storage-device.sh` |
+| WORKSPACE-GUARD | `scripts/unmount-storage-device.sh` | `scripts/storage/unmount-storage-device.sh` |
+| WORKSPACE-VM | `scripts/setup/configure-fast-storage.sh` | `scripts/storage/configure-fast-storage.sh` |
+| WORKSPACE-VM | `scripts/setup/migrate-fast-storage.sh` | `scripts/storage/migrate-fast-storage.sh` |
+| (new) | (none) | `scripts/storage/persist-storage-device.sh` |
+| (new) | (none) | `scripts/storage/lib-storage.sh` (seam reader) |
+
+**Single target surface:** the `mount-ws-backup`/`unmount-ws-backup`
+(WORKSPACE-GUARD) and `configure-fast-storage`/`migrate-fast-storage`
+(WORKSPACE-VM) Make targets are deleted; DATAOPS `make storage-*` targets plus
+the read-only `ops storage` report are authoritative.
+
+**Seam:** `workspace/config/storage-locations.yaml` (git-ignored) with the two
+top-level scalars `fast:`/`backup:`; precedence env
+(`WS_FAST_DIR`/`WS_BACKUP_DIR`) → seam → default. WORKSPACE-VM
+`REQ-INSTALL-STORAGE.md` and `OPS-FAST-STORAGE.md` are superseded by the DATAOPS
+contracts and runbook.
+
+**Not in scope:** WORKSPACE-GATEWAY backup destinations (`GW_BACKUP_DIR`) stay
+gateway-owned, deliberately independent of the seam.

@@ -23,6 +23,10 @@ FIXTURES = Path(__file__).resolve().parent / "fixtures"
 FAKE_EXIT_USAGE = 2
 
 
+def _read_sql(name: str) -> str:
+    return (FIXTURES / name).read_text(encoding="utf-8")
+
+
 def _make_fake_opencode(tmp_path: Path) -> Path:
     fake = tmp_path / "fake-opencode"
     fake.write_text('#!/bin/bash\nprintf "DB=%s\\n" "${OPENCODE_DB:-UNSET}"\n')
@@ -158,3 +162,146 @@ def test_non_git_directory_passthrough(tmp_path: Path) -> None:
     plain = tmp_path / "plain-dir"
     plain.mkdir()
     assert "DB=UNSET" in _run_dispatch(tmp_path, plain)
+
+
+def _git(repo: Path, *args: str, env: dict[str, str] | None = None) -> None:
+    subprocess.check_output(["git", *args], cwd=repo, stderr=subprocess.STDOUT, env=env)
+
+
+def _git_env() -> dict[str, str]:
+    env = os.environ.copy()
+    env.update(
+        {
+            "GIT_AUTHOR_NAME": "Test",
+            "GIT_AUTHOR_EMAIL": "test@example.com",
+            "GIT_COMMITTER_NAME": "Test",
+            "GIT_COMMITTER_EMAIL": "test@example.com",
+        }
+    )
+    return env
+
+
+def _make_repo_with_remote(tmp_path: Path, name: str, remote: str) -> Path:
+    repo = tmp_path / name
+    repo.mkdir()
+    _git(repo, "init")
+    (repo / "file.txt").write_text("x", encoding="utf-8")
+    _git(repo, "add", "file.txt")
+    _git(repo, "commit", "-m", "root", env=_git_env())
+    _git(repo, "remote", "add", "origin", remote)
+    return repo
+
+
+def _seed_reconcile_shard(
+    data_home: Path,
+    shard_name: str,
+    worktree: str,
+    stale_id: str,
+    canonical_id: str,
+) -> Path:
+    db = data_home / "opencode" / shard_name
+    db.parent.mkdir(parents=True, exist_ok=True)
+    schema = _read_sql("project_reconcile_schema.sql")
+    project_insert = _read_sql("reconcile_project_insert.sql")
+    session_insert = _read_sql("reconcile_session_insert.sql")
+    with sqlite3.connect(db) as conn:
+        conn.executescript(schema)
+        for pid in (stale_id, canonical_id):
+            conn.execute(project_insert, {"pid": pid, "worktree": worktree})
+        conn.execute(
+            session_insert,
+            {"sid": "ses_stale1", "pid": stale_id, "directory": worktree},
+        )
+        conn.execute(
+            session_insert,
+            {"sid": "ses_canon1", "pid": canonical_id, "directory": worktree},
+        )
+        conn.execute(
+            session_insert,
+            {"sid": "ses_other", "pid": "otherproj", "directory": "/elsewhere"},
+        )
+        conn.commit()
+    return db
+
+
+def test_reconcile_unifies_project_ids_for_git_root(tmp_path: Path) -> None:
+    remote = "git@github.com:Modded-Software/Procedural-Worlds.git"
+    repo = _make_repo_with_remote(tmp_path, "repo-a", remote)
+    root_commit = (
+        subprocess.check_output(
+            ["git", "rev-list", "--max-parents=0", "HEAD"], cwd=repo, text=True
+        )
+        .strip()
+        .splitlines()[0]
+    )
+    canonical = hashlib.sha1(
+        b"git-remote:github.com/Modded-Software/Procedural-Worlds"
+    ).hexdigest()
+    assert canonical != root_commit
+    db = _seed_reconcile_shard(
+        tmp_path / "xdg-data", _expected_shard(repo), str(repo), root_commit, canonical
+    )
+
+    _run_dispatch(tmp_path, repo)
+
+    with sqlite3.connect(db) as conn:
+        projects = conn.execute(
+            _read_sql("reconcile_project_ids.sql"), {"worktree": str(repo)}
+        ).fetchall()
+        assert projects == [(canonical,)]
+        sessions = dict(conn.execute(_read_sql("reconcile_session_all.sql")).fetchall())
+    assert sessions["ses_stale1"] == canonical
+    assert sessions["ses_canon1"] == canonical
+    assert sessions["ses_other"] == "otherproj"
+
+
+def test_reconcile_is_idempotent(tmp_path: Path) -> None:
+    remote = "git@github.com:Modded-Software/Procedural-Worlds.git"
+    repo = _make_repo_with_remote(tmp_path, "repo-a", remote)
+    root_commit = (
+        subprocess.check_output(
+            ["git", "rev-list", "--max-parents=0", "HEAD"], cwd=repo, text=True
+        )
+        .strip()
+        .splitlines()[0]
+    )
+    canonical = hashlib.sha1(
+        b"git-remote:github.com/Modded-Software/Procedural-Worlds"
+    ).hexdigest()
+    db = _seed_reconcile_shard(
+        tmp_path / "xdg-data", _expected_shard(repo), str(repo), root_commit, canonical
+    )
+
+    _run_dispatch(tmp_path, repo)
+    _run_dispatch(tmp_path, repo)
+
+    with sqlite3.connect(db) as conn:
+        assert conn.execute(
+            _read_sql("reconcile_project_count.sql"), {"worktree": str(repo)}
+        ).fetchone() == (1,)
+        assert conn.execute(_read_sql("reconcile_session_count.sql")).fetchone() == (3,)
+
+
+def test_reconcile_noop_without_project_table(tmp_path: Path) -> None:
+    repo = _make_repo_with_remote(
+        tmp_path, "repo-a", "git@github.com:example/example.git"
+    )
+    shard = _expected_shard(repo)
+    db = tmp_path / "xdg-data" / "opencode" / shard
+    db.parent.mkdir(parents=True, exist_ok=True)
+    schema = (FIXTURES / "session_schema.sql").read_text(encoding="utf-8")
+    insert = (FIXTURES / "session_insert.sql").read_text(encoding="utf-8")
+    with sqlite3.connect(db) as conn:
+        conn.executescript(schema)
+        conn.execute(insert, {"sid": "ses_plain"})
+        conn.commit()
+
+    _run_dispatch(tmp_path, repo)
+
+    with sqlite3.connect(db) as conn:
+        assert conn.execute(_read_sql("reconcile_session_ids.sql")).fetchall() == [
+            ("ses_plain",)
+        ]
+        assert conn.execute(
+            _read_sql("reconcile_project_table_count.sql")
+        ).fetchone() == (0,)

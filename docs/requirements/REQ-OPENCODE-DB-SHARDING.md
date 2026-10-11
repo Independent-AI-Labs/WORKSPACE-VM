@@ -3,7 +3,7 @@
 **Document ID:** WS-REQ-OPENCODE-DB-SHARDING-v0.1
 **Status:** Approved:operator decision 2026-09-17, implemented same day
 **Parent Docs:** workspace/scripts/opencode-wrapper.sh, projects/opencode/packages/core/src/database/database.ts
-**Last Updated:** 2026-09-17
+**Last Updated:** 2026-10-10
 
 ## 1. Purpose
 
@@ -55,6 +55,16 @@ one sqlite DB per git repository, derived in the `oc`/`ocb` wrappers.
   session row and opens that database, so resuming a session created under
   another repository works. When no owner is found, the git-root shard
   derivation applies as before.
+- **R10: Per-shard project-id reconciliation.** When a shard is derived from
+  the git toplevel (not `--db`/`--mono`), the wrapper computes the canonical
+  opencode project id for that root (origin-remote hash first, else the first
+  root commit, matching `ProjectV2.resolve`) and folds every other project row
+  sharing the worktree into it (reassigning `session`, `permission`,
+  `project_directory`, `workspace`, then dropping the emptied rows). opencode
+  filters the session list by the resolved project id, so an id change (e.g. an
+  origin remote added after the first sessions, with `.git` root-owned and thus
+  no writable id cache) otherwise hides the older sessions. Idempotent: a no-op
+  unless a sibling project row exists; failure warns on stderr and continues.
 
 ## 4. Non-Goals (v1)
 
@@ -75,3 +85,8 @@ one sqlite DB per git repository, derived in the `oc`/`ocb` wrappers.
 - **AC-7** A session created in repo A's shard resumes via `oc -s <id>` from
   repo B with `OPENCODE_DB` set to A's shard; `--mono -s <id>` ignores the
   resolver and stays on the monolith.
+- **AC-8** A shard holding two project ids for one worktree (a stale root-commit
+  id and the current remote-derived id) is unified to the remote id on the next
+  `oc` invocation: the sessions are listed under one project and the stale row
+  is gone; a second invocation is a no-op. A shard without a `project` table is
+  left untouched.

@@ -5,7 +5,7 @@
 #
 # Mirrors the `workspace_failure_notify.sh` send pattern (himalaya account
 # `polymarket`, To = WORKSPACE_FAILURE_NOTIFY_TO or independentailabs@gmail.com).
-# Per-repo `.gitleaksignore` allowlists are honored automatically by gitleaks
+# Per-repo gitleaks allowlist files are honored automatically by gitleaks
 # itself, so documented false positives stay quiet.
 #
 # Exit codes:
@@ -30,7 +30,7 @@ readonly TIMESTAMP="$(date -u +%Y-%m-%dT%H%M%SZ)"
 
 # --dry-run: scan + report locally but never invoke himalaya. Useful for
 # manual `bash workspace_gitleaks_sweep.sh --dry-run` after adding new
-# .gitleaksignore entries to confirm zero findings before unleashing the
+# allowlist entries to confirm zero findings before unleashing the
 # weekly cron's mail.
 DRY_RUN=0
 if [[ "${1:-}" == "--dry-run" || "${WORKSPACE_GITLEAKS_SWEEP_DRY_RUN:-}" == "1" ]]; then
@@ -81,7 +81,7 @@ for repo in "${repos[@]}"; do
     if [[ $rc -eq 0 ]]; then
         report_summary+="  ${repo_name}: clean"$'\n'
     elif [[ $rc -eq 1 ]]; then
-        # gitleaks exits 1 on findings (after .gitleaksignore filter)
+        # gitleaks exits 1 on findings (after the allowlist filter)
         finding_count="$(uv run python "${WORKSPACE}/scripts/services/gitleaks_report.py" "$out_json")" || {
             echo "[gitleaks-sweep] json parse failed for $out_json" >&2
             finding_count="?"
@@ -127,7 +127,7 @@ $report_summary
 
 Reports: $RUN_DIR/
 
-Action: review each *.json + *.log file for the offending pattern. If a finding is a documented false positive, add its fingerprint to the repo-local .gitleaksignore. If a finding is a real credential, follow projects/docs/RUNBOOK-CREDENTIAL-LEAK.md (rotate first, then scrub).
+Action: review each *.json + *.log file for the offending pattern. If a finding is a documented false positive, add its fingerprint to the repo-local gitleaks allowlist file. If a finding is a real credential, follow projects/docs/RUNBOOK-CREDENTIAL-LEAK.md (rotate first, then scrub).
 EOF
 )
 
