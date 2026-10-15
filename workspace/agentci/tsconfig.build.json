@@ -6,8 +6,6 @@
     "rewriteRelativeImportExtensions": true
   },
   "include": [
-    "src/server.ts",
-    "src/v1-hook-adapter.ts",
-    "src/policies.ts"
+    "src/**/*.ts"
   ]
 }

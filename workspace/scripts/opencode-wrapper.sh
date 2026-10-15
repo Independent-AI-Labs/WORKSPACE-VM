@@ -170,6 +170,17 @@ oc_wrapper_shard_db() {
         fi
         printf '[oc] db shard: %s (%s)\n' "$OPENCODE_DB" "$root" >&2
         oc_wrapper_reconcile_shard "$root"
+    else
+        # Fail loud. A swallowed `git rev-parse` here quietly drops the shard
+        # and sends the session to the default DB, where every sharded session
+        # looks empty (observed: a root-locked .git + a /usr/bin/git that is
+        # not the guard, so the safe.directory injection is missing and git
+        # reports "dubious ownership"). Surface git's stderr and continue.
+        printf '[oc] warning: could not resolve the git root for shard selection\n' >&2
+        printf '[oc]   `git rev-parse --show-toplevel` said: %s\n' "$root" >&2
+        printf '[oc]   opencode will use the default DB; sharded sessions may appear empty.\n' >&2
+        printf '[oc]   hint: "dubious ownership" means /usr/bin/git is not the workspace guard\n' >&2
+        printf '[oc]   (its safe.directory injection is missing). Reinstall the git guard, then rerun.\n' >&2
     fi
 }
 

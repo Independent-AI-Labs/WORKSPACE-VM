@@ -1,0 +1,262 @@
+import assert from "node:assert/strict";
+import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import test from "node:test";
+import { createModerationAdapter, type ModerationClient } from "../src/moderation/adapter.ts";
+import { sessionDirectory } from "../src/moderation/audit.ts";
+import type { MessageFact, TodoFact } from "../src/moderation/types.ts";
+
+const options = { gatewayURL: "http://127.0.0.1:9080/llamafile", model: "/zip/MiniCPM5-1B-Q8_0.gguf" };
+
+test("a failed response triggers a persisted continuation prompt", async (context) => {
+  const home = await mkdtemp(join(tmpdir(), "agentci-adapter-"));
+  const previous = process.env.XDG_STATE_HOME;
+  process.env.XDG_STATE_HOME = home;
+  const sessionID = "ses_adapter01";
+  const store = new Harness([user("user_1", "Finish the task."), assistant("msg_1", "user_1", "I stopped early.")]);
+  const adapter = createModerationAdapter({ client: store.client }, options, classifierFetch("decision: AGENT_CONTINUING\nreason: WORK_REMAINS"));
+  try {
+    adapter.event({ event: { type: "session.status", properties: { sessionID, status: { type: "busy" } } } });
+    adapter.event({ event: { type: "session.status", properties: { sessionID, status: { type: "idle" } } } });
+    await store.waitFor(() => store.promptAsyncCalls.length > 0, "continuation prompt was not sent");
+    assert.equal(store.promptAsyncCalls.length, 1);
+    assert.match(store.promptAsyncCalls[0].text, /Automated Moderation: work incomplete/);
+    adapter.event({ event: { type: "session.status", properties: { sessionID, status: { type: "busy" } } } });
+    await store.waitFor(() => store.toasts.includes("continuing"), "continuation toast was not shown");
+  } finally {
+    if (previous === undefined) delete process.env.XDG_STATE_HOME;
+    else process.env.XDG_STATE_HOME = previous;
+    await rm(home, { recursive: true, force: true });
+  }
+  context.diagnostic(`adapter session ${sessionID}`);
+});
+
+test("a passing response does not prompt the agent again", async () => {
+  const home = await mkdtemp(join(tmpdir(), "agentci-adapter-pass-"));
+  const previous = process.env.XDG_STATE_HOME;
+  process.env.XDG_STATE_HOME = home;
+  const sessionID = "ses_adapter02";
+  const store = new Harness([user("user_1", "Finish the task."), assistant("msg_1", "user_1", "All done.")]);
+  const adapter = createModerationAdapter({ client: store.client }, options, classifierFetch("decision: AGENT_COMPLETE\nreason: WORK_COMPLETE"));
+  try {
+    adapter.event({ event: { type: "session.status", properties: { sessionID, status: { type: "busy" } } } });
+    adapter.event({ event: { type: "session.status", properties: { sessionID, status: { type: "idle" } } } });
+    await store.waitFor(() => store.toasts.includes("complete"), "complete toast was not shown");
+    assert.equal(store.promptAsyncCalls.length, 0);
+  } finally {
+    if (previous === undefined) delete process.env.XDG_STATE_HOME;
+    else process.env.XDG_STATE_HOME = previous;
+    await rm(home, { recursive: true, force: true });
+  }
+});
+
+test("pending todos are handed to the classifier, whose AGENT_COMPLETE ends the cycle", async () => {
+  const home = await mkdtemp(join(tmpdir(), "agentci-adapter-required-"));
+  const previous = process.env.XDG_STATE_HOME;
+  process.env.XDG_STATE_HOME = home;
+  const sessionID = "ses_adapter03";
+  const store = new Harness([user("user_1", "Finish the task."), assistant("msg_1", "user_1", "Partially done.")], [{ status: "pending", priority: "high" }]);
+  const captured: string[] = [];
+  const adapter = createModerationAdapter({ client: store.client }, options, classifierFetch("decision: AGENT_COMPLETE\nreason: WORK_COMPLETE", captured));
+  try {
+    adapter.event({ event: { type: "session.status", properties: { sessionID, status: { type: "busy" } } } });
+    adapter.event({ event: { type: "session.status", properties: { sessionID, status: { type: "idle" } } } });
+    await store.waitFor(() => store.toasts.includes("complete"), "complete toast was not shown");
+    assert.equal(captured.length, 1);
+    assert.match(captured[0], /\[pending\]/);
+    assert.equal(store.promptAsyncCalls.length, 0);
+  } finally {
+    if (previous === undefined) delete process.env.XDG_STATE_HOME;
+    else process.env.XDG_STATE_HOME = previous;
+    await rm(home, { recursive: true, force: true });
+  }
+});
+
+test("pending todos with an AGENT_CONTINUING verdict trigger a continuation", async () => {
+  const home = await mkdtemp(join(tmpdir(), "agentci-adapter-required-"));
+  const previous = process.env.XDG_STATE_HOME;
+  process.env.XDG_STATE_HOME = home;
+  const sessionID = "ses_adapter04";
+  const store = new Harness([user("user_1", "Finish the task."), assistant("msg_1", "user_1", "Partially done.")], [{ status: "in_progress", priority: "high" }]);
+  const captured: string[] = [];
+  const adapter = createModerationAdapter({ client: store.client }, options, classifierFetch("decision: AGENT_CONTINUING\nreason: WORK_REMAINS", captured));
+  try {
+    adapter.event({ event: { type: "session.status", properties: { sessionID, status: { type: "busy" } } } });
+    adapter.event({ event: { type: "session.status", properties: { sessionID, status: { type: "idle" } } } });
+    await store.waitFor(() => store.promptAsyncCalls.length > 0, "continuation was not sent");
+    assert.equal(captured.length, 1);
+    assert.match(captured[0], /\[in_progress\]/);
+    assert.match(store.promptAsyncCalls[0].text, /Automated Moderation: work incomplete/);
+    adapter.event({ event: { type: "session.status", properties: { sessionID, status: { type: "busy" } } } });
+  } finally {
+    if (previous === undefined) delete process.env.XDG_STATE_HOME;
+    else process.env.XDG_STATE_HOME = previous;
+    await rm(home, { recursive: true, force: true });
+  }
+});
+
+test("a response to an injected continuation is moderated", async () => {
+  const home = await mkdtemp(join(tmpdir(), "agentci-adapter-continuation-"));
+  const previous = process.env.XDG_STATE_HOME;
+  process.env.XDG_STATE_HOME = home;
+  const sessionID = "ses_adapter05";
+  const continuation = user("cont_1", "⚠️ Automated Moderation: work incomplete, continue now; do not stop to explain.");
+  continuation.info.parentID = "msg_1";
+  const store = new Harness([
+    user("user_1", "Finish the task."),
+    assistant("msg_1", "user_1", "I stopped early."),
+    continuation,
+    assistant("msg_2", "cont_1", "Now I finished the task."),
+  ]);
+  const captured: string[] = [];
+  const adapter = createModerationAdapter({ client: store.client }, options, classifierFetch("decision: AGENT_COMPLETE\nreason: WORK_COMPLETE", captured));
+  try {
+    adapter.event({ event: { type: "session.status", properties: { sessionID, status: { type: "busy" } } } });
+    adapter.event({ event: { type: "session.status", properties: { sessionID, status: { type: "idle" } } } });
+    await store.waitFor(() => store.toasts.includes("complete"), "continuation reply was not moderated");
+    assert.equal(captured.length, 1);
+    assert.match(captured[0], /Now I finished the task/);
+    assert.equal(store.promptAsyncCalls.length, 0);
+  } finally {
+    if (previous === undefined) delete process.env.XDG_STATE_HOME;
+    else process.env.XDG_STATE_HOME = previous;
+    await rm(home, { recursive: true, force: true });
+  }
+});
+
+test("the agent's reply to an injected continuation is classified and can complete", async () => {
+  const home = await mkdtemp(join(tmpdir(), "agentci-adapter-second-cycle-"));
+  const previous = process.env.XDG_STATE_HOME;
+  process.env.XDG_STATE_HOME = home;
+  const sessionID = "ses_adapter06";
+  const store = new Harness([user("user_1", "Finish the task."), assistant("msg_1", "user_1", "I stopped early.")]);
+  const captured: string[] = [];
+  const adapter = createModerationAdapter(
+    { client: store.client },
+    options,
+    classifierSequence(["decision: AGENT_CONTINUING\nreason: WORK_REMAINS", "decision: AGENT_COMPLETE\nreason: WORK_COMPLETE"], captured),
+  );
+  try {
+    adapter.event({ event: { type: "session.status", properties: { sessionID, status: { type: "busy" } } } });
+    adapter.event({ event: { type: "session.status", properties: { sessionID, status: { type: "idle" } } } });
+    await store.waitFor(() => store.promptAsyncCalls.length === 1, "first cycle did not send a continuation");
+    adapter.event({ event: { type: "session.status", properties: { sessionID, status: { type: "busy" } } } });
+    await waitForDecisionType(sessionID, "continuation-verified", "continuation was not verified");
+    store.messages.push(assistant("msg_2", "cont_1", "Now I finished the task and the tests pass."));
+    adapter.event({ event: { type: "session.status", properties: { sessionID, status: { type: "idle" } } } });
+    await store.waitFor(() => store.toasts.includes("complete"), "the reply to the continuation was never moderated");
+    assert.equal(captured.length, 2);
+    assert.match(captured[1], /Now I finished the task/);
+    assert.equal(store.promptAsyncCalls.length, 1);
+  } finally {
+    if (previous === undefined) delete process.env.XDG_STATE_HOME;
+    else process.env.XDG_STATE_HOME = previous;
+    await rm(home, { recursive: true, force: true });
+  }
+});
+
+class Harness {
+  readonly messages: MessageFact[];
+  readonly todos: TodoFact[];
+  readonly promptAsyncCalls: { text: string }[] = [];
+  readonly toasts: string[] = [];
+  readonly client: ModerationClient;
+
+  constructor(messages: MessageFact[], todos: TodoFact[] = []) {
+    this.messages = messages;
+    this.todos = todos;
+    this.client = {
+      session: {
+        todo: async () => ({ data: this.todos }),
+        messages: async () => ({ data: this.messages }),
+        prompt: async (call) => {
+          const id = `trace_${this.messages.length}`;
+          this.messages.push({ info: { id, role: "user", time: { created: Date.now() } }, parts: [{ type: "text", text: String((call.body.parts as { text: string }[])[0].text) }] });
+          return { data: { info: { id } } };
+        },
+        promptAsync: async (call) => {
+          const text = String((call.body.parts as { text: string }[])[0].text);
+          this.promptAsyncCalls.push({ text });
+          const id = `cont_${this.promptAsyncCalls.length}`;
+          this.messages.push({ info: { id, role: "user", time: { created: Date.now() } }, parts: [{ type: "text", text }] });
+        },
+      },
+      tui: {
+        showToast: async (call) => {
+          this.toasts.push(toastKind(String(call.body.title)));
+          return null;
+        },
+      },
+    };
+  }
+
+  async waitFor(condition: () => boolean, message: string): Promise<void> {
+    for (let attempt = 0; attempt < 100; attempt += 1) {
+      if (condition()) return;
+      await new Promise((resolve) => { setTimeout(resolve, 50); });
+    }
+    throw new Error(message);
+  }
+}
+
+async function waitForDecisionType(sessionID: string, type: string, message: string): Promise<void> {
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    if ((await decisionTypes(sessionID)).includes(type)) return;
+    await new Promise((resolve) => { setTimeout(resolve, 50); });
+  }
+  throw new Error(message);
+}
+
+async function decisionTypes(sessionID: string): Promise<string[]> {
+  let names: string[];
+  try {
+    names = await readdir(sessionDirectory(sessionID));
+  } catch (error) {
+    if ((error as { code?: string }).code === "ENOENT") return [];
+    throw error;
+  }
+  const types: string[] = [];
+  for (const name of names.filter((entry) => entry.startsWith("decision-") && entry.endsWith(".yaml"))) {
+    const parsed = JSON.parse(await readFile(join(sessionDirectory(sessionID), name), "utf8")) as Record<string, unknown>;
+    if (typeof parsed.decisionType === "string") types.push(parsed.decisionType);
+  }
+  return types;
+}
+
+function toastKind(title: string): string {
+  if (title.includes("complete")) return "complete";
+  if (title.includes("agent blocked")) return "agent-blocked";
+  if (title.includes("operator handoff")) return "operator-handoff";
+  if (title.includes("continuing")) return "continuing";
+  if (title.includes("escalation")) return "escalated";
+  if (title.includes("error")) return "error";
+  return "checking";
+}
+
+function classifierFetch(verdict: string, captured: string[] = []): (url: string, init?: RequestInit) => Promise<Response> {
+  return async (url, init) => {
+    if (url.endsWith("/input_tokens")) return new Response(JSON.stringify({ input_tokens: 64 }), { status: 200 });
+    captured.push(String(init?.body));
+    return new Response(JSON.stringify({ choices: [{ finish_reason: "stop", message: { content: verdict } }] }), { status: 200 });
+  };
+}
+
+function classifierSequence(verdicts: string[], captured: string[] = []): (url: string, init?: RequestInit) => Promise<Response> {
+  let index = 0;
+  return async (url, init) => {
+    if (url.endsWith("/input_tokens")) return new Response(JSON.stringify({ input_tokens: 64 }), { status: 200 });
+    captured.push(String(init?.body));
+    const verdict = verdicts[Math.min(index, verdicts.length - 1)];
+    index += 1;
+    return new Response(JSON.stringify({ choices: [{ finish_reason: "stop", message: { content: verdict } }] }), { status: 200 });
+  };
+}
+
+function user(id: string, content: string): MessageFact {
+  return { info: { id, role: "user", time: { created: 1 } }, parts: [{ type: "text", text: content }] };
+}
+
+function assistant(id: string, parentID: string, content: string): MessageFact {
+  return { info: { id, parentID, role: "assistant", finish: "stop", time: { created: 2 } }, parts: [{ type: "text", text: content }] };
+}

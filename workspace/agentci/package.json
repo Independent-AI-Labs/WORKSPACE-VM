@@ -10,15 +10,17 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc --project tsconfig.build.json",
+    "build": "tsc --project tsconfig.build.json && npm run bundle",
+    "bundle": "esbuild src/server.ts --bundle --platform=node --format=esm --target=node22 --outfile=dist/agentci.bundle.js",
     "prepack": "npm run build",
     "typecheck": "tsc --noEmit",
     "test": "node --experimental-strip-types --test --test-concurrency=1 tests/*.test.ts tests/*.integration.test.ts",
-    "test:live": "node --experimental-strip-types --test tests/live-oc.live.ts",
+    "test:live": "node --experimental-strip-types --test tests/*.live.ts",
     "test:release": "node --experimental-strip-types --test tests/release-entrypoint.test.ts"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "esbuild": "^0.28.2",
     "typescript": "^5.7.0"
   },
   "dependencies": {

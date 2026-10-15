@@ -45,6 +45,7 @@ Start here for onboarding: [`../README.md`](../README.md)
 | [`specifications/SPEC-OPENCODE-RESPONSE-MODERATOR.md`](specifications/SPEC-OPENCODE-RESPONSE-MODERATOR.md) | Superseded by REQ-AGENTCI-RESPONSE-MODERATION (historical reference) |
 | [`specifications/SPEC-OPENVPN.md`](specifications/SPEC-OPENVPN.md) | `make vpn-*` automation: bootstrap, host service, VM pipeline |
 | [`specifications/SPEC-AGENTCI.md`](specifications/SPEC-AGENTCI.md) | AgentCI TypeScript plugin design (Draft) |
+| [`specifications/SPEC-AGENTCI-RESPONSE-MODERATION.md`](specifications/SPEC-AGENTCI-RESPONSE-MODERATION.md) | AgentCI completion-gating moderation: FSM, classifier, audit, installer |
 | [`specifications/SPEC-OPENCODE-ISOLATED-INTEGRATION-TESTS.md`](specifications/SPEC-OPENCODE-ISOLATED-INTEGRATION-TESTS.md) | Temporary-root OpenCode, plugin, database, and live-provider test contract (Draft) |
 | [`specifications/SPEC-VM-HYPERVISOR.md`](specifications/SPEC-VM-HYPERVISOR.md) | Hypervisor architecture, QEMU backend, guard E2E gate |
 

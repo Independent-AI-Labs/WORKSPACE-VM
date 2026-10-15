@@ -344,6 +344,16 @@ install-shell: ## Install WORKSPACE shell environment to ~/.bashrc
 uninstall-shell: ## Remove WORKSPACE shell environment from ~/.bashrc
 	bash workspace/scripts/shell/shell-setup --uninstall
 
+.PHONY: install-agentci verify-agentci status-agentci uninstall-agentci
+install-agentci: ## Install the AgentCI OpenCode plugin release into the XDG config
+	bash workspace/scripts/install-agentci install
+verify-agentci: ## Verify the active AgentCI OpenCode plugin release
+	bash workspace/scripts/install-agentci verify
+status-agentci: ## Show AgentCI plugin release status and drift
+	bash workspace/scripts/install-agentci status
+uninstall-agentci: ## Remove the installed AgentCI OpenCode plugin release
+	bash workspace/scripts/install-agentci uninstall
+
 # =============================================================================
 # VM Management
 # =============================================================================
@@ -461,6 +471,10 @@ test: ## Run tests (delegates to moon for caching)
 .PHONY: test-opencode-extensions
 test-opencode-extensions: ## Run AgentCI TypeScript plugin tests
 	cd workspace/agentci && npm run typecheck && npm test && npm run test:release
+
+.PHONY: test-agentci-e2e
+test-agentci-e2e: ## Run the AgentCI live end-to-end moderation test (Gateway + OpenCode Go required)
+	cd workspace/agentci && npm run test:live
 
 .PHONY: test-e2e
 test-e2e: ## Run end-to-end VM integration tests

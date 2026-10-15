@@ -32,5 +32,6 @@ the required fix.
 
 ## Test coverage gaps
 
-- [ ] `workspace/agentci`: `test:live` script declared but unimplemented; no
-      integration test against a real `oc` binary. Fix: implement both.
+- [x] `workspace/agentci`: `test:live` implemented (`tests/live-oc.live.ts`)
+      and exercised against a real OpenCode binary under a temporary root; the
+      AgentCI installer and live target are wired through `make test-agentci-e2e`.

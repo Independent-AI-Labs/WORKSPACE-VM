@@ -1,0 +1,175 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+WORKSPACE_ROOT="$PWD"
+while [[ "$WORKSPACE_ROOT" != "/" && ! -f "$WORKSPACE_ROOT/pyproject.toml" ]]; do
+    WORKSPACE_ROOT="$(dirname "$WORKSPACE_ROOT")"
+done
+[[ -f "$WORKSPACE_ROOT/pyproject.toml" ]] || { printf 'install-agentci: cannot locate workspace root from %s\n' "$PWD" >&2; exit 1; }
+
+AGENTCI_DIR="${WORKSPACE_ROOT}/workspace/agentci"
+SOURCE_BUNDLE="${AGENTCI_DIR}/dist/agentci.bundle.js"
+SOURCE_CONFIG="${WORKSPACE_ROOT}/workspace/config/opencode/agentci/agentci.template.json"
+CONFIG_ROOT="${XDG_CONFIG_HOME:-${HOME}/.config}/opencode"
+PLUGIN_DIR="${CONFIG_ROOT}/plugins"
+STATE_DIR="${PLUGIN_DIR}/.agentci"
+RELEASES_DIR="${STATE_DIR}/releases"
+CURRENT_LINK="${STATE_DIR}/current"
+ENTRY_LINK="${PLUGIN_DIR}/agentci.js"
+GATEWAY_URL="http://127.0.0.1:9080/llamafile"
+
+fail() {
+    printf 'install-agentci: %s\n' "$*" >&2
+    exit 1
+}
+
+require_tools() {
+    local resolved
+    resolved="$(command -v jq)" || fail "jq is required"
+    [[ -x "$resolved" ]] || fail "jq is not executable"
+    resolved="$(command -v curl)" || fail "curl is required"
+    [[ -x "$resolved" ]] || fail "curl is not executable"
+    resolved="$(command -v npm)" || fail "npm is required to build the AgentCI bundle"
+    [[ -x "$resolved" ]] || fail "npm is not executable"
+}
+
+build_bundle() {
+    [[ -f "$SOURCE_BUNDLE" ]] && return
+    printf 'install-agentci: building the AgentCI bundle\n'
+    local output
+    if ! output="$( cd "$AGENTCI_DIR" && npm run bundle )"; then
+        printf '%s\n' "$output" >&2
+        fail "failed to build the AgentCI bundle"
+    fi
+    [[ -f "$SOURCE_BUNDLE" ]] || fail "AgentCI bundle was not produced at ${SOURCE_BUNDLE}"
+}
+
+validate_current() {
+    [[ -L "$CURRENT_LINK" ]] || fail "no active AgentCI release"
+    local release
+    release="$(readlink -f "$CURRENT_LINK")" || fail "active AgentCI release target is invalid"
+    [[ -d "$release" && "$release" == "$RELEASES_DIR"/* ]] || fail "active AgentCI release escapes the releases directory"
+}
+
+release_dir() {
+    validate_current
+    readlink -f "$CURRENT_LINK"
+}
+
+validate_entry() {
+    [[ -L "$ENTRY_LINK" ]] || fail "active OpenCode plugin entry is missing"
+    local expected actual
+    expected="$(readlink -f "${CURRENT_LINK}/agentci.js")" || fail "active AgentCI release entry is invalid"
+    actual="$(readlink -f "$ENTRY_LINK")" || fail "active OpenCode plugin entry target is invalid"
+    [[ "$actual" == "$expected" ]] || fail "active OpenCode plugin entry does not resolve to the current release"
+}
+
+read_config() {
+    local config="$1" valid
+    valid="$(jq -e --arg gateway "$GATEWAY_URL" '.gateway_url == $gateway and (.model | type == "string" and length > 0)' "$config")" \
+        || fail "configuration must select the Workspace Gateway relay ${GATEWAY_URL} and a model"
+    [[ "$valid" == "true" ]] || fail "configuration must select the Workspace Gateway relay ${GATEWAY_URL} and a model"
+}
+
+verify_gateway() {
+    local config="$1" gateway model models present
+    gateway="$(jq -er '.gateway_url' "$config")"
+    model="$(jq -er '.model' "$config")"
+    models="$(curl --fail --no-progress-meter --show-error --max-time 30 "${gateway}/v1/models")" \
+        || fail "Gateway model query failed: ${gateway}/v1/models"
+    present="$(jq -e --arg model "$model" '[.data[]?.id == $model] | any' <<<"$models")" \
+        || fail "Gateway model query returned malformed data"
+    [[ "$present" == "true" ]] || fail "Gateway does not expose the configured model: ${model}"
+}
+
+verify_release() {
+    local release="$1"
+    [[ -f "${release}/agentci.js" ]] || fail "plugin bundle missing from release"
+    [[ -f "${release}/options.json" ]] || fail "configuration missing from release"
+    read_config "${release}/options.json"
+    verify_gateway "${release}/options.json"
+}
+
+install() {
+    require_tools
+    build_bundle
+    if [[ -L "$CURRENT_LINK" ]]; then
+        validate_current
+    fi
+    [[ -f "$SOURCE_BUNDLE" ]] || fail "plugin bundle source missing: ${SOURCE_BUNDLE}"
+    [[ -f "$SOURCE_CONFIG" ]] || fail "configuration template missing: ${SOURCE_CONFIG}"
+    read_config "$SOURCE_CONFIG"
+    verify_gateway "$SOURCE_CONFIG"
+    if [[ -e "$ENTRY_LINK" || -L "$ENTRY_LINK" ]]; then
+        [[ -L "$ENTRY_LINK" ]] || fail "refusing to replace a non-AgentCI plugin entry: ${ENTRY_LINK}"
+        validate_entry
+    fi
+
+    mkdir -p "$RELEASES_DIR"
+    local release_id stage release
+    release_id="$(cksum "$SOURCE_BUNDLE" "$SOURCE_CONFIG" | cksum | cut -d ' ' -f 1)"
+    stage="${RELEASES_DIR}/.stage-${release_id}-$$"
+    release="${RELEASES_DIR}/${release_id}"
+    if [[ ! -d "$release" ]]; then
+        trap 'rm -rf "$stage"' EXIT
+        mkdir "$stage"
+        cp "$SOURCE_BUNDLE" "${stage}/agentci.js"
+        cp "$SOURCE_CONFIG" "${stage}/options.json"
+        verify_release "$stage"
+        mv "$stage" "$release"
+    fi
+    verify_release "$release"
+    ln -s "releases/${release_id}" "${STATE_DIR}/.current-${release_id}"
+    mv -Tf "${STATE_DIR}/.current-${release_id}" "$CURRENT_LINK"
+    mkdir -p "$PLUGIN_DIR"
+    ln -s ".agentci/current/agentci.js" "${PLUGIN_DIR}/.entry-${release_id}.js"
+    mv -Tf "${PLUGIN_DIR}/.entry-${release_id}.js" "$ENTRY_LINK"
+    trap - EXIT
+    printf 'installed AgentCI release: %s\n' "$release_id"
+    printf 'destination: %s\n' "$release"
+    jq -r '"gateway: \(.gateway_url)\nmodel: \(.model)"' "${release}/options.json"
+    printf 'verification: passed\n'
+    printf 'restart OpenCode to load the active AgentCI release\n'
+}
+
+verify() {
+    require_tools
+    local release
+    release="$(release_dir)"
+    validate_entry
+    verify_release "$release"
+    [[ -f "$SOURCE_BUNDLE" ]] && cmp "$SOURCE_BUNDLE" "${release}/agentci.js"
+    [[ -f "$SOURCE_CONFIG" ]] && cmp "$SOURCE_CONFIG" "${release}/options.json"
+    printf 'verified active AgentCI release: %s\n' "$release"
+}
+
+status() {
+    local release
+    release="$(release_dir)"
+    printf 'active release: %s\n' "$release"
+    jq -r '"gateway: \(.gateway_url)\nmodel: \(.model)"' "${release}/options.json"
+    if [[ -f "$SOURCE_BUNDLE" ]] && cmp -s "$SOURCE_BUNDLE" "${release}/agentci.js" \
+        && [[ -f "$SOURCE_CONFIG" ]] && cmp -s "$SOURCE_CONFIG" "${release}/options.json"; then
+        printf 'source drift: none\n'
+        return
+    fi
+    printf 'source drift: detected\n'
+}
+
+uninstall() {
+    if [[ -e "$ENTRY_LINK" || -L "$ENTRY_LINK" ]]; then
+        [[ -L "$ENTRY_LINK" ]] || fail "refusing to remove a non-AgentCI plugin entry: ${ENTRY_LINK}"
+        validate_entry
+        rm "$ENTRY_LINK"
+    fi
+    rm -rf "$STATE_DIR"
+    printf 'uninstalled AgentCI; restart OpenCode to unload it\n'
+}
+
+case "${1:-install}" in
+    install) install ;;
+    verify) verify ;;
+    status) status ;;
+    uninstall) uninstall ;;
+    *) fail "usage: $0 {install|verify|status|uninstall}" ;;
+esac

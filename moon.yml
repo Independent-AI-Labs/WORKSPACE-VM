@@ -60,6 +60,8 @@ tasks:
       - 'workspace/agentci/tsconfig.build.json'
       - 'workspace/agentci/src/**/*.ts'
       - 'workspace/agentci/tests/**/*.ts'
+      - 'workspace/scripts/install-agentci'
+      - 'workspace/config/opencode/agentci/*.json'
       - 'workspace/scripts/bin/oc'
       - 'workspace/scripts/opencode-wrapper.sh'
       - 'workspace/config/opencode/opencode.jsonc'
