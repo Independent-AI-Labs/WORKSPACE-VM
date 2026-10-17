@@ -66,11 +66,6 @@ exceptions:
     owner: workspace-vm
     review_date: '2026-09-11'
     removal: Remove when subprocess helpers surface every captured stream.
-  - path: ^tests/integration/test_git_safety_patcher\.py$
-    rationale: Test code runs subprocesses with check=False and asserts outcomes explicitly.
-    owner: workspace-vm
-    review_date: '2026-09-11'
-    removal: Remove when subprocess helpers surface every captured stream.
   - path: ^tests/integration/test_setup_shell_aliases\.py$
     rationale: Test code runs subprocesses with check=False and asserts outcomes explicitly.
     owner: workspace-vm
