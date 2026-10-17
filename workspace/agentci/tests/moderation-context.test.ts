@@ -5,6 +5,7 @@ import {
   detectsRootBlock,
   inBranch,
   isInjectedUser,
+  isTerminal,
   lastRealUserPrompts,
   latestTerminalAssistant,
   realUserAncestor,
@@ -74,6 +75,20 @@ test("injected moderation messages are excluded from the real user cycle", () =>
 test("latestTerminalAssistant selects the newest terminal assistant", () => {
   const messages = [user("u1", "hi"), assistant("a1", "u1", "first"), assistant("a2", "a1", "second")];
   assert.equal(latestTerminalAssistant(messages)?.info.id, "a2");
+});
+
+test("a tool-calls step is not terminal and is skipped by latestTerminalAssistant", () => {
+  const messages = [user("u1", "hi"), assistant("a1", "u1", "done"), assistant("a2", "a1", "running the tests")];
+  messages[2].info.finish = "tool-calls";
+  assert.equal(isTerminal(messages[2]), false);
+  assert.equal(latestTerminalAssistant(messages)?.info.id, "a1");
+});
+
+test("a lone tool-calls response yields no terminal assistant", () => {
+  const messages = [user("u1", "hi"), assistant("a1", "u1", "running the tests")];
+  messages[1].info.finish = "tool-calls";
+  assert.equal(isTerminal(messages[1]), false);
+  assert.equal(latestTerminalAssistant(messages), undefined);
 });
 
 test("realUserAncestor walks past injected continuation messages", () => {

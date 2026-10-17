@@ -51,6 +51,30 @@ test("a passing response does not prompt the agent again", async () => {
   }
 });
 
+test("a mid-turn tool-calling step is ignored, not moderated", async () => {
+  const home = await mkdtemp(join(tmpdir(), "agentci-adapter-toolcalls-"));
+  const previous = process.env.XDG_STATE_HOME;
+  process.env.XDG_STATE_HOME = home;
+  const sessionID = "ses_adapter07";
+  const step = assistant("msg_1", "user_1", "Running the tests now.");
+  step.info.finish = "tool-calls";
+  const store = new Harness([user("user_1", "Finish the task."), step]);
+  const captured: string[] = [];
+  const adapter = createModerationAdapter({ client: store.client }, options, classifierFetch("decision: AGENT_COMPLETE\nreason: WORK_COMPLETE", captured));
+  try {
+    adapter.event({ event: { type: "session.status", properties: { sessionID, status: { type: "busy" } } } });
+    adapter.event({ event: { type: "session.status", properties: { sessionID, status: { type: "idle" } } } });
+    await waitForDecisionType(sessionID, "ignored-nonterminal-assistant", "a tool-calling step was not ignored");
+    assert.equal(captured.length, 0, "a tool-calling step must never reach the classifier");
+    assert.equal(store.promptAsyncCalls.length, 0, "a tool-calling step must not prompt the agent");
+    assert.equal(store.toasts.length, 0, "a tool-calling step must not show a moderation outcome");
+  } finally {
+    if (previous === undefined) delete process.env.XDG_STATE_HOME;
+    else process.env.XDG_STATE_HOME = previous;
+    await rm(home, { recursive: true, force: true });
+  }
+});
+
 test("pending todos are handed to the classifier, whose AGENT_COMPLETE ends the cycle", async () => {
   const home = await mkdtemp(join(tmpdir(), "agentci-adapter-required-"));
   const previous = process.env.XDG_STATE_HOME;

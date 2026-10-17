@@ -50,7 +50,7 @@ export function assistantText(message: MessageFact): string {
 
 export function isTerminal(message: MessageFact): boolean {
   const info = message.info;
-  return info.time?.created !== undefined && (info.finish !== undefined || info.summary === true);
+  return info.time?.created !== undefined && (info.finish === "stop" || info.summary === true);
 }
 
 export function latestTerminalAssistant(messages: readonly MessageFact[]): MessageFact | undefined {
