@@ -7,7 +7,7 @@ import {
   isInjectedUser,
   isTerminal,
   lastRealUserPrompts,
-  latestTerminalAssistant,
+  newestAssistant,
   realUserAncestor,
   realUserCycleID,
 } from "../src/moderation/context.ts";
@@ -58,13 +58,13 @@ test("the last three real user prompts are selected for classifier context", () 
     user("u2", "second"),
     user("u3", "third"),
     user("u4", "fourth"),
-    user("injected", "⚠️ Automated Moderation: work incomplete, continue now; do not stop to explain."),
+    user("injected", "⚠️ Automated Moderation: work appears unfinished; continue unless explicitly requested to halt by the operator or the system."),
   ];
   assert.deepEqual(lastRealUserPrompts(messages), ["second", "third", "fourth"]);
 });
 
 test("injected moderation messages are excluded from the real user cycle", () => {
-  const injected = user("injected", "⚠️ Automated Moderation: work incomplete, continue now; do not stop to explain.");
+  const injected = user("injected", "⚠️ Automated Moderation: work appears unfinished; continue unless explicitly requested to halt by the operator or the system.");
   assert.equal(isInjectedUser(injected), true);
   assert.equal(isInjectedUser(user("trace", "✅ Automated Moderation: work completion verified.")), true);
   assert.equal(isInjectedUser(user("blocked", "❔ Automated Moderation: awaiting user input.")), true);
@@ -72,30 +72,30 @@ test("injected moderation messages are excluded from the real user cycle", () =>
   assert.equal(realUserCycleID(messages), "user_1");
 });
 
-test("latestTerminalAssistant selects the newest terminal assistant", () => {
+test("newestAssistant selects the newest assistant regardless of terminality", () => {
   const messages = [user("u1", "hi"), assistant("a1", "u1", "first"), assistant("a2", "a1", "second")];
-  assert.equal(latestTerminalAssistant(messages)?.info.id, "a2");
+  assert.equal(newestAssistant(messages)?.info.id, "a2");
 });
 
-test("a tool-calls step is not terminal and is skipped by latestTerminalAssistant", () => {
+test("a trailing tool-calls step is the newest assistant and is not terminal", () => {
   const messages = [user("u1", "hi"), assistant("a1", "u1", "done"), assistant("a2", "a1", "running the tests")];
   messages[2].info.finish = "tool-calls";
   assert.equal(isTerminal(messages[2]), false);
-  assert.equal(latestTerminalAssistant(messages)?.info.id, "a1");
+  assert.equal(newestAssistant(messages)?.info.id, "a2");
 });
 
-test("a lone tool-calls response yields no terminal assistant", () => {
+test("a lone tool-calls response is the newest assistant but is not terminal", () => {
   const messages = [user("u1", "hi"), assistant("a1", "u1", "running the tests")];
   messages[1].info.finish = "tool-calls";
+  assert.equal(newestAssistant(messages)?.info.id, "a1");
   assert.equal(isTerminal(messages[1]), false);
-  assert.equal(latestTerminalAssistant(messages), undefined);
 });
 
 test("realUserAncestor walks past injected continuation messages", () => {
-  const continuation = user("c1", "⚠️ Automated Moderation: work incomplete, continue now; do not stop to explain.");
+  const continuation = user("c1", "⚠️ Automated Moderation: work appears unfinished; continue unless explicitly requested to halt by the operator or the system.");
   continuation.info.parentID = "a1";
   const messages = [user("u1", "task"), assistant("a1", "u1", "partial"), continuation, assistant("a2", "c1", "done")];
-  assert.equal(latestTerminalAssistant(messages)?.info.id, "a2");
+  assert.equal(newestAssistant(messages)?.info.id, "a2");
   assert.equal(realUserAncestor(messages.at(-1), messages)?.info.id, "u1");
 });
 

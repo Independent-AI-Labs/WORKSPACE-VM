@@ -14,7 +14,7 @@ interface Scenario {
   id: string;
   user: string;
   assistant: string;
-  expectation: "CONTINUE" | "BLOCKED" | "ANY";
+  expectation: "CONTINUE" | "BLOCKED" | "STOP" | "ANY";
   reason?: ReasonCode;
   todos?: readonly TodoFact[];
 }
@@ -25,6 +25,13 @@ const SCENARIOS: readonly Scenario[] = [
     user: "Implement the config loader and the CLI entrypoint, then test both.",
     assistant: "I implemented the config loader in src/config.ts. The CLI entrypoint is not started yet and no tests were written.",
     expectation: "CONTINUE",
+  },
+  {
+    id: "ses_live_user_stop",
+    user: "Why are you still running tests? Stop right now.",
+    assistant: "Understood. I have stopped the test run.",
+    expectation: "STOP",
+    reason: "USER_STOP",
   },
   {
     id: "ses_live_blocked",
@@ -87,6 +94,7 @@ test("the live classifier returns grammar-valid verdicts through the Workspace G
     assert.ok(isVerdictDecision(verdict.decision), `${scenario.id}: unexpected decision ${verdict.decision}`);
     assert.ok(verdict.reasonCode.length > 0, `${scenario.id}: verdict has no reason code`);
     if (scenario.expectation === "CONTINUE") assert.notEqual(verdict.decision, "AGENT_COMPLETE", `${scenario.id}: classifier passed an incomplete response`);
+    if (scenario.expectation === "STOP") assert.equal(verdict.decision, "AGENT_STOPPED", `${scenario.id}: classifier did not honor the user's halt instruction`);
     if (scenario.expectation === "BLOCKED") assert.equal(verdict.decision, "AGENT_BLOCKED", `${scenario.id}: classifier did not detect the external blocker`);
     if (scenario.reason) assert.equal(verdict.reasonCode, scenario.reason, `${scenario.id}: expected reason ${scenario.reason} but got ${verdict.reasonCode}`);
   }
@@ -118,10 +126,14 @@ async function runScenario(scenario: Scenario): Promise<void> {
     } else if (scenario.expectation === "CONTINUE") {
       assert.notEqual(verdict.decision, "AGENT_COMPLETE", `${scenario.id}: incomplete response was recorded as AGENT_COMPLETE`);
       await store.waitFor(() => store.promptAsyncCalls.length > 0, `${scenario.id}: continuation prompt was not sent`);
-      assert.match(store.promptAsyncCalls[0].text, /Automated Moderation: work incomplete/, `${scenario.id}: continuation prompt marker missing`);
+      assert.match(store.promptAsyncCalls[0].text, /Automated Moderation: work appears unfinished/, `${scenario.id}: continuation prompt marker missing`);
       adapter.event({ event: { type: "session.status", properties: { sessionID: scenario.id, status: { type: "busy" } } } });
       await store.waitFor(() => store.types.includes("continuation-verified") || store.types.includes("moderation-error"), `${scenario.id}: continuation verification did not settle`);
       assert.equal(store.types.includes("moderation-error"), false, `${scenario.id}: continuation verification reported an error`);
+    } else if (scenario.expectation === "STOP") {
+      assert.equal(verdict.decision, "AGENT_STOPPED", `${scenario.id}: recorded verdict was not AGENT_STOPPED`);
+      await store.waitFor(() => store.toasts.includes("user-stop"), `${scenario.id}: user-stop response did not surface a user-stop toast`);
+      assert.equal(store.promptAsyncCalls.length, 0, `${scenario.id}: a user stop must not prompt a continuation`);
     } else if (verdict.decision === "AGENT_COMPLETE") {
       await store.waitFor(() => store.toasts.includes("complete"), `${scenario.id}: complete verdict did not surface a complete toast`);
       assert.equal(store.promptAsyncCalls.length, 0, `${scenario.id}: passing response must not prompt a continuation`);
@@ -204,7 +216,7 @@ async function readVerdicts(directory: string): Promise<Verdict[]> {
 }
 
 function isVerdictDecision(value: string): value is VerdictDecision {
-  return value === "AGENT_COMPLETE" || value === "AGENT_CONTINUING" || value === "AGENT_STALLED" || value === "AGENT_BLOCKED";
+  return value === "AGENT_COMPLETE" || value === "AGENT_CONTINUING" || value === "AGENT_STALLED" || value === "AGENT_BLOCKED" || value === "AGENT_STOPPED";
 }
 
 async function readDecisionTypes(directory: string): Promise<string[]> {
@@ -227,6 +239,7 @@ function toastKind(title: string): string {
   if (title.includes("complete")) return "complete";
   if (title.includes("agent blocked")) return "agent-blocked";
   if (title.includes("operator handoff")) return "operator-handoff";
+  if (title.includes("user stop")) return "user-stop";
   if (title.includes("continuing")) return "continuing";
   if (title.includes("escalation")) return "escalated";
   if (title.includes("error")) return "error";

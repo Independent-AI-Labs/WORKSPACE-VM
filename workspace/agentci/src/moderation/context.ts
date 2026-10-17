@@ -53,10 +53,10 @@ export function isTerminal(message: MessageFact): boolean {
   return info.time?.created !== undefined && (info.finish === "stop" || info.summary === true);
 }
 
-export function latestTerminalAssistant(messages: readonly MessageFact[]): MessageFact | undefined {
+export function newestAssistant(messages: readonly MessageFact[]): MessageFact | undefined {
   for (let index = messages.length - 1; index >= 0; index -= 1) {
     const message = messages[index];
-    if (message.info.role === "assistant" && isTerminal(message)) return message;
+    if (message.info.role === "assistant") return message;
   }
   return undefined;
 }

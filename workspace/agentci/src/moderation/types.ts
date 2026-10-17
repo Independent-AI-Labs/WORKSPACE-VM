@@ -24,9 +24,9 @@ export interface ModerationState {
   compaction: CompactionState;
 }
 
-export type VerdictDecision = "AGENT_COMPLETE" | "AGENT_CONTINUING" | "AGENT_STALLED" | "AGENT_BLOCKED";
+export type VerdictDecision = "AGENT_COMPLETE" | "AGENT_CONTINUING" | "AGENT_STALLED" | "AGENT_BLOCKED" | "AGENT_STOPPED";
 
-export type ReasonCode = "WORK_COMPLETE" | "WORK_REMAINS" | "NO_PROGRESS" | "AWAITING_USER" | "AWAITING_OPERATOR";
+export type ReasonCode = "WORK_COMPLETE" | "WORK_REMAINS" | "NO_PROGRESS" | "AWAITING_USER" | "AWAITING_OPERATOR" | "USER_STOP";
 
 export interface Ruling {
   ruling: "PASS" | "FAIL";

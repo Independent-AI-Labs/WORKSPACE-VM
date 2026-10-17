@@ -41,13 +41,16 @@ session stay idle.
 5. Completion moderation SHALL process only an assistant message whose
    `info.finish == "stop"`. Messages ending in `tool-calls` or another
    nonterminal finish state SHALL be ignored without retry, classifier call,
-   or retry-cycle mutation.
-6. The plugin SHALL process only the newest terminal assistant response, using
+   or retry-cycle mutation. An assistant message that carries `info.error` (an
+   interrupted or aborted turn, which has no `finish`) SHALL produce
+   `ignored-cancellation` without a classifier call, corrective prompt, or
+   retry-cycle mutation.
+6. The plugin SHALL select only the newest assistant response, using
    chronological API ordering, and SHALL resolve the real user turn that
    originated it by walking `parentID` links upward past injected continuation
-   and trace messages. It SHALL not infer recency from lexicographic message
-   IDs. A Build response produced in reply to an injected continuation SHALL be
-   eligible for normal moderation.
+   and trace messages. It SHALL not re-moderate an earlier turn, and SHALL not
+   infer recency from lexicographic message IDs. A Build response produced in
+   reply to an injected continuation SHALL be eligible for normal moderation.
 
 ### Classifier
 
@@ -63,12 +66,13 @@ session stay idle.
    measured input is at most 16,384 tokens. A token-count failure or a request
    still above that bound is a visible classifier error and no request is sent.
 10. The classifier SHALL return exactly two YAML lines: `decision` with one of
-    `AGENT_COMPLETE`, `AGENT_CONTINUING`, `AGENT_STALLED`, or `AGENT_BLOCKED`,
-    followed by a `reason` code from `WORK_COMPLETE`, `WORK_REMAINS`,
-    `NO_PROGRESS`, `AWAITING_USER`, or `AWAITING_OPERATOR`. The only valid
-    pairs are `AGENT_COMPLETE`/`WORK_COMPLETE`,
+    `AGENT_COMPLETE`, `AGENT_CONTINUING`, `AGENT_STALLED`, `AGENT_BLOCKED`, or
+    `AGENT_STOPPED`, followed by a `reason` code from `WORK_COMPLETE`,
+    `WORK_REMAINS`, `NO_PROGRESS`, `AWAITING_USER`, `AWAITING_OPERATOR`, or
+    `USER_STOP`. The only valid pairs are `AGENT_COMPLETE`/`WORK_COMPLETE`,
     `AGENT_CONTINUING`/`WORK_REMAINS`, `AGENT_STALLED`/`NO_PROGRESS`,
-    `AGENT_BLOCKED`/`AWAITING_USER`, and `AGENT_BLOCKED`/`AWAITING_OPERATOR`.
+    `AGENT_BLOCKED`/`AWAITING_USER`, `AGENT_BLOCKED`/`AWAITING_OPERATOR`, and
+    `AGENT_STOPPED`/`USER_STOP`.
     Any extra, missing,
     title-case, prose, JSON, or ruling line is a classifier-format failure. The
     adapter SHALL trace and retry that failure three times before a visible
@@ -86,6 +90,11 @@ session stay idle.
     and the agent can keep working on its own, and `AGENT_BLOCKED` when the
     agent genuinely requests user clarification (`AWAITING_USER`), reports a
     genuine external blocker, or hands off to an operator (`AWAITING_OPERATOR`).
+    The classifier SHALL return `AGENT_STOPPED` with `USER_STOP` when the most
+    recent real user message explicitly instructs the agent to halt, stop,
+    cancel, abort, wait, or otherwise not continue. That verdict SHALL stand
+    even when tracked todos remain `pending` or `in_progress`, and SHALL take
+    precedence over an automatic continuation.
 12. Invalid classifier output or a failed relay request SHALL be reported as an
     error. It SHALL NOT be treated as `AGENT_COMPLETE`.
 
@@ -93,8 +102,9 @@ session stay idle.
 
 13. Every eligible terminal Build response SHALL enter one checklist-free
     moderation path. The adapter SHALL resolve mechanically knowable facts
-    (duplicates, nonterminal/tool-call updates, compaction, blocker discussion,
-    and fenced-`sudo` root handoffs) before invoking MiniCPM. Every other
+    (duplicates, nonterminal/tool-call updates, interrupted/aborted assistants,
+    compaction, blocker discussion, and fenced-`sudo` root handoffs) before
+    invoking MiniCPM. Every other
     eligible terminal response SHALL be classified by MiniCPM with the user
     request(s) and tracked todos as input; MiniCPM is the single authority on
     completion. The adapter SHALL not issue a completion checklist or require a
@@ -105,6 +115,8 @@ session stay idle.
     A response that leaves work undone SHALL be classified `AGENT_CONTINUING` or
     `AGENT_STALLED`, and a genuine blocker, clarification requirement, or
     operator handoff SHALL be classified `AGENT_BLOCKED`, never `AGENT_COMPLETE`.
+    An explicit user halt SHALL be classified `AGENT_STOPPED`, never
+    `AGENT_CONTINUING` or `AGENT_STALLED`.
 15. `AGENT_COMPLETE` SHALL allow the session to remain idle only after the
     plugin persists a passive audit trace in the transcript. That trace SHALL be
     a single concise status line and SHALL be excluded from subsequent
@@ -117,25 +129,31 @@ session stay idle.
     line that also instructs the agent to continue. It SHALL be a normal
     persisted user message, visible in the transcript and available to the next
     agent turn. Moderator-generated prompts SHALL be marked and excluded from
-    the last three real user messages.
-17. The corrective prompt SHALL explicitly state that the work must be completed
-    before stopping and that the agent must continue working rather than merely
-    explain a limitation.
+    the last three real user messages. `AGENT_STOPPED` SHALL NOT send any
+    corrective prompt.
+17. The corrective prompt SHALL explicitly state that the work appears
+    unfinished and that the agent must continue unless the operator or the
+    system has explicitly requested a halt. It SHALL NOT instruct the agent to
+    disregard an explicit halt or to suppress an explanation the user requested.
 18. The plugin SHALL show client-visible feedback while checking, on
-    `AGENT_COMPLETE`, on `AGENT_BLOCKED`, and when issuing a corrective prompt.
+    `AGENT_COMPLETE`, on `AGENT_BLOCKED`, on `AGENT_STOPPED`, and when issuing a
+    corrective prompt.
     Every transcript status line SHALL be exactly one line of the form
     `<emoji> Automated Moderation: <status>`. It SHALL NOT embed decision or
     reason codes, completion/adherence rulings, audit detail, or the moderator
     model name, and internal outcomes (blocker discussion, escalation, error)
-    SHALL NOT write a transcript line at all. Model identification, decision,
-    reason, rulings, and the decision ID SHALL live in the audit record only.
+    and `AGENT_STOPPED` SHALL NOT write a transcript line at all. Model
+    identification, decision, reason, rulings, and the decision ID SHALL live in
+    the audit record only.
 
 ### Retry Cycle
 
 19. `AGENT_CONTINUING` SHALL reset the consecutive no-progress count.
     `AGENT_STALLED` SHALL increment it. Automatic continuation SHALL stop only
     after three consecutive `AGENT_STALLED` decisions in one real-user cycle,
-    with a visible `moderation-escalated` trace.
+    with a visible `moderation-escalated` trace. `AGENT_STOPPED` SHALL return the
+    session to idle, reset the consecutive no-progress count, and SHALL NOT
+    escalate or continue.
 20. A new real user message SHALL start a new retry cycle and reset the
     per-cycle no-progress count. It SHALL clear blocker-discussion state unless
     its `parentID` continues the blocker-originating user branch.
@@ -180,7 +198,8 @@ session stay idle.
     verdict, blocker-discussion state and source, prompt/toast results, errors,
     and timings.
 27. Decision types SHALL include `blocker-discussion`, `moderation-complete`,
-    `moderation-continue`, `moderation-agent-blocked`, `moderation-escalated`,
+    `moderation-continue`, `moderation-agent-blocked`, `moderation-user-stop`,
+    `moderation-escalated`,
     `moderation-error`, `root-handoff`, `ignored-cancellation`,
     `ignored-duplicate`,
     `ignored-no-completed-assistant`, `ignored-plan-mode`,
@@ -208,17 +227,21 @@ session stay idle.
 
 ## Acceptance
 
-- Every user-meaningful outcome (`AGENT_COMPLETE`, `AGENT_BLOCKED`,
+- Every transcript-writing outcome (`AGENT_COMPLETE`, `AGENT_BLOCKED`,
   `AGENT_CONTINUING`, `AGENT_STALLED`, root handoff) produces exactly one
   single-line transcript status of the form `<emoji> Automated Moderation:
-  <status>`; internal outcomes (blocker discussion, escalation, error) produce
-  only a toast and an audit record.
+  <status>`; internal outcomes (blocker discussion, escalation, error) and a
+  user stop (`AGENT_STOPPED`) produce only a toast and an audit record.
 - `AGENT_COMPLETE` produces a passive status line without starting a new agent
   turn.
 - `AGENT_CONTINUING` and `AGENT_STALLED` each produce one corrective
   prompt visible as a persisted user message in the same transcript.
 - Three consecutive `AGENT_STALLED` decisions produce a visible escalation
   toast and no further automatic prompt.
+- An explicit user halt classified as `AGENT_STOPPED` produces no corrective
+  prompt and no transcript line, even when tracked todos remain open.
+- An interrupted assistant (`info.error` set with no `finish`) produces
+  `ignored-cancellation` and starts no classifier request or continuation.
 - A fenced `sudo` command produces a visible root-handoff status line and no
   automatic prompt.
 - A root-handoff or `AGENT_BLOCKED` outcome records branch-scoped passive
@@ -231,7 +254,7 @@ session stay idle.
 - Repeated idle notification for one response produces at most one classifier
   request.
 - A Build response ending in `tool-calls` produces no moderation action; the
-  subsequent terminal parent response is moderated exactly once.
+  subsequent terminal assistant response is moderated exactly once.
 - An integration test SHALL load the actual plugin module, invoke its returned
   idle-event hook with test SDK clients, and verify every status-line path,
   false-pass prevention, toasts, classification, and persisted corrective
@@ -259,12 +282,13 @@ and no I/O.
 Each session has exactly one lifecycle phase:
 
 ```text
-IDLE -> OBSERVING -> CLASSIFYING -> CONTINUING | AGENT_BLOCKED | OPERATOR_HANDOFF | ERROR
+IDLE -> OBSERVING -> CLASSIFYING -> CONTINUING | AGENT_BLOCKED | AGENT_STOPPED | OPERATOR_HANDOFF | ERROR
 CLASSIFYING -> AGENT_COMPLETE | ESCALATED
 ERROR -> OBSERVING | IDLE
 ```
 
-`AGENT_COMPLETE`, `AGENT_BLOCKED`, `OPERATOR_HANDOFF`, and `ESCALATED` are
+`AGENT_COMPLETE`, `AGENT_BLOCKED`, `AGENT_STOPPED`, `OPERATOR_HANDOFF`, and
+`ESCALATED` are
 recorded outcomes, not durable lifecycle phases. The next `STATUS_BUSY` begins observation of a later
 response. Blocker discussion is a nullable branch scope, not a lifecycle phase.
 A new unrelated real-user branch clears that scope before classification.

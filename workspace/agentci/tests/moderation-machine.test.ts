@@ -8,6 +8,7 @@ const verdicts = {
   progress: verdict("AGENT_CONTINUING", "WORK_REMAINS"),
   noProgress: verdict("AGENT_STALLED", "NO_PROGRESS"),
   blocked: verdict("AGENT_BLOCKED", "AWAITING_OPERATOR"),
+  stopped: verdict("AGENT_STOPPED", "USER_STOP"),
 };
 
 test("initial state is valid and idle", () => {
@@ -54,6 +55,13 @@ test("non-terminal assistant is ignored", () => {
   assert.equal(result.state.phase, "IDLE");
 });
 
+test("an interrupted assistant is ignored as a cancellation", () => {
+  const result = transition(observing(), contextEvent({ assistantError: true, terminal: false }));
+  assert.equal(result.ignored, true);
+  assert.equal(result.state.phase, "IDLE");
+  assert.ok(result.effects.some((effect) => effect.type === "WRITE_DECISION" && effect.decisionType === "ignored-cancellation"));
+});
+
 test("duplicate assistant id is ignored", () => {
   const result = transition(observing(), contextEvent({ assistantID: "msg_seen", duplicate: true }));
   assert.equal(result.ignored, true);
@@ -85,6 +93,15 @@ test("AGENT_BLOCKED verdict records an agent-blocked outcome", () => {
   assert.equal(result.state.phase, "IDLE");
   assert.equal(result.state.blocker?.source, "agent-blocked");
   assert.ok(result.effects.some((effect) => effect.type === "WRITE_TRACE"), "user-meaningful outcome must write a transcript line");
+});
+
+test("AGENT_STOPPED verdict stands down without a transcript line or continuation", () => {
+  const result = transition(classifying(), { type: "CLASSIFIER_RESULT", verdict: verdicts.stopped });
+  assert.equal(result.state.phase, "IDLE");
+  assert.equal(result.state.blocker, null);
+  assert.equal(result.effects.some((effect) => effect.type === "SEND_CONTINUATION"), false);
+  assert.equal(result.effects.some((effect) => effect.type === "WRITE_TRACE"), false, "a user stop must not write a transcript line");
+  assert.ok(result.effects.some((effect) => effect.type === "WRITE_DECISION" && effect.decisionType === "moderation-user-stop"));
 });
 
 test("progress verdict resets the no-progress counter", () => {

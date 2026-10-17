@@ -60,7 +60,8 @@ blocker                  null | { source, originUserID }
 compaction               { active, generation }
 ```
 
-`AGENT_COMPLETE`, `AGENT_BLOCKED`, `OPERATOR_HANDOFF`, and `ESCALATED` are
+`AGENT_COMPLETE`, `AGENT_BLOCKED`, `AGENT_STOPPED`, `OPERATOR_HANDOFF`, and
+`ESCALATED` are
 recorded outcomes in audit records, not durable phases. Blocker discussion is the
 nullable `blocker` scope (`operator-handoff` or `agent-blocked`).
 The reducer never retains message objects, clients, promises, or mutable
@@ -85,20 +86,24 @@ imply a pass.
 ## Moderation Path
 
 1. `STATUS_BUSY` enters `OBSERVING`; the matching `STATUS_IDLE` loads context.
-2. Context selection picks the newest terminal assistant, then resolves the real
+2. Context selection picks the newest assistant, then resolves the real
    user turn that originated it by walking `parentID` upward and skipping
    injected continuation/trace messages (chronological API ordering). This keeps
-   a Build response produced in reply to an injected continuation eligible.
+   a Build response produced in reply to an injected continuation eligible. An
+   earlier turn is never re-moderated.
 3. Deterministic-first filtering resolves nonterminal/tool-call finishes,
-   duplicates, compaction, plan mode, non-Build agents, cancellations, and
-   moderator traces with an explicit `ignored-*` decision type.
+   duplicates, compaction, plan mode, non-Build agents, cancellations (an
+   interrupted assistant with `info.error`, which has no `finish`, checked before
+   terminality), and moderator traces with an explicit `ignored-*` decision type.
 4. A fenced shell block containing `sudo` as a command token produces
    `root-handoff` (no classifier request).
 5. Otherwise MiniCPM classifies. Input is the tracked todos, the last three real
    user prompts, and the latest assistant response, trimmed to 16,384 tokens via
    the Gateway token endpoint. MiniCPM is the single authority on completion:
    the todo state is classifier input, not a controller override, so a returned
-   `AGENT_COMPLETE` stands even when todos remain `pending` or `in_progress`.
+   `AGENT_COMPLETE` stands even when todos remain `pending` or `in_progress`, and
+   a returned `AGENT_STOPPED` (the most recent user message is an explicit halt)
+   stands over unfinished work.
    Output is exactly two YAML lines enforced by the Gateway GBNF grammar;
    malformed or non-`stop` output is traced and retried three times, then
    reported as a visible classifier error.
@@ -106,11 +111,13 @@ imply a pass.
    work completion verified.`) and stays idle. `AGENT_CONTINUING` /
    `AGENT_STALLED` send a single-line corrective status through `promptAsync`,
    marked and excluded from later real-user context. `AGENT_BLOCKED` writes a
-   single-line status and activates blocker-discussion scope.
+   single-line status and activates blocker-discussion scope. `AGENT_STOPPED`
+   writes no transcript line, sends no prompt, and stays idle with a toast.
 7. Three consecutive `AGENT_STALLED` outcomes in one real-user cycle produce
    `moderation-escalated` (toast + audit only) and stop automatic continuation.
-8. Internal outcomes (blocker discussion, escalation, error) write no transcript
-   line. Audit files hold the full verdict, rulings, reason, and decision ID.
+8. Internal outcomes (blocker discussion, escalation, error) and a user stop
+   write no transcript line. Audit files hold the full verdict, rulings, reason,
+   and decision ID.
 
 ## Classifier Protocol
 
@@ -119,6 +126,7 @@ decision: AGENT_COMPLETE    reason: WORK_COMPLETE
 decision: AGENT_CONTINUING  reason: WORK_REMAINS
 decision: AGENT_STALLED     reason: NO_PROGRESS
 decision: AGENT_BLOCKED     reason: AWAITING_USER | AWAITING_OPERATOR
+decision: AGENT_STOPPED     reason: USER_STOP
 ```
 
 `temperature` 0, `max_tokens` 128, `grammar` = `MODERATION_GRAMMAR`, `stream`

@@ -1,11 +1,11 @@
 import { classify, type FetchLike } from "./classifier.ts";
-import { assistantText, deriveContext, inBranch, isInjectedUser, latestTerminalAssistant, realUserAncestor } from "./context.ts";
+import { assistantText, deriveContext, inBranch, isInjectedUser, newestAssistant, realUserAncestor } from "./context.ts";
 import type { ModerationOptions } from "./config.ts";
 import { persistSnapshot, restoreSnapshot, sessionDirectory, writeDecisionRecord } from "./audit.ts";
 import { createInitialState, isValidState, transition } from "./machine.ts";
 import type { ContextSnapshot, Effect, MessageFact, ModerationEvent, ModerationState, ReasonCode, TodoFact, TransitionResult, Verdict, VerdictDecision } from "./types.ts";
 
-const CONTINUATION_LINE = "⚠️ Automated Moderation: work incomplete, continue now; do not stop to explain.";
+const CONTINUATION_LINE = "⚠️ Automated Moderation: work appears unfinished; continue unless explicitly requested to halt by the operator or the system.";
 const OPERATOR_LINE = "⚠️ Automated Moderation: operator action required.";
 const CONTEXT_TIMEOUT_MS = 15000;
 const BUSY_POLL_ATTEMPTS = 50;
@@ -19,6 +19,7 @@ function statusLine(decision: VerdictDecision, reasonCode: ReasonCode): string {
       ? "❔ Automated Moderation: awaiting user input."
       : OPERATOR_LINE;
   }
+  if (decision === "AGENT_STOPPED") return "⏹️ Automated Moderation: halt acknowledged; automation stood down.";
   return CONTINUATION_LINE;
 }
 
@@ -154,7 +155,7 @@ export function createModerationAdapter(input: ModerationServerInput, options: M
       loadMessages(input.client, sessionID),
     ]), CONTEXT_TIMEOUT_MS, "AgentCI moderation context request timed out");
     const todos = todoResult.data ?? [];
-    const assistant = latestTerminalAssistant(messages);
+    const assistant = newestAssistant(messages);
     const origin = realUserAncestor(assistant, messages) ?? realUser(messages, session.moderatorMessageIDs);
     const assistantID = assistant?.info.id ?? null;
     const blockerBranch = inBranch(origin, messages, session.state.blocker?.originUserID ?? null);
@@ -324,6 +325,7 @@ function toast(kind: string): { title: string; message: string; variant: string;
     checking: { title: "AgentCI moderation", message: "Checking the completed response...", variant: "info", duration: 3000 },
     complete: { title: "AgentCI moderation: complete", message: "Automated moderation verified the work is complete.", variant: "success", duration: 5000 },
     "agent-blocked": { title: "AgentCI moderation: agent blocked", message: "The agent is waiting on you or an operator before continuing.", variant: "warning", duration: 8000 },
+    "user-stop": { title: "AgentCI moderation: user stop", message: "Automated moderation stood down at the user's request.", variant: "info", duration: 4000 },
     "operator-handoff": { title: "AgentCI moderation: operator handoff", message: "A privileged command requires operator action.", variant: "warning", duration: 8000 },
     continuing: { title: "AgentCI moderation: continuing", message: "Automated moderation is prompting the agent to continue.", variant: "warning", duration: 6000 },
     escalated: { title: "AgentCI moderation: escalation", message: "Three consecutive no-progress decisions stopped automatic continuation.", variant: "error", duration: 8000 },

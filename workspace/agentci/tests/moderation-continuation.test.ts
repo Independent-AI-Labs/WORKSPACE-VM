@@ -5,7 +5,7 @@ import type { MessageFact } from "../src/moderation/types.ts";
 
 const continuation: MessageFact = {
   info: { id: "msg_cont", role: "user", time: { created: 1 } },
-  parts: [{ type: "text", text: "⚠️ Automated Moderation: work incomplete, continue now; do not stop to explain." }],
+  parts: [{ type: "text", text: "⚠️ Automated Moderation: work appears unfinished; continue unless explicitly requested to halt by the operator or the system." }],
 };
 
 const ordinary: MessageFact = {

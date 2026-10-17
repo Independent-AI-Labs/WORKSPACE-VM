@@ -29,7 +29,8 @@ const SYSTEM_PROMPT = [
   "1. If the agent hands off to an operator or another external action (it tells the user to run a command, for example as the operator, or it needs credentials, permission, or access it does not have), choose AGENT_BLOCKED with reason AWAITING_OPERATOR. Asking the user to run a command and report the output is an operator handoff, not a question.",
   "2. If the agent asks the user a question or requests a decision, approval, or clarification and no external action is required, choose AGENT_BLOCKED with reason AWAITING_USER.",
   "3. If the user's request is fully and correctly complete, choose AGENT_COMPLETE with reason WORK_COMPLETE.",
-  "4. Otherwise the request is unfinished and the agent can keep working on its own, so choose a CONTINUE decision even when todos are pending: AGENT_CONTINUING with reason WORK_REMAINS if it made progress, AGENT_STALLED with reason NO_PROGRESS if it made none. Merely listing remaining work, proposing a plan, or promising to continue is NOT a stop.",
+  "4. If the most recent user message explicitly instructs the agent to halt, stop, cancel, abort, wait, or otherwise not continue, choose AGENT_STOPPED with reason USER_STOP. This holds even when tracked work remains and takes precedence over an automatic continuation. An angry or frustrated message that asks why the agent is still working is a halt instruction.",
+  "5. Otherwise the request is unfinished and the agent can keep working on its own, so choose a CONTINUE decision even when todos are pending: AGENT_CONTINUING with reason WORK_REMAINS if it made progress, AGENT_STALLED with reason NO_PROGRESS if it made none. Merely listing remaining work, proposing a plan, or promising to continue is NOT a stop.",
   "",
   "Example 1",
   "User request(s):",
@@ -94,6 +95,27 @@ const SYSTEM_PROMPT = [
   "Output:",
   "decision: AGENT_BLOCKED",
   "reason: AWAITING_OPERATOR",
+  "",
+  "Example 7",
+  "User request(s):",
+  "- Optimize the build until it is as fast as possible",
+  "- Why are you still running tests? Stop now.",
+  "Assistant response: I have stopped the test run.",
+  "Output:",
+  "decision: AGENT_STOPPED",
+  "reason: USER_STOP",
+  "",
+  "Example 8",
+  "User request(s):",
+  "- Implement the parser and the writer",
+  "- Cancel this; do not continue.",
+  "Tracked todos:",
+  "- [in_progress] Implement parser",
+  "- [pending] Implement writer",
+  "Assistant response: Understood, I have stopped.",
+  "Output:",
+  "decision: AGENT_STOPPED",
+  "reason: USER_STOP",
 ].join("\n");
 
 const VALID_DECISIONS: Record<string, readonly ReasonCode[]> = {
@@ -101,6 +123,7 @@ const VALID_DECISIONS: Record<string, readonly ReasonCode[]> = {
   AGENT_CONTINUING: ["WORK_REMAINS"],
   AGENT_STALLED: ["NO_PROGRESS"],
   AGENT_BLOCKED: ["AWAITING_USER", "AWAITING_OPERATOR"],
+  AGENT_STOPPED: ["USER_STOP"],
 };
 
 export async function classify(options: ModerationOptions, input: ClassifyInput, fetchImpl: FetchLike = fetch): Promise<ClassifyOutcome> {
@@ -121,21 +144,15 @@ export async function classify(options: ModerationOptions, input: ClassifyInput,
 }
 
 export function buildMessages(input: ClassifyInput): ChatMessage[] {
+  const sections = [
+    "User request(s):",
+    input.userMessages.length > 0 ? input.userMessages.map((message) => `- ${message}`).join("\n") : "- (none recorded)",
+  ];
+  if (input.todos.length > 0) sections.push("", "Tracked todos:", summarizeTodos(input.todos));
+  sections.push("", "Assistant response:", input.previousResponse);
   return [
     { role: "system", content: SYSTEM_PROMPT },
-    {
-      role: "user",
-      content: [
-        "User request(s):",
-        input.userMessages.length > 0 ? input.userMessages.map((message) => `- ${message}`).join("\n") : "- (none recorded)",
-        "",
-        "Tracked todos:",
-        summarizeTodos(input.todos),
-        "",
-        "Latest assistant response:",
-        input.previousResponse,
-      ].join("\n"),
-    },
+    { role: "user", content: sections.join("\n") },
   ];
 }
 

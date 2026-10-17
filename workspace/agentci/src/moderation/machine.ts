@@ -152,6 +152,13 @@ function classifierResult(state: ModerationState, event: ResultEvent): Transitio
       [decision("moderation-agent-blocked"), trace(verdict), toast("agent-blocked")],
     );
   }
+  if (verdict.decision === "AGENT_STOPPED") {
+    return result(
+      { ...state, phase: "IDLE", blocker: null, consecutiveNoProgressCount: 0 },
+      event,
+      [decision("moderation-user-stop"), toast("user-stop")],
+    );
+  }
   const count = verdict.decision === "AGENT_CONTINUING"
     ? 0
     : state.consecutiveNoProgressCount + 1;
@@ -220,13 +227,13 @@ type ContextGate =
   | { kind: "classify" };
 
 function evaluateContext(event: ContextEvent): ContextGate {
+  if (event.assistantError) return { kind: "ignored", reason: "ignored-cancellation" };
   if (event.terminal === false) return { kind: "ignored", reason: "ignored-nonterminal-assistant" };
   if (event.assistantPresent === false) return { kind: "ignored", reason: "ignored-no-completed-assistant" };
   if (event.duplicate || !event.assistantID) return { kind: "ignored", reason: "ignored-duplicate" };
   if (event.compaction) return { kind: "ignored", reason: "ignored-compaction" };
   if (event.planMode) return { kind: "ignored", reason: "ignored-plan-mode" };
   if (event.build === false) return { kind: "ignored", reason: "ignored-non-build-agent" };
-  if (event.assistantError) return { kind: "ignored", reason: "ignored-cancellation" };
   if (event.userNewer) return { kind: "ignored", reason: "ignored-no-completed-assistant" };
   if (event.moderatorTrace) return { kind: "ignored", reason: "ignored-moderator-trace" };
   if (event.rootBlocked) return { kind: "root-blocked" };
