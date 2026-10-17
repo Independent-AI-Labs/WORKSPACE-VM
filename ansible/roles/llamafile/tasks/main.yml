@@ -15,13 +15,19 @@
   when: llamafile_gpu == 'vulkan'
 
 - name: Preflight - render group membership (GPU device access)
-  ansible.builtin.shell: id -nG >> /tmp/llamafile-preflight.log 2>&1
+  ansible.builtin.shell: |
+    set -euo pipefail
+    groups="$(id -nG)"
+    printf 'groups: %s\n' "$groups" >> /tmp/llamafile-preflight.log
+    printf '%s\n' "$groups"
   register: _user_groups
   changed_when: false
+  when: llamafile_gpu == 'vulkan'
 
 - name: Display user group membership
   ansible.builtin.debug:
     msg: "groups: {{ _user_groups.stdout | trim }}"
+  when: llamafile_gpu == 'vulkan'
 
 - name: Assert render group for Vulkan deploy
   ansible.builtin.assert:
@@ -130,14 +136,14 @@
       LLAMAFILE_PORT={{ llamafile_port }}
       LLAMAFILE_HOST={{ llamafile_host }}
       # Runtime tuning (mapped to LLAMA_ARG_* by llamafile-server.sh).
-      LLAMAFILE_PARALLEL=auto
-      LLAMAFILE_PARALLEL_RESERVE=4
+      LLAMAFILE_PARALLEL=1
+      LLAMAFILE_PARALLEL_RESERVE=1
       LLAMAFILE_CTX=131072
       LLAMAFILE_VRAM_MARGIN_MIB=1024
       # auto = headless discrete GPU first, then most free VRAM; single GPU only.
       LLAMAFILE_MAIN_GPU=auto
       LLAMAFILE_SPLIT_MODE=none
-      LLAMAFILE_THREADS=0
+      LLAMAFILE_THREADS=16
       {% if llamafile_model_gguf is defined %}
       LLAMAFILE_MODEL_GGUF={{ llamafile_model_gguf }}
       {% endif %}

@@ -13,7 +13,8 @@ const workspaceRoot = dirname(dirname(dirname(dirname(fileURLToPath(import.meta.
 const agentciRoot = join(workspaceRoot, "workspace", "agentci");
 const installer = join(workspaceRoot, "workspace", "scripts", "install-agentci");
 const oc = join(workspaceRoot, ".boot-linux", "bin", "opencode");
-const liveModel = process.env.AGENTCI_LIVE_MODEL ?? "workspace-gw-opencode-zen-api-key/big-pickle";
+const localModel = "workspace-gw-llamafile-no-auth//zip/MiniCPM5-1B-Q8_0.gguf";
+const liveModel = process.env.AGENTCI_LIVE_MODEL ?? localModel;
 const livePrompt = "Reply with the single word ready. Do not use any tools.";
 
 test("real OpenCode discovers the installed AgentCI plugin and dispatches lifecycle events", { timeout: 180000 }, async (context) => {
@@ -113,14 +114,15 @@ async function seedConfig(config: string): Promise<void> {
     ? process.env.XDG_CONFIG_HOME
     : join(process.env.HOME && process.env.HOME.length > 0 ? process.env.HOME : homedir(), ".config");
   const source = join(sourceRoot, "opencode", "opencode.jsonc");
-  const destination = join(config, "opencode", "opencode.jsonc");
+  let parsed: Record<string, unknown> = {};
   try {
-    await copyFile(source, destination);
-    await chmod(destination, 0o600);
+    parsed = JSON.parse(await readFile(source, "utf8")) as Record<string, unknown>;
   } catch (error) {
     if ((error as { code?: string }).code !== "ENOENT") throw error;
-    await writeFile(destination, "{}\n", { encoding: "utf8", mode: 0o600 });
   }
+  parsed.small_model = localModel;
+  const destination = join(config, "opencode", "opencode.jsonc");
+  await writeFile(destination, `${JSON.stringify(parsed, null, 2)}\n`, { encoding: "utf8", mode: 0o600 });
 }
 
 async function moderationDecisionFiles(state: string): Promise<string[]> {

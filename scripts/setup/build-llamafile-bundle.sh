@@ -64,7 +64,11 @@ case "$GPU" in
     *) printf 'error: --gpu must be cpu or vulkan (got: %s)\n' "$GPU" >&2; exit 2 ;;
 esac
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_PATH="${BASH_SOURCE[0]:-$0}"
+case "$SCRIPT_PATH" in
+    /proc/self/fd/*) SCRIPT_PATH="${SHG_SCRIPT_PATH:?shell guard source path is unavailable}" ;;
+esac
+SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_PATH")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 MODEL_DIR="${WS_MODELS_DIR:-$PROJECT_ROOT/models}/$MODEL"
 ENGINE="$PROJECT_ROOT/projects/llamafile/o/llamafile/llamafile"

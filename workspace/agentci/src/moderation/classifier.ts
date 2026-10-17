@@ -1,4 +1,4 @@
-import { CLASSIFIER_FORMAT_RETRIES, MAX_COMPLETION_TOKENS, MAX_INPUT_TOKENS, MINICPM_MODEL_ID, MODERATION_GRAMMAR, type ModerationOptions } from "./config.ts";
+import { CLASSIFIER_FORMAT_RETRIES, CLASSIFIER_SEED, MAX_COMPLETION_TOKENS, MAX_INPUT_TOKENS, MINICPM_MODEL_ID, MODERATION_GRAMMAR, type ModerationOptions } from "./config.ts";
 import { summarizeTodos } from "./context.ts";
 import type { ReasonCode, Ruling, TodoFact, Verdict, VerdictDecision } from "./types.ts";
 
@@ -29,7 +29,7 @@ const SYSTEM_PROMPT = [
   "1. If the agent hands off to an operator or another external action (it tells the user to run a command, for example as the operator, or it needs credentials, permission, or access it does not have), choose AGENT_BLOCKED with reason AWAITING_OPERATOR. Asking the user to run a command and report the output is an operator handoff, not a question.",
   "2. If the agent asks the user a question or requests a decision, approval, or clarification and no external action is required, choose AGENT_BLOCKED with reason AWAITING_USER.",
   "3. If the user's request is fully and correctly complete, choose AGENT_COMPLETE with reason WORK_COMPLETE.",
-  "4. If the most recent user message explicitly instructs the agent to halt, stop, cancel, abort, wait, or otherwise not continue, choose AGENT_STOPPED with reason USER_STOP. This holds even when tracked work remains and takes precedence over an automatic continuation. An angry or frustrated message that asks why the agent is still working is a halt instruction.",
+  "4. If the most recent user message tells the agent to stop, cancel, abort, or not continue the work, choose AGENT_STOPPED with reason USER_STOP. This holds even when tracked work remains and takes precedence over an automatic continuation. Judge the direction of the instruction, not its tone: an emphatic, impatient, or angry push to proceed, to hurry, or to get on with the requested work reaffirms the request and is not a halt.",
   "5. Otherwise the request is unfinished and the agent can keep working on its own, so choose a CONTINUE decision even when todos are pending: AGENT_CONTINUING with reason WORK_REMAINS if it made progress, AGENT_STALLED with reason NO_PROGRESS if it made none. Merely listing remaining work, proposing a plan, or promising to continue is NOT a stop.",
   "",
   "Example 1",
@@ -116,6 +116,18 @@ const SYSTEM_PROMPT = [
   "Output:",
   "decision: AGENT_STOPPED",
   "reason: USER_STOP",
+  "",
+  "Example 9",
+  "User request(s):",
+  "- Implement the parser and the writer",
+  "- GO GO GO",
+  "Tracked todos:",
+  "- [in_progress] Implement parser",
+  "- [pending] Implement writer",
+  "Assistant response: I implemented the parser. The writer is not started yet.",
+  "Output:",
+  "decision: AGENT_CONTINUING",
+  "reason: WORK_REMAINS",
 ].join("\n");
 
 const VALID_DECISIONS: Record<string, readonly ReasonCode[]> = {
@@ -226,6 +238,10 @@ async function requestCompletion(options: ModerationOptions, messages: ChatMessa
       model: options.model,
       messages,
       temperature: 0,
+      top_k: 1,
+      top_p: 1,
+      min_p: 0,
+      seed: CLASSIFIER_SEED,
       max_tokens: MAX_COMPLETION_TOKENS,
       grammar: MODERATION_GRAMMAR,
       stream: false,

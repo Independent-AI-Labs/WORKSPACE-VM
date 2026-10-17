@@ -106,7 +106,10 @@ imply a pass.
    stands over unfinished work.
    Output is exactly two YAML lines enforced by the Gateway GBNF grammar;
    malformed or non-`stop` output is traced and retried three times, then
-   reported as a visible classifier error.
+   reported as a visible classifier error. Each request pins deterministic
+   greedy sampling (`temperature` 0, `top_k` 1, `top_p` 1, `min_p` 0, fixed
+   seed); the serving model pins the same and runs single-slot with a fixed
+   thread count, so identical inputs yield identical verdicts across runs.
 6. `AGENT_COMPLETE` writes a single-line passive status (`✅ Automated Moderation:
    work completion verified.`) and stays idle. `AGENT_CONTINUING` /
    `AGENT_STALLED` send a single-line corrective status through `promptAsync`,
@@ -159,6 +162,9 @@ served. Make targets: `install-agentci`, `verify-agentci`, `status-agentci`,
 - `npm run test:release`: `npm pack` install path.
 - `npm run test:live` (`make test-agentci-e2e`): real OpenCode loads the
   installed release under a temporary `HOME`/XDG root and writes moderation
-  decision records; uses the free `big-pickle` model through the Workspace
-  Gateway and copies the test user's `auth.json` into the temporary data root.
+  decision records; drives the build and title agents with the local MiniCPM5
+  model through the Workspace Gateway's `workspace-gw-llamafile-no-auth`
+  provider, pinning the title agent with `small_model` so no remote provider is
+  contacted, and copies the test user's `auth.json` into the temporary data
+  root. An operator may override the build model with `AGENTCI_LIVE_MODEL`.
   Excluded from hermetic CI.

@@ -59,7 +59,11 @@ session stay idle.
    shapes.
 8. The classifier SHALL call MiniCPM5 only through the Workspace Gateway's
    `/llamafile` relay. It SHALL NOT connect directly to the llamafile port or
-   start, install, or manage an inference server.
+   start, install, or manage an inference server. Each classification request
+   SHALL pin deterministic greedy sampling (`temperature` 0, `top_k` 1, `top_p`
+   1, `min_p` 0, and a fixed seed) so that identical inputs produce identical
+   verdicts. The serving model SHALL likewise pin greedy sampling and run with a
+   single slot and a fixed thread count so verdicts do not vary between runs.
 9. The classifier input SHALL contain the todo list and the last three real
    user messages. It SHALL call the Gateway token-count endpoint on the final
    candidate request and remove oldest intervening agent context until the

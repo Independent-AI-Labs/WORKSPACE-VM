@@ -8,8 +8,16 @@ vulkan
 99
 --temp
 0
+--top-k
+1
 --top-p
-0.95
+1
+--min-p
+0
+--seed
+0
+--repeat-penalty
+1.0
 -c
 8192
 --no-mmap
