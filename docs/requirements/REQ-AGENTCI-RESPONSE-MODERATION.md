@@ -210,6 +210,27 @@ session stay idle.
     `ignored-non-build-agent`, `ignored-compaction`,
     `ignored-nonterminal-assistant`, and `ignored-moderator-trace`.
 
+### Operator Replay
+
+28. The plugin SHALL support an operator replay mode enabled by the
+    `AGENTCI_RUN_MOD` environment flag (set by the `oc --run-mod` wrapper launch
+    mode). When enabled, it SHALL replay the last moderator decision for a single
+    session: the latest moderated session by default, or the session named by
+    `AGENTCI_RUN_MOD_SESSION`. An invalid session id SHALL be rejected, and an
+    absent session SHALL be a visible replay failure.
+29. Replay SHALL revert the moderator's most recent injected transcript line for
+    that session (when one exists), recompute the moderation decision with a
+    fresh classifier call over the same assistant response and current context,
+    and reconcile the transcript to the new verdict: `AGENT_CONTINUING` and
+    `AGENT_STALLED` SHALL send a new corrective prompt that starts a new upstream
+    turn, `AGENT_COMPLETE` and `AGENT_BLOCKED` SHALL write a passive status line,
+    and `AGENT_STOPPED` SHALL write no transcript line.
+30. Replay SHALL require moderation to be enabled and SHALL record its outcome
+    as a `REPLAY` audit event carrying the recomputed verdict and the reverted
+    message id. A replay failure SHALL be surfaced to the operator as a visible
+    client toast and, when a session is known, an error audit record; it SHALL
+    never be treated as a completion.
+
 ## Constraints
 
 - Reuse the Gateway's existing `relay-llamafile` route at

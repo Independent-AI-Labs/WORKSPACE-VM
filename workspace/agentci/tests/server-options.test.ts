@@ -1,4 +1,7 @@
 import assert from "node:assert/strict";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import test from "node:test";
 import plugin from "../src/server.ts";
 import type { ModerationClient } from "../src/moderation/adapter.ts";
@@ -37,3 +40,27 @@ test("moderation options enable the lifecycle event hook", async () => {
     if (previous !== undefined) process.env.AGENTCI_MODERATION = previous;
   }
 });
+
+test("AGENTCI_RUN_MOD requests a replay alongside the moderation hooks", async () => {
+  const previousMod = process.env.AGENTCI_MODERATION;
+  const previousRun = process.env.AGENTCI_RUN_MOD;
+  const previousState = process.env.XDG_STATE_HOME;
+  const home = await mkdtemp(join(tmpdir(), "agentci-server-runmod-"));
+  delete process.env.AGENTCI_MODERATION;
+  process.env.AGENTCI_RUN_MOD = "1";
+  process.env.XDG_STATE_HOME = home;
+  try {
+    const hooks = await plugin.server({ client }, { moderation });
+    assert.equal(typeof hooks.event, "function");
+  } finally {
+    restoreEnv("AGENTCI_MODERATION", previousMod);
+    restoreEnv("AGENTCI_RUN_MOD", previousRun);
+    restoreEnv("XDG_STATE_HOME", previousState);
+    await rm(home, { recursive: true, force: true });
+  }
+});
+
+function restoreEnv(name: string, value: string | undefined): void {
+  if (value === undefined) delete process.env[name];
+  else process.env[name] = value;
+}

@@ -322,6 +322,7 @@ oc_wrapper_dispatch() {
     local set_ctx_spec=""
     local set_ctx_size=""
     local persist_ctx=0
+    local run_mod=0
     local -a args=()
     shift 2
 
@@ -342,6 +343,10 @@ oc_wrapper_dispatch() {
                 ;;
             --persist)
                 persist_ctx=1
+                shift
+                ;;
+            --run-mod)
+                run_mod=1
                 shift
                 ;;
             --db)
@@ -394,6 +399,25 @@ oc_wrapper_dispatch() {
     fi
     if [[ -n "$set_ctx_spec" ]]; then
         oc_wrapper_set_ctx "$set_ctx_spec" "$set_ctx_size" "$persist_ctx" || return 2
+    fi
+    if [[ $run_mod -eq 1 ]]; then
+        local run_mod_sid="" _run_mod_arg
+        for _run_mod_arg in "${args[@]}"; do
+            if [[ "$_run_mod_arg" =~ ^ses_[A-Za-z0-9]+$ ]]; then
+                run_mod_sid="$_run_mod_arg"
+            elif [[ "$_run_mod_arg" != -* ]]; then
+                echo "oc: --run-mod does not take a task argument: ${_run_mod_arg}" >&2
+                return 2
+            fi
+        done
+        export AGENTCI_RUN_MOD=1
+        if [[ -n "$run_mod_sid" ]]; then
+            export AGENTCI_RUN_MOD_SESSION="$run_mod_sid"
+            printf '[oc] run-mod: replaying the last moderation decision for %s\n' "$run_mod_sid" >&2
+            exec "$opencode" --session "$run_mod_sid" "${args[@]/$run_mod_sid}"
+        fi
+        printf '[oc] run-mod: replaying the last moderation decision for the latest session\n' >&2
+        exec "$opencode" --continue "${args[@]}"
     fi
     if [[ $direct -eq 1 ]]; then
         exec "$opencode" "${args[@]}"

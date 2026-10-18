@@ -12,7 +12,7 @@ const BUSY_POLL_ATTEMPTS = 50;
 const BUSY_POLL_INTERVAL_MS = 100;
 const CONTINUATION_VERIFY_ATTEMPTS = 15;
 
-function statusLine(decision: VerdictDecision, reasonCode: ReasonCode): string {
+export function statusLine(decision: VerdictDecision, reasonCode: ReasonCode): string {
   if (decision === "AGENT_COMPLETE") return "✅ Automated Moderation: work completion verified.";
   if (decision === "AGENT_BLOCKED") {
     return reasonCode === "AWAITING_USER"
@@ -257,7 +257,7 @@ export function isSessionID(value: unknown): value is string {
   return typeof value === "string" && /^[A-Za-z0-9_-]+$/.test(value);
 }
 
-async function loadMessages(client: ModerationClient, sessionID: string): Promise<MessageFact[]> {
+export async function loadMessages(client: ModerationClient, sessionID: string): Promise<MessageFact[]> {
   const history: MessageFact[] = [];
   const seen = new Set<string>();
   let cursor: string | undefined;

@@ -28,6 +28,11 @@ _oc_help() {
     echo "      Override the model's limit.context for this run. <provider> and"
     echo "      <model> may be the config keys or their configured names."
     echo "  --persist  Also write the --set-ctx override into the config file"
+    echo "  --run-mod [ses_ID]"
+    echo "      Resume a session and replay its last moderation decision: revert"
+    echo "      the moderator's injected line, recompute the verdict, and start a"
+    echo "      new upstream turn when the verdict is a continuation. Defaults to"
+    echo "      the latest session; no task argument is accepted."
 }
 
 if [[ "${1:-}" == "--help" ]] || [[ "${1:-}" == "-h" ]]; then

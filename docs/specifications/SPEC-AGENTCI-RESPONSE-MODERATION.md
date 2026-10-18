@@ -25,6 +25,7 @@ workspace/agentci/src/moderation/
   classifier.ts  Gateway token-trim + GBNF completion + strict two-line parse
   audit.ts        XDG state directory, atomic JSON document persistence
   adapter.ts      event wiring, FIFO queue per session, effect executor
+  replay.ts       operator replay of the last moderation decision
 workspace/agentci/src/server.ts
 workspace/config/opencode/agentci/agentci.template.json
 workspace/scripts/install-agentci
@@ -122,6 +123,32 @@ imply a pass.
    write no transcript line. Audit files hold the full verdict, rulings, reason,
    and decision ID.
 
+## Replay Path
+
+`oc --run-mod [ses_ID]` sets `AGENTCI_RUN_MOD=1` (and `AGENTCI_RUN_MOD_SESSION`
+when an id is given) and resumes the session in OpenCode. When the flag is set
+and moderation is enabled, the plugin runs one replay on startup:
+
+1. Resolve the target session: the explicit `AGENTCI_RUN_MOD_SESSION`, else the
+   session holding the newest decision record under the audit root.
+2. Wait until the session is readable, then select the last moderator-injected
+   transcript line and the completed assistant response it followed.
+3. Revert that injected line through the SDK (`session.revert` with its
+   `messageID`), keeping the assistant response intact.
+4. Recompute the verdict with a fresh classifier call over the current todos, the
+   last three real user prompts, and that assistant response.
+5. Reconcile the transcript to the new verdict, exactly as the moderation path:
+   `AGENT_CONTINUING`/`AGENT_STALLED` send a corrective prompt through
+   `promptAsync` (a new upstream turn); `AGENT_COMPLETE`/`AGENT_BLOCKED` write a
+   passive status line; `AGENT_STOPPED` writes nothing.
+6. Write a `REPLAY` audit record with the recomputed verdict and the reverted
+   message id.
+
+Replay is a one-shot startup action outside the per-session event queue; the
+replayed session's later turns return to normal moderation. A failure (no
+session, revert error, classifier error) is surfaced as a client toast and, when
+a session is known, an error audit record; it is never treated as a completion.
+
 ## Classifier Protocol
 
 ```text
@@ -143,7 +170,9 @@ named `decision-<timestamp>-<random>.yaml`. Each record contains the event type,
 decision type, guard/ignored result, previous and next phase, emitted effects,
 effect results, verdict, error, and the durable state snapshot. Directories are
 `0700`; files are written atomically (`0600`, temp + rename). `state.yaml`
-mirrors the latest durable snapshot for restart restoration.
+mirrors the latest durable snapshot for restart restoration. An operator replay
+writes a `REPLAY` event record (with the recomputed verdict and the reverted
+message id) in the same directory.
 
 ## Deployment
 

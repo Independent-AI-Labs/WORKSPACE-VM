@@ -5,6 +5,7 @@ import { createV1HookAdapter, type V1SystemTransformInput, type V1SystemTransfor
 import { loadPolicies } from "./policies.ts";
 import { createModerationAdapter, type ModerationClient } from "./moderation/adapter.ts";
 import { loadModerationOptions, resolveModerationOptions, type ModerationOptions } from "./moderation/config.ts";
+import { runReplay, type ReplayClient } from "./moderation/replay.ts";
 
 interface AgentCIOptions {
   policies?: string[];
@@ -49,10 +50,20 @@ export default {
       hooks.event = adapter.event;
       hooks["experimental.session.compacting"] = adapter["experimental.session.compacting"];
       hooks["experimental.compaction.autocontinue"] = adapter["experimental.compaction.autocontinue"];
+      if (runModRequested()) {
+        void runReplay(input.client as unknown as ReplayClient, moderation, process.env.AGENTCI_RUN_MOD_SESSION);
+      }
     }
     return hooks;
   },
 };
+
+function runModRequested(): boolean {
+  const value = process.env.AGENTCI_RUN_MOD;
+  if (value === undefined) return false;
+  const normalized = value.trim().toLowerCase();
+  return normalized === "1" || normalized === "true" || normalized === "on" || normalized === "yes";
+}
 
 function moderationDisabled(): boolean {
   const value = process.env.AGENTCI_MODERATION;
