@@ -1,33 +1,27 @@
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import { sessionDirectory } from "../src/moderation/audit.ts";
-import { replayDecisionType, replayLastDecision, resolveReplaySession, runReplay, type ReplayClient } from "../src/moderation/replay.ts";
+import { replayDecisionType, replayLastDecision, resolveReplaySession, runReplay, type ReplayClient, type ReplaySessionSummary } from "../src/moderation/replay.ts";
 import type { MessageFact, TodoFact } from "../src/moderation/types.ts";
 
 const options = { gatewayURL: "http://127.0.0.1:9080/llamafile", model: "/zip/MiniCPM5-1B-Q8_0.gguf" };
 const CONTINUATION_LINE = "⚠️ Automated Moderation: work appears unfinished; continue unless explicitly requested to halt by the operator or the system.";
 const COMPLETE_LINE = "✅ Automated Moderation: work completion verified.";
 
-test("resolveReplaySession honors an explicit id and otherwise picks the newest audited session", async () => {
-  const home = await mkdtemp(join(tmpdir(), "agentci-replay-resolve-"));
-  const previous = process.env.XDG_STATE_HOME;
-  process.env.XDG_STATE_HOME = home;
-  try {
-    assert.equal(await resolveReplaySession("ses_explicit"), "ses_explicit");
-    await assert.rejects(resolveReplaySession("not a session id"), /invalid session id/);
-    await assert.rejects(resolveReplaySession(), /no moderated session/);
-    await mkdir(sessionDirectory("ses_older"), { recursive: true });
-    await writeFile(join(sessionDirectory("ses_older"), "decision-1000-aaaaaaaaaaaa.yaml"), "{}\n");
-    await mkdir(sessionDirectory("ses_newer"), { recursive: true });
-    await writeFile(join(sessionDirectory("ses_newer"), "decision-2000-bbbbbbbbbbbb.yaml"), "{}\n");
-    assert.equal(await resolveReplaySession(), "ses_newer");
-  } finally {
-    await restoreState(previous);
-    await rm(home, { recursive: true, force: true });
-  }
+test("resolveReplaySession honors an explicit id and otherwise picks the newest listed session", async () => {
+  const store = new Harness([], []);
+  assert.equal(await resolveReplaySession(store.client, "ses_explicit"), "ses_explicit");
+  await assert.rejects(resolveReplaySession(store.client, "not a session id"), /invalid session id/);
+  await assert.rejects(resolveReplaySession(store.client), /no moderated session/);
+  store.sessions.push(
+    { id: "ses_older", time: { updated: 1000 } },
+    { id: "ses_newer", time: { updated: 2000 } },
+    { id: "ses_middle", time: { updated: 1500 } },
+  );
+  assert.equal(await resolveReplaySession(store.client), "ses_newer");
 });
 
 test("replaying a continuation reverts the moderator line, recomputes, and sends a new prompt", async () => {
@@ -123,6 +117,7 @@ test("replayDecisionType maps every verdict decision to its audit type", () => {
 class Harness {
   readonly messages: MessageFact[];
   readonly todos: TodoFact[];
+  readonly sessions: ReplaySessionSummary[] = [];
   readonly revertCalls: string[] = [];
   readonly promptAsyncCalls: string[] = [];
   readonly promptCalls: string[] = [];
@@ -136,6 +131,7 @@ class Harness {
       session: {
         todo: async () => ({ data: this.todos }),
         messages: async () => ({ data: this.messages }),
+        list: async () => ({ data: this.sessions }),
         prompt: async (call) => {
           const text = String((call.body.parts as { text: string }[])[0].text);
           this.promptCalls.push(text);

@@ -1,6 +1,5 @@
-import { readdir } from "node:fs/promises";
 import { statusLine, isSessionID, loadMessages, type ModerationClient } from "./adapter.ts";
-import { DECISION_PREFIX, sessionDirectory, stateRoot, writeDecisionRecord } from "./audit.ts";
+import { sessionDirectory, writeDecisionRecord } from "./audit.ts";
 import { classify, type FetchLike } from "./classifier.ts";
 import type { ModerationOptions } from "./config.ts";
 import { assistantText, isInjectedUser, lastRealUserPrompts } from "./context.ts";
@@ -10,9 +9,15 @@ const REPLAY_READY_ATTEMPTS = 40;
 const REPLAY_READY_INTERVAL_MS = 250;
 const REPLAY_TOAST_MS = 2000;
 
+export interface ReplaySessionSummary {
+  id: string;
+  time: { updated: number };
+}
+
 export interface ReplayClient extends ModerationClient {
   session: ModerationClient["session"] & {
     revert(input: { path: { id: string }; body: { messageID: string; partID?: string } }): Promise<unknown>;
+    list(input?: { query?: { directory?: string } }): Promise<{ data?: ReplaySessionSummary[] }>;
   };
 }
 
@@ -35,27 +40,19 @@ interface ReplayTarget {
   moderatorMessageID: string | null;
 }
 
-export async function resolveReplaySession(explicit?: string): Promise<string> {
+export async function resolveReplaySession(client: ReplayClient, explicit?: string): Promise<string> {
   if (explicit !== undefined && explicit.length > 0) {
     if (!isSessionID(explicit)) throw new Error(`AgentCI replay received an invalid session id '${explicit}'`);
     return explicit;
   }
-  let names: string[];
-  try {
-    names = await readdir(stateRoot());
-  } catch (error) {
-    if ((error as { code?: string }).code === "ENOENT") throw new Error("AgentCI replay found no moderated session to replay");
-    throw error;
-  }
-  let newest: { sessionID: string; stamp: number } | null = null;
-  for (const name of names) {
-    if (!isSessionID(name)) continue;
-    const stamp = await newestDecisionStamp(name);
-    if (stamp === null) continue;
-    if (newest === null || stamp > newest.stamp) newest = { sessionID: name, stamp };
+  const sessions = (await client.session.list()).data ?? [];
+  let newest: ReplaySessionSummary | null = null;
+  for (const session of sessions) {
+    if (!isSessionID(session.id)) continue;
+    if (newest === null || session.time.updated > newest.time.updated) newest = session;
   }
   if (newest === null) throw new Error("AgentCI replay found no moderated session to replay");
-  return newest.sessionID;
+  return newest.id;
 }
 
 export async function replayLastDecision(input: ReplayInput): Promise<ReplayResult> {
@@ -89,7 +86,7 @@ export async function replayLastDecision(input: ReplayInput): Promise<ReplayResu
 export async function runReplay(client: ReplayClient, options: ModerationOptions, explicit?: string): Promise<void> {
   let sessionID: string | null = null;
   try {
-    sessionID = await resolveReplaySession(explicit);
+    sessionID = await resolveReplaySession(client, explicit);
     await awaitSessionReady(client, sessionID);
     await replayLastDecision({ client, options, sessionID });
   } catch (error) {
@@ -106,24 +103,6 @@ export function replayDecisionType(decision: VerdictDecision): string {
   if (decision === "AGENT_BLOCKED") return "moderation-agent-blocked";
   if (decision === "AGENT_STOPPED") return "moderation-user-stop";
   return "moderation-continue";
-}
-
-async function newestDecisionStamp(sessionID: string): Promise<number | null> {
-  let names: string[];
-  try {
-    names = await readdir(sessionDirectory(sessionID));
-  } catch (error) {
-    if ((error as { code?: string }).code === "ENOENT") return null;
-    throw error;
-  }
-  let stamp: number | null = null;
-  for (const name of names) {
-    if (!name.startsWith(DECISION_PREFIX) || !name.endsWith(".yaml")) continue;
-    const value = Number.parseInt(name.slice(DECISION_PREFIX.length), 10);
-    if (!Number.isFinite(value)) continue;
-    if (stamp === null || value > stamp) stamp = value;
-  }
-  return stamp;
 }
 
 function selectReplayTarget(messages: readonly MessageFact[]): ReplayTarget | null {

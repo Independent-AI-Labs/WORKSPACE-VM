@@ -130,7 +130,8 @@ when an id is given) and resumes the session in OpenCode. When the flag is set
 and moderation is enabled, the plugin runs one replay on startup:
 
 1. Resolve the target session: the explicit `AGENTCI_RUN_MOD_SESSION`, else the
-   session holding the newest decision record under the audit root.
+   current project's most recently updated session from the OpenCode client's
+   session list (the same session `--continue` resumes).
 2. Wait until the session is readable, then select the last moderator-injected
    transcript line and the completed assistant response it followed.
 3. Revert that injected line through the SDK (`session.revert` with its

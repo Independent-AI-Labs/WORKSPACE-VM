@@ -4,16 +4,18 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import plugin from "../src/server.ts";
-import type { ModerationClient } from "../src/moderation/adapter.ts";
+import type { ReplayClient } from "../src/moderation/replay.ts";
 
 const moderation = { gateway_url: "http://127.0.0.1:9080/llamafile", model: "/zip/MiniCPM5-1B-Q8_0.gguf" };
 
-const client: ModerationClient = {
+const client: ReplayClient = {
   session: {
     todo: async () => ({ data: [] }),
     messages: async () => ({ data: [] }),
+    list: async () => ({ data: [] }),
     prompt: async () => ({ data: { info: { id: "trace" } } }),
     promptAsync: async () => undefined,
+    revert: async () => undefined,
   },
   tui: { showToast: async () => null },
 };
