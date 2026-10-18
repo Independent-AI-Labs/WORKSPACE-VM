@@ -51,15 +51,19 @@ transitions:
 
 ```text
 phase                    IDLE | OBSERVING | CLASSIFYING | CONTINUING | ERROR
-busyGeneration           monotonic busy counter
-pendingIdleGenerations   queued idle generations
 inflightAssistantID      assistant claim in progress
 lastTerminalAssistantID  last moderated terminal assistant
 realUserCycleID          latest real user turn id
 consecutiveNoProgressCount
 blocker                  null | { source, originUserID }
-compaction               { active, generation }
+compaction               { active }
 ```
+
+Turn completion is keyed on the completed assistant message identity, not on a
+busy/idle counter. Duplicate suppression (`inflightAssistantID` /
+`lastTerminalAssistantID`) and stale-idle protection (phase gating) are derived
+from that identity, so two representations of the same fact cannot desynchronize
+across a restart.
 
 `AGENT_COMPLETE`, `AGENT_BLOCKED`, `AGENT_STOPPED`, `OPERATOR_HANDOFF`, and
 `ESCALATED` are
@@ -67,6 +71,13 @@ recorded outcomes in audit records, not durable phases. Blocker discussion is th
 nullable `blocker` scope (`operator-handoff` or `agent-blocked`).
 The reducer never retains message objects, clients, promises, or mutable
 collections.
+
+On restore, the folded snapshot is normalized by `normalizeRestoredState`: the
+phase is coerced to `IDLE`, the in-flight assistant claim is cleared, and an
+unfinished `CLASSIFYING` claim also clears `lastTerminalAssistantID` so that turn
+is re-evaluated. Continuation-start verification uses an adapter-local, in-memory
+busy observation that is never persisted and never compared against durable
+state.
 
 ## Events, Guards, Effects
 
@@ -86,7 +97,9 @@ imply a pass.
 
 ## Moderation Path
 
-1. `STATUS_BUSY` enters `OBSERVING`; the matching `STATUS_IDLE` loads context.
+1. `STATUS_BUSY` enters `OBSERVING`; the subsequent `STATUS_IDLE` loads context.
+   A duplicate idle for an already-moderated terminal assistant is suppressed by
+   the assistant-identity guard, so the same response is never moderated twice.
 2. Context selection picks the newest assistant, then resolves the real
    user turn that originated it by walking `parentID` upward and skipping
    injected continuation/trace messages (chronological API ordering). This keeps

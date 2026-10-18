@@ -9,13 +9,10 @@ export interface BlockerScope {
 
 export interface CompactionState {
   active: boolean;
-  generation: number;
 }
 
 export interface ModerationState {
   phase: Phase;
-  busyGeneration: number;
-  pendingIdleGenerations: number[];
   inflightAssistantID: string | null;
   lastTerminalAssistantID: string | null;
   realUserCycleID: string | null;
@@ -42,7 +39,7 @@ export interface Verdict {
 }
 
 export type Effect =
-  | { type: "LOAD_CONTEXT"; generation: number }
+  | { type: "LOAD_CONTEXT" }
   | { type: "WRITE_DECISION"; decisionType: string }
   | { type: "WRITE_TRACE"; verdict?: Verdict }
   | { type: "SHOW_TOAST"; kind: string }
@@ -82,11 +79,10 @@ export interface ContextSnapshot {
 }
 
 export type ModerationEvent = { sessionID?: string } & (
-  | { type: "STATUS_BUSY"; generation?: number }
-  | { type: "STATUS_IDLE"; generation?: number }
+  | { type: "STATUS_BUSY" }
+  | { type: "STATUS_IDLE" }
   | {
       type: "CONTEXT_LOADED";
-      generation?: number;
       todos?: TodoFact[];
       assistantID?: string | null;
       terminal?: boolean;

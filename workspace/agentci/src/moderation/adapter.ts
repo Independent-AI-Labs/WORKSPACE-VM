@@ -2,7 +2,7 @@ import { classify, type FetchLike } from "./classifier.ts";
 import { assistantText, deriveContext, inBranch, isInjectedUser, newestAssistant, realUserAncestor } from "./context.ts";
 import type { ModerationOptions } from "./config.ts";
 import { persistSnapshot, restoreSnapshot, sessionDirectory, writeDecisionRecord } from "./audit.ts";
-import { createInitialState, isValidState, transition } from "./machine.ts";
+import { createInitialState, isValidState, normalizeRestoredState, transition } from "./machine.ts";
 import type { ContextSnapshot, Effect, MessageFact, ModerationEvent, ModerationState, ReasonCode, TodoFact, TransitionResult, Verdict, VerdictDecision } from "./types.ts";
 
 const CONTINUATION_LINE = "⚠️ Automated Moderation: work appears unfinished; continue unless explicitly requested to halt by the operator or the system.";
@@ -56,7 +56,8 @@ interface Session {
   state: ModerationState;
   queue: ModerationEvent[];
   draining: boolean;
-  nextBusyGeneration: number;
+  busyCount: number;
+  continuationBaseline: number;
   moderatorMessageIDs: Set<string>;
   context: ContextSnapshot | null;
   userMessages: string[];
@@ -82,7 +83,7 @@ export function createModerationAdapter(input: ModerationServerInput, options: M
     const snapshot = await restoreSnapshot(sessionDirectory(sessionID));
     if (snapshot === null) return;
     if (isValidState(snapshot)) {
-      session.state = snapshot;
+      session.state = normalizeRestoredState(snapshot);
       return;
     }
     await writeDecisionRecord(sessionDirectory(sessionID), { event: "RESTORE", decisionType: "moderation-error", error: "invalid state snapshot", stateSnapshot: session.state });
@@ -94,7 +95,8 @@ export function createModerationAdapter(input: ModerationServerInput, options: M
       state: createInitialState(),
       queue: [],
       draining: false,
-      nextBusyGeneration: 0,
+      busyCount: 0,
+      continuationBaseline: 0,
       moderatorMessageIDs: new Set(),
       context: null,
       userMessages: [],
@@ -138,7 +140,7 @@ export function createModerationAdapter(input: ModerationServerInput, options: M
   };
   const perform = async (sessionID: string, session: Session, effect: Effect, event: ModerationEvent): Promise<ModerationEvent | null> => {
     switch (effect.type) {
-      case "LOAD_CONTEXT": return loadContext(sessionID, session, effect.generation);
+      case "LOAD_CONTEXT": return loadContext(sessionID, session);
       case "CLASSIFY": return classifyEffect(session, event);
       case "WRITE_TRACE": return writeTrace(sessionID, session, effect.verdict);
       case "SHOW_TOAST": return showToast(input.client, effect.kind);
@@ -149,7 +151,7 @@ export function createModerationAdapter(input: ModerationServerInput, options: M
       default: return assertNever(effect);
     }
   };
-  const loadContext = async (sessionID: string, session: Session, generation: number): Promise<ModerationEvent> => {
+  const loadContext = async (sessionID: string, session: Session): Promise<ModerationEvent> => {
     const [todoResult, messages] = await withTimeout(Promise.all([
       input.client.session.todo({ path: { id: sessionID } }),
       loadMessages(input.client, sessionID),
@@ -170,7 +172,6 @@ export function createModerationAdapter(input: ModerationServerInput, options: M
     const realUserCycleID = origin?.info.id ?? null;
     return {
       type: "CONTEXT_LOADED",
-      generation,
       todos,
       assistantID,
       terminal: session.context.terminal,
@@ -210,6 +211,7 @@ export function createModerationAdapter(input: ModerationServerInput, options: M
   };
   const sendContinuation = async (sessionID: string, session: Session, verdict: Verdict | undefined): Promise<ModerationEvent> => {
     if (!verdict) throw new Error("AgentCI moderation continuation ran without a verdict");
+    session.continuationBaseline = session.busyCount;
     const response = await input.client.session.promptAsync({ path: { id: sessionID }, body: { parts: [{ type: "text", text: statusLine(verdict.decision, verdict.reasonCode) }] } });
     const id = promptAsyncMessageID(response);
     if (id !== null) session.moderatorMessageIDs.add(id);
@@ -220,9 +222,9 @@ export function createModerationAdapter(input: ModerationServerInput, options: M
     return null;
   };
   const waitForBusy = async (sessionID: string, session: Session): Promise<ModerationEvent> => {
-    const generation = session.state.busyGeneration;
+    const baseline = session.continuationBaseline;
     for (let attempt = 0; attempt < BUSY_POLL_ATTEMPTS; attempt += 1) {
-      if (session.queue.some((queued) => queued.type === "STATUS_BUSY" && Number(queued.generation ?? 0) > generation)) return { type: "BUSY_VERIFIED" };
+      if (session.busyCount > baseline) return { type: "BUSY_VERIFIED" };
       await sleep(BUSY_POLL_INTERVAL_MS);
     }
     return { type: "CONTINUATION_TIMEOUT" };
@@ -233,8 +235,8 @@ export function createModerationAdapter(input: ModerationServerInput, options: M
     if (event.type === "session.status") {
       const session = record(sessionID);
       const status = event.properties?.status?.type;
-      const generation = status === "busy" ? (session.nextBusyGeneration += 1) : session.nextBusyGeneration;
-      enqueue(sessionID, { type: status === "busy" ? "STATUS_BUSY" : "STATUS_IDLE", generation });
+      if (status === "busy") session.busyCount += 1;
+      enqueue(sessionID, { type: status === "busy" ? "STATUS_BUSY" : "STATUS_IDLE" });
       return;
     }
     if (event.type === "session.compacted") enqueue(sessionID, { type: "COMPACTION_COMPLETED" });

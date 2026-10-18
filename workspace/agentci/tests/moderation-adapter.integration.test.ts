@@ -228,6 +228,32 @@ test("the agent's reply to an injected continuation is classified and can comple
   }
 });
 
+test("moderation resumes after a restart instead of going stale", async () => {
+  const home = await mkdtemp(join(tmpdir(), "agentci-adapter-restart-"));
+  const previous = process.env.XDG_STATE_HOME;
+  process.env.XDG_STATE_HOME = home;
+  const sessionID = "ses_adapter10";
+  const store = new Harness([user("user_1", "Finish the task."), assistant("msg_1", "user_1", "All done.")]);
+  try {
+    const first = createModerationAdapter({ client: store.client }, options, classifierFetch("decision: AGENT_COMPLETE\nreason: WORK_COMPLETE"));
+    first.event({ event: { type: "session.status", properties: { sessionID, status: { type: "busy" } } } });
+    first.event({ event: { type: "session.status", properties: { sessionID, status: { type: "idle" } } } });
+    await store.waitFor(() => store.toasts.includes("complete"), "the first session did not complete");
+
+    store.messages.push(assistant("msg_2", "user_1", "I stopped early again."));
+    const captured: string[] = [];
+    const second = createModerationAdapter({ client: store.client }, options, classifierFetch("decision: AGENT_CONTINUING\nreason: WORK_REMAINS", captured));
+    second.event({ event: { type: "session.status", properties: { sessionID, status: { type: "busy" } } } });
+    second.event({ event: { type: "session.status", properties: { sessionID, status: { type: "idle" } } } });
+    await store.waitFor(() => store.promptAsyncCalls.length > 0, "the resumed session was not moderated");
+    assert.equal(captured.length, 1, "a new terminal assistant after restore must be classified");
+  } finally {
+    if (previous === undefined) delete process.env.XDG_STATE_HOME;
+    else process.env.XDG_STATE_HOME = previous;
+    await rm(home, { recursive: true, force: true });
+  }
+});
+
 class Harness {
   readonly messages: MessageFact[];
   readonly todos: TodoFact[];

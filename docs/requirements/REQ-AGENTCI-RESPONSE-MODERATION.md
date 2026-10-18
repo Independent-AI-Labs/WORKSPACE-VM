@@ -26,11 +26,13 @@ session stay idle.
 1. The AgentCI plugin SHALL use the `event` hook and accept `session.status`,
    `experimental.session.compacting`, `experimental.compaction.autocontinue`,
    and `session.compacted` lifecycle events. It SHALL record each event before
-   filtering, track a `busy` transition, and moderate only the matching
-   subsequent `idle` event.
+   filtering, track a `busy` transition, and moderate the completed assistant
+   response observed on the subsequent `idle` event.
 2. The idle event SHALL be emitted after the agent processing loop has finished
-   the assistant response. Duplicate idle events SHALL NOT process the same
-   assistant message twice.
+   the assistant response. Turn completion SHALL be correlated by the completed
+   assistant message identity, not by a busy/idle counter: a duplicate idle for
+   an already-moderated assistant SHALL NOT process the same assistant message
+   twice.
 3. Completion moderation SHALL apply only when the completed assistant has
    `info.agent == "build"`. Missing or other values SHALL be ignored with an
    auditable reason.
@@ -319,19 +321,23 @@ recorded outcomes, not durable lifecycle phases. The next `STATUS_BUSY` begins o
 response. Blocker discussion is a nullable branch scope, not a lifecycle phase.
 A new unrelated real-user branch clears that scope before classification.
 
+Turn completion SHALL be keyed on the completed assistant message identity
+(`lastTerminalAssistantID`, `inflightAssistantID`), never on a busy/idle
+generation counter. Duplicate suppression and stale-idle protection SHALL be
+derived from that identity and the current phase, so a process restart cannot
+desynchronize two representations of the same fact.
+
 The durable state record SHALL contain only facts required to reconstruct legal
 future transitions:
 
 ```text
 phase
-busyGeneration
-pendingIdleGenerations
 inflightAssistantID
 lastTerminalAssistantID
 realUserCycleID
 consecutiveNoProgressCount
 blocker: null | { source, originUserID }
-compaction: { active, generation }
+compaction: { active }
 ```
 
 Transcript snapshots, classifier captures, prompts, toasts, and decision IDs
@@ -374,14 +380,22 @@ imply a pass.
 
 One serialized FIFO queue SHALL exist per session. The event hook SHALL enqueue
 all relevant lifecycle events and return without awaiting moderation. While an
-effect is active, later idle generations remain queued. A queued idle
-generation SHALL be consumed once and only once after the preceding transition
-finishes.
+effect is active, later idle events remain queued; a queued context load SHALL be
+consumed once and only once after the preceding transition finishes. A queued
+idle for a terminal assistant that was already moderated SHALL be suppressed by
+the assistant-identity duplicate guard, not by a counter.
+
+Continuation-start verification ("the agent began a new turn after the corrective
+prompt") SHALL use an adapter-local, in-memory busy observation that is never
+persisted; it SHALL NOT compare a durable counter against a process-local one.
 
 Each completed transition SHALL write an atomic decision record containing the
 previous phase, event type, guard results, next phase, emitted effects, effect
 results, state snapshot, and existing required audit fields. Restore SHALL fold
-the latest valid snapshots in chronological decision-record order. An
+the latest valid snapshots in chronological decision-record order, then normalize
+the folded state: the phase SHALL be coerced to `IDLE` and the in-flight
+assistant claim cleared, and an unfinished `CLASSIFYING` claim SHALL also be
+cleared so that turn is re-evaluated. An
 incomplete or corrupt record SHALL be observable and SHALL not manufacture a
 completed claim. Recoverable errors SHALL release the in-flight assistant
 claim so the same completed assistant can be retried deliberately.
@@ -396,12 +410,15 @@ state.
 
 The machine module SHALL have direct transition tests independent of OpenCode,
 the filesystem, and MiniCPM. Tests SHALL cover every phase and every accepted
-event, invalid-event handling, effect order, duplicate idle events, queued idle
-generations, branch-scoped blockers, restart restoration, format-retry
+event, invalid-event handling, effect order, duplicate idle suppression by
+assistant identity, restart normalization, branch-scoped blockers, restart
+restoration, format-retry
 exhaustion, todo-state classification, three no-progress escalation, and error
 recovery. Adapter integration tests SHALL verify that each emitted effect calls
 its installed SDK or classifier boundary exactly once and feeds the observed
-result back to the machine.
+result back to the machine. Adapter tests SHALL also verify that moderation
+resumes after a process restart (a new terminal assistant is classified from a
+restored session).
 
 The implementation SHALL use random temporary files for classifier snapshots
 and captures, paginate message history when necessary, and preserve complete

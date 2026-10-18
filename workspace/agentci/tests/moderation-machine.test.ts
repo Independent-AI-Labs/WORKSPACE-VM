@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createInitialState, isValidState, transition } from "../src/moderation/machine.ts";
+import { createInitialState, isValidState, normalizeRestoredState, transition } from "../src/moderation/machine.ts";
 import type { ModerationEvent, ModerationState, Verdict } from "../src/moderation/types.ts";
 
 const verdicts = {
@@ -23,24 +23,24 @@ test("invalid state is reset on transition", () => {
   assert.equal(result.state.phase, "IDLE");
 });
 
-test("STATUS_BUSY from IDLE enters OBSERVING and increments the generation", () => {
-  const result = transition(createInitialState(), { type: "STATUS_BUSY", generation: 4 });
+test("STATUS_BUSY from IDLE enters OBSERVING", () => {
+  const result = transition(createInitialState(), { type: "STATUS_BUSY" });
   assert.equal(result.state.phase, "OBSERVING");
-  assert.equal(result.state.busyGeneration, 4);
 });
 
-test("STATUS_IDLE queues a generation and requests context", () => {
-  const busy = transition(createInitialState(), { type: "STATUS_BUSY", generation: 1 }).state;
-  const result = transition(busy, { type: "STATUS_IDLE", generation: 1 });
-  assert.deepEqual(result.state.pendingIdleGenerations, [1]);
+test("STATUS_IDLE requests a context load without tracking a generation", () => {
+  const busy = transition(createInitialState(), { type: "STATUS_BUSY" }).state;
+  const result = transition(busy, { type: "STATUS_IDLE" });
+  assert.equal(result.state.phase, "OBSERVING");
   assert.ok(result.effects.some((effect) => effect.type === "LOAD_CONTEXT"));
 });
 
-test("stale STATUS_IDLE is ignored", () => {
-  const busy = transition(createInitialState(), { type: "STATUS_BUSY", generation: 3 }).state;
-  const result = transition(busy, { type: "STATUS_IDLE", generation: 1 });
-  assert.equal(result.ignored, true);
-  assert.deepEqual(result.state.pendingIdleGenerations, []);
+test("a second STATUS_IDLE during observation requests context; identity suppresses the duplicate later", () => {
+  const busy = transition(createInitialState(), { type: "STATUS_BUSY" }).state;
+  const first = transition(busy, { type: "STATUS_IDLE" });
+  const second = transition(first.state, { type: "STATUS_IDLE" });
+  assert.equal(second.ignored, false);
+  assert.ok(second.effects.some((effect) => effect.type === "LOAD_CONTEXT"));
 });
 
 test("controllable context starts classification", () => {
@@ -144,12 +144,37 @@ test("effect errors move the machine into ERROR", () => {
 });
 
 test("STATUS_IDLE outside observation is ignored", () => {
-  const result = transition(createInitialState(), { type: "STATUS_IDLE", generation: 0 });
+  const result = transition(createInitialState(), { type: "STATUS_IDLE" });
   assert.equal(result.ignored, true);
 });
 
+test("restore coerces an in-flight phase to IDLE without losing settled facts", () => {
+  const restored = normalizeRestoredState({
+    phase: "CONTINUING",
+    inflightAssistantID: "msg_inflight",
+    lastTerminalAssistantID: "msg_terminal",
+    realUserCycleID: "user_1",
+    consecutiveNoProgressCount: 2,
+    blocker: { source: "agent-blocked", originUserID: "user_1" },
+    compaction: { active: true },
+  });
+  assert.equal(restored.phase, "IDLE");
+  assert.equal(restored.inflightAssistantID, null);
+  assert.equal(restored.lastTerminalAssistantID, "msg_terminal");
+  assert.equal(restored.realUserCycleID, "user_1");
+  assert.equal(restored.consecutiveNoProgressCount, 2);
+  assert.equal(restored.blocker?.source, "agent-blocked");
+  assert.equal(restored.compaction.active, true);
+});
+
+test("restore clears the unfinished classification claim so it is re-evaluated", () => {
+  const restored = normalizeRestoredState({ ...createInitialState(), phase: "CLASSIFYING", lastTerminalAssistantID: "msg_half_classified" });
+  assert.equal(restored.phase, "IDLE");
+  assert.equal(restored.lastTerminalAssistantID, null);
+});
+
 function observing(): ModerationState {
-  return transition(createInitialState(), { type: "STATUS_BUSY", generation: 1 }).state;
+  return transition(createInitialState(), { type: "STATUS_BUSY" }).state;
 }
 
 function classifying(): ModerationState {

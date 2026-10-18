@@ -23,14 +23,25 @@ type EffectErrorEvent = Extract<ModerationEvent, { type: "EFFECT_ERROR" }>;
 export function createInitialState(): ModerationState {
   return {
     phase: "IDLE",
-    busyGeneration: 0,
-    pendingIdleGenerations: [],
     inflightAssistantID: null,
     lastTerminalAssistantID: null,
     realUserCycleID: null,
     consecutiveNoProgressCount: 0,
     blocker: null,
-    compaction: { active: false, generation: 0 },
+    compaction: { active: false },
+  };
+}
+
+export function normalizeRestoredState(state: ModerationState): ModerationState {
+  const reclassify = state.phase === "CLASSIFYING";
+  return {
+    phase: "IDLE",
+    inflightAssistantID: null,
+    lastTerminalAssistantID: reclassify ? null : state.lastTerminalAssistantID,
+    realUserCycleID: state.realUserCycleID,
+    consecutiveNoProgressCount: state.consecutiveNoProgressCount,
+    blocker: state.blocker,
+    compaction: { active: state.compaction.active },
   };
 }
 
@@ -38,13 +49,9 @@ export function isValidState(state: ModerationState): boolean {
   return Boolean(
     state
       && PHASES.includes(state.phase)
-      && Number.isInteger(state.busyGeneration)
-      && Array.isArray(state.pendingIdleGenerations)
-      && state.pendingIdleGenerations.every((value) => Number.isInteger(value))
       && Number.isInteger(state.consecutiveNoProgressCount)
       && state.compaction
-      && typeof state.compaction.active === "boolean"
-      && Number.isInteger(state.compaction.generation),
+      && typeof state.compaction.active === "boolean",
   );
 }
 
@@ -85,24 +92,15 @@ function assertNeverEvent(event: never): never {
 }
 
 function onBusy(state: ModerationState, event: BusyEvent): TransitionResult {
-  const busyGeneration = Math.max(state.busyGeneration + 1, event.generation ?? 0);
   if (state.phase === "IDLE" || state.phase === "ERROR") {
-    return result({ ...state, phase: "OBSERVING", busyGeneration }, event, [decision("status-busy")]);
+    return result({ ...state, phase: "OBSERVING" }, event, [decision("status-busy")]);
   }
-  return result({ ...state, busyGeneration }, event, [decision("status-busy")]);
+  return result(state, event, [decision("status-busy")]);
 }
 
 function onIdle(state: ModerationState, event: IdleEvent): TransitionResult {
   if (state.phase !== "OBSERVING") return ignored(state, event, "idle-outside-observation");
-  const generation = event.generation ?? state.busyGeneration;
-  if (generation < state.busyGeneration || state.pendingIdleGenerations.includes(generation)) {
-    return ignored(state, event, "stale-or-duplicate-idle");
-  }
-  return result(
-    { ...state, pendingIdleGenerations: [...state.pendingIdleGenerations, generation] },
-    event,
-    [loadContext(generation), decision("status-idle")],
-  );
+  return result(state, event, [loadContext(), decision("status-idle")]);
 }
 
 function onContextLoaded(state: ModerationState, event: ContextEvent): TransitionResult {
@@ -188,7 +186,7 @@ function continuationFinished(state: ModerationState, event: ContinuationFinishe
 
 function compactionStarted(state: ModerationState, event: CompactionStartedEvent): TransitionResult {
   return result(
-    { ...state, compaction: { active: true, generation: state.compaction.generation + 1 } },
+    { ...state, compaction: { active: true } },
     event,
     [decision("compaction-started")],
   );
@@ -216,7 +214,6 @@ function withContext(state: ModerationState, event: ContextEvent): ModerationSta
     realUserCycleID: event.realUserCycleID ?? state.realUserCycleID,
     consecutiveNoProgressCount: isNewCycle(state, event) ? 0 : state.consecutiveNoProgressCount,
     blocker: event.blockerBranch === false && isNewCycle(state, event) ? null : state.blocker,
-    pendingIdleGenerations: state.pendingIdleGenerations.slice(1),
   };
 }
 
@@ -292,6 +289,6 @@ function waitForBusy(): Effect {
   return { type: "WAIT_FOR_BUSY" };
 }
 
-function loadContext(generation: number): Effect {
-  return { type: "LOAD_CONTEXT", generation };
+function loadContext(): Effect {
+  return { type: "LOAD_CONTEXT" };
 }
