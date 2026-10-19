@@ -2,14 +2,30 @@ import { readFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { parse } from "yaml";
 
-export type PolicyEvent = "tool.execute.before" | "tool.execute.after" | "experimental.chat.system.transform";
+export type PolicyEvent =
+  | "tool.execute.before"
+  | "tool.execute.after"
+  | "experimental.chat.system.transform"
+  | "experimental.chat.messages.transform";
 export type PolicyAction = "block" | "allow" | "warn" | "inject";
 
-const EVENTS: readonly PolicyEvent[] = ["tool.execute.before", "tool.execute.after", "experimental.chat.system.transform"];
+const EVENTS: readonly PolicyEvent[] = [
+  "tool.execute.before",
+  "tool.execute.after",
+  "experimental.chat.system.transform",
+  "experimental.chat.messages.transform",
+];
 const BEFORE_ACTIONS: readonly PolicyAction[] = ["block", "allow", "warn"];
 const AFTER_ACTIONS: readonly PolicyAction[] = ["warn"];
 const INJECT_ACTIONS: readonly PolicyAction[] = ["inject"];
 const MATCH_FIELDS = ["tool", "command_regex", "exit", "repository_path", "session_id", "file"] as const;
+
+const EVENT_MATCH_FIELDS: Record<PolicyEvent, readonly (typeof MATCH_FIELDS)[number][]> = {
+  "tool.execute.before": MATCH_FIELDS,
+  "tool.execute.after": MATCH_FIELDS,
+  "experimental.chat.system.transform": MATCH_FIELDS,
+  "experimental.chat.messages.transform": ["file"],
+};
 
 export const MAX_REGEX_LENGTH = 256;
 export const MAX_MESSAGE_BYTES = 4096;
@@ -60,16 +76,18 @@ function policy(value: unknown, file: string): Policy {
   if (event === undefined) throw new Error(`AgentCI policy '${name}' has unknown event in ${file}`);
   const action = actionField(record.action, event, name, file);
   const message = bounded(stringField(record.message, "message", file), MAX_MESSAGE_BYTES, `message of policy '${name}'`);
-  return { name, event, match: matchFields(record.match, action, name, file), action, message };
+  return { name, event, match: matchFields(record.match, event, action, name, file), action, message };
 }
 
-function matchFields(value: unknown, action: PolicyAction, name: string, file: string): Policy["match"] {
+function matchFields(value: unknown, event: PolicyEvent, action: PolicyAction, name: string, file: string): Policy["match"] {
   if (value === undefined) return {};
   if (typeof value !== "object" || value === null || Array.isArray(value)) throw new Error(`AgentCI policy '${name}' match is not a mapping in ${file}`);
   const record = value as Record<string, unknown>;
+  const allowed = EVENT_MATCH_FIELDS[event] as readonly string[];
   const match: Policy["match"] = {};
   for (const key of Object.keys(record)) {
     if (!(MATCH_FIELDS as readonly string[]).includes(key)) throw new Error(`AgentCI policy '${name}' has unknown match field '${key}' in ${file}`);
+    if (!allowed.includes(key)) throw new Error(`AgentCI policy '${name}' match field '${key}' is not available for ${event} in ${file} (allowed: ${allowed.join(", ")})`);
     if (key === "command_regex") {
       const pattern = stringField(record.command_regex, `${name} command_regex`, file);
       if (pattern.length > MAX_REGEX_LENGTH) throw new Error(`AgentCI policy '${name}' command_regex exceeds ${MAX_REGEX_LENGTH} characters`);

@@ -1,0 +1,7 @@
+policies:
+  - name: user-note
+    event: experimental.chat.messages.transform
+    match:
+      file: user-note.md
+    action: inject
+    message: User note.

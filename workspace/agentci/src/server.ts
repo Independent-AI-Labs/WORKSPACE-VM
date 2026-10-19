@@ -1,7 +1,7 @@
-import { appendFile } from "node:fs/promises";
+import { appendFile, readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { createV1HookAdapter, type V1SystemTransformInput, type V1SystemTransformOutput, type V1ToolExecuteAfterInput, type V1ToolExecuteAfterOutput } from "./v1-hook-adapter.ts";
+import { createV1HookAdapter, type V1MessagesTransformOutput, type V1SystemTransformInput, type V1SystemTransformOutput, type V1ToolExecuteAfterInput, type V1ToolExecuteAfterOutput } from "./v1-hook-adapter.ts";
 import { loadPolicies } from "./policies.ts";
 import { createModerationAdapter, type ModerationClient } from "./moderation/adapter.ts";
 import { loadModerationOptions, resolveModerationOptions, type ModerationOptions } from "./moderation/config.ts";
@@ -21,14 +21,11 @@ const moduleDirectory = dirname(fileURLToPath(import.meta.url));
 export default {
   id: "agentci",
   server: async (input: AgentCIInput, options: AgentCIOptions = {}) => {
-    const policies = Array.isArray(options.policies) && options.policies.length > 0 ? options.policies : null;
-    if (policies !== null && policies.some((entry) => typeof entry !== "string")) {
-      throw new Error("AgentCI 'policies' entries must be string file paths");
-    }
+    const policies = await resolvePolicies(options);
     const moderation = moderationDisabled() ? null : await resolveModeration(options);
     if (policies === null && moderation === null) {
       if (moderationDisabled()) return {};
-      throw new Error("AgentCI requires either a non-empty 'policies' array or moderation options in plugin options");
+      throw new Error("AgentCI requires either a non-empty 'policies' array or moderation options");
     }
     const hooks: Record<string, unknown> = {};
     if (policies !== null) {
@@ -42,6 +39,10 @@ export default {
       };
       hooks["experimental.chat.system.transform"] = evidence === undefined ? v1["experimental.chat.system.transform"] : async (transformInput: V1SystemTransformInput, transformOutput: V1SystemTransformOutput) => {
         await v1["experimental.chat.system.transform"](transformInput, transformOutput);
+        await appendFile(evidence, `${JSON.stringify({ input: transformInput, output: transformOutput })}\n`);
+      };
+      hooks["experimental.chat.messages.transform"] = evidence === undefined ? v1["experimental.chat.messages.transform"] : async (transformInput: Record<string, never>, transformOutput: V1MessagesTransformOutput) => {
+        await v1["experimental.chat.messages.transform"](transformInput, transformOutput);
         await appendFile(evidence, `${JSON.stringify({ input: transformInput, output: transformOutput })}\n`);
       };
     }
@@ -80,4 +81,29 @@ async function resolveModeration(options: AgentCIOptions): Promise<ModerationOpt
     if ((error as { code?: string }).code === "ENOENT") return null;
     throw error;
   }
+}
+
+async function resolvePolicies(options: AgentCIOptions): Promise<string[] | null> {
+  if (options.policies !== undefined) return parsePolicies(options.policies);
+  let raw: string;
+  try {
+    raw = await readFile(join(moduleDirectory, "options.json"), "utf8");
+  } catch (error) {
+    if ((error as { code?: string }).code === "ENOENT") return null;
+    throw error;
+  }
+  return parsePolicies((JSON.parse(raw) as { policies?: unknown }).policies);
+}
+
+function parsePolicies(raw: unknown): string[] | null {
+  if (raw === undefined) return null;
+  if (!Array.isArray(raw) || raw.length === 0) {
+    throw new Error("AgentCI 'policies' must be a non-empty array of string file paths");
+  }
+  for (const entry of raw) {
+    if (typeof entry !== "string" || entry.length === 0) {
+      throw new Error("AgentCI 'policies' entries must be string file paths");
+    }
+  }
+  return raw as string[];
 }

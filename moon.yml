@@ -62,6 +62,8 @@ tasks:
       - 'workspace/agentci/tests/**/*.ts'
       - 'workspace/scripts/install-agentci'
       - 'workspace/config/opencode/agentci/*.json'
+      - 'workspace/config/opencode/agentci/*.yaml'
+      - 'workspace/config/opencode/agentci/*.md'
       - 'workspace/scripts/bin/oc'
       - 'workspace/scripts/opencode-wrapper.sh'
       - 'workspace/config/opencode/opencode.jsonc'

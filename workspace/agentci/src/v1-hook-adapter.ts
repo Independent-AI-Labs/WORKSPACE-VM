@@ -32,16 +32,27 @@ export interface V1SystemTransformOutput {
   system: string[];
 }
 
+export interface V1MessagesTransformMessage {
+  info: { role: unknown };
+  parts: unknown[];
+}
+
+export interface V1MessagesTransformOutput {
+  messages: V1MessagesTransformMessage[];
+}
+
 export interface V1HookAdapter {
   "tool.execute.before": (input: V1ToolExecuteBeforeInput, output: V1ToolExecuteBeforeOutput) => Promise<void>;
   "tool.execute.after": (input: V1ToolExecuteAfterInput, output: V1ToolExecuteAfterOutput) => Promise<void>;
   "experimental.chat.system.transform": (input: V1SystemTransformInput, output: V1SystemTransformOutput) => Promise<void>;
+  "experimental.chat.messages.transform": (input: Record<string, never>, output: V1MessagesTransformOutput) => Promise<void>;
 }
 
 export function createV1HookAdapter(policies: readonly Policy[]): V1HookAdapter {
   const before = policies.filter((policy) => policy.event === "tool.execute.before");
   const after = policies.filter((policy) => policy.event === "tool.execute.after");
   const inject = policies.filter((policy) => policy.event === "experimental.chat.system.transform");
+  const messageInject = policies.filter((policy) => policy.event === "experimental.chat.messages.transform");
   return {
     async "tool.execute.before"(input, output) {
       const command = bashCommand(output.args);
@@ -67,6 +78,20 @@ export function createV1HookAdapter(policies: readonly Policy[]): V1HookAdapter 
           throw new Error(`AgentCI policy '${policy.name}' file exceeds ${MAX_FILE_BYTES} bytes: ${file}`);
         }
         output.system.push(`AgentCI (${policy.name}): ${content}`);
+      }
+    },
+    async "experimental.chat.messages.transform"(_input, output) {
+      for (const policy of messageInject) {
+        const file = policy.match.file as string;
+        const content = await readFile(file, "utf8");
+        if (Buffer.byteLength(content, "utf8") > MAX_FILE_BYTES) {
+          throw new Error(`AgentCI policy '${policy.name}' file exceeds ${MAX_FILE_BYTES} bytes: ${file}`);
+        }
+        const text = `AgentCI (${policy.name}): ${content}`;
+        for (const message of output.messages) {
+          if (message.info.role !== "user") continue;
+          message.parts.push({ type: "text", text, synthetic: true });
+        }
       }
     },
   };

@@ -20,6 +20,10 @@ test("temporary package installation exposes the OpenCode server entrypoint", as
     await run("npm", ["install", "--ignore-scripts", "--no-package-lock", "--prefix", installation, packageFile]);
     await writeFile(join(installation, "opencode.json"), JSON.stringify({ plugin: ["agentci"] }));
     await writeFile(join(installation, "policies.yaml"), "policies: []\n");
+    await writeFile(
+      join(installation, "node_modules", "agentci", "dist", "options.json"),
+      JSON.stringify({ policies: [join(installation, "policies.yaml")] }),
+    );
     await run(process.execPath, ["--experimental-strip-types", "--input-type=module", "--eval", [
       'import { readFile } from "node:fs/promises"',
       'const config = JSON.parse(await readFile("opencode.json", "utf8"))',
@@ -27,7 +31,9 @@ test("temporary package installation exposes the OpenCode server entrypoint", as
           'if (plugin.id !== "agentci" || typeof plugin.server !== "function") throw new Error("server entrypoint was not discovered")',
          'const hooks = await plugin.server({}, { policies: ["policies.yaml"] })',
          'if (typeof hooks["tool.execute.before"] !== "function" || typeof hooks["tool.execute.after"] !== "function") throw new Error("server entrypoint did not compose source adapters")',
-    ].join("; ")], { cwd: installation });
+         'const deployed = await plugin.server({})',
+         'if (typeof deployed["experimental.chat.messages.transform"] !== "function") throw new Error("deployed options.json policies were not loaded")',
+    ].join("; ")], { cwd: installation, env: { ...process.env, AGENTCI_MODERATION: "off" } });
     assert.deepEqual(Object.keys(JSON.parse(await readFile(join(installation, "node_modules", "agentci", "package.json"), "utf8")).exports), [".", "./server"]);
   } finally {
     await rm(directory, { recursive: true, force: true });

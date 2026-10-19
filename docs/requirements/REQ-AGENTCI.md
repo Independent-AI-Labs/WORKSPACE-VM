@@ -17,11 +17,14 @@ session messages, real tool metadata, and actual shell command outcomes.
    There is no implicit repository scan or generated policy.
 2. A policy SHALL contain `name`, `event`, `match`, `action`, and `message`.
    `name` is unique across configured files.
-3. `event` SHALL be one of `tool.execute.before`, `tool.execute.after`, or
-   `experimental.chat.system.transform`.
+3. `event` SHALL be one of `tool.execute.before`, `tool.execute.after`,
+   `experimental.chat.system.transform`, or
+   `experimental.chat.messages.transform`.
 4. `match` SHALL use only hook fields supplied by OpenCode: tool name, command
    text, numeric exit status, repository path, session ID, and configured file
-   path. Regexes are syntax-checked and policy text and patterns are bounded.
+   path. Available fields SHALL be bounded by event to those the target hook
+   supplies; `experimental.chat.messages.transform` accepts only the configured
+   file path. Regexes are syntax-checked and policy text and patterns are bounded.
 5. `action` SHALL be one of `block`, `allow`, `warn`, or `inject`.
    An unknown field, event, action, or invalid regex SHALL reject plugin startup
    with a visible error.
@@ -44,9 +47,15 @@ session messages, real tool metadata, and actual shell command outcomes.
    configured files are visible errors; AgentCI SHALL not substitute other
    context.
 11. A matching `inject` policy SHALL append its configured file on every provider
-    turn. AgentCI SHALL not deduplicate injection across turns or retain
-    injection state through compaction. Completion and continuation decisions
-    belong to the moderator or automation that consumes the current context.
+     turn. AgentCI SHALL not deduplicate injection across turns or retain
+     injection state through compaction. A
+     `experimental.chat.messages.transform` inject policy SHALL append its
+     labelled file contents as a synthetic text part to every user message in the
+     in-memory request projection only; the appended parts SHALL never be
+     persisted to session storage or the transcript. This event supplies no
+     session or repository fields, so its policies SHALL match only on `file`.
+     Completion and continuation decisions belong to the moderator or automation
+     that consumes the current context.
 
 ## Separation Of Enforcement
 
@@ -66,8 +75,10 @@ session messages, real tool metadata, and actual shell command outcomes.
     `workspace/agentci/` with strict compilation.
 16. The release artifact SHALL be built only from `workspace/agentci/`.
 17. Tests SHALL prove policy validation, pre-execution block/warn behavior,
-    post-command warnings, per-turn file injection, and real OpenCode plugin
-    discovery from an isolated temporary configuration.
+    post-command warnings, per-turn file injection, messages-transform note
+    injection reaching the upstream request exactly once per user message
+    without persisting to session parts, and real OpenCode plugin discovery from
+    an isolated temporary configuration.
 18. The live-provider test SHALL run only from isolated temporary HOME and XDG
     roots. It may copy the normal OpenCode OAuth credential file only after
     validating ownership and mode `0600`; copied credentials remain mode `0600`,

@@ -10,6 +10,7 @@ done
 AGENTCI_DIR="${WORKSPACE_ROOT}/workspace/agentci"
 SOURCE_BUNDLE="${AGENTCI_DIR}/dist/agentci.bundle.js"
 SOURCE_CONFIG="${WORKSPACE_ROOT}/workspace/config/opencode/agentci/agentci.template.json"
+SOURCE_POLICIES="${WORKSPACE_ROOT}/workspace/config/opencode/agentci/policies.yaml"
 CONFIG_ROOT="${XDG_CONFIG_HOME:-${HOME}/.config}/opencode"
 PLUGIN_DIR="${CONFIG_ROOT}/plugins"
 STATE_DIR="${PLUGIN_DIR}/.agentci"
@@ -71,6 +72,20 @@ read_config() {
     [[ "$valid" == "true" ]] || fail "configuration must select the Workspace Gateway relay ${GATEWAY_URL} and a model"
 }
 
+render_options() {
+    local dest="$1"
+    jq --arg policies "$SOURCE_POLICIES" '. + {policies: [$policies]}' "$SOURCE_CONFIG" > "$dest" \
+        || fail "failed to render options with the policies path"
+    validate_policies "$dest"
+}
+
+validate_policies() {
+    local config="$1" path
+    path="$(jq -er '.policies | select(type == "array" and length > 0) | .[0] | select(type == "string" and length > 0)' "$config")" \
+        || fail "configuration must reference a non-empty policies array of string paths"
+    [[ -f "$path" ]] || fail "configured policies file is missing: ${path}"
+}
+
 verify_gateway() {
     local config="$1" gateway model models present
     gateway="$(jq -er '.gateway_url' "$config")"
@@ -87,6 +102,7 @@ verify_release() {
     [[ -f "${release}/agentci.js" ]] || fail "plugin bundle missing from release"
     [[ -f "${release}/options.json" ]] || fail "configuration missing from release"
     read_config "${release}/options.json"
+    validate_policies "${release}/options.json"
     verify_gateway "${release}/options.json"
 }
 
@@ -98,6 +114,7 @@ install() {
     fi
     [[ -f "$SOURCE_BUNDLE" ]] || fail "plugin bundle source missing: ${SOURCE_BUNDLE}"
     [[ -f "$SOURCE_CONFIG" ]] || fail "configuration template missing: ${SOURCE_CONFIG}"
+    [[ -f "$SOURCE_POLICIES" ]] || fail "policies source missing: ${SOURCE_POLICIES}"
     read_config "$SOURCE_CONFIG"
     verify_gateway "$SOURCE_CONFIG"
     if [[ -e "$ENTRY_LINK" || -L "$ENTRY_LINK" ]]; then
@@ -107,14 +124,15 @@ install() {
 
     mkdir -p "$RELEASES_DIR"
     local release_id stage release
-    release_id="$(cksum "$SOURCE_BUNDLE" "$SOURCE_CONFIG" | cksum | cut -d ' ' -f 1)"
-    stage="${RELEASES_DIR}/.stage-${release_id}-$$"
+    stage="$(mktemp -d "${RELEASES_DIR}/.stage-XXXXXX")"
+    trap 'rm -rf "$stage"' EXIT
+    cp "$SOURCE_BUNDLE" "${stage}/agentci.js"
+    render_options "${stage}/options.json"
+    release_id="$(cksum "$SOURCE_BUNDLE" "${stage}/options.json" | cksum | cut -d ' ' -f 1)"
     release="${RELEASES_DIR}/${release_id}"
-    if [[ ! -d "$release" ]]; then
-        trap 'rm -rf "$stage"' EXIT
-        mkdir "$stage"
-        cp "$SOURCE_BUNDLE" "${stage}/agentci.js"
-        cp "$SOURCE_CONFIG" "${stage}/options.json"
+    if [[ -d "$release" ]]; then
+        rm -rf "$stage"
+    else
         verify_release "$stage"
         mv "$stage" "$release"
     fi
@@ -134,25 +152,40 @@ install() {
 
 verify() {
     require_tools
-    local release
+    local release expected
     release="$(release_dir)"
     validate_entry
     verify_release "$release"
-    [[ -f "$SOURCE_BUNDLE" ]] && cmp "$SOURCE_BUNDLE" "${release}/agentci.js"
-    [[ -f "$SOURCE_CONFIG" ]] && cmp "$SOURCE_CONFIG" "${release}/options.json"
+    if [[ -f "$SOURCE_BUNDLE" ]]; then
+        cmp "$SOURCE_BUNDLE" "${release}/agentci.js"
+    fi
+    if [[ -f "$SOURCE_CONFIG" && -f "$SOURCE_POLICIES" ]]; then
+        expected="$(mktemp)"
+        render_options "$expected"
+        cmp "$expected" "${release}/options.json"
+        rm -f "$expected"
+    fi
     printf 'verified active AgentCI release: %s\n' "$release"
 }
 
 status() {
-    local release
+    require_tools
+    local release expected
     release="$(release_dir)"
     printf 'active release: %s\n' "$release"
     jq -r '"gateway: \(.gateway_url)\nmodel: \(.model)"' "${release}/options.json"
-    if [[ -f "$SOURCE_BUNDLE" ]] && cmp -s "$SOURCE_BUNDLE" "${release}/agentci.js" \
-        && [[ -f "$SOURCE_CONFIG" ]] && cmp -s "$SOURCE_CONFIG" "${release}/options.json"; then
+    if [[ ! -f "$SOURCE_BUNDLE" || ! -f "$SOURCE_CONFIG" || ! -f "$SOURCE_POLICIES" ]]; then
+        printf 'source drift: detected\n'
+        return
+    fi
+    expected="$(mktemp)"
+    render_options "$expected"
+    if cmp -s "$SOURCE_BUNDLE" "${release}/agentci.js" && cmp -s "$expected" "${release}/options.json"; then
+        rm -f "$expected"
         printf 'source drift: none\n'
         return
     fi
+    rm -f "$expected"
     printf 'source drift: detected\n'
 }
 

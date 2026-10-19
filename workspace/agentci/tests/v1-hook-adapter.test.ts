@@ -3,7 +3,7 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { createV1HookAdapter } from "../src/v1-hook-adapter.ts";
+import { createV1HookAdapter, type V1MessagesTransformOutput } from "../src/v1-hook-adapter.ts";
 import { loadPolicies } from "../src/policies.ts";
 
 test("policy files drive block, warn, and inject behavior", async () => {
@@ -55,6 +55,37 @@ policies:
   });
 });
 
+test("messages transform injects configured file after every user message", async () => {
+  await withPolicies(`
+policies:
+  - name: inject-user-note
+    event: experimental.chat.messages.transform
+    match:
+      file: note.md
+    action: inject
+    message: User note.
+`, { "note.md": "Remember the house style.\n" }, async (directory) => {
+    const policies = await loadPolicies([join(directory, "policies.yaml")]);
+    const hooks = createV1HookAdapter(policies);
+
+    for (const _turn of [1, 2]) {
+      const output: V1MessagesTransformOutput = {
+        messages: [
+          { info: { role: "user" }, parts: [{ type: "text", text: "first" }] },
+          { info: { role: "assistant" }, parts: [{ type: "text", text: "reply" }] },
+          { info: { role: "user" }, parts: [{ type: "text", text: "second" }] },
+        ],
+      };
+      await hooks["experimental.chat.messages.transform"]({}, output);
+      const parts = output.messages.flatMap((message) => message.parts) as Array<{ type: string; text: string; synthetic?: boolean }>;
+      const injected = parts.filter((part) => part.synthetic === true);
+      assert.equal(injected.length, 2);
+      for (const part of injected) assert.equal(part.text, "AgentCI (inject-user-note): Remember the house style.\n");
+      assert.deepEqual(output.messages[1].parts, [{ type: "text", text: "reply" }]);
+    }
+  });
+});
+
 test("invalid policies reject startup", async () => {
   await withPolicies(`
 policies:
@@ -92,6 +123,20 @@ policies:
 `, {}, async (directory) => {
     await assert.rejects(loadPolicies([join(directory, "policies.yaml")]), /unknown field 'priority'/);
   });
+  await withPolicies(`
+policies:
+  - name: bad-match
+    event: experimental.chat.messages.transform
+    match:
+      session_id: ses-1
+    action: inject
+    message: Not available on this event.
+`, {}, async (directory) => {
+    await assert.rejects(
+      loadPolicies([join(directory, "policies.yaml")]),
+      /match field 'session_id' is not available for experimental\.chat\.messages\.transform/,
+    );
+  });
 });
 
 test("missing inject file is a visible error without substitution", async () => {
@@ -107,6 +152,25 @@ policies:
     const policies = await loadPolicies([join(directory, "policies.yaml")]);
     const hooks = createV1HookAdapter(policies);
     await assert.rejects(hooks["experimental.chat.system.transform"]({ sessionID: "ses-1" }, { system: [] }), /ENOENT/);
+  });
+});
+
+test("missing messages inject file is a visible error without substitution", async () => {
+  await withPolicies(`
+policies:
+  - name: inject-user-note
+    event: experimental.chat.messages.transform
+    match:
+      file: missing.md
+    action: inject
+    message: User note.
+`, {}, async (directory) => {
+    const policies = await loadPolicies([join(directory, "policies.yaml")]);
+    const hooks = createV1HookAdapter(policies);
+    await assert.rejects(
+      hooks["experimental.chat.messages.transform"]({}, { messages: [{ info: { role: "user" }, parts: [] }] }),
+      /ENOENT/,
+    );
   });
 });
 

@@ -473,8 +473,16 @@ test-opencode-extensions: ## Run AgentCI TypeScript plugin tests
 	cd workspace/agentci && npm run typecheck && npm test && npm run test:release
 
 .PHONY: test-agentci-e2e
-test-agentci-e2e: ## Run the AgentCI live end-to-end moderation test (Gateway + OpenCode Go required)
+test-agentci-e2e: ## Run the AgentCI live end-to-end tests (Gateway + OpenCode Go required)
 	cd workspace/agentci && npm run test:live
+
+.PHONY: test-agentci-inject
+test-agentci-inject: ## Run the AgentCI user-note injection live test (real OpenCode, captured upstream)
+	cd workspace/agentci && npm run test:inject
+
+.PHONY: bench-agentci-inject
+bench-agentci-inject: ## Benchmark the user-note injection against a static question (real model)
+	cd workspace/agentci && npm run test:inject:bench
 
 .PHONY: test-e2e
 test-e2e: ## Run end-to-end VM integration tests
