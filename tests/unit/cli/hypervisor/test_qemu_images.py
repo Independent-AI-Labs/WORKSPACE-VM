@@ -199,6 +199,16 @@ def test_write_cloud_init_mount_workspace(tmp_path: Path) -> None:
 
 
 @_skip_no_iso_tool
+def test_write_cloud_init_mount_ci(tmp_path: Path) -> None:
+    vm_dir = tmp_path / "vm"
+    qi.write_cloud_init(vm_dir, "ssh-rsa AAA", mount_workspace=True, mount_ci=True)
+    user_data = (vm_dir / "cloud-init" / "user-data").read_text()
+    config = yaml.safe_load(user_data.removeprefix("#cloud-config\n"))
+    mounts = [cmd for cmd in config["runcmd"] if "9p" in cmd]
+    assert any("workspace-ci /opt/workspace-ci" in cmd for cmd in mounts)
+
+
+@_skip_no_iso_tool
 def test_write_cloud_init_no_mount(tmp_path: Path) -> None:
     vm_dir = tmp_path / "vm"
     qi.write_cloud_init(vm_dir, "ssh-rsa AAA", mount_workspace=False)

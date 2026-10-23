@@ -18,6 +18,7 @@ class QemuLaunchContext(BaseModel):
     ssh_port: int
     firmware: Path | None = None
     workspace_root: Path | None = None
+    ci_root: Path | None = None
 
 
 _MEM_RE = re.compile(r"^(\d+)([gGmM])?$")
@@ -94,6 +95,16 @@ def build_qemu_argv(
                 ),
                 "-device",
                 "virtio-9p-pci,fsdev=ws0,mount_tag=workspace",
+            ]
+        )
+
+    if launch.ci_root is not None:
+        argv.extend(
+            [
+                "-fsdev",
+                (f"local,id=ci0,path={launch.ci_root},security_model=none,readonly=on"),
+                "-device",
+                "virtio-9p-pci,fsdev=ci0,mount_tag=workspace-ci",
             ]
         )
 

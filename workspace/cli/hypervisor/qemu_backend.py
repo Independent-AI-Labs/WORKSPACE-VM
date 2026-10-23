@@ -28,6 +28,14 @@ _HEALTH_TIMEOUT = 120
 _PROVISION_SSH_TIMEOUT = 600
 _HEALTH_POLL = 2
 _STOP_TIMEOUT = 30
+_CI_ROOT = Path("/opt/workspace-ci")
+
+
+def _resolve_ci_root() -> Path:
+    if _CI_ROOT.is_dir():
+        return _CI_ROOT
+    msg = f"{_CI_ROOT} not found; run: sudo make -C projects/WORKSPACE-CI deploy-ci"
+    raise FileNotFoundError(msg)
 
 
 class QemuBackend:
@@ -52,6 +60,7 @@ class QemuBackend:
 
         q = cfg.isolation.qemu
         workspace_root = find_workspace_root() if q.provision != "none" else None
+        ci_root = _resolve_ci_root() if q.provision != "none" else None
         qemu_bin = resolve_qemu_system(q.guest_arch)
         accel = resolve_accel(q.accel, qemu_bin)
         firmware = resolve_aarch64_firmware() if q.guest_arch == "aarch64" else None
@@ -62,13 +71,14 @@ class QemuBackend:
                 file=sys.stderr,
             )
 
-        ssh_port = int(prepare_vm_storage(cfg, vm_dir))
+        ssh_port = int(prepare_vm_storage(cfg, vm_dir, mount_ci=ci_root is not None))
         launch = QemuLaunchContext(
             qemu_bin=qemu_bin,
             accel=accel,
             ssh_port=ssh_port,
             firmware=firmware,
             workspace_root=workspace_root,
+            ci_root=ci_root,
         )
         argv = build_qemu_argv(cfg=cfg, vm_dir=vm_dir, launch=launch)
         subprocess.run(argv, check=True)
@@ -110,12 +120,14 @@ class QemuBackend:
         firmware = resolve_aarch64_firmware() if q.guest_arch == "aarch64" else None
         ssh_port = int((vm_dir / "ssh_port").read_text().strip())
         workspace_root = find_workspace_root() if q.provision != "none" else None
+        ci_root = _resolve_ci_root() if q.provision != "none" else None
         launch = QemuLaunchContext(
             qemu_bin=qemu_bin,
             accel=accel,
             ssh_port=ssh_port,
             firmware=firmware,
             workspace_root=workspace_root,
+            ci_root=ci_root,
         )
         argv = build_qemu_argv(cfg=cfg, vm_dir=vm_dir, launch=launch)
         try:

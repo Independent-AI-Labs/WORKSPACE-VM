@@ -13,12 +13,12 @@ _PROJECTS="${_WORKSPACE_ROOT}/projects"
 _GUARD_ROOT="${_PROJECTS}/WORKSPACE-GUARD"
 _CI_ROOT="${_PROJECTS}/WORKSPACE-CI"
 
-if [[ ! -f "${_CI_ROOT}/scripts/bootstrap-workspace-guard" ]]; then
-    echo "ERROR: bootstrap-workspace-guard not found at ${_CI_ROOT}" >&2
+if [[ ! -x "${_CI_ROOT}/scripts/install-system-deps" ]]; then
+    echo "ERROR: WORKSPACE-CI not found at ${_CI_ROOT}" >&2
     exit 1
 fi
 
-if [[ ! -d "${_GUARD_ROOT}/scripts/podman" ]]; then
+if [[ ! -f "${_GUARD_ROOT}/scripts/install-git-guard" ]]; then
     echo "ERROR: WORKSPACE-GUARD not found at ${_GUARD_ROOT}" >&2
     exit 1
 fi

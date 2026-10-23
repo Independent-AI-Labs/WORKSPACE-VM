@@ -1,5 +1,5 @@
 import { CLASSIFIER_FORMAT_RETRIES, CLASSIFIER_SEED, MAX_COMPLETION_TOKENS, MAX_INPUT_TOKENS, MINICPM_MODEL_ID, MODERATION_GRAMMAR, type ModerationOptions } from "./config.ts";
-import { summarizeTodos } from "./context.ts";
+import { EMPTY_USER_PROMPT, summarizeTodos } from "./context.ts";
 import type { ReasonCode, Ruling, TodoFact, Verdict, VerdictDecision } from "./types.ts";
 
 export type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;
@@ -22,7 +22,7 @@ interface ChatMessage {
   content: string;
 }
 
-const SYSTEM_PROMPT = [
+export const SYSTEM_PROMPT = [
   "You classify an autonomous coding agent's latest response. Output exactly two lines: 'decision: <DECISION>' then 'reason: <REASON>'.",
   "",
   "Decide whether the agent may stop now. Apply this priority order:",
@@ -128,6 +128,8 @@ const SYSTEM_PROMPT = [
   "Output:",
   "decision: AGENT_CONTINUING",
   "reason: WORK_REMAINS",
+  "",
+  "Empty or whitespace-only user messages are interruption artifacts, not halts: continue the work.",
 ].join("\n");
 
 const VALID_DECISIONS: Record<string, readonly ReasonCode[]> = {
@@ -139,7 +141,11 @@ const VALID_DECISIONS: Record<string, readonly ReasonCode[]> = {
 };
 
 export async function classify(options: ModerationOptions, input: ClassifyInput, fetchImpl: FetchLike = fetch): Promise<ClassifyOutcome> {
-  const messages = buildMessages(input);
+  return classifyWithPrompt(options, input, SYSTEM_PROMPT, fetchImpl);
+}
+
+export async function classifyWithPrompt(options: ModerationOptions, input: ClassifyInput, systemPrompt: string, fetchImpl: FetchLike = fetch): Promise<ClassifyOutcome> {
+  const messages = buildMessages(input, systemPrompt);
   let lastCapture = "";
   for (let attempt = 0; attempt < CLASSIFIER_FORMAT_RETRIES; attempt += 1) {
     const trimmed = await trimToBudget(options, messages, fetchImpl);
@@ -155,15 +161,15 @@ export async function classify(options: ModerationOptions, input: ClassifyInput,
   return { capture: lastCapture, formatError: true, error: "classifier did not return a valid verdict" };
 }
 
-export function buildMessages(input: ClassifyInput): ChatMessage[] {
+export function buildMessages(input: ClassifyInput, systemPrompt: string = SYSTEM_PROMPT): ChatMessage[] {
   const sections = [
     "User request(s):",
-    input.userMessages.length > 0 ? input.userMessages.map((message) => `- ${message}`).join("\n") : "- (none recorded)",
+    input.userMessages.length > 0 ? input.userMessages.map((message) => `- ${message.trim().length > 0 ? message : EMPTY_USER_PROMPT}`).join("\n") : "- (none recorded)",
   ];
   if (input.todos.length > 0) sections.push("", "Tracked todos:", summarizeTodos(input.todos));
   sections.push("", "Assistant response:", input.previousResponse);
   return [
-    { role: "system", content: SYSTEM_PROMPT },
+    { role: "system", content: systemPrompt },
     { role: "user", content: sections.join("\n") },
   ];
 }

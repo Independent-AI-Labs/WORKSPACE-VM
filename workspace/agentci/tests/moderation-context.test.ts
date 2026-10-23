@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   deriveContext,
   detectsRootBlock,
+  EMPTY_USER_PROMPT,
   inBranch,
   isInjectedUser,
   isTerminal,
@@ -61,6 +62,12 @@ test("the last three real user prompts are selected for classifier context", () 
     user("injected", "⚠️ Automated Moderation: work appears unfinished; continue unless explicitly requested to halt by the operator or the system."),
   ];
   assert.deepEqual(lastRealUserPrompts(messages), ["second", "third", "fourth"]);
+});
+
+test("an empty user message after an abort is kept as a continue signal", () => {
+  const messages = [user("u1", "Implement the parser and the writer"), user("u2", " "), user("u3", "")];
+  assert.deepEqual(lastRealUserPrompts(messages), ["Implement the parser and the writer", EMPTY_USER_PROMPT]);
+  assert.equal(realUserCycleID(messages), "u3");
 });
 
 test("injected moderation messages are excluded from the real user cycle", () => {

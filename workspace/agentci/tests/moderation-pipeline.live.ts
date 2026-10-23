@@ -34,6 +34,17 @@ const SCENARIOS: readonly Scenario[] = [
     reason: "USER_STOP",
   },
   {
+    id: "ses_live_empty_abort_continue",
+    user: "",
+    assistant: "I implemented the parser. The writer is not started yet.",
+    expectation: "CONTINUE",
+    reason: "WORK_REMAINS",
+    todos: [
+      { status: "in_progress", content: "Implement parser" },
+      { status: "pending", content: "Implement writer" },
+    ],
+  },
+  {
     id: "ses_live_blocked",
     user: "Deploy the service to production.",
     assistant: "I cannot deploy: the production deploy token is missing and only the operator can provision it. I need you to provide valid credentials before I can continue.",

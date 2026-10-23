@@ -103,7 +103,13 @@ def create_overlay(base: Path, overlay: Path, disk_gb: int) -> None:
     )
 
 
-def write_cloud_init(vm_dir: Path, pubkey: str, *, mount_workspace: bool) -> None:
+def write_cloud_init(
+    vm_dir: Path,
+    pubkey: str,
+    *,
+    mount_workspace: bool,
+    mount_ci: bool = False,
+) -> None:
     ci = vm_dir / "cloud-init"
     ci.mkdir(parents=True, exist_ok=True)
     users: list[Any] = [
@@ -142,6 +148,16 @@ def write_cloud_init(vm_dir: Path, pubkey: str, *, mount_workspace: bool) -> Non
                 (
                     "mount -t 9p -o trans=virtio,version=9p2000.L,ro "
                     "workspace /mnt/workspace-ro"
+                ),
+            ]
+        )
+    if mount_ci:
+        runcmd.extend(
+            [
+                "mkdir -p /opt/workspace-ci",
+                (
+                    "mount -t 9p -o trans=virtio,version=9p2000.L,ro "
+                    "workspace-ci /opt/workspace-ci"
                 ),
             ]
         )
@@ -241,14 +257,14 @@ def _resolve_cloud_localds() -> Path:
     return resolve_cloud_localds()
 
 
-def prepare_vm_storage(cfg: VMConfig, vm_dir: Path) -> str:
+def prepare_vm_storage(cfg: VMConfig, vm_dir: Path, *, mount_ci: bool = False) -> str:
     q = cfg.isolation.qemu
     base = ensure_base_image(q.image, q.guest_arch)
     overlay = vm_dir / "disk.qcow2"
     create_overlay(base, overlay, q.disk_gb)
     _, pub = generate_ssh_keypair(vm_dir)
     mount_workspace = q.provision != "none"
-    write_cloud_init(vm_dir, pub, mount_workspace=mount_workspace)
+    write_cloud_init(vm_dir, pub, mount_workspace=mount_workspace, mount_ci=mount_ci)
     port = allocate_ssh_port(q.ssh_host_port)
     (vm_dir / "ssh_port").write_text(str(port))
     return str(port)

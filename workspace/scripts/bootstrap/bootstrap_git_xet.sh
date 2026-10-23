@@ -45,7 +45,12 @@ install_git_lfs() {
     log_info "Installing git-lfs..."
 
     # Get latest version
-    LFS_VERSION=$(curl -sS https://api.github.com/repos/git-lfs/git-lfs/releases/latest | grep '"tag_name"' | sed -E 's/.*"v([^"]+)".*/\1/')
+    _lfs_release="$(curl -sS https://api.github.com/repos/git-lfs/git-lfs/releases/latest)" \
+        || { log_error "Could not fetch git-lfs releases"; return 1; }
+    LFS_VERSION=""
+    if [[ $_lfs_release =~ \"tag_name\":\ \"v([^\"]+)\" ]]; then
+        LFS_VERSION="${BASH_REMATCH[1]}"
+    fi
     LFS_URL="https://github.com/git-lfs/git-lfs/releases/download/v${LFS_VERSION}/git-lfs-linux-${ARCH}-v${LFS_VERSION}.tar.gz"
 
     TEMP_DIR=$(mktemp -d)
@@ -94,7 +99,12 @@ install_git_xet() {
     esac
 
     # Get latest git-xet version (separate from hf_xet releases)
-    XET_VERSION=$(curl -sS https://api.github.com/repos/huggingface/xet-core/releases | grep -m1 -o '"tag_name": "git-xet-v[^"]*"' | sed 's/"tag_name": "git-xet-v\([^"]*\)"/\1/')
+    _xet_releases="$(curl -sS https://api.github.com/repos/huggingface/xet-core/releases)" \
+        || { log_error "Could not fetch git-xet releases"; return 1; }
+    XET_VERSION=""
+    if [[ $_xet_releases =~ \"tag_name\":\ \"git-xet-v([^\"]+)\" ]]; then
+        XET_VERSION="${BASH_REMATCH[1]}"
+    fi
 
     if [ -z "$XET_VERSION" ]; then
         XET_VERSION="0.2.0"  # Fallback

@@ -12,6 +12,7 @@ from workspace.cli import process as proc
 from workspace.types.vm import VM_INSTALL_ROOT, VMConfig
 
 _GUEST_ROOT = VM_INSTALL_ROOT
+_CI_ROOT = "/opt/workspace-ci"
 _RO_MOUNT = "/mnt/workspace-ro"
 _DEFAULT_TIMEOUT = 3600
 _RSYNC_EXCLUDES = [
@@ -38,6 +39,15 @@ _GUARD_PATHS = [
     "projects/WORKSPACE-CI/",
     "scripts/e2e/",
 ]
+
+_FULL_CI_PARENT_PATHS = [
+    "projects/WORKSPACE-CI/",
+    "projects/WORKSPACE-DATAOPS/",
+    "projects/WORKSPACE-GUARD/",
+    "projects/WORKSPACE-BROWSER/",
+]
+
+_PROJECT_RSYNC_EXCLUDES = [item for item in _RSYNC_EXCLUDES if item != ".git/"]
 
 
 class _SshSession:
@@ -84,6 +94,8 @@ def provision_guest(
 
     install_script = _build_install_script(profile, cfg.extra_apt)
     _ssh_run(ssh, install_script, timeout=timeout, log=_log)
+    if profile == "guard":
+        _ssh_run(ssh, _build_guard_trust_script(), timeout=600, log=_log)
     _log("provision: complete")
 
 
@@ -110,17 +122,23 @@ def _paths_for_profile(profile: str) -> list[str]:
     if profile == "guard":
         paths.extend(_GUARD_PATHS)
     elif profile == "full-ci":
-        paths.append("projects/")
+        paths.extend(_FULL_CI_PARENT_PATHS)
     return paths
 
 
+def _rsync_excludes(path: str) -> list[str]:
+    if path.startswith("projects/"):
+        return _PROJECT_RSYNC_EXCLUDES
+    return _RSYNC_EXCLUDES
+
+
 def _build_rsync_script(profile: str) -> str:
-    exclude_args = " ".join(f"--exclude={item}" for item in _RSYNC_EXCLUDES)
     lines = ["set -euo pipefail", f"sudo mkdir -p {_GUEST_ROOT}"]
     for path in _paths_for_profile(profile):
         src = f"{_RO_MOUNT}/{path}"
         dst = f"{_GUEST_ROOT}/{path}"
         dst_parent = Path(dst.rstrip("/")).parent
+        exclude_args = " ".join(f"--exclude={item}" for item in _rsync_excludes(path))
         lines.append(f"sudo mkdir -p {dst_parent}")
         lines.append(f"sudo rsync -a {exclude_args} {src} {dst}")
     lines.append(f"sudo chown -R workspace:workspace {_GUEST_ROOT}")
@@ -143,12 +161,31 @@ def _build_boot_rsync_script() -> str:
     )
 
 
+def _build_guard_trust_script() -> str:
+    return (
+        "set -euo pipefail\n"
+        f"sudo chown -R root:root {_GUEST_ROOT}\n"
+        f"sudo chmod -R go-w {_GUEST_ROOT}\n"
+    )
+
+
 def _build_install_script(profile: str, extra_apt: list[str]) -> str:
     lines = [
         "set -euo pipefail",
-        f'cd "{_GUEST_ROOT}"',
-        "make init",
+        f'export CI_WORKSPACE_ROOT="{_GUEST_ROOT}"',
     ]
+    if profile == "full-ci":
+        playwright = f"{_GUEST_ROOT}/.boot-linux/playwright-browsers"
+        lines.append(f'export PLAYWRIGHT_BROWSERS_PATH="{playwright}"')
+        lines.append(f"mkdir -p {_GUEST_ROOT}/.boot-linux/bin")
+        lines.extend(
+            [
+                f"ln -sfn {_CI_ROOT}/.boot-linux/bin/{name} "
+                f"{_GUEST_ROOT}/.boot-linux/bin/{name}"
+                for name in ("uv", "node", "npm")
+            ]
+        )
+    lines.extend([f'cd "{_GUEST_ROOT}"', "make init"])
     if profile != "guard":
         guest_defaults = f"{_GUEST_ROOT}/vm-install-defaults.yaml"
         lines.append(f"make install-ci INSTALL_DEFAULTS={guest_defaults}")

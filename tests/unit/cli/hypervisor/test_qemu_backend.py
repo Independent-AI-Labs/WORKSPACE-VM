@@ -200,7 +200,8 @@ def test_create_boots_and_provisions(
     monkeypatch.setattr(qb, "resolve_qemu_system", lambda _arch: Path("/opt/qemu"))
     monkeypatch.setattr(qb, "resolve_accel", lambda _req, _bin: "tcg")
     monkeypatch.setattr(qb, "resolve_aarch64_firmware", lambda: Path("/opt/efi.fd"))
-    monkeypatch.setattr(qb, "prepare_vm_storage", lambda _cfg, _dir: "55010")
+    monkeypatch.setattr(qb, "_resolve_ci_root", lambda: tmp_path / "workspace-ci")
+    monkeypatch.setattr(qb, "prepare_vm_storage", lambda *_a, **_k: "55010")
     monkeypatch.setattr(
         qb, "build_qemu_argv", lambda **_k: ["/opt/qemu", "-display", "none"]
     )

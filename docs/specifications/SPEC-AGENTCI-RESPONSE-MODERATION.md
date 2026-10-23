@@ -113,7 +113,10 @@ imply a pass.
    `root-handoff` (no classifier request).
 5. Otherwise MiniCPM classifies. Input is the tracked todos, the last three real
    user prompts, and the latest assistant response, trimmed to 16,384 tokens via
-   the Gateway token endpoint. MiniCPM is the single authority on completion:
+   the Gateway token endpoint. An empty or whitespace-only latest user message
+   is represented by an explicit continue sentinel rather than dropped, so an
+   interrupted, cancelled, aborted, errored, or cleared turn is never treated
+   as a halt. MiniCPM is the single authority on completion:
    the todo state is classifier input, not a controller override, so a returned
    `AGENT_COMPLETE` stands even when todos remain `pending` or `in_progress`, and
    a returned `AGENT_STOPPED` (the most recent user message is an explicit halt)

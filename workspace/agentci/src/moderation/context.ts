@@ -1,6 +1,7 @@
 import type { ContextSnapshot, MessageFact, TodoFact } from "./types.ts";
 
 export const MODERATION_MARKER = "Automated Moderation:";
+export const EMPTY_USER_PROMPT = "(empty user message; interrupted or aborted turn, treat as continue)";
 
 const INJECTED_MESSAGE = new RegExp(`^[^\\p{L}\\p{N}]*${MODERATION_MARKER}`, "u");
 
@@ -93,7 +94,11 @@ export function lastRealUserPrompts(messages: readonly MessageFact[]): string[] 
     const message = messages[index];
     if (message.info.role !== "user" || isInjectedUser(message)) continue;
     const value = assistantText(message);
-    if (value.length > 0) prompts.unshift(value);
+    if (value.length === 0) {
+      if (prompts.length === 0) prompts.unshift(EMPTY_USER_PROMPT);
+      continue;
+    }
+    prompts.unshift(value);
   }
   return prompts;
 }

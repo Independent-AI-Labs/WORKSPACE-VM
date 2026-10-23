@@ -98,9 +98,11 @@ session stay idle.
     genuine external blocker, or hands off to an operator (`AWAITING_OPERATOR`).
     The classifier SHALL return `AGENT_STOPPED` with `USER_STOP` when the most
     recent real user message explicitly instructs the agent to halt, stop,
-    cancel, abort, wait, or otherwise not continue. That verdict SHALL stand
-    even when tracked todos remain `pending` or `in_progress`, and SHALL take
-    precedence over an automatic continuation.
+    cancel, abort, wait, or otherwise not continue. An empty, whitespace-only,
+    or missing user message is not a halt: it marks an interrupted, cancelled,
+    aborted, errored, or cleared turn and SHALL be treated as a request to
+    continue. That verdict SHALL stand even when tracked todos remain `pending`
+    or `in_progress`, and SHALL take precedence over an automatic continuation.
 12. Invalid classifier output or a failed relay request SHALL be reported as an
     error. It SHALL NOT be treated as `AGENT_COMPLETE`.
 

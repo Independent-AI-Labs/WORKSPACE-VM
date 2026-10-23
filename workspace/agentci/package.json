@@ -16,6 +16,7 @@
     "typecheck": "tsc --noEmit",
     "test": "node --experimental-strip-types --test --test-concurrency=1 tests/*.test.ts tests/*.integration.test.ts",
     "test:live": "node --experimental-strip-types --test tests/*.live.ts",
+    "test:prompt-ab": "node --experimental-strip-types --test tests/moderation-prompt-ab.live.ts",
     "test:inject": "node --experimental-strip-types --test tests/messages-inject.live.ts",
     "test:inject:capture": "node --experimental-strip-types --test --test-name-pattern=injects tests/messages-inject.live.ts",
     "test:inject:bench": "node --experimental-strip-types --test --test-name-pattern=benchmark tests/messages-inject.live.ts",

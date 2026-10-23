@@ -66,3 +66,28 @@ def test_build_qemu_argv_includes_virtio9p_when_workspace_root_set() -> None:
     assert "virtio-9p-pci" in joined
     assert f"path={root}" in joined
     assert "readonly=on" in joined
+
+
+def test_build_qemu_argv_includes_ci_mount_when_ci_root_set() -> None:
+    cfg = VMConfig.model_validate(
+        {
+            "components": ["uv"],
+            "isolation": {
+                "backend": "qemu",
+                "qemu": {"guest_arch": "x86_64", "provision": "full-ci"},
+            },
+        }
+    )
+    ci_root = Path("/opt/workspace-ci")
+    launch = QemuLaunchContext(
+        qemu_bin=Path("/opt/qemu-system-x86_64"),
+        accel="kvm",
+        ssh_port=_SSH_PORT,
+        workspace_root=Path("/tmp/workspace-vm-root-test"),
+        ci_root=ci_root,
+    )
+    argv = build_qemu_argv(cfg=cfg, vm_dir=Path("/tmp/vm-test"), launch=launch)
+    joined = " ".join(argv)
+    assert f"path={ci_root}" in joined
+    assert "mount_tag=workspace-ci" in joined
+    assert "mount_tag=workspace" in joined

@@ -390,6 +390,15 @@ def _run_from_defaults(defaults_file: Path) -> int:
         else:
             print(f"{YELLOW}Warning:{RESET} Unknown component '{name}', skipping")
 
+    env = get_bootstrap_env()
+    pending: list[Component] = []
+    for comp in components:
+        if comp.type.value != "workspace_repo" and comp.get_status(env=env).installed:
+            print_status("•", f"{comp.label} already installed; skipping", DIM)
+            continue
+        pending.append(comp)
+    components = pending
+
     if not components:
         print(f"{YELLOW}No valid components found. Exiting.{RESET}")
         return 0

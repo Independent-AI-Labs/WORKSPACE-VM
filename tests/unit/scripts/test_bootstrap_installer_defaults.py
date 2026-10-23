@@ -12,7 +12,11 @@ from unittest.mock import patch
 
 import pytest
 
-from workspace.scripts.bootstrap_components import Component, ComponentType
+from workspace.scripts.bootstrap_components import (
+    Component,
+    ComponentStatus,
+    ComponentType,
+)
 from workspace.scripts.bootstrap_installer import (
     InstallationResult,
     _load_defaults,
@@ -61,7 +65,10 @@ class TestRunFromDefaults:
         f.write_text("components:\n  - uv\n")
         mock_run.return_value = InstallationResult(success_count=1, failed_labels=[])
 
-        rc = _run_from_defaults(f)
+        with patch.object(
+            Component, "get_status", return_value=ComponentStatus(installed=False)
+        ):
+            rc = _run_from_defaults(f)
 
         assert rc == 0
         # uv must reach _run_installation as a Component instance.
@@ -148,6 +155,9 @@ class TestRunFromDefaults:
             patch(
                 "workspace.scripts.bootstrap_installer._bootstrap_defs.get_component_by_name",
                 side_effect=_resolve,
+            ),
+            patch.object(
+                Component, "get_status", return_value=ComponentStatus(installed=False)
             ),
         ):
             rc = _run_from_defaults(f)

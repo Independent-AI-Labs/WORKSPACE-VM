@@ -16,7 +16,8 @@ _CREATE_TIMEOUT = 3600
 
 _ESSENTIAL_BINARIES = [
     ("uv", f"{VM_INSTALL_ROOT}/.boot-linux/bin/uv"),
-    ("python3", f"{VM_INSTALL_ROOT}/.boot-linux/bin/python3"),
+    ("python", f"{VM_INSTALL_ROOT}/.boot-linux/bin/python"),
+    ("node", f"{VM_INSTALL_ROOT}/.boot-linux/bin/node"),
     ("opencode", f"{VM_INSTALL_ROOT}/.boot-linux/bin/opencode"),
 ]
 

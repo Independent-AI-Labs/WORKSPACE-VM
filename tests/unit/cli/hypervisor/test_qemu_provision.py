@@ -85,8 +85,27 @@ def test_build_rsync_script_guard_profile() -> None:
 
 def test_build_rsync_script_full_ci_profile() -> None:
     script = qp._build_rsync_script("full-ci")
-    assert "projects/" in script
+    assert "projects/WORKSPACE-CI/" in script
+    assert "projects/WORKSPACE-DATAOPS/" in script
+    assert "projects/WORKSPACE-GUARD/" in script
+    assert "projects/WORKSPACE-BROWSER/" in script
+    project_lines = [
+        line for line in script.splitlines() if "/mnt/workspace-ro/projects/" in line
+    ]
+    assert project_lines
+    assert all("--exclude=.git/" not in line for line in project_lines)
     assert "WORKSPACE-GUARD/config" not in script
+
+
+def test_build_rsync_script_skeleton_excludes_git() -> None:
+    script = qp._build_rsync_script("poc")
+    assert "--exclude=.git/" in script
+
+
+def test_build_guard_trust_script() -> None:
+    script = qp._build_guard_trust_script()
+    assert "chown -R root:root /opt/workspace" in script
+    assert "chmod -R go-w /opt/workspace" in script
 
 
 def test_build_install_script_guard_skips_install_ci() -> None:
@@ -97,6 +116,8 @@ def test_build_install_script_guard_skips_install_ci() -> None:
 
 def test_build_install_script_full_ci_runs_install_ci() -> None:
     script = qp._build_install_script("full-ci", [])
+    assert 'export CI_WORKSPACE_ROOT="/opt/workspace"' in script
+    assert 'PLAYWRIGHT_BROWSERS_PATH="/opt/workspace/.boot-linux/' in script
     assert "make install-ci" in script
 
 

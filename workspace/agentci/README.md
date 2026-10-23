@@ -10,6 +10,17 @@ artifact in a temporary location with a temporary OpenCode configuration outside
 the existing configuration, records discovery/load/cleanup evidence, and removes
 the temporary installation. This is not a normal AgentCI installation claim.
 
+## Moderator prompt A/B
+
+`tests/moderation-prompt-ab.live.ts` compares the pinned baseline prompt in
+`tests/fixtures/moderation-system-prompt-baseline.txt` against the current
+`SYSTEM_PROMPT` on empty/abort, work-remains, and explicit-stop scenarios. Run it
+against the local Gateway relay:
+
+```bash
+npm run test:prompt-ab
+```
+
 `tests/real-oc.integration.test.ts` packages AgentCI into a temporary prefix,
 configures temporary HOME/XDG/OpenCode/AgentCI roots, then invokes the real
 `oc` database option and separator dispatch path. It records configuration and

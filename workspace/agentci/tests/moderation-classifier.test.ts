@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildMessages, classify, parseVerdict, type FetchLike } from "../src/moderation/classifier.ts";
+import { buildMessages, classify, parseVerdict, SYSTEM_PROMPT, type FetchLike } from "../src/moderation/classifier.ts";
 import { MAX_INPUT_TOKENS, MODERATION_GRAMMAR, resolveModerationOptions } from "../src/moderation/config.ts";
 
 const options = { gatewayURL: "http://127.0.0.1:9080/llamafile", model: "/zip/MiniCPM5-1B-Q8_0.gguf" };
@@ -22,6 +22,12 @@ test("parseVerdict accepts the grammar output and rejects anything else", () => 
   assert.equal(parseVerdict("decision: AGENT_COMPLETE"), undefined);
 });
 
+test("buildMessages replaces empty user messages with the continue sentinel", () => {
+  const messages = buildMessages({ todos: [], previousResponse: "Working.", userMessages: ["", "   ", "real request"] });
+  assert.match(messages[1].content, /empty user message; interrupted or aborted turn, treat as continue/);
+  assert.match(messages[1].content, /- real request/);
+});
+
 test("buildMessages omits the todos section when there are no tracked todos", () => {
   const messages = buildMessages({ todos: [], previousResponse: "Done.", userMessages: ["first", "stop now"] });
   const content = messages[1].content;
@@ -30,6 +36,10 @@ test("buildMessages omits the todos section when there are no tracked todos", ()
   assert.doesNotMatch(content, /Tracked todos:/);
   const withTodos = buildMessages({ todos: [{ status: "pending", content: "writer" }], previousResponse: "Done.", userMessages: ["go"] });
   assert.match(withTodos[1].content, /Tracked todos:/);
+});
+
+test("the system prompt treats empty user messages as continue signals", () => {
+  assert.match(SYSTEM_PROMPT, /Empty or whitespace-only user messages are interruption artifacts, not halts: continue the work\./);
 });
 
 test("classify returns a verdict on a valid completion", async () => {
