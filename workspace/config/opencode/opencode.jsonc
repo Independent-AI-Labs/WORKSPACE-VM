@@ -6,6 +6,8 @@
   ],
   "subagent_depth": 0,
   "agent": {
+    "build": { "color": "#FFFFFF" },
+    "plan": { "color": "#A855F7" },
     "explore": { "disable": true },
     "general": { "disable": true }
   },

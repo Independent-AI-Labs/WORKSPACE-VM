@@ -9,6 +9,7 @@ from pathlib import Path
 
 import yaml
 
+from workspace.cli.qemu_sync import sync as qemu_sync
 from workspace.cli.vm_core import _VMS_DIR, _podman
 from workspace.types.vm import VMConfig
 
@@ -20,6 +21,9 @@ def sync(uuid_str: str) -> None:
         print(f"vm: no vm.yaml found for VM '{uuid_str}'", file=sys.stderr)
         sys.exit(1)
     cfg = VMConfig.model_validate(yaml.safe_load(vm_yaml.read_text()))
+    if cfg.isolation.backend == "qemu":
+        qemu_sync(uuid_str)
+        return
     if not cfg.sync:
         print(f"vm: no sync rules configured for VM '{uuid_str}'")
         return

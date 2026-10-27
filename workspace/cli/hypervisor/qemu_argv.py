@@ -19,6 +19,8 @@ class QemuLaunchContext(BaseModel):
     firmware: Path | None = None
     workspace_root: Path | None = None
     ci_root: Path | None = None
+    qmp_socket: Path | None = None
+    restrict_network: bool = False
 
 
 _MEM_RE = re.compile(r"^(\d+)([gGmM])?$")
@@ -66,6 +68,9 @@ def build_qemu_argv(
     else:
         argv.extend(["-machine", "q35"])
 
+    netdev = f"user,id=net0,hostfwd=tcp:127.0.0.1:{launch.ssh_port}-:22"
+    if launch.restrict_network:
+        netdev += ",restrict=on"
     argv.extend(
         [
             "-m",
@@ -77,13 +82,32 @@ def build_qemu_argv(
             "-drive",
             f"file={seed},format=raw,if=virtio",
             "-netdev",
-            f"user,id=net0,hostfwd=tcp:127.0.0.1:{launch.ssh_port}-:22",
+            netdev,
             "-device",
             "virtio-net-pci,netdev=net0",
             "-device",
             "virtio-rng-pci",
         ]
     )
+    if cfg.network.mode == "bridge":
+        argv.extend(
+            [
+                "-netdev",
+                f"bridge,id=net1,br={cfg.network.network_name}",
+                "-device",
+                "virtio-net-pci,netdev=net1",
+            ]
+        )
+    for index, entry in enumerate(cfg.mounts):
+        path = Path(entry).expanduser()
+        argv.extend(
+            [
+                "-fsdev",
+                f"local,id=fs{index},path={path},security_model=none,readonly=on",
+                "-device",
+                f"virtio-9p-pci,fsdev=fs{index},mount_tag=hostshare{index}",
+            ]
+        )
 
     if launch.workspace_root is not None:
         argv.extend(
@@ -105,6 +129,14 @@ def build_qemu_argv(
                 (f"local,id=ci0,path={launch.ci_root},security_model=none,readonly=on"),
                 "-device",
                 "virtio-9p-pci,fsdev=ci0,mount_tag=workspace-ci",
+            ]
+        )
+
+    if launch.qmp_socket is not None:
+        argv.extend(
+            [
+                "-qmp",
+                f"unix:{launch.qmp_socket},server=on,wait=off",
             ]
         )
 

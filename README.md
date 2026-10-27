@@ -58,7 +58,9 @@ git clone git@github.com:Independent-AI-Labs/WORKSPACE-VM.git && cd WORKSPACE-VM
 make install
 ```
 
-The bootstrap TUI installs selected components from the federated dependency graph. When finished, `workspace-oc` (opencode wrapper) is on your PATH.
+The bootstrap TUI installs selected components from the federated dependency graph. When finished, `oc` (opencode wrapper) is on your PATH.
+
+`oc` deploys the primary agents **Build**, **Plan**, and **Answer**. Answer is read-only and must verify claims before asserting them; use `oc --agent answer "question"` or switch with Tab in the TUI.
 
 ### Post-install (requires sudo)
 
@@ -168,6 +170,8 @@ Specs: [`docs/specifications/SPEC-LLAMA-SETUP-TUI.md`](docs/specifications/SPEC-
 
 **Agent VMs** are isolated Linux environments where AI coding agents (OpenCode, Cursor-class tools, and similar) execute workloads without direct access to the host kernel or writable access to the host workspace tree. `make vm` provisions a per-agent sandbox from a single YAML settings file ([`workspace/config/vm-template.yaml`](workspace/config/vm-template.yaml)); lifecycle state persists under `.vms/<uuid>/` on the host for day-2 start, stop, shell, and exec commands. The default backend is **rootless Podman**: fast to spin up and air-gapped by default. **QEMU** adds a full hardware VM boundary when you need host-kernel isolation or authoritative WORKSPACE-GUARD capability testing.
 
+QEMU VMs use a persistent per-VM QCOW2 overlay. Data survives stop, start, and host reboot. The backend is usable for create, start, stop, shell, exec, full-ci provisioning, and guard testing. Data-preserving delete, ACPI shutdown, backup, rebuild, sync, autostart, config parity, network parity, and web UI parity are tracked in [`docs/guides/PERSISTENT-QEMU-VM.md`](docs/guides/PERSISTENT-QEMU-VM.md) and are not yet complete.
+
 ```mermaid
 %%{init: {'flowchart': {'nodeSpacing': 8, 'rankSpacing': 36, 'padding': 4}, 'themeVariables': {'fontSize': '11px'}}}%%
 flowchart TB
@@ -229,24 +233,40 @@ Pick **Podman** for everyday agent development (seconds to boot, rootless, defau
 
 Podman shares the host kernel, so a named volume plus copy/sync is enough. QEMU runs a separate kernel and cannot use Podman volumes: virtio-9p exposes the host tree read-only, then rsync creates a writable guest-disk copy.
 
-| `provision` | Rsync scope (QEMU) |
+| `provision` | Current rsync scope (QEMU) |
 | :--- | :--- |
-| `poc` | Workspace core layout only |
+| `none` | No provisioning |
 | `guard` | Skeleton + `projects/WORKSPACE-GUARD/` |
-| `full-ci` | Skeleton + entire `projects/` |
+| `full-ci` | Skeleton + `projects/WORKSPACE-CI/`, `DATAOPS`, `GUARD`, `BROWSER` |
 
-**Day-2 commands:** `vm rebuild` and `make vm sync` are Podman-only. QEMU provision runs once at create.
+The full-ci profile does not copy every project repository yet. A
+`workspace_scope: all` option is part of the persistent VM roadmap.
 
-**Podman network** ([`vm_build.py`](workspace/cli/vm_build.py)): default `network.mode: none` (`--network none`). `NET_ADMIN` is added only for bridge + `internet`/`proxy` policy, or OpenVPN with `vpn_type: container`. QEMU POC defers most network modes.
+**Day-2 commands:** Podman supports `vm rebuild`, `make vm sync`, and client
+certificate generation today. QEMU supports `start`, `stop`, `shell`, `exec`,
+`logs`, `status`, and `config`. QEMU rebuild, sync, snapshot, export, import, and
+autostart are planned and tracked in the guide. QEMU provision currently runs
+once at create.
+
+**Podman network** ([`vm_build.py`](workspace/cli/vm_build.py)): default `network.mode: none` (`--network none`). `NET_ADMIN` is added only for bridge + `internet`/`proxy` policy, or OpenVPN with `vpn_type: container`. QEMU always uses user networking today. QEMU network parity is planned.
+
+**Platforms:** native Linux and macOS are the QEMU product targets. Windows and
+Android use the rootless bootstrap path on local Debian or Ubuntu under WSL or
+chroot. Native Windows, macOS, Android, and Linux end-user packages are separate
+workstreams tracked in
+[REQ-NATIVE-VM-PACKAGES](docs/requirements/REQ-NATIVE-VM-PACKAGES.md).
 
 **Guard E2E:** authoritative capability tests run inside a provisioned QEMU guest (`make test-e2e-qemu-full`, `make test-authoritative`). See [`docs/specifications/SPEC-VM-HYPERVISOR.md` section 12](docs/specifications/SPEC-VM-HYPERVISOR.md#12-workspace-guard-integration).
 
 ```bash
 make install-qemu          # once per host (QEMU + genisoimage + cloud-localds)
-make vm CONFIG=path/to/vm.yaml
+make vm workspace/config/vm-full-ci-qemu.yaml
 make vm-list
 make test-e2e-qemu         # guard E2E in QEMU guest
 ```
+
+Persistent VM operations and current limitations:
+[`docs/guides/PERSISTENT-QEMU-VM.md`](docs/guides/PERSISTENT-QEMU-VM.md).
 
 Specs: [`docs/requirements/REQ-VM-HYPERVISOR.md`](docs/requirements/REQ-VM-HYPERVISOR.md), [`docs/specifications/SPEC-VM-HYPERVISOR.md`](docs/specifications/SPEC-VM-HYPERVISOR.md)
 

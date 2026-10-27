@@ -64,10 +64,13 @@ def delete(uuid: str, *, purge: bool = False) -> None:
     backend = backend_for_uuid(uuid)
     backend.destroy(uuid, purge=purge)
     (_VMS_DIR / uuid / "pid").unlink(missing_ok=True)
+    archive = _VMS_DIR / "_archive" / uuid
     if purge:
-        print(f"VM {uuid} deleted (volumes purged)")
+        print(f"VM {uuid} deleted (artifacts purged)")
+    elif archive.is_dir():
+        print(f"VM {uuid} archived at {archive}")
     else:
-        print(f"VM {uuid} deleted")
+        print(f"VM {uuid} deleted (volumes preserved)")
 
 
 def shell(uuid: str) -> None:

@@ -4,7 +4,10 @@ from __future__ import annotations
 
 import sys
 from collections.abc import Callable
+from pathlib import Path
 
+from workspace.cli.vm_autostart import disable as autostart_disable
+from workspace.cli.vm_autostart import enable as autostart_enable
 from workspace.cli.vm_lifecycle import (
     delete,
     exec_cmd,
@@ -17,13 +20,27 @@ from workspace.cli.vm_lifecycle import (
     stop,
 )
 from workspace.cli.vm_manager import create, rebuild
+from workspace.cli.vm_snapshots import (
+    export_vm,
+    import_vm,
+    snapshot_create,
+    snapshot_delete,
+    snapshot_list,
+)
 from workspace.cli.vm_sync import sync
 
 _SUB_CMD_ARGS = 2
+_SNAPSHOT_ARGS = 3
+_SNAPSHOT_NAMED_ARGS = 4
+_EXPORT_ARGS = 3
+_AUTOSTART_ARGS = 3
 
 
 def _usage() -> None:
-    commands = "create|rebuild|sync|start|stop|delete|shell|exec|list|status|logs|kill"
+    commands = (
+        "create|rebuild|sync|start|stop|delete|shell|exec|list|status|logs|kill|"
+        "snapshot|export|import|autostart"
+    )
     print(
         f"usage: uv run python -m workspace.cli.vm_main <{commands}> <args>",
         file=sys.stderr,
@@ -42,7 +59,7 @@ def _run_create(args: list[str]) -> None:
 
 
 def _run_rebuild(args: list[str]) -> None:
-    rebuild(args[1])
+    rebuild(args[1], fresh="--fresh" in args[2:])
 
 
 def _run_sync(args: list[str]) -> None:
@@ -92,6 +109,57 @@ def _run_exec(args: list[str]) -> int | None:
     return 0
 
 
+def _run_snapshot(args: list[str]) -> int | None:
+    if len(args) < _SNAPSHOT_ARGS:
+        print(
+            "snapshot: use <uuid> create|delete <name> or <uuid> list",
+            file=sys.stderr,
+        )
+        return 1
+    action = args[2]
+    if action in ("create", "delete") and len(args) < _SNAPSHOT_NAMED_ARGS:
+        print(f"snapshot {action}: missing name", file=sys.stderr)
+        return 1
+    if action == "create":
+        snapshot_create(args[1], args[3])
+    elif action == "delete":
+        snapshot_delete(args[1], args[3])
+    elif action == "list":
+        snapshot_list(args[1])
+    else:
+        print(f"snapshot: unknown action: {action}", file=sys.stderr)
+        return 1
+    return 0
+
+
+def _run_export(args: list[str]) -> int | None:
+    if len(args) < _EXPORT_ARGS:
+        print("export: missing destination", file=sys.stderr)
+        return 1
+    export_vm(args[1], Path(args[2]))
+    return 0
+
+
+def _run_import(args: list[str]) -> int | None:
+    import_vm(Path(args[1]))
+    return 0
+
+
+def _run_autostart(args: list[str]) -> int | None:
+    if len(args) < _AUTOSTART_ARGS:
+        print("autostart: use enable|disable <uuid>", file=sys.stderr)
+        return 1
+    action = args[1]
+    if action == "enable":
+        autostart_enable(args[2])
+    elif action == "disable":
+        autostart_disable(args[2])
+    else:
+        print(f"autostart: unknown action: {action}", file=sys.stderr)
+        return 1
+    return 0
+
+
 _HANDLERS: dict[str, tuple[Callable[[list[str]], int | None], bool]] = {
     "create": (_run_create, True),
     "rebuild": (_run_rebuild, True),
@@ -105,6 +173,10 @@ _HANDLERS: dict[str, tuple[Callable[[list[str]], int | None], bool]] = {
     "status": (_run_status, True),
     "logs": (_run_logs, True),
     "kill": (_run_kill, True),
+    "snapshot": (_run_snapshot, True),
+    "export": (_run_export, True),
+    "import": (_run_import, True),
+    "autostart": (_run_autostart, True),
 }
 
 

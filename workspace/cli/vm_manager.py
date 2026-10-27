@@ -9,6 +9,7 @@ from pathlib import Path
 import yaml
 
 from workspace.cli.hypervisor.factory import get_backend
+from workspace.cli.hypervisor.qemu_backend import QemuBackend
 from workspace.cli.vm_build import (
     _build_context,
     _build_context_inputs,
@@ -36,15 +37,20 @@ def create(config_path: str) -> None:
     get_backend(cfg).create(config_path, cfg)
 
 
-def rebuild(uuid_str: str) -> None:
+def rebuild(uuid_str: str, *, fresh: bool = False) -> None:
     vm_yaml = _VMS_DIR / uuid_str / "vm.yaml"
     if not vm_yaml.exists():
         print(f"vm: no vm.yaml found for VM '{uuid_str}'", file=sys.stderr)
         sys.exit(1)
     cfg = VMConfig.model_validate(yaml.safe_load(vm_yaml.read_text()))
     if cfg.isolation.backend == "qemu":
-        print("vm: rebuild not supported for qemu backend yet", file=sys.stderr)
-        sys.exit(1)
+        backend = get_backend(cfg)
+        if not isinstance(backend, QemuBackend):
+            msg = f"qemu backend expected, got {type(backend).__name__}"
+            raise TypeError(msg)
+        backend.rebuild(uuid_str, fresh=fresh)
+        print(f"VM {uuid_str} rebuilt")
+        return
 
     _ensure_podman_machine()
     vm_dir = _VMS_DIR / uuid_str

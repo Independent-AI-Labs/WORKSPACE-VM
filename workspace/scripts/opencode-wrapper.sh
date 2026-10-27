@@ -37,8 +37,10 @@ oc_wrapper_prepare() {
     if [[ ! -f "${oc_dir}/system-instruction.md" ]]; then
         cp "${oc_src}/system-instruction.template.md" "${oc_dir}/system-instruction.md"
     fi
+    mkdir -p "${oc_dir}/agents"
+    cp "${oc_src}/agents/answer.md" "${oc_dir}/agents/answer.md"
     export OPENCODE_CONFIG_DIR="$oc_dir"
-    export OPENCODE_CONFIG_CONTENT='{"subagent_depth":0,"agent":{"explore":{"disable":true},"general":{"disable":true}},"permission":{"task":"deny"}}'
+    export OPENCODE_CONFIG_CONTENT='{"subagent_depth":0,"agent":{"build":{"color":"#FFFFFF"},"plan":{"color":"#A855F7"},"explore":{"disable":true},"general":{"disable":true}},"permission":{"task":"deny"}}'
     export OPENCODE_ENABLE_EXA=1
     export OPENCODE_EXPERIMENTAL_BASH_DEFAULT_TIMEOUT_MS=600000
 }
@@ -323,6 +325,7 @@ oc_wrapper_dispatch() {
     local set_ctx_size=""
     local persist_ctx=0
     local run_mod=0
+    local agent=""
     local -a args=()
     shift 2
 
@@ -347,6 +350,26 @@ oc_wrapper_dispatch() {
                 ;;
             --run-mod)
                 run_mod=1
+                shift
+                ;;
+            --agent)
+                if [[ $# -lt 2 ]]; then
+                    echo "oc: --agent requires a name" >&2
+                    return 2
+                fi
+                agent="$2"
+                if [[ -z "$agent" ]]; then
+                    echo "oc: --agent requires a non-empty name" >&2
+                    return 2
+                fi
+                shift 2
+                ;;
+            --agent=*)
+                agent="${1#--agent=}"
+                if [[ -z "$agent" ]]; then
+                    echo "oc: --agent requires a non-empty name" >&2
+                    return 2
+                fi
                 shift
                 ;;
             --db)
@@ -423,10 +446,19 @@ oc_wrapper_dispatch() {
         exec "$opencode" "${args[@]}"
     fi
     if [[ ${#args[@]} -eq 0 ]]; then
+        if [[ -n "$agent" ]]; then
+            exec "$opencode" --agent "$agent"
+        fi
         exec "$opencode"
     fi
     if [[ "${args[0]}" == -* ]]; then
+        if [[ -n "$agent" ]]; then
+            exec "$opencode" --agent "$agent" "${args[@]}"
+        fi
         exec "$opencode" "${args[@]}"
+    fi
+    if [[ -n "$agent" ]]; then
+        exec "$opencode" run --dir "$original_pwd" --agent "$agent" "${args[@]}"
     fi
     exec "$opencode" run --dir "$original_pwd" "${args[@]}"
 }

@@ -8,6 +8,7 @@ _EXPECTED_METHODS = (
     "create",
     "start",
     "stop",
+    "rebuild",
     "destroy",
     "exec",
     "ssh_endpoint",

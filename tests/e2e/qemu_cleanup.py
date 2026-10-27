@@ -14,6 +14,7 @@ from pathlib import Path
 
 from workspace.cli import process as proc
 from workspace.cli.hypervisor.qemu_backend import QemuBackend
+from workspace.cli.hypervisor.qemu_state import QemuStateError, is_persistent
 
 _VMS_DIR = Path(os.environ.get("WS_VM_DIR", ".vms"))
 _BASE_CACHE = _VMS_DIR / "_base"
@@ -53,7 +54,7 @@ class QemuTracker:
             return
         backend = QemuBackend()
         try:
-            backend.destroy(uuid_val)
+            backend.destroy(uuid_val, purge=True)
         except OSError as exc:
             print(
                 f"WARNING: qemu destroy failed for {uuid_val}: {exc}", file=sys.stderr
@@ -98,6 +99,12 @@ def cleanup_orphan_qemu_vms(*, max_age_seconds: int = 0) -> list[str]:
             age = now - entry.stat().st_mtime
             if age < max_age_seconds:
                 continue
+        try:
+            persistent = is_persistent(entry)
+        except QemuStateError:
+            persistent = True
+        if persistent:
+            continue
         uuid_val = entry.name
         QemuTracker().destroy(uuid_val)
         removed.append(uuid_val)
@@ -128,6 +135,7 @@ def run_vm_create(
     tracker: QemuTracker,
 ) -> subprocess.CompletedProcess[str]:
     """Run vm create and register UUID for cleanup even on failure."""
+    env = {**os.environ, "WORKSPACE_VM_MODE": "ephemeral"}
     create = proc.run_result(
         [
             sys.executable,
@@ -139,6 +147,7 @@ def run_vm_create(
         capture_output=True,
         text=True,
         timeout=timeout,
+        env=env,
     )
     uuid_val = parse_vm_uuid(create.stdout)
     if uuid_val:

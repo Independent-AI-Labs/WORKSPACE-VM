@@ -2,12 +2,13 @@
 
 **Document ID:** WS-REQ-ANDROID-WORKSPACE-v1.0
 **Status:** Draft
-**Date:** 2026-07-06
+**Date:** 2026-10-23
 **Classification:** Internal
 **Specification:** [SPEC-ANDROID-WORKSPACE](../specifications/SPEC-ANDROID-WORKSPACE.md)
 **Authors:** Workspace Engineering
 **References:**
-- [REQ-VM-HYPERVISOR](REQ-VM-HYPERVISOR.md) (desktop QEMU backend - shared patterns, Phase 2)
+- [REQ-VM-HYPERVISOR](REQ-VM-HYPERVISOR.md) (shared QEMU backend and rootless bootstrap path)
+- [REQ-NATIVE-VM-PACKAGES](REQ-NATIVE-VM-PACKAGES.md) (native package workstream contract)
 - [AGENTS.md](../../AGENTS.md) (Universal Agent Rules)
 
 ---
@@ -20,7 +21,7 @@ bundled Ubuntu ARM64 virtual machine inside the app sandbox. The app ships QEMU
 for running Ansible playbooks. No device root, Termux, or per-device host setup
 is required.
 
-**In scope:**
+**In scope, native Android app:**
 
 - Android App Bundle (AAB) packaging and distribution
 - Embedded `qemu-system-aarch64`, `qemu-img`, and VirGL server binaries
@@ -29,6 +30,14 @@ is required.
 - Ansible playbook staging and execution from the device
 - Management UI (VM state, logs, settings)
 
+**In scope, rootless bootstrap path:**
+
+- Android developers can run the WORKSPACE-VM QEMU backend through a local
+  Debian or Ubuntu environment under WSL or chroot.
+- The rootless bootstrap path SHALL use the same `make init`, `make install-qemu`,
+  VM CLI, persistent storage, guard E2E, and shell-guard E2E as native Linux.
+- This path is a supported developer workflow before the native Android app ships.
+
 **Out of scope:**
 
 - Authoring or maintaining Ansible playbooks (consumes existing playbooks only)
@@ -36,6 +45,8 @@ is required.
 - KVM acceleration (unavailable to unprivileged Android apps)
 - Non-ARM64 Android devices
 - iOS
+- Claiming native Android packaging is validated when only the WSL or chroot path
+  has passed
 
 ---
 

@@ -1,6 +1,6 @@
 # WORKSPACE-VM V3 - Documentation
 
-**Date:** 2026-07-17
+**Date:** 2026-10-23
 **Status:** Active index
 
 Active documentation for the WORKSPACE-VM V3 workspace. Pre-V3 docs have been
@@ -25,13 +25,14 @@ Start here for onboarding: [`../README.md`](../README.md)
 |----------|-------|
 | [`requirements/REQ-AGENT-POLICY.md`](requirements/REQ-AGENT-POLICY.md) | Agent policy engine: YAML DSL, profiles, audit trail (Draft) |
 | [`requirements/REQ-A2A.md`](requirements/REQ-A2A.md) | A2A remote-agent client integration, regulatory controls (Draft) |
-| [`requirements/REQ-ANDROID-WORKSPACE.md`](requirements/REQ-ANDROID-WORKSPACE.md) | Android app running bundled Ubuntu ARM64 VM (Draft) |
+| [`requirements/REQ-ANDROID-WORKSPACE.md`](requirements/REQ-ANDROID-WORKSPACE.md) | Native Android app plus WSL or chroot developer path (Draft) |
 | [`requirements/REQ-LLAMA-SETUP-TUI.md`](requirements/REQ-LLAMA-SETUP-TUI.md) | `make llama-setup` unified llama/GPU setup wizard |
 | [`requirements/REQ-LLAMAFILE-MINICPM5-1B.md`](requirements/REQ-LLAMAFILE-MINICPM5-1B.md) | MiniCPM5-1B llamafile bundles (server + chat) |
 | [`requirements/REQ-AGENTCI-RESPONSE-MODERATION.md`](requirements/REQ-AGENTCI-RESPONSE-MODERATION.md) | Local MiniCPM5 Build moderation and finite-state-machine continuation controller (AgentCI, TypeScript) |
 | [`requirements/REQ-OPENVPN.md`](requirements/REQ-OPENVPN.md) | Host and VM OpenVPN client automation |
 | [`requirements/REQ-AGENTCI.md`](requirements/REQ-AGENTCI.md) | AgentCI plugin: explicit policy files, hooks, file injection |
 | [`requirements/REQ-VM-HYPERVISOR.md`](requirements/REQ-VM-HYPERVISOR.md) | `make vm` dual isolation backends (Podman + QEMU) |
+| [`requirements/REQ-NATIVE-VM-PACKAGES.md`](requirements/REQ-NATIVE-VM-PACKAGES.md) | Native Windows, macOS, Android, and Linux end-user package workstreams |
 
 ### specifications/ - implementation specs (SPEC-*)
 
@@ -48,6 +49,12 @@ Start here for onboarding: [`../README.md`](../README.md)
 | [`specifications/SPEC-AGENTCI-RESPONSE-MODERATION.md`](specifications/SPEC-AGENTCI-RESPONSE-MODERATION.md) | AgentCI completion-gating moderation: FSM, classifier, audit, installer |
 | [`specifications/SPEC-OPENCODE-ISOLATED-INTEGRATION-TESTS.md`](specifications/SPEC-OPENCODE-ISOLATED-INTEGRATION-TESTS.md) | Temporary-root OpenCode, plugin, database, and live-provider test contract (Draft) |
 | [`specifications/SPEC-VM-HYPERVISOR.md`](specifications/SPEC-VM-HYPERVISOR.md) | Hypervisor architecture, QEMU backend, guard E2E gate |
+
+### guides/ - operator guides
+
+| Document | Scope |
+|----------|-------|
+| [`guides/PERSISTENT-QEMU-VM.md`](guides/PERSISTENT-QEMU-VM.md) | Persistent QEMU VM current capabilities, manual backup, limitations, and delivery roadmap |
 
 ### proposals/ - plans and executed migrations
 
@@ -77,11 +84,13 @@ for the benchmark itself.
 ## Reading order for newcomers
 
 1. [`../README.md`](../README.md) - workspace overview and make targets.
-3. [`requirements/REQ-VM-HYPERVISOR.md`](requirements/REQ-VM-HYPERVISOR.md) + [`specifications/SPEC-VM-HYPERVISOR.md`](specifications/SPEC-VM-HYPERVISOR.md) - agent VM isolation backends and the authoritative guard E2E gate.
-4. [`requirements/REQ-OPENVPN.md`](requirements/REQ-OPENVPN.md) + [`specifications/SPEC-OPENVPN.md`](specifications/SPEC-OPENVPN.md) - host/VM VPN automation.
-5. [`requirements/REQ-LLAMA-SETUP-TUI.md`](requirements/REQ-LLAMA-SETUP-TUI.md) + [`specifications/SPEC-LLAMAFILE-MINICPM5-1B.md`](specifications/SPEC-LLAMAFILE-MINICPM5-1B.md) - local LLM inference stack.
-6. Draft docs (`REQ-AGENT-POLICY`, `REQ-A2A`, `REQ-ANDROID-WORKSPACE` and their SPECs) - planned features.
-7. [`proposals/MIGRATION-PLAN.md`](proposals/MIGRATION-PLAN.md) - historical V3 phase context.
+2. [`requirements/REQ-VM-HYPERVISOR.md`](requirements/REQ-VM-HYPERVISOR.md) + [`specifications/SPEC-VM-HYPERVISOR.md`](specifications/SPEC-VM-HYPERVISOR.md) - agent VM isolation backends and the authoritative guard E2E gate.
+3. [`guides/PERSISTENT-QEMU-VM.md`](guides/PERSISTENT-QEMU-VM.md) - current persistent QEMU behavior, limitations, and roadmap.
+4. [`requirements/REQ-NATIVE-VM-PACKAGES.md`](requirements/REQ-NATIVE-VM-PACKAGES.md) - native Windows, macOS, Android, and Linux package workstreams.
+5. [`requirements/REQ-OPENVPN.md`](requirements/REQ-OPENVPN.md) + [`specifications/SPEC-OPENVPN.md`](specifications/SPEC-OPENVPN.md) - host/VM VPN automation.
+6. [`requirements/REQ-LLAMA-SETUP-TUI.md`](requirements/REQ-LLAMA-SETUP-TUI.md) + [`specifications/SPEC-LLAMAFILE-MINICPM5-1B.md`](specifications/SPEC-LLAMAFILE-MINICPM5-1B.md) - local LLM inference stack.
+7. Draft docs (`REQ-AGENT-POLICY`, `REQ-A2A`, `REQ-ANDROID-WORKSPACE` and their SPECs) - planned features.
+8. [`proposals/MIGRATION-PLAN.md`](proposals/MIGRATION-PLAN.md) - historical V3 phase context.
 
 ## Archive
 

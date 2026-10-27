@@ -1,6 +1,6 @@
 # SPEC-ANDROID-WORKSPACE: Android Workspace Client Implementation
 
-**Date:** 2026-07-17
+**Date:** 2026-10-23
 **Status:** Draft
 **Type:** Specification
 **Requirements:** [REQ-ANDROID-WORKSPACE](../requirements/REQ-ANDROID-WORKSPACE.md)
@@ -9,12 +9,17 @@
 > QEMU TCG inside the app sandbox. Not implemented; no Android module exists
 > in this repo. Key invariants: no root, W^X-safe `jniLibs` packaging, QEMU
 > invoked as external process only (GPL-2.0 separation).
+>
+> The supported pre-app path is the rootless bootstrap on a local Debian or
+> Ubuntu environment under WSL or chroot. That path uses the same WORKSPACE-VM
+> QEMU backend, CLI, and E2E gates. Native Android packaging remains a separate
+> delivery workstream and is not validated by the bootstrap path.
 
 ---
 
 **Cross-references:**
 - [REQ-ANDROID-WORKSPACE](../requirements/REQ-ANDROID-WORKSPACE.md): requirements contract
-- [SPEC-VM-HYPERVISOR](SPEC-VM-HYPERVISOR.md): desktop QEMU backend whose argv builder is shared (Phase 2)
+- [SPEC-VM-HYPERVISOR](SPEC-VM-HYPERVISOR.md): shared QEMU backend, argv patterns, and rootless bootstrap path
 
 ---
 
@@ -76,7 +81,7 @@ UI: Dashboard | Console (desktop, logs, Run Ansible) | Settings
 | File | Purpose | Key Changes |
 |------|---------|-------------|
 | Android app module (planned) | Compose UI + `VmService` | New repo/module |
-| `workspace/cli/hypervisor/qemu_backend.py` | Shared argv builder | Extract reusable builder (Phase 2) |
+| `workspace/cli/hypervisor/qemu_backend.py` | Shared QEMU backend and argv patterns | Separate native package consumes the shared contract |
 
 ## 6. Implementation Status
 

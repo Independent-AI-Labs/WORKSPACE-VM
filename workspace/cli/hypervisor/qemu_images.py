@@ -140,6 +140,7 @@ def write_cloud_init(
                 "sudo",
                 "ca-certificates",
                 "build-essential",
+                "nftables",
             ]
         )
         runcmd.extend(
@@ -165,6 +166,10 @@ def write_cloud_init(
         "users": users,
         "package_update": True,
         "packages": packages,
+        "bootcmd": [
+            "mkdir -p /var/tmp/workspace-guard-cargo-0",
+            ("ln -sfn /var/tmp/workspace-guard-cargo-0 /tmp/workspace-guard-cargo-0"),
+        ],
         "runcmd": runcmd,
     }
     user_data = "#cloud-config\n" + yaml.dump(

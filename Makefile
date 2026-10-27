@@ -359,7 +359,8 @@ uninstall-agentci: ## Remove the installed AgentCI OpenCode plugin release
 # =============================================================================
 
 .PHONY: vm vm-start vm-stop vm-resume vm-delete vm-kill vm-shell vm-exec \
-	vm-logs vm-list vm-status vm-rebuild vm-sync vm-config vm-cert
+	vm-logs vm-list vm-status vm-rebuild vm-sync vm-config vm-cert \
+	vm-snapshot vm-export vm-import vm-autostart
 
 vm: ## Build and start a VM from config file
 	bash workspace/scripts/bin/vm create "$(filter-out $@,$(MAKECMDGOALS))"
@@ -375,34 +376,42 @@ provision-host install-host-stack provision-host-preflight:
 	echo "(alias: refresh-guard -> guard-refresh)" >&2
 	exit 1
 
-vm-start: ## podman start <id> + write PID
+vm-start: ## start a stopped VM by ID
 	bash workspace/scripts/bin/vm start $(filter-out $@,$(MAKECMDGOALS))
-vm-stop: ## podman stop <id> + remove PID
+vm-stop: ## stop a running VM by ID
 	bash workspace/scripts/bin/vm stop $(filter-out $@,$(MAKECMDGOALS))
-vm-resume: ## podman start <id> (alias)
+vm-resume: ## start a stopped VM by ID (alias)
 	bash workspace/scripts/bin/vm start $(filter-out $@,$(MAKECMDGOALS))
-vm-delete: ## podman rm <id> + optional volume purge
+vm-delete: ## delete a VM; --purge also removes volumes or disks
 	bash workspace/scripts/bin/vm delete $(filter-out $@,$(MAKECMDGOALS))
-vm-kill: ## read .vms/<id>/pid and send SIGKILL directly
+vm-kill: ## send SIGKILL using the stored PID
 	bash workspace/scripts/bin/vm kill $(filter-out $@,$(MAKECMDGOALS))
-vm-shell: ## podman exec -it <id> bash
+vm-shell: ## open an interactive shell by ID
 	bash workspace/scripts/bin/vm shell $(filter-out $@,$(MAKECMDGOALS))
-vm-exec: ## podman exec <id> -- <cmd>
+vm-exec: ## run a command by ID
 	bash workspace/scripts/bin/vm exec $(filter-out $@,$(MAKECMDGOALS))
-vm-logs: ## podman logs <id>
+vm-logs: ## show VM logs by ID
 	bash workspace/scripts/bin/vm logs $(filter-out $@,$(MAKECMDGOALS))
-vm-list: ## podman ps -a --filter label=workspace.type=vm
+vm-list: ## list all VMs
 	bash workspace/scripts/bin/vm list
-vm-status: ## podman inspect + stats for <id>
+vm-status: ## show VM status by ID
 	bash workspace/scripts/bin/vm status $(filter-out $@,$(MAKECMDGOALS))
-vm-rebuild: ## re-build + restart <id> from stored vm.yaml
+vm-rebuild: ## rebuild a VM from stored vm.yaml; QEMU rebuild is roadmap
 	bash workspace/scripts/bin/vm rebuild $(filter-out $@,$(MAKECMDGOALS))
-vm-sync: ## file sync per config.sync rules
+vm-sync: ## apply config.sync rules over SSH
 	bash workspace/scripts/bin/vm sync $(filter-out $@,$(MAKECMDGOALS))
 vm-config: ## print the vm.yaml used to create <id>
 	bash workspace/scripts/bin/vm config $(filter-out $@,$(MAKECMDGOALS))
 vm-cert: ## generate or print client cert for <id>
 	bash workspace/scripts/bin/vm cert $(filter-out $@,$(MAKECMDGOALS))
+vm-snapshot: ## create, list, or delete a QEMU snapshot
+	bash workspace/scripts/bin/vm snapshot $(filter-out $@,$(MAKECMDGOALS))
+vm-export: ## export a QEMU VM bundle
+	bash workspace/scripts/bin/vm export $(filter-out $@,$(MAKECMDGOALS))
+vm-import: ## import a QEMU VM bundle
+	bash workspace/scripts/bin/vm import $(filter-out $@,$(MAKECMDGOALS))
+vm-autostart: ## enable or disable systemd user autostart
+	bash workspace/scripts/bin/vm autostart $(filter-out $@,$(MAKECMDGOALS))
 
 # =============================================================================
 # Git Hooks
@@ -489,15 +498,15 @@ test-e2e: ## Run end-to-end VM integration tests
 	$(UV) run python -m pytest tests/e2e/ -v -m e2e --timeout 600
 
 .PHONY: test-e2e-qemu
-test-e2e-qemu: ## QEMU poc + guard + boot posture E2E (set TEST_QEMU_FULL=1 to include full-ci)
-	$(UV) run python -m pytest tests/e2e/test_vm_qemu_poc.py tests/e2e/test_vm_qemu_guard.py tests/e2e/test_vm_qemu_boot_posture.py -v -m e2e --timeout 3600
+test-e2e-qemu: ## QEMU poc + persistent + guard + boot posture E2E (set TEST_QEMU_FULL=1 for full-ci)
+	$(UV) run python -m pytest tests/e2e/test_vm_qemu_poc.py tests/e2e/test_vm_qemu_persistent.py tests/e2e/test_vm_qemu_guard.py tests/e2e/test_vm_qemu_boot_posture.py -v -m e2e --timeout 3600
 	if [ "$${TEST_QEMU_FULL:-0}" = "1" ]; then \
 		$(UV) run python -m pytest tests/e2e/test_vm_qemu_full_ci.py -v -m e2e --timeout 3600; \
 	fi
 
 .PHONY: test-e2e-qemu-full
-test-e2e-qemu-full: ## QEMU poc + full-ci + guard + boot posture (authoritative, slow)
-	$(UV) run python -m pytest tests/e2e/test_vm_qemu_poc.py tests/e2e/test_vm_qemu_full_ci.py tests/e2e/test_vm_qemu_guard.py tests/e2e/test_vm_qemu_boot_posture.py -v -m e2e --timeout 3600
+test-e2e-qemu-full: ## QEMU poc + persistent + full-ci + guard + boot posture (authoritative, slow)
+	$(UV) run python -m pytest tests/e2e/test_vm_qemu_poc.py tests/e2e/test_vm_qemu_persistent.py tests/e2e/test_vm_qemu_full_ci.py tests/e2e/test_vm_qemu_guard.py tests/e2e/test_vm_qemu_boot_posture.py -v -m e2e --timeout 3600
 
 .PHONY: test-vm-guard
 test-vm-guard: ## Authoritative WORKSPACE-GUARD gate in QEMU guest
@@ -510,6 +519,10 @@ test-vm-boot-posture: ## Rehearse bpf LSM + lockdown cmdline in QEMU guest befor
 .PHONY: test-vm-shell-guard
 test-vm-shell-guard: ## Authoritative shell-guard gate in QEMU guest
 	$(UV) run python -m pytest tests/e2e/test_vm_qemu_shell_guard.py -v -s -m e2e --timeout 900
+
+.PHONY: test-vm-persistent
+test-vm-persistent: ## Persistent QEMU lifecycle, rebuild, snapshot, export, import
+	$(UV) run python -m pytest tests/e2e/test_vm_qemu_persistent.py -v -m e2e --timeout 3600
 
 .PHONY: test-authoritative
 test-authoritative: test-e2e-qemu-full ## Pre-release QEMU + guard checklist

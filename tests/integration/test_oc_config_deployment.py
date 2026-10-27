@@ -11,10 +11,20 @@ import pytest
 
 from tests.integration.oc_config_test_helpers import (
     OC_SRC,
+    WORKSPACE_ROOT,
     WRAPPERS,
     configured_instruction_files,
     run_wrapper,
+    run_wrapper_result,
 )
+
+EXIT_USAGE = 2
+
+
+def _agent_block(output: str, name: str) -> str:
+    start = output.index(f"{name} (primary)")
+    end = output.index("\n]", start) + 2
+    return output[start:end]
 
 
 @pytest.mark.integration
@@ -45,15 +55,27 @@ class TestOcWrappers:
         )
         assert config["subagent_depth"] == 0
         assert config["agent"] == {
+            "build": {"color": "#FFFFFF"},
+            "plan": {"color": "#A855F7"},
             "explore": {"disable": True},
             "general": {"disable": True},
         }
         assert config["permission"]["task"] == "deny"
         assert json.loads(values["content"]) == {
             "subagent_depth": 0,
-            "agent": {"explore": {"disable": True}, "general": {"disable": True}},
+            "agent": {
+                "build": {"color": "#FFFFFF"},
+                "plan": {"color": "#A855F7"},
+                "explore": {"disable": True},
+                "general": {"disable": True},
+            },
             "permission": {"task": "deny"},
         }
+        answer = expected_config / "agents" / "answer.md"
+        assert answer.is_file()
+        assert answer.read_text(encoding="utf-8") == (
+            OC_SRC / "agents" / "answer.md"
+        ).read_text(encoding="utf-8")
         assert (
             instruction_files[0].read_text(encoding="utf-8")
             == "WORKSPACE-VM workspace\n"
@@ -87,6 +109,71 @@ class TestOcWrappers:
         )
         assert values["db"] == "relative.db"
         assert args == ["--version"]
+
+    @pytest.mark.parametrize("wrapper", WRAPPERS)
+    @pytest.mark.parametrize("option", [["--agent", "answer"], ["--agent=answer"]])
+    def test_agent_option_keeps_task_conversion(
+        self, tmp_path: Path, wrapper: Path, option: list[str]
+    ):
+        """A selected agent rides the run conversion instead of becoming a command."""
+        _, args, _ = run_wrapper(tmp_path, wrapper, [*option, "answer task"])
+        assert args == [
+            "run",
+            "--dir",
+            str(tmp_path / f"caller-{wrapper.name}"),
+            "--agent",
+            "answer",
+            "answer task",
+        ]
+
+    @pytest.mark.parametrize("wrapper", WRAPPERS)
+    def test_agent_option_without_task_starts_interactive(
+        self, tmp_path: Path, wrapper: Path
+    ):
+        """An agent alone opens the TUI with that primary agent."""
+        _, args, _ = run_wrapper(tmp_path, wrapper, ["--agent", "answer"])
+        assert args == ["--agent", "answer"]
+
+    @pytest.mark.parametrize("wrapper", WRAPPERS)
+    def test_agent_option_with_upstream_flag_stays_direct(
+        self, tmp_path: Path, wrapper: Path
+    ):
+        """An agent plus an upstream flag bypasses task conversion."""
+        _, args, _ = run_wrapper(tmp_path, wrapper, ["--agent", "answer", "--continue"])
+        assert args == ["--agent", "answer", "--continue"]
+
+    @pytest.mark.parametrize("wrapper", WRAPPERS)
+    @pytest.mark.parametrize(
+        ("option", "message"),
+        [
+            (["--agent"], "--agent requires a name"),
+            (["--agent="], "--agent requires a non-empty name"),
+        ],
+    )
+    def test_agent_option_requires_a_name(
+        self, tmp_path: Path, wrapper: Path, option: list[str], message: str
+    ):
+        """A missing or empty agent name fails before opencode starts."""
+        result = run_wrapper_result(tmp_path, wrapper, option)
+        assert result.returncode == EXIT_USAGE
+        assert message in result.stderr
+
+    @pytest.mark.parametrize("wrapper", WRAPPERS)
+    def test_existing_answer_agent_is_refreshed(self, tmp_path: Path, wrapper: Path):
+        """Provision-owned agent files update while user instructions stay."""
+        config_dir = tmp_path / "existing-config"
+        agents = config_dir / "agents"
+        agents.mkdir(parents=True)
+        (agents / "answer.md").write_text("stale\n", encoding="utf-8")
+        (config_dir / "opencode.jsonc").write_text("{}\n", encoding="utf-8")
+        (config_dir / "system-instruction.md").write_text("custom\n", encoding="utf-8")
+        run_wrapper(tmp_path, wrapper, ["normal task"], config_dir)
+        assert (agents / "answer.md").read_text(encoding="utf-8") == (
+            OC_SRC / "agents" / "answer.md"
+        ).read_text(encoding="utf-8")
+        assert (config_dir / "system-instruction.md").read_text(
+            encoding="utf-8"
+        ) == "custom\n"
 
     def test_wrappers_have_identical_dispatch(self, tmp_path: Path):
         """The shared helper gives both binaries the same dispatch result."""
@@ -131,6 +218,55 @@ class TestOcWrappers:
         assert values["db"] == ""
         assert args[-1] == "normal task"
         assert not marker.exists()
+
+
+@pytest.mark.integration
+class TestAnswerAgent:
+    def test_answer_agent_is_read_only_and_requires_verified_answers(self):
+        """The Answer agent keeps Plan's bash access but cannot write or track work."""
+        text = (OC_SRC / "agents" / "answer.md").read_text(encoding="utf-8")
+        assert "mode: primary" in text
+        assert 'color: "#22C55E"' in text
+        assert "edit: deny" in text
+        assert "todowrite: deny" in text
+        assert "bash: allow" in text
+        assert "question: allow" in text
+        assert "Do not create plan files." in text
+        assert "Never guess." in text
+
+    @pytest.mark.parametrize("boot_dir", [".boot-linux", ".boot-macos"])
+    def test_real_opencode_loads_answer_agent(self, tmp_path: Path, boot_dir: str):
+        """opencode parses the deployed agent and keeps the intended permissions."""
+        binary = WORKSPACE_ROOT / boot_dir / "bin" / "opencode"
+        if not binary.is_file():
+            pytest.skip(f"opencode binary not installed at {binary}")
+        home = tmp_path / "home"
+        config = tmp_path / "config"
+        data = tmp_path / "data"
+        for directory in (home, config, data):
+            directory.mkdir()
+        env = {
+            **os.environ,
+            "HOME": str(home),
+            "XDG_CONFIG_HOME": str(config),
+            "XDG_DATA_HOME": str(data),
+            "OPENCODE_BINARY": str(binary),
+            "OPENCODE_DB": str(tmp_path / "verify.db"),
+        }
+        result = subprocess.run(
+            [str(WRAPPERS[0]), "--", "agent", "list"],
+            cwd=tmp_path,
+            capture_output=True,
+            text=True,
+            env=env,
+            check=True,
+        )
+        assert result.returncode == 0, result.stderr
+        block = _agent_block(result.stdout, "answer")
+        assert '"permission": "edit",\n    "action": "deny"' in block
+        assert '"permission": "todowrite",\n    "action": "deny"' in block
+        assert '"permission": "bash",\n    "action": "allow"' in block
+        assert '"permission": "question",\n    "action": "allow"' in block
 
 
 @pytest.mark.integration

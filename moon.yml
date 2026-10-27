@@ -68,6 +68,7 @@ tasks:
       - 'workspace/scripts/opencode-wrapper.sh'
       - 'workspace/config/opencode/opencode.jsonc'
       - 'workspace/config/opencode/system-instruction.template.md'
+      - 'workspace/config/opencode/agents/*.md'
   dead-code:
     command: 'make _dead-code-impl'
     inputs:

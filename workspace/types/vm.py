@@ -169,6 +169,7 @@ class VMQemuConfig(BaseModel):
     ssh_host_port: int = Field(default=0, ge=0, le=65535)
     image: str = ""
     provision: Literal["none", "guard", "full-ci"] = "none"
+    mode: Literal["persistent", "ephemeral"] = "persistent"
 
     @model_validator(mode="after")
     def _sync_image_to_guest_arch(self) -> VMQemuConfig:

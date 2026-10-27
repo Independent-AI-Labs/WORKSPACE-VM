@@ -45,6 +45,14 @@ test("deriveContext detects plan mode and compaction messages", () => {
   assert.equal(deriveContext({ messages: [summary], assistantID: "msg_2", lastTerminalAssistantID: null, inflightAssistantID: null }).compaction, true);
 });
 
+test("deriveContext keeps the answer agent in the moderated build path", () => {
+  const answer = assistant("msg_1", "user_1", "verified answer");
+  answer.info.agent = "answer";
+  const snapshot = deriveContext({ messages: [answer], assistantID: "msg_1", lastTerminalAssistantID: null, inflightAssistantID: null });
+  assert.equal(snapshot.planMode, false);
+  assert.equal(snapshot.build, true);
+});
+
 test("root block detection flags privileged fenced command blocks", () => {
   assert.equal(detectsRootBlock("Run:\n```bash\nsudo make init\n```\n"), true);
   assert.equal(detectsRootBlock("```sh\nif true; then sudo rm -rf /tmp/x; fi\n```"), true);

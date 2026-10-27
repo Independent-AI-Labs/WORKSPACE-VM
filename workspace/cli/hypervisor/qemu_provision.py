@@ -186,6 +186,16 @@ def _build_install_script(profile: str, extra_apt: list[str]) -> str:
             ]
         )
     lines.extend([f'cd "{_GUEST_ROOT}"', "make init"])
+    if profile == "guard":
+        lines.append(
+            "sudo make -C projects/WORKSPACE-GUARD build-shell-guard build-guard"
+        )
+        lines.append(
+            "sudo env CARGO_HOME=/tmp/workspace-guard-cargo-0 "
+            f"RUSTUP_HOME={_CI_ROOT}/.boot-linux/rust "
+            f"PATH={_CI_ROOT}/.boot-linux/bin:$PATH "
+            "cargo build --manifest-path projects/WORKSPACE-GUARD/Cargo.toml"
+        )
     if profile != "guard":
         guest_defaults = f"{_GUEST_ROOT}/vm-install-defaults.yaml"
         lines.append(f"make install-ci INSTALL_DEFAULTS={guest_defaults}")

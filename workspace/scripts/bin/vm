@@ -47,6 +47,16 @@ subcommands:
   sync    <uuid>             File sync per config.sync rules
   config  <uuid>             Print the vm.yaml used to create this VM
   cert    <uuid>             Generate or print client cert
+  snapshot <uuid> create|delete <name>  Manage QEMU snapshots
+  snapshot <uuid> list       List QEMU snapshots
+  export  <uuid> <path>      Export a QEMU VM bundle
+  import  <path>             Import a QEMU VM bundle
+  autostart enable|disable <uuid>  Manage systemd user autostart
+
+Backend notes:
+  Podman: rebuild, sync, and cert are supported today.
+  QEMU: persistent disk is retained by create; rebuild and sync are roadmap.
+  Snapshot, export, import, and autostart are QEMU-only.
 
 Flags:
   --help, -h                 Show this help
@@ -161,6 +171,22 @@ cmd_cert() {
     echo "Client key:  $_VMS_DIR/$uuid/certs/client.key"
 }
 
+cmd_snapshot() {
+    exec "${_VM_RUN[@]}" -m "$_VM_MANAGER" snapshot "$@"
+}
+
+cmd_export() {
+    exec "${_VM_RUN[@]}" -m "$_VM_MANAGER" export "$@"
+}
+
+cmd_import() {
+    exec "${_VM_RUN[@]}" -m "$_VM_MANAGER" import "$@"
+}
+
+cmd_autostart() {
+    exec "${_VM_RUN[@]}" -m "$_VM_MANAGER" autostart "$@"
+}
+
 # --- Dispatch ---
 if [[ $# -eq 0 ]]; then
     usage
@@ -183,5 +209,9 @@ case "${1:-}" in
     sync)       shift; cmd_sync "$@" ;;
     config)     shift; cmd_config "$@" ;;
     cert)       shift; cmd_cert "$@" ;;
+    snapshot)   shift; cmd_snapshot "$@" ;;
+    export)     shift; cmd_export "$@" ;;
+    import)     shift; cmd_import "$@" ;;
+    autostart)  shift; cmd_autostart "$@" ;;
     *)          die "unknown subcommand '${1:-}'. Try --help." ;;
 esac

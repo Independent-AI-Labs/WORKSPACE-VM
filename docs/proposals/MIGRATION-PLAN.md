@@ -5,7 +5,7 @@
 **Last Updated:** 2026-07-13
 **Author:** WORKSPACE-VM Engineering
 
-> **Current state (2026-07-13):** Phase 1 (code deletions) complete. Phase 2 largely done (opencode, shell aliases, platform boot dirs, CI-owned Node/bootstrap). Phase 3 **in progress**: `make vm` with Podman + QEMU backends, `make install-qemu`, OpenVPN host client (`make vpn-*`), and llama inference stack (`make llama-setup`, llamafile bundles, systemd deploy). Phases 4-6 (full Traefik/mTLS parity in QEMU guests, gateway integration, production hardening) not complete. For operator onboarding use [`README.md`](../../README.md) and [`docs/README.md`](../README.md) rather than this plan's historical phase labels alone.
+> **Current state (2026-10-23):** Phase 1 (code deletions) complete. Phase 2 largely done (opencode, shell aliases, platform boot dirs, CI-owned Node/bootstrap). Phase 3 is implemented for Podman and baseline QEMU: `make vm` with dual backends, `make install-qemu`, full-ci QEMU provisioning, and authoritative guard E2E. Persistent QEMU parity is in progress: ACPI stop, data-preserving delete, rebuild, sync, snapshot, export, import, autostart, network, web UI, and config parity remain. Phases 4-6 are still incomplete. For operator onboarding use [`README.md`](../../README.md) and [`docs/README.md`](../README.md) rather than this plan's historical phase labels alone.
 
 ---
 

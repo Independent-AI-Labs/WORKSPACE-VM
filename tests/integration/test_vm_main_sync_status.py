@@ -98,15 +98,30 @@ class TestVMMainDispatch:
         assert called["path"] == str(cfg)
 
     def test_rebuild_dispatches(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        called: dict[str, str] = {}
+        called: dict[str, object] = {}
 
-        def fake_rebuild(uuid: str) -> None:
+        def fake_rebuild(uuid: str, *, fresh: bool = False) -> None:
             called["uuid"] = uuid
+            called["fresh"] = fresh
 
         monkeypatch.setattr(vm_main, "rebuild", fake_rebuild)
         rc = vm_main.main(["rebuild", "my-uuid"])
         assert rc == 0
         assert called["uuid"] == "my-uuid"
+        assert called["fresh"] is False
+
+    def test_rebuild_dispatches_fresh(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        called: dict[str, object] = {}
+
+        def fake_rebuild(uuid: str, *, fresh: bool = False) -> None:
+            called["uuid"] = uuid
+            called["fresh"] = fresh
+
+        monkeypatch.setattr(vm_main, "rebuild", fake_rebuild)
+        rc = vm_main.main(["rebuild", "my-uuid", "--fresh"])
+        assert rc == 0
+        assert called["uuid"] == "my-uuid"
+        assert called["fresh"] is True
 
     def test_sync_dispatches(self, monkeypatch: pytest.MonkeyPatch) -> None:
         called: dict[str, str] = {}

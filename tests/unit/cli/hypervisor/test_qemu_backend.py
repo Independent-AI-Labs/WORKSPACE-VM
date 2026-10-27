@@ -73,14 +73,15 @@ def test_stop_without_pid_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) 
     QemuBackend().stop("uuid")
 
 
-def test_stop_waits_then_kills(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_stop_escalates_to_kill(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     vm_dir = tmp_path / "uuid"
     vm_dir.mkdir()
     (vm_dir / "qemu.pid").write_text("9001")
     monkeypatch.setattr(qb, "_VMS_DIR", tmp_path)
     monkeypatch.setattr(qb, "_process_alive", lambda _pid: True)
-    monkeypatch.setattr(qb.time, "monotonic", MagicMock(side_effect=[0, 5, 35]))
-    monkeypatch.setattr(qb.time, "sleep", lambda _s: None)
+    monkeypatch.setattr(qb, "_wait_pid_exit", MagicMock(side_effect=[False, True]))
     calls: list[list[str]] = []
 
     def _fake_run(
@@ -100,7 +101,8 @@ def test_stop_sends_term(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Non
     vm_dir.mkdir()
     (vm_dir / "qemu.pid").write_text("9001")
     monkeypatch.setattr(qb, "_VMS_DIR", tmp_path)
-    monkeypatch.setattr(qb, "_process_alive", lambda _pid: False)
+    monkeypatch.setattr(qb, "_process_alive", lambda _pid: True)
+    monkeypatch.setattr(qb, "_wait_pid_exit", lambda *_a, **_k: True)
     calls: list[list[str]] = []
 
     def _fake_run(
@@ -112,9 +114,32 @@ def test_stop_sends_term(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Non
     monkeypatch.setattr(qb.subprocess, "run", _fake_run)
     QemuBackend().stop("uuid")
     assert calls[0][:2] == ["kill", "-TERM"]
+    assert not (vm_dir / "qemu.pid").exists()
 
 
-def test_destroy_removes_vm_dir(
+def test_stop_dead_pid_clears_file(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    vm_dir = tmp_path / "uuid"
+    vm_dir.mkdir()
+    (vm_dir / "qemu.pid").write_text("9001")
+    monkeypatch.setattr(qb, "_VMS_DIR", tmp_path)
+    monkeypatch.setattr(qb, "_process_alive", lambda _pid: False)
+    QemuBackend().stop("uuid")
+    assert not (vm_dir / "qemu.pid").exists()
+
+
+def test_destroy_purges_vm_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    vm_dir = tmp_path / "uuid"
+    vm_dir.mkdir()
+    (vm_dir / "marker").write_text("x")
+    monkeypatch.setattr(qb, "_VMS_DIR", tmp_path)
+    monkeypatch.setattr(QemuBackend, "stop", lambda self, _uuid: None)
+    QemuBackend().destroy("uuid", purge=True)
+    assert not vm_dir.exists()
+
+
+def test_destroy_archives_vm_dir(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     vm_dir = tmp_path / "uuid"
@@ -124,6 +149,7 @@ def test_destroy_removes_vm_dir(
     monkeypatch.setattr(QemuBackend, "stop", lambda self, _uuid: None)
     QemuBackend().destroy("uuid")
     assert not vm_dir.exists()
+    assert (tmp_path / "_archive" / "uuid" / "marker").is_file()
 
 
 def test_process_alive_true(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -187,6 +213,7 @@ def test_create_boots_and_provisions(
         yaml.dump(
             {
                 "components": ["uv"],
+                "web_ui": False,
                 "isolation": {
                     "backend": "qemu",
                     "qemu": {"guest_arch": "aarch64", "provision": "guard"},
@@ -201,12 +228,18 @@ def test_create_boots_and_provisions(
     monkeypatch.setattr(qb, "resolve_accel", lambda _req, _bin: "tcg")
     monkeypatch.setattr(qb, "resolve_aarch64_firmware", lambda: Path("/opt/efi.fd"))
     monkeypatch.setattr(qb, "_resolve_ci_root", lambda: tmp_path / "workspace-ci")
-    monkeypatch.setattr(qb, "prepare_vm_storage", lambda *_a, **_k: "55010")
+
+    def _prepare(_cfg: object, vm_dir: Path, **_kwargs: object) -> str:
+        (vm_dir / "ssh_port").write_text("55010")
+        return "55010"
+
+    monkeypatch.setattr(qb, "prepare_vm_storage", _prepare)
     monkeypatch.setattr(
         qb, "build_qemu_argv", lambda **_k: ["/opt/qemu", "-display", "none"]
     )
     monkeypatch.setattr(qb, "_wait_ssh", lambda *_a, **_k: None)
     monkeypatch.setattr(qb, "provision_guest", lambda **_k: None)
+    monkeypatch.setattr(qb, "apply_guest_config", lambda *_a, **_k: None)
     monkeypatch.setattr(
         qb.subprocess,
         "run",
@@ -230,6 +263,7 @@ def test_start_launches_qemu(
     vm_dir.mkdir()
     cfg = {
         "components": ["uv"],
+        "web_ui": False,
         "isolation": {
             "backend": "qemu",
             "qemu": {"guest_arch": "aarch64", "provision": "none"},
@@ -258,6 +292,7 @@ def test_start_already_running(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) 
     vm_dir.mkdir()
     cfg = {
         "components": ["uv"],
+        "web_ui": False,
         "isolation": {"backend": "qemu", "qemu": {"guest_arch": "aarch64"}},
     }
     (vm_dir / "vm.yaml").write_text(yaml.dump(cfg))
@@ -268,3 +303,47 @@ def test_start_already_running(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) 
         lambda self, _uuid: {"state": "running"},
     )
     QemuBackend().start("uuid")
+
+
+def test_validate_config_rejects_host_network() -> None:
+    cfg = VMConfig.model_validate(
+        {
+            "components": ["uv"],
+            "network": {"mode": "host"},
+            "isolation": {"backend": "qemu"},
+        }
+    )
+    with pytest.raises(ValueError, match=r"network\.mode: host"):
+        qb._validate_config(cfg)
+
+
+def test_validate_config_rejects_openvpn_netns() -> None:
+    cfg = VMConfig.model_validate(
+        {
+            "components": ["uv"],
+            "network": {
+                "mode": "openvpn",
+                "vpn_type": "netns",
+                "vpn_netns": "vpn0",
+            },
+            "isolation": {"backend": "qemu"},
+        }
+    )
+    with pytest.raises(ValueError, match=r"vpn_type: netns"):
+        qb._validate_config(cfg)
+
+
+def test_validate_config_rejects_whitelist() -> None:
+    cfg = VMConfig.model_validate(
+        {
+            "components": ["uv"],
+            "network": {
+                "mode": "bridge",
+                "network_name": "br0",
+                "whitelist": ["example.com"],
+            },
+            "isolation": {"backend": "qemu"},
+        }
+    )
+    with pytest.raises(ValueError, match=r"network\.whitelist"):
+        qb._validate_config(cfg)

@@ -2,7 +2,7 @@
 
 **Document ID:** WS-SPEC-VM-HYPERVISOR-v1.0
 **Status:** Draft
-**Date:** 2026-07-11
+**Date:** 2026-10-23
 **Classification:** Internal - Enterprise
 **Requirements:** [REQ-VM-HYPERVISOR](../requirements/REQ-VM-HYPERVISOR.md)
 **References:**
@@ -73,7 +73,9 @@ flowchart TB
  QemuBE --> CloudInit --> QemuProc --> SSH
 ```
 
-### 1.1 Module layout (POC)
+### 1.1 Module layout
+
+Current modules:
 
 ```
 workspace/cli/
@@ -82,16 +84,34 @@ workspace/cli/
  base.py # IsolationBackend protocol
  podman_backend.py # delegates to existing vm_build/vm_manager paths
  qemu_backend.py # spawn, wait-ssh, stop, destroy
+ qemu_argv.py # argv, firmware, monitor socket
+ qemu_images.py # base image, overlay, cloud-init
+ qemu_provision.py # rsync and install-ci profiles
  vm_manager.py # branch on cfg.isolation.backend
 ```
 
-### 1.2 `IsolationBackend` protocol (POC surface)
+Planned modules, split to stay under the 512-line limit:
+
+```
+workspace/cli/hypervisor/
+ qemu_state.py # persistent state, PID identity, recovery
+ qemu_lifecycle.py # start, ACPI stop, rebuild, autostart
+ qemu_guest_config.py # files, mounts, env, provider, credentials, ssh
+ qemu_sync.py # day-2 rsync over SSH
+ qemu_snapshots.py # snapshot, export, import
+ qemu_network.py # none, bridge, proxy, OpenVPN
+ qemu_security.py # guest hardening and validator rejects
+```
+
+### 1.2 `IsolationBackend` protocol surface
 
 ```python
 class IsolationBackend(Protocol):
-    def create(self, uuid: str, cfg: VMConfig, vm_dir: Path) -> None: ...
+    def create(self, config_path: str, cfg: VMConfig) -> None: ...
     def start(self, uuid: str) -> None: ...
     def stop(self, uuid: str) -> None: ...
+    def rebuild(self, uuid: str, *, fresh: bool = False) -> None: ...
+    def sync(self, uuid: str) -> None: ...
     def destroy(self, uuid: str, *, purge: bool = False) -> None: ...
     def exec(self, uuid: str, cmd: list[str]) -> subprocess.CompletedProcess: ...
     def ssh_endpoint(self, uuid: str) -> tuple[str, int]: ...
@@ -100,7 +120,7 @@ class IsolationBackend(Protocol):
 ```
 
 `PodmanBackend.create` SHALL call the existing `vm_manager.create` body
-(extracted unchanged). `QemuBackend` implements the new path.
+(extracted unchanged). `QemuBackend` implements the production path.
 
 ---
 
@@ -119,10 +139,16 @@ class IsolationBackend(Protocol):
 | `workspace/cli/hypervisor/qemu_argv.py` | Pure argv/firmware path builder (no I/O) |
 | `workspace/cli/hypervisor/qemu_images.py` | Base image download, overlay, cloud-localds seed |
 | `workspace/cli/hypervisor/qemu_resolve.py` | Binary/firmware resolution from boot-dir |
-| `workspace/config/vm-poc-qemu.yaml` | Minimal QEMU POC config |
+| `workspace/cli/hypervisor/qemu_state.py` | Persistent state and PID identity |
+| `workspace/cli/hypervisor/qemu_qmp.py` | QMP ACPI powerdown client |
+| `workspace/cli/hypervisor/qemu_guest_config.py` | Files, mounts, env, credentials, SSH, web UI, OpenVPN |
+| `workspace/cli/qemu_sync.py` | Day-2 sync over SSH |
+| `workspace/cli/vm_snapshots.py` | Snapshot, export, import |
+| `workspace/cli/vm_autostart.py` | Systemd user autostart |
+| `workspace/cli/hypervisor/qemu_argv.py` | Network modes and bridge NIC |
+| `workspace/config/vm-poc-qemu.yaml` | Minimal QEMU baseline config |
 | `workspace/scripts/bootstrap/bootstrap_qemu.sh` | Install/symlink QEMU, firmware, GPL notices |
-| `res/qemu-pins.yaml` | Pinned versions, checksums, source URLs |
-| `res/vm-images.yaml` | Ubuntu cloud image URLs and SHA256 |
+| `res/qemu-pins.yaml` | Pinned versions, checksums, source URLs, and image digests |
 | `tests/e2e/test_vm_qemu_poc.py` | Boot + SSH + `uname -a` E2E |
 | `tests/unit/types/test_vm_isolation_config.py` | Schema validation unit tests |
 | `tests/unit/cli/hypervisor/test_qemu_argv.py` | Argv builder unit tests |
@@ -136,7 +162,7 @@ class IsolationBackend(Protocol):
 | `workspace/config/bootstrap-components.yaml` | Add `qemu` component |
 | `config/system-deps.yaml` | Add `cloud-localds`, optional `qemu-utils` |
 | `workspace/cli/vm_manager.py` | Dispatch `create` on `cfg.isolation.backend` |
-| `workspace/scripts/bin/vm` | Backend-aware `list`, `shell`, `stop`, `delete` (partial POC) |
+| `workspace/scripts/bin/vm` | Backend-aware dispatcher with partial QEMU parity |
 | `Makefile` | Add `install-qemu` target |
 | `docs/MIGRATION-PLAN.md` | Cross-reference hypervisor extension (optional) |
 
@@ -179,7 +205,8 @@ isolation: VMIsolationConfig = Field(default_factory=VMIsolationConfig)
 ```yaml
 # --- Isolation backend ---
 # DEFAULT: podman - existing rootless agent containers (no breaking change).
-# Use qemu for full Linux guest / WORKSPACE-GUARD cap E2E. See docs/REQ-VM-HYPERVISOR.md.
+# Use qemu for a full Linux guest and authoritative guard E2E.
+# QEMU VMs are persistent by default. See docs/guides/PERSISTENT-QEMU-VM.md.
 isolation:
  backend: podman # podman | qemu
  qemu:
@@ -188,19 +215,40 @@ isolation:
  disk_gb: 20
  ssh_host_port: 0 # 0 = auto-allocate ephemeral port
  image: workspace-vm-base-ubuntu-24.04-aarch64.qcow2
+ provision: none # none | guard | full-ci
 ```
 
 ### 3.2 Field applicability by backend
 
-| Field | Podman | QEMU |
-|-------|--------|------|
-| `components`, `extra_apt` | install-ci in container build | SSH provision: rsync + `make install-ci` on guest disk |
-| `resources.memory`, `resources.cpus` | podman `--memory`, `--cpus` | QEMU `-m`, `-smp` |
-| `security.*` | podman run flags | cloud-init hardening (no direct mapping) |
-| `network.mode: openvpn` | supported | **not in POC** - use podman |
-| `network.mode: bridge` | Traefik + mTLS | **not in POC** |
-| `web_ui` | opencode Traefik | **deferred** - SSH only in POC |
-| `mounts` | podman volume binds | read-only virtfs/9p only (v1) |
+The target is full config parity. Every field is implemented or rejected with a
+typed validation error. Silent ignore is not allowed.
+
+| Field | Podman | QEMU current | QEMU target |
+|-------|--------|--------------|-------------|
+| `components`, `extra_apt` | install-ci in container build | SSH provision and `make install-ci` | Same, with resumable and complete profiles |
+| `resources.memory`, `resources.cpus` | podman limits | QEMU `-m`, `-smp` | Same |
+| `resources.pids_limit` | podman limit | systemd `DefaultTasksMax` | Guest systemd or cgroup limit |
+| `security.*` | podman run flags | cap_add rejected; others partial | Guest controls or explicit reject |
+| `network.mode: none` | no interfaces | `restrict=on` plus SSH forward | SSH-only restricted user networking |
+| `network.mode: bridge` | Traefik plus mTLS | second virtio NIC on host bridge | Bridged interface on Linux |
+| `network.mode: openvpn` | container or netns | guest client over user NAT; netns rejected | Guest client or host netns |
+| `network.mode: host` | host network | rejected | Explicit reject |
+| `web_ui` | OpenCode plus Traefik | guest OpenCode service on `:4096`; SSH tunnel | Guest OpenCode service, auth, and localhost forwarding |
+| `mounts` | bind mounts | read-only virtio-9p | Additional read-only 9p shares |
+| `files` | pre-copy to volume | copy into guest workspace | Copy into guest workspace |
+| `sync` | `make vm sync` | QEMU `vm sync` over SSH | QEMU `vm sync` over SSH |
+| `env` | container environment | `/etc/environment.d` | Guest login and service environment |
+| `provider` | OpenCode config | guest OpenCode config | Guest OpenCode config |
+| `credentials` | none, clone, api | none or clone; api rejected | Same modes with secret-safe handling |
+| `ssh` | none, inherit, custom | same modes plus VM key | Same modes plus mandatory VM key |
+
+Bridge policy mapping:
+
+- `unrestricted`: no guest firewall rules.
+- `internet`: drop private-range egress on the bridge NIC.
+- `proxy`: drop all bridge egress except the resolved proxy host; export
+  `HTTP_PROXY`, `HTTPS_PROXY`, and `NO_PROXY`.
+- `whitelist`: rejected for QEMU.
 
 ---
 
@@ -212,8 +260,9 @@ isolation:
 .vms/<uuid>/
  vm.yaml # frozen config at create time
  vm-install-defaults.yaml
- password # Podman: container password; QEMU: optional guest password
- certs/ # Podman mTLS; QEMU: unused in POC
+ password # Podman: container password; QEMU: guest console password
+ certs/ # Podman mTLS; QEMU web UI mTLS
+ state.yaml # backend state, mode, profile, last error
 ```
 
 ### 4.2 Podman-only additions
@@ -229,14 +278,19 @@ Podman also creates named volumes: `<uuid>-workspace`, `<uuid>-transcripts`, `<u
 ```
 .vms/<uuid>/
  qemu.pid # host PID of qemu-system-* process
+ qmp.sock # QMP control socket, mode 0600
  ssh_port # forwarded localhost port (e.g. 55222)
- disk.qcow2 # per-VM overlay
+ disk.qcow2 # per-VM overlay, persistent by default
  cloud-init/
  user-data
  meta-data
- seed.img # FAT seed for -drive file=seed.img
+ seed.img # seed for -drive file=seed.img
  qemu.log # optional stdout/stderr capture
  provision.log # install-ci / rsync output from qemu_provision.py
+ state.yaml # persistent or ephemeral, profile, timestamps, last error
+ snapshots/ # internal QCOW2 snapshots
+ exports/ # portable export bundles
+ autostart/ # systemd user unit metadata
 ```
 
 ### 4.4 Shared base cache
@@ -277,21 +331,36 @@ No QEMU artifacts. `cfg.isolation.backend` is ignored except for backend selecti
 
 ```
 create(uuid, cfg, vm_dir):
- 1. resolve_qemu_binary(guest_arch) # boot-dir → PATH
- 2. resolve_accel(cfg.isolation.qemu) # auto → kvm/hvf/whpx/tcg
- 3. ensure_base_image(image_name)
- 4. create_overlay(vm_dir/disk.qcow2)
- 5. generate_cloud_init(cfg, vm_dir) # user workspace, SSH pubkey, optional install-ci
- 6. allocate_ssh_port() # write ssh_port file
- 7. build_argv() → subprocess.Popen
- 8. write qemu.pid
- 9. wait_ssh_healthy(host, port) # reuse timeout pattern from vm_core._wait_healthy
-10. if cfg.components non-empty: qemu_provision.run_install_ci(...)
+ 1. validate persistent or ephemeral mode and config field support
+ 2. resolve_qemu_binary(guest_arch) # boot-dir only
+ 3. resolve_accel(cfg.isolation.qemu) # auto -> kvm/hvf/whpx/tcg
+ 4. ensure_base_image(image_name)
+ 5. create_overlay(vm_dir/disk.qcow2)
+ 6. generate_cloud_init(cfg, vm_dir)
+ 7. allocate_ssh_port() and write ssh_port
+ 8. write state.yaml with mode and provisioning profile
+ 9. build_argv() with QMP socket
+10. spawn QEMU and record PID identity
+11. wait_ssh_healthy(host, port)
+12. apply mounts, host shares, limits, files, env, provider, credentials, and SSH
+13. run the provisioning profile when components are present
+14. restart provisioned VMs with `restrict=on` when `network.mode: none`
+15. mark state ready or failed with a resumable checkpoint
 ```
 
-### 6.2 QEMU argv (POC - aarch64 Linux guest)
+The first boot of a provisioned VM permits host networking so cloud-init can
+install `make`, `rsync`, and toolchain packages. The guest prebuilds guard
+binaries and persists the cargo cache under `/var/tmp`; later boots mount host
+shares explicitly because cloud-init `runcmd` is first-boot only.
+
+The create path SHALL be ordered so a failure after step 8 leaves a VM that can
+be inspected, retried, or purged. It SHALL NOT leave an untracked QEMU process.
+
+### 6.2 QEMU argv (aarch64 Linux guest)
 
 Built by `qemu_argv.py` from boot-dir paths. Firmware is mandatory for `virt`.
+The persistent target adds `-qmp unix:<vm_dir>/qmp.sock,server=on,wait=off` and
+uses `-netdev user,...,restrict=on` when `network.mode: none`.
 
 ```bash
 qemu-system-aarch64 \
@@ -322,16 +391,20 @@ is read-only on the host; guest writes go to `/opt/workspace` on the QCOW2 overl
 
 x86_64 guest uses `qemu-system-x86_64`, `-machine q35`, OVMF pflash or `-bios` per pin file.
 
-### 6.3 Cloud-init `user-data` (POC minimum)
+### 6.3 Cloud-init `user-data` (baseline)
 
 ```yaml
 #cloud-config
 users:
  - name: workspace
- sudo: ALL=(ALL) NOPASSWD:ALL
- shell: /bin/bash
- ssh_authorized_keys:
- - <build-time ed25519 pubkey>
+   sudo: ALL=(ALL) NOPASSWD:ALL
+   shell: /bin/bash
+   ssh_authorized_keys:
+    - <build-time ed25519 pubkey>
+ - name: agent
+   uid: 1001
+   shell: /bin/bash
+   groups: [users]
 package_update: true
 packages:
  - openssh-server
@@ -340,11 +413,6 @@ packages:
  - rsync
  - make
  - build-essential
-users:
- - name: agent
-   uid: 1001
-   shell: /bin/bash
-   groups: [workspace]
 runcmd:
  - systemctl enable --now ssh
  - mkdir -p /mnt/workspace-ro
@@ -368,8 +436,16 @@ Poll until success or timeout (same order of magnitude as existing `_wait_health
 
 ### 6.5 Stop / destroy
 
-- **stop:** `qemu-monitor` `system_powerdown` if monitor available; else SIGTERM to PID in `qemu.pid`; wait up to 30s; use SIGKILL as the final termination step
-- **destroy:** stop + `rm -rf .vms/<uuid>/` (preserve `_base/`)
+Implemented behavior:
+
+- **stop:** connect to `qmp.sock`, issue `system_powerdown`, wait for guest
+  shutdown, then SIGTERM, then SIGKILL. Report success only after exit.
+- **destroy without purge:** stop, then move the VM directory to
+  `.vms/_archive/<uuid>/`. Artifacts remain recoverable.
+- **destroy with purge:** stop and remove all per-VM artifacts. Retain `_base/`.
+- **stale PID:** verify process identity before signalling or declaring running.
+- **recovery:** missing disk, broken backing chain, or occupied SSH port fail
+  with a named error and a remediation hint.
 
 ### 6.6 Guest provisioning and rsync profiles
 
@@ -380,11 +456,26 @@ Poll until success or timeout (same order of magnitude as existing `_wait_health
 3. `cd /opt/workspace && make init && make install-ci INSTALL_DEFAULTS=...`
 4. Stream output to `.vms/<uuid>/provision.log`.
 
+Current profile behavior:
+
 | Profile | Config | Rsync scope | install-ci |
 |---------|--------|-------------|------------|
-| `poc` | `vm-poc-qemu.yaml` | None | No |
-| `guard` | `vm-guard-qemu.yaml` | Skeleton + `projects/WORKSPACE-GUARD` | Minimal (git, rust via init) |
-| `full-ci` | `vm-full-ci-qemu.yaml` | Skeleton + required `projects/*` | Yes (13 default components) |
+| `none` | `vm-poc-qemu.yaml` | None | No |
+| `guard` | `vm-guard-qemu.yaml` | Skeleton plus WORKSPACE-GUARD | Minimal, no install-ci |
+| `full-ci` | `vm-full-ci-qemu.yaml` | Skeleton plus CI, DATAOPS, GUARD, BROWSER | Yes, 13 components |
+
+Target profile behavior:
+
+| Field | Target |
+|-------|--------|
+| `provision` | `none`, `guard`, `full-ci`, `persistent` |
+| workspace scope | `minimal`, `required`, `all` |
+| update mode | `create-only`, `sync`, `git-pull` |
+| failure recovery | resumable state and explicit partial-artifact policy |
+
+The `full-ci` profile currently copies four project repositories, not all of
+`projects/`. Documentation SHALL NOT claim full project coverage until the
+`workspace_scope: all` implementation and E2E test exist.
 
 **Always excluded from rsync:** `.vms/`, `.venv/`, `node_modules/`, `__pycache__/`.
 
@@ -399,7 +490,7 @@ Environment knobs:
 | `QEMU_RSYNC_BOOT` | `0` | Copy pre-built `.boot-linux/` when `1` |
 | `QEMU_PROVISION_TIMEOUT` | `3600` | Seconds for install-ci |
 
-Disk guidance: `disk_gb: 12` for POC; `48` for full-ci (base image + overlay + install artifacts).
+Disk guidance: `disk_gb: 12` for the baseline profile; `48` for full-ci (base image + overlay + install artifacts).
 
 ### 6.7 E2E storage cleanup
 
@@ -412,6 +503,87 @@ QEMU E2E tests (`tests/e2e/test_vm_qemu_*.py`) MUST NOT persist per-VM overlays:
 | Failed partial creates | **Reclaimed** | `cleanup_orphan_qemu_vms()` on session end |
 
 Debug only: set `QEMU_E2E_KEEP_VM=1` to skip destroy (not for CI).
+
+Target cleanup rule:
+
+- `state.yaml` with `mode: persistent` SHALL make the VM ineligible for automatic
+  reclamation.
+- `cleanup_orphan_qemu_vms()` SHALL skip persistent VMs even when age is zero.
+- `make clean-qemu-e2e` SHALL remove only ephemeral E2E VMs.
+- The cleanup command SHALL print skipped persistent VMs.
+
+### 6.8 Persistent lifecycle
+
+Add a typed `state.yaml` per VM:
+
+```yaml
+mode: persistent # persistent | ephemeral
+profile: full-ci
+created_at: "2026-10-23T00:00:00Z"
+last_started_at: "2026-10-23T00:00:00Z"
+last_stopped_at: null
+last_error: null
+qemu_pid_start_ticks: 123456
+ssh_port: 55222
+```
+
+Rules:
+
+- `start` validates disk, backing chain, state, PID identity, and SSH port.
+- A stale PID file is not proof of a running VM.
+- `stop` uses QMP ACPI shutdown before signals.
+- Host reboot preserves the overlay and state file.
+- `status` reports `persistent`, `ephemeral`, `running`, `stopped`, `invalid`.
+
+### 6.9 Rebuild and sync
+
+- `vm rebuild <id>` regenerates cloud-init and guest configuration.
+- Preserve the overlay by default.
+- `--fresh` creates a new overlay and keeps the old one under `backups/`.
+- Rebuild re-runs provisioning and emits a resumable state checkpoint.
+- `vm sync <id>` applies `sync` rules over SSH.
+- Strategies: `merge`, `overwrite` with delete, `skip` for existing files.
+- The sync command SHALL reject absolute or escaping destination paths.
+
+### 6.10 Snapshot, export, import
+
+- `vm snapshot create|list|delete` uses `qemu-img snapshot` or a stopped VM copy.
+- Snapshots require a stopped or quiesced VM in the first release.
+- `vm export` writes `disk.qcow2`, `vm.yaml`, `vm-install-defaults.yaml`,
+  `state.yaml`, `password`, `qemu_ssh_ed25519`, `cloud-init/`, and a manifest.
+- The bundle contains the per-VM SSH private key and password. Treat it as a
+  secret and restrict access to the destination directory.
+- Export excludes host secrets and `_base/`.
+- `vm import` validates the manifest, checks disk integrity, and assigns a new
+  UUID. It preserves the bundled key and password so the imported VM is
+  reachable without guest console access.
+- Backup tests SHALL verify full-ci state and workspace content.
+
+### 6.11 Autostart
+
+- `vm autostart enable <id>` writes a systemd user unit.
+- `vm autostart disable <id>` removes it.
+- Unit uses the exact VM UUID and stored config.
+- Persistent only. Ephemeral VMs are rejected.
+- Tests run in an isolated systemd user scope or skip with an explicit reason.
+
+### 6.12 Config parity and network
+
+- Implement `files`, `mounts`, `env`, `provider`, `credentials`, `ssh`, and
+  `web_ui` for QEMU.
+- Implement network `none`, `bridge`, `proxy`, and `openvpn`.
+- Reject `host` network mode for QEMU.
+- Every unsupported field fails validation with field name and remediation.
+- QEMU `none` uses restricted user networking; only SSH host forwarding works.
+- Web UI binds to guest localhost and is forwarded to host localhost with auth.
+
+### 6.13 Windows and Android rootless bootstrap
+
+- Native Windows WHPX and native Android packages are separate workstreams.
+- Windows and Android developers use WSL or chroot on local Debian or Ubuntu.
+- The bootstrap path runs `make init`, `make install-qemu`, and the same VM CLI.
+- E2E SHALL record results for WSL and chroot separately from native Linux.
+- Path, socket, systemd, and storage assumptions SHALL have WSL and chroot tests.
 
 ---
 
@@ -437,20 +609,25 @@ checks exit code.
 
 ## 8. CLI Parity Matrix
 
-| Subcommand | Podman (existing) | QEMU (POC) |
-|------------|-------------------|------------|
-| `create` | full | full |
-| `rebuild` | full | **deferred** |
-| `start` | `podman start` | spawn if stopped |
-| `stop` | `podman stop` | ACPI / SIGTERM |
-| `delete` | `podman rm` + volumes | kill + rm vm_dir |
-| `shell` | `podman exec -it` | `ssh workspace@127.0.0.1 -p <port>` |
-| `exec` | `podman exec` | `ssh ... cmd` |
-| `logs` | `podman logs` | `tail qemu.log` |
-| `list` | `podman ps --filter label=...` | scan `.vms/*/qemu.pid` + process table |
-| `sync` | existing | **deferred** |
+| Subcommand | Podman | QEMU current | QEMU target |
+|------------|--------|--------------|-------------|
+| `create` | full | full | full with resumable provisioning |
+| `rebuild` | full | preserve overlay; `--fresh` recreates | preserve overlay by default, `--fresh` option |
+| `start` | `podman start` | spawn if stopped; validate PID identity | validate state and identity |
+| `stop` | `podman stop` | QMP ACPI, SIGTERM, SIGKILL | QMP ACPI, SIGTERM, SIGKILL |
+| `delete` | container plus volumes | archive by default; `--purge` removes | preserve by default, `--purge` removes |
+| `shell` | `podman exec -it` | SSH | SSH with per-VM key |
+| `exec` | `podman exec` | SSH | SSH with exit-code propagation |
+| `logs` | `podman logs` | `tail qemu.log` | follow and tail with rotation |
+| `list` | podman labels | scan PID files | typed state, no stale PID trust |
+| `status` | podman inspect and stats | minimal | backend, state, port, disk, profile |
+| `sync` | rsync to volume | rejected | rsync over SSH with strategies |
+| `snapshot` | not applicable | missing | create, list, delete |
+| `export` | missing | missing | portable bundle |
+| `import` | missing | missing | validated restore |
+| `autostart` | missing | missing | systemd user unit enable and disable |
 
-`vm` shell script reads `vm.yaml` → `isolation.backend` to dispatch.
+`vm` shell script reads `vm.yaml` and `state.yaml` to dispatch.
 
 ---
 
@@ -564,7 +741,7 @@ images:
  dest_name: workspace-vm-base-ubuntu-24.04-aarch64.qcow2
 ```
 
-Pins are checked at bootstrap; mismatch emits a warning (POC) or fails (CI).
+Pins are checked at bootstrap; mismatch SHALL fail in CI and emit a warning in local development.
 
 ### 10.3 `bootstrap_qemu.sh` steps
 
@@ -583,9 +760,11 @@ package (apt/brew) while boot-dir remains the runtime resolution point.
 
 ```
 1. <boot-dir>/bin/qemu-system-<guest_arch>
-2. PATH for developer hosts (log warning to stderr)
-3. exit with: "run make install-qemu"
+2. fail with: "run make install-qemu"
 ```
+
+PATH selection is forbidden. The current code still allows PATH selection;
+removing it is part of the production gap backlog.
 
 Same for `qemu-img` and firmware under `<boot-dir>/share/qemu/firmware/`.
 
@@ -619,8 +798,8 @@ cloud-localds .vms/<uuid>/cloud-init/seed.img \
 
 ### 11.1 Base image cache (`.vms/_base/`)
 
-Already gitignored via `.vms/*`. Download once; verify SHA256 from `res/vm-images.yaml`
-or `res/qemu-pins.yaml#images`.
+Already gitignored via `.vms/*`. Download once; verify SHA256 from
+`res/qemu-pins.yaml#images`.
 
 Convert raw cloud image to qcow2 backing file on first fetch:
 
@@ -678,6 +857,12 @@ the same matrix wherever a capability context is attainable and
 skips honestly elsewhere; only the AT_SECURE-gate test runs
 everywhere.
 
+Windows and Android guard runs use the rootless bootstrap path on a local
+Debian or Ubuntu environment under WSL or chroot. They SHALL run the same
+`make test-vm-guard` and `make test-vm-shell-guard` gates. Native Windows
+WHPX and native Android packaging are separate workstreams and SHALL NOT be
+claimed as validated until their own gates exist.
+
 ### 12.2 Authoritative gate (host orchestration)
 
 From WORKSPACE-VM root:
@@ -718,7 +903,7 @@ test-authoritative:  ## pre-release gate
 
 ---
 
-## 13. POC Acceptance Criteria
+## 13. Acceptance Criteria
 
 | Step | Command / check | Expected |
 |------|-----------------|----------|
@@ -729,39 +914,61 @@ test-authoritative:  ## pre-release gate
 | 5 | Verify host `/usr/bin/git` unchanged | No guard artifacts on host |
 | 6 | `pytest tests/e2e/test_vm_qemu_poc.py` | Pass or skip with reason |
 | 7 | `pytest tests/e2e/test_vm_security.py` | Podman tests still pass |
-| 8 | `pytest tests/e2e/test_vm_qemu_full_ci.py` | 13 components on guest disk (macOS + Linux) |
+| 8 | `pytest tests/e2e/test_vm_qemu_full_ci.py` | All 13 configured components on guest disk (macOS + Linux) |
 | 9 | `make test-vm-guard` | WORKSPACE-GUARD e2e-guest.sh in QEMU; host git unchanged |
+| 10 | Stop, start, and verify guest files | Persistent state survives |
+| 11 | Stop and check QMP ACPI shutdown | Guest powers down cleanly |
+| 12 | `vm delete` then inspect disk | Overlay preserved |
+| 13 | `vm delete --purge` then inspect | Overlay removed |
+| 14 | `vm rebuild` and `vm rebuild --fresh` | Overlay preserved or replaced as requested |
+| 15 | `vm sync` with merge, overwrite, skip | Rules applied over SSH |
+| 16 | Snapshot, export, import | VM restores with full-ci state |
+| 17 | Autostart enable and disable | Systemd user unit starts and stops the VM |
+| 18 | Config, web UI, network, security matrix | Each field works or rejects explicitly |
+| 19 | WSL and chroot bootstrap | Same Linux E2E gates pass |
 
-Step 9 is the authoritative release gate: capability install, policy-matrix live
-vectors on real guest caps, and host `/usr/bin/git` fingerprint unchanged. See
-§12.1 and REQ FR-7.
+Steps 9, 10 through 19 are release gates for the persistent product target.
+Capability install, policy-matrix live vectors on real guest caps, and host
+`/usr/bin/git` fingerprint unchanged remain authoritative. See §12.1 and REQ FR-7.
 
 Execution status per step: [REQ-VM-HYPERVISOR §10](../requirements/REQ-VM-HYPERVISOR.md);
 component status and remaining tasks: §17.
 
 ---
 
-## 14. Phase 2 (Deferred)
+## 14. Platform Delivery
 
-### 14.1 Windows WHPX bundle
+### 14.1 Native Linux and macOS
 
-- Ship pinned QEMU + firmware in `.boot-windows/`
-- WHPX accelerator probe; TCG selection when configured
-- Integrate with existing Windows bootstrap path
+- QEMU backend with KVM or HVF, or TCG when the accelerator is unavailable.
+- Full persistent lifecycle, backup, autostart, and config parity.
+- These are the primary v1 product targets.
 
-### 14.2 Android client
+### 14.2 Windows and Android through WSL or chroot
 
-Align with [REQ-ANDROID-WORKSPACE](../requirements/REQ-ANDROID-WORKSPACE.md):
+Windows and Android developer support uses the rootless bootstrap path on a
+local Debian or Ubuntu rootfs under WSL or chroot.
 
-- Bundled `qemu-system-aarch64` as `.so` in `jniLibs/` (required W^X packaging change)
-- Forced `-accel tcg`
-- Shared cloud-init / overlay patterns with desktop `QemuBackend`
-- `workspace/cli/hypervisor/qemu_backend.py` extracts shared argv builder
+Requirements:
 
-### 14.3 QEMU rebuild + web UI
+- Same `make init`, `make install-qemu`, and VM CLI.
+- Same QEMU backend and persistent VM artifacts.
+- Same guard, shell-guard, and persistent E2E gates.
+- E2E results are recorded separately for WSL and chroot.
+- Path, socket, systemd, inotify, and storage behavior are tested explicitly.
+- The host must not require native Windows WHPX or native Android packaging.
 
-- `vm rebuild` for QEMU (regenerate cloud-init, preserve overlay)
-- Optional bridge networking + Traefik for opencode web UI in QEMU guests
+### 14.3 Native Windows, Android, and macOS packages
+
+Native Windows WHPX bundles, native Android packaging, native macOS packages,
+and native Linux package formats are separate workstreams tracked in
+[REQ-NATIVE-VM-PACKAGES](../requirements/REQ-NATIVE-VM-PACKAGES.md).
+
+- They SHALL consume the same backend contract.
+- They SHALL NOT be claimed as validated until they have their own E2E gates.
+- Android packaging remains aligned with
+  [REQ-ANDROID-WORKSPACE](../requirements/REQ-ANDROID-WORKSPACE.md).
+- Windows packaging remains aligned with the future WHPX bundle specification.
 
 ---
 
@@ -772,74 +979,73 @@ Align with [REQ-ANDROID-WORKSPACE](../requirements/REQ-ANDROID-WORKSPACE.md):
 | **QEMU** | GPL-2.0 | QEMU project / community | Active (weekly releases) | **Yes - all hosts** | KVM, HVF, WHPX | Yes (static builds possible) | **Selected** |
 | crosvm | BSD-3 | Google / Chromium | Active | No (needs /dev/kvm or WinHv) | KVM, WHPX | Partial | Future Android/Win fast path |
 | Firecracker | Apache-2.0 | AWS | Active | No | KVM only | Minimal VMM | Linux production microVMs |
-| Cloud Hypervisor | Apache-2.0 | Intel/MS community | Active | No | KVM, MSHV | Rust VMM only | Not POC |
+| Cloud Hypervisor | Apache-2.0 | Intel/MS community | Active | No | KVM, MSHV | Rust VMM only | Not selected |
 | bhyve | BSD-2 | FreeBSD | Active | No | bhyve (FreeBSD) | No | N/A |
 | VirtualBox | GPL-2.0 | Oracle | Maintenance mode | No | VT-x/AMD-V | GUI installer | Not suitable (license + bundle size) |
 | Rootless Podman | Apache-2.0 | Red Hat / community | Active | N/A (container) | N/A | Uses OCI runtime | **Retained default** |
 
 **Decision:** QEMU is the only engine that satisfies REQ-VMH-005 (auto accelerator
 selection plus universal TCG support) while remaining actively maintained under an open license suitable
-for bundling in WORKSPACE-VM boot directories and the Android client app.
+for bundling in WORKSPACE-VM boot directories and the native package workstreams.
 
 ---
 
 ## 16. Implementation Order
 
-1. `REQ-VM-HYPERVISOR.md` + `SPEC-VM-HYPERVISOR.md`
-2. Extend `VMConfig` + `vm-template.yaml` with `isolation` block
-3. Add `workspace/cli/hypervisor/` package
-4. Refactor `vm_manager.create` to dispatch on backend
-5. Add `bootstrap_qemu.sh` + `.vms/_base/` image fetch
-6. Add `vm-poc-qemu.yaml` + `test_vm_qemu_poc.py`
-7. Guest provision (`qemu_provision.py`) + virtio-9p RO mount
-8. `vm-full-ci-qemu.yaml` + `make test-vm-guard` + authoritative E2E suite
+1. Documentation truth pass and support matrix.
+2. Persistent state model and safe cleanup boundaries.
+3. QMP ACPI stop, stale PID recovery, delete preserve and purge.
+4. QEMU rebuild and sync.
+5. Snapshot, export, import.
+6. Systemd autostart.
+7. Day-2 config parity.
+8. Network and web UI parity.
+9. Security mapping and explicit rejects.
+10. Image and bootstrap hardening.
+11. Full E2E matrix and release gates.
+12. Windows and Android WSL or chroot validation.
 
 ---
 
 ## 17. Implementation Status
 
-Status as of 2026-07-12 (folded from the former operational tracking checklist).
+Status as of 2026-10-23.
 
 | Component | Status | Evidence |
 |-----------|--------|----------|
-| `VMConfig` + `vm-template.yaml` `isolation` block | Implemented | `workspace/types/vm.py` |
+| `VMConfig` plus `vm-template.yaml` isolation block | Implemented | `workspace/types/vm.py` |
 | `workspace/cli/hypervisor/` package | Implemented | `IsolationBackend` protocol |
 | `vm_manager.create` backend dispatch | Implemented | `workspace/cli/vm_manager.py` |
-| `bootstrap_qemu.sh` + `.vms/_base/` image fetch | Implemented | SHA256 pinned (§10.2) |
-| `vm-poc-qemu.yaml` + `test_vm_qemu_poc.py` | Implemented | Passed on macOS (HVF) |
-| Guest provision (`qemu_provision.py`) + virtio-9p RO mount | Implemented | Cloud-init YAML + mount probe fixes |
-| `res/qemu-pins.yaml` SHA256 image pins | Implemented | arm64 + x86_64 pinned 2026-07-12 |
-| `vm-full-ci-qemu.yaml` + `test_vm_qemu_full_ci.py` | Partial | Provision path fixed; pytest gate pending re-run |
-| `make test-vm-guard` authoritative guard E2E | Partial | Manual `e2e-guest.sh` PASS 2026-07-12 (macOS); full pytest re-run and Linux KVM pending |
+| `bootstrap_qemu.sh` and base image fetch | Implemented | Pins present; fresh-host check pending |
+| `vm-poc-qemu.yaml` and `test_vm_qemu_poc.py` | Implemented | Linux KVM pass 2026-10-22 |
+| Guest provision plus virtio-9p RO mount | Implemented | Linux KVM pass 2026-10-22 |
+| `res/qemu-pins.yaml` SHA256 image pins | Implemented | arm64 and x86_64 pins |
+| Full-ci QEMU install | Implemented | Linux KVM pass 2026-10-22 |
+| Full-ci binary assertions | Partial | Four essentials only |
+| Guard QEMU E2E | Implemented | Linux KVM pass 2026-10-22 |
+| Shell-guard QEMU E2E | Implemented | Linux KVM pass 2026-10-22 |
+| Boot posture QEMU E2E | Implemented | Linux KVM pass 2026-10-22 |
+| Persistent state and cleanup protection | Implemented | Linux KVM pass |
+| ACPI stop and delete preserve | Implemented | Linux KVM pass |
+| Rebuild and sync | Implemented | Unit coverage; rebuild in persistent E2E |
+| Snapshot, export, import | Implemented | Persistent E2E pass |
+| Systemd autostart | Implemented | Unit coverage |
+| Config, network, and web UI parity | Partial | web UI validated; bridge/OpenVPN argv tested |
+| Persistent lifecycle E2E | Implemented | Linux KVM pass 2026-10-25 |
+| Windows and Android WSL or chroot validation | Not implemented | Backlog |
+| macOS HVF re-validation | Not verified this cycle | Backlog |
 
-### 17.1 Remaining work
+### 17.1 Current truth
 
-1. **Authoritative guard E2E** (REQ FR-7, AC-10/14/16): run
-   `make clean-qemu-e2e && make test-vm-guard` on macOS (HVF, ~30+ min) and on a
-   Linux host with `/dev/kvm`. On failure inspect `.vms/<uuid>/provision.log`,
-   guest `qemu.log`, and SSH output from the guard run.
-2. **Full-CI guest provision E2E** (REQ AC-15): run
-   `pytest tests/e2e/test_vm_qemu_full_ci.py -v -m e2e --timeout 3600` on macOS
-   and Linux; verify essential binaries on guest disk (`uv`, `python3`, `node`,
-   `opencode`).
-3. **Pre-release checklist**: after 1 and 2 pass individually, run
-   `make test-authoritative` end-to-end (POC + full-ci + guard in one pytest
-   invocation) and confirm `tests/e2e/qemu_host_isolation.py` before/after host
-   git checks.
-4. **Linux KVM accelerator parity** (REQ FR-5): confirm `resolve_accel` selects
-   `kvm` when `/dev/kvm` is present; verify `accel: auto` falls back to `tcg`
-   with warning and explicit `accel: kvm` fails with a `usermod -aG kvm` hint
-   when `/dev/kvm` is missing (§11.4).
-5. **x86_64 guest architecture** (REQ FR-6.4): boot + SSH sanity check
-   (`uname -m` -> `x86_64`) on an x86_64 host; re-run guard E2E if the release
-   matrix requires it.
-6. **Podman regression** (REQ AC-3/AC-8): run
-   `pytest tests/e2e/test_vm_security.py -v -m e2e` on a Podman host; confirm
-   existing Podman `vm create` is unchanged.
-7. **`make install-qemu` boot bundle** (REQ AC-11): on a fresh host confirm
-   `.boot-*/bin/qemu-system-*`, firmware, and GPL NOTICE are populated and
-   `res/qemu-pins.yaml#qemu.version` matches `qemu-system-aarch64 --version`.
+QEMU supports persistent create, stop, start, rebuild, sync, snapshot, export,
+import, autostart, shell, exec, logs, status, full-ci provisioning, network
+`none`/`bridge`/`openvpn` container, web UI, and authoritative guard tests. The
+remaining gaps are host-policy enforced bridge filtering, Traefik mTLS, and
+non-Linux validation.
 
-Phase 2 items in §14 (`vm rebuild`/`vm sync` for QEMU, Traefik/web UI in QEMU
-guests, Windows WHPX bundle, Android client TCG `.so` bundle) are explicitly
-deferred and do not block v1 sign-off.
+### 17.2 Remaining work
+
+1. Bridge policy enforcement through guest nftables.
+2. Traefik and mTLS for the QEMU web UI.
+3. macOS, WSL, and chroot validation.
+4. Documentation truth checks in CI.

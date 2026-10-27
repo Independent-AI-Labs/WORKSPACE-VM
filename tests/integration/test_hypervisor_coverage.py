@@ -144,7 +144,7 @@ def test_vm_manager_create_delegates(
     backend.create.assert_called_once()
 
 
-def test_vm_manager_rebuild_qemu_rejected(
+def test_vm_manager_rebuild_qemu_delegates(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -155,13 +155,10 @@ def test_vm_manager_rebuild_qemu_rejected(
         yaml.dump({"components": ["uv"], "isolation": {"backend": "qemu"}})
     )
     monkeypatch.setattr(vm_manager, "_VMS_DIR", vms)
-    monkeypatch.setattr(
-        vm_manager.sys,
-        "exit",
-        lambda code: (_ for _ in ()).throw(SystemExit(code)),
-    )
-    with pytest.raises(SystemExit):
-        vm_manager.rebuild("qemu-uuid")
+    backend = MagicMock(spec=qb.QemuBackend)
+    monkeypatch.setattr(vm_manager, "get_backend", lambda _cfg: backend)
+    vm_manager.rebuild("qemu-uuid", fresh=True)
+    backend.rebuild.assert_called_once_with("qemu-uuid", fresh=True)
 
 
 def test_vm_config_qemu_provision_profiles() -> None:

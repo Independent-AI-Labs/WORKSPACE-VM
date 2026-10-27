@@ -91,3 +91,21 @@ def test_build_qemu_argv_includes_ci_mount_when_ci_root_set() -> None:
     assert f"path={ci_root}" in joined
     assert "mount_tag=workspace-ci" in joined
     assert "mount_tag=workspace" in joined
+
+
+def test_build_qemu_argv_bridge_adds_second_nic() -> None:
+    cfg = VMConfig.model_validate(
+        {
+            "components": ["uv"],
+            "network": {"mode": "bridge", "network_name": "br-test"},
+            "isolation": {"backend": "qemu", "qemu": {"guest_arch": "x86_64"}},
+        }
+    )
+    launch = QemuLaunchContext(
+        qemu_bin=Path("/opt/qemu-system-x86_64"),
+        accel="tcg",
+        ssh_port=_SSH_PORT,
+    )
+    argv = build_qemu_argv(cfg=cfg, vm_dir=Path("/tmp/vm-bridge"), launch=launch)
+    assert "bridge,id=net1,br=br-test" in argv
+    assert "virtio-net-pci,netdev=net1" in argv
