@@ -53,7 +53,9 @@ engine/bundle build itself. **Vulkan** additionally requires `ggml-vulkan.so`
   An optional ARM64-only build path is also documented.
 - Bundle the released `MiniCPM5-1B-Q8_0.gguf` into a single distributable
   `.llamafile` whose default action is to serve an OpenAI-compatible HTTP API.
-- Pin the default decoding mode to **No-think, temperature 0** (greedy).
+- Pin the default decoding mode to **No-think, temperature 0** (greedy) and
+  disable prompt caching (`--no-cache-prompt`): cached-prefix reuse changes the
+  batch shape, so greedy output is not bit-reproducible without it.
 
 ### Non-Goals (this document)
 - This is **not** a replacement for native `llama.cpp` builds (`make build-llama

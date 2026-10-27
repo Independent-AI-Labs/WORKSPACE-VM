@@ -24,7 +24,7 @@ test("parseVerdict accepts the grammar output and rejects anything else", () => 
 
 test("buildMessages replaces empty user messages with the continue sentinel", () => {
   const messages = buildMessages({ todos: [], previousResponse: "Working.", userMessages: ["", "   ", "real request"] });
-  assert.match(messages[1].content, /empty user message; interrupted or aborted turn, treat as continue/);
+  assert.match(messages[1].content, /- Continue the unfinished work\./);
   assert.match(messages[1].content, /- real request/);
 });
 
@@ -38,8 +38,40 @@ test("buildMessages omits the todos section when there are no tracked todos", ()
   assert.match(withTodos[1].content, /Tracked todos:/);
 });
 
-test("the system prompt treats empty user messages as continue signals", () => {
-  assert.match(SYSTEM_PROMPT, /Empty or whitespace-only user messages are interruption artifacts, not halts: continue the work\./);
+test("the system prompt prioritizes handoffs and has no trailing continue bias", () => {
+  assert.match(SYSTEM_PROMPT, /The agent's latest response is the decision target\./);
+  assert.match(SYSTEM_PROMPT, /Asking the user to do something and report back is a handoff, not progress\./);
+  assert.match(SYSTEM_PROMPT, /Listing remaining work, proposing a plan, or promising future work without asking the user to act is not a handoff\./);
+  assert.match(SYSTEM_PROMPT, /An empty or whitespace-only user message is an interruption artifact, not a halt\./);
+  assert.match(SYSTEM_PROMPT, /Reproduce the flare now/);
+  assert.doesNotMatch(SYSTEM_PROMPT, /continue the work/i);
+});
+
+test("buildMessages places the assistant response before the user requests and todos", () => {
+  const content = buildMessages({ todos: [{ status: "pending", content: "writer" }], previousResponse: "Working.", userMessages: ["go"] })[1].content;
+  const responseIndex = content.indexOf("The agent's latest response (judge this):");
+  const requestIndex = content.indexOf("User request(s):");
+  const todoIndex = content.indexOf("Tracked todos:");
+  assert.ok(responseIndex >= 0, "expected the assistant response section");
+  assert.ok(responseIndex < requestIndex, "assistant response must precede the user requests");
+  assert.ok(requestIndex < todoIndex, "user requests must precede the todos");
+  assert.match(content, /Judge the agent's latest response\. It is the decision target/);
+});
+
+test("classify returns an inline capture of the exact request", async () => {
+  const result = await classify(options, input, router({
+    tokens: 100,
+    completion: { finish: "stop", content: "decision: AGENT_COMPLETE\nreason: WORK_COMPLETE" },
+  }));
+  assert.equal(result.capture.model, options.model);
+  assert.equal(result.capture.messages[0].role, "system");
+  assert.match(result.capture.messages[1].content, /judge this/);
+  assert.equal(result.capture.sampling.seed, 0);
+  assert.equal(result.capture.sampling.temperature, 0);
+  assert.equal(result.capture.attempts, 1);
+  assert.equal(result.capture.completion, "decision: AGENT_COMPLETE\nreason: WORK_COMPLETE");
+  assert.equal(result.capture.finishReason, "stop");
+  assert.ok(result.capture.durationMs >= 0);
 });
 
 test("classify returns a verdict on a valid completion", async () => {

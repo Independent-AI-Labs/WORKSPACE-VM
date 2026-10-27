@@ -21,6 +21,7 @@ vulkan
 -c
 8192
 --no-mmap
+--no-cache-prompt
 --reasoning
 off
 ...

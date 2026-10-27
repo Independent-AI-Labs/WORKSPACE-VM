@@ -193,6 +193,10 @@ benchmarks/llamafile/transcript_classifier/fixtures/*.txt
 benchmarks/llamafile/transcript_classifier/fixtures/manifest.yaml
 benchmarks/llamafile/context_audit/
 
+# AgentCI mined transcript bodies (manifest and ledger stay tracked)
+workspace/agentci/tests/fixtures/transcripts/*.json
+!workspace/agentci/tests/fixtures/transcripts/.gitkeep
+
 # Ephemeral llamafile benchmark run outputs
 docs/benchmarking/llamafile-transcript-classifier/
 docs/benchmarking/llamafile-context-audit/

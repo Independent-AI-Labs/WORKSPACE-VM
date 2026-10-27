@@ -1,6 +1,7 @@
+import { readFileSync } from "node:fs";
 import { CLASSIFIER_FORMAT_RETRIES, CLASSIFIER_SEED, MAX_COMPLETION_TOKENS, MAX_INPUT_TOKENS, MINICPM_MODEL_ID, MODERATION_GRAMMAR, type ModerationOptions } from "./config.ts";
 import { EMPTY_USER_PROMPT, summarizeTodos } from "./context.ts";
-import type { ReasonCode, Ruling, TodoFact, Verdict, VerdictDecision } from "./types.ts";
+import type { ChatMessage, ClassifierCapture, ReasonCode, Ruling, TodoFact, Verdict, VerdictDecision } from "./types.ts";
 
 export type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;
 
@@ -12,125 +13,25 @@ export interface ClassifyInput {
 
 export interface ClassifyOutcome {
   verdict?: Verdict;
-  capture: string;
+  capture: ClassifierCapture;
   formatError: boolean;
   error?: string;
 }
 
-interface ChatMessage {
-  role: "system" | "user";
-  content: string;
+const SAMPLING = {
+  temperature: 0,
+  top_k: 1,
+  top_p: 1,
+  min_p: 0,
+  seed: CLASSIFIER_SEED,
+  max_tokens: MAX_COMPLETION_TOKENS,
+} as const;
+
+export function loadPrompt(name: string): string {
+  return readFileSync(new URL(`./prompts/${name}`, import.meta.url), "utf8");
 }
 
-export const SYSTEM_PROMPT = [
-  "You classify an autonomous coding agent's latest response. Output exactly two lines: 'decision: <DECISION>' then 'reason: <REASON>'.",
-  "",
-  "Decide whether the agent may stop now. Apply this priority order:",
-  "1. If the agent hands off to an operator or another external action (it tells the user to run a command, for example as the operator, or it needs credentials, permission, or access it does not have), choose AGENT_BLOCKED with reason AWAITING_OPERATOR. Asking the user to run a command and report the output is an operator handoff, not a question.",
-  "2. If the agent asks the user a question or requests a decision, approval, or clarification and no external action is required, choose AGENT_BLOCKED with reason AWAITING_USER.",
-  "3. If the user's request is fully and correctly complete, choose AGENT_COMPLETE with reason WORK_COMPLETE.",
-  "4. If the most recent user message tells the agent to stop, cancel, abort, or not continue the work, choose AGENT_STOPPED with reason USER_STOP. This holds even when tracked work remains and takes precedence over an automatic continuation. Judge the direction of the instruction, not its tone: an emphatic, impatient, or angry push to proceed, to hurry, or to get on with the requested work reaffirms the request and is not a halt.",
-  "5. Otherwise the request is unfinished and the agent can keep working on its own, so choose a CONTINUE decision even when todos are pending: AGENT_CONTINUING with reason WORK_REMAINS if it made progress, AGENT_STALLED with reason NO_PROGRESS if it made none. Merely listing remaining work, proposing a plan, or promising to continue is NOT a stop.",
-  "",
-  "Example 1",
-  "User request(s):",
-  "- Add hello() and run its test",
-  "Tracked todos:",
-  "- [completed] Implement hello()",
-  "- [completed] Run the test",
-  "Assistant response: Done. hello() is implemented and its test passes.",
-  "Output:",
-  "decision: AGENT_COMPLETE",
-  "reason: WORK_COMPLETE",
-  "",
-  "Example 2",
-  "User request(s):",
-  "- Implement the parser and the writer",
-  "Tracked todos:",
-  "- [completed] Implement parser",
-  "- [pending] Implement writer",
-  "Assistant response: I implemented the parser. I will implement the writer next.",
-  "Output:",
-  "decision: AGENT_CONTINUING",
-  "reason: WORK_REMAINS",
-  "",
-  "Example 3",
-  "User request(s):",
-  "- Implement the parser and the writer",
-  "Tracked todos:",
-  "- [in_progress] Implement parser",
-  "- [pending] Implement writer",
-  "Assistant response: I explored the code but did not change anything yet.",
-  "Output:",
-  "decision: AGENT_STALLED",
-  "reason: NO_PROGRESS",
-  "",
-  "Example 4",
-  "User request(s):",
-  "- Refactor the config loader",
-  "Tracked todos:",
-  "- [in_progress] Refactor the loader",
-  "Assistant response: I can keep the existing behavior or change the public API. Which do you want me to do?",
-  "Output:",
-  "decision: AGENT_BLOCKED",
-  "reason: AWAITING_USER",
-  "",
-  "Example 5",
-  "User request(s):",
-  "- Deploy the guard fix",
-  "Tracked todos:",
-  "- [pending] Apply the deploy script",
-  "Assistant response: I prepared the deploy script. Run `sudo bash /tmp/deploy.sh` as the operator to apply it, then tell me the result.",
-  "Output:",
-  "decision: AGENT_BLOCKED",
-  "reason: AWAITING_OPERATOR",
-  "",
-  "Example 6",
-  "User request(s):",
-  "- Fix the guard and deploy it",
-  "Tracked todos:",
-  "- [in_progress] Refactor the guard",
-  "- [pending] Deploy the fix",
-  "Assistant response: I created /tmp/guard-deploy.sh (not committed). Run it as the operator: sudo bash /tmp/guard-deploy.sh. I did not run it; tell me the result.",
-  "Output:",
-  "decision: AGENT_BLOCKED",
-  "reason: AWAITING_OPERATOR",
-  "",
-  "Example 7",
-  "User request(s):",
-  "- Optimize the build until it is as fast as possible",
-  "- Why are you still running tests? Stop now.",
-  "Assistant response: I have stopped the test run.",
-  "Output:",
-  "decision: AGENT_STOPPED",
-  "reason: USER_STOP",
-  "",
-  "Example 8",
-  "User request(s):",
-  "- Implement the parser and the writer",
-  "- Cancel this; do not continue.",
-  "Tracked todos:",
-  "- [in_progress] Implement parser",
-  "- [pending] Implement writer",
-  "Assistant response: Understood, I have stopped.",
-  "Output:",
-  "decision: AGENT_STOPPED",
-  "reason: USER_STOP",
-  "",
-  "Example 9",
-  "User request(s):",
-  "- Implement the parser and the writer",
-  "- GO GO GO",
-  "Tracked todos:",
-  "- [in_progress] Implement parser",
-  "- [pending] Implement writer",
-  "Assistant response: I implemented the parser. The writer is not started yet.",
-  "Output:",
-  "decision: AGENT_CONTINUING",
-  "reason: WORK_REMAINS",
-  "",
-  "Empty or whitespace-only user messages are interruption artifacts, not halts: continue the work.",
-].join("\n");
+export const SYSTEM_PROMPT = loadPrompt("classifier-system.txt");
 
 const VALID_DECISIONS: Record<string, readonly ReasonCode[]> = {
   AGENT_COMPLETE: ["WORK_COMPLETE"],
@@ -145,29 +46,50 @@ export async function classify(options: ModerationOptions, input: ClassifyInput,
 }
 
 export async function classifyWithPrompt(options: ModerationOptions, input: ClassifyInput, systemPrompt: string, fetchImpl: FetchLike = fetch): Promise<ClassifyOutcome> {
+  const startedAt = Date.now();
   const messages = buildMessages(input, systemPrompt);
-  let lastCapture = "";
+  let attemptCount = 0;
+  let lastMessages = messages;
+  let lastCompletion = "";
+  let lastFinish = "";
+  const capture = (): ClassifierCapture => ({
+    messages: lastMessages,
+    completion: lastCompletion,
+    finishReason: lastFinish,
+    model: options.model,
+    sampling: { ...SAMPLING },
+    attempts: attemptCount,
+    durationMs: Date.now() - startedAt,
+  });
   for (let attempt = 0; attempt < CLASSIFIER_FORMAT_RETRIES; attempt += 1) {
+    attemptCount = attempt + 1;
     const trimmed = await trimToBudget(options, messages, fetchImpl);
+    lastMessages = trimmed;
     const response = await requestCompletion(options, trimmed, fetchImpl);
-    lastCapture = response.content;
+    lastCompletion = response.content;
+    lastFinish = response.finishReason;
     if (response.finishReason !== "stop") {
-      if (attempt + 1 === CLASSIFIER_FORMAT_RETRIES) return { capture: lastCapture, formatError: true, error: `classifier finished with reason '${response.finishReason}'` };
+      if (attempt + 1 === CLASSIFIER_FORMAT_RETRIES) return { capture: capture(), formatError: true, error: `classifier finished with reason '${response.finishReason}'` };
       continue;
     }
     const parsed = parseVerdict(response.content);
-    if (parsed) return { verdict: parsed, capture: lastCapture, formatError: false };
+    if (parsed) return { verdict: parsed, capture: capture(), formatError: false };
   }
-  return { capture: lastCapture, formatError: true, error: "classifier did not return a valid verdict" };
+  return { capture: capture(), formatError: true, error: "classifier did not return a valid verdict" };
 }
 
 export function buildMessages(input: ClassifyInput, systemPrompt: string = SYSTEM_PROMPT): ChatMessage[] {
   const sections = [
+    "Judge the agent's latest response. It is the decision target; the user request is context.",
+    "",
+    "The agent's latest response (judge this):",
+    input.previousResponse,
+    "",
     "User request(s):",
     input.userMessages.length > 0 ? input.userMessages.map((message) => `- ${message.trim().length > 0 ? message : EMPTY_USER_PROMPT}`).join("\n") : "- (none recorded)",
   ];
   if (input.todos.length > 0) sections.push("", "Tracked todos:", summarizeTodos(input.todos));
-  sections.push("", "Assistant response:", input.previousResponse);
+  sections.push("", "Reminder: if the response asks the user to run, test, play, listen, look, check, confirm, report, or decide something, choose AGENT_BLOCKED.");
   return [
     { role: "system", content: systemPrompt },
     { role: "user", content: sections.join("\n") },
@@ -243,13 +165,14 @@ async function requestCompletion(options: ModerationOptions, messages: ChatMessa
     body: JSON.stringify({
       model: options.model,
       messages,
-      temperature: 0,
-      top_k: 1,
-      top_p: 1,
-      min_p: 0,
-      seed: CLASSIFIER_SEED,
-      max_tokens: MAX_COMPLETION_TOKENS,
+      temperature: SAMPLING.temperature,
+      top_k: SAMPLING.top_k,
+      top_p: SAMPLING.top_p,
+      min_p: SAMPLING.min_p,
+      seed: SAMPLING.seed,
+      max_tokens: SAMPLING.max_tokens,
       grammar: MODERATION_GRAMMAR,
+      cache_prompt: false,
       stream: false,
     }),
   });

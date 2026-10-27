@@ -1,7 +1,7 @@
 import type { ContextSnapshot, MessageFact, TodoFact } from "./types.ts";
 
 export const MODERATION_MARKER = "Automated Moderation:";
-export const EMPTY_USER_PROMPT = "(empty user message; interrupted or aborted turn, treat as continue)";
+export const EMPTY_USER_PROMPT = "Continue the unfinished work.";
 
 const INJECTED_MESSAGE = new RegExp(`^[^\\p{L}\\p{N}]*${MODERATION_MARKER}`, "u");
 
@@ -31,7 +31,7 @@ export function deriveContext(input: ContextInput): ContextSnapshot {
     planMode: isPlanMode(assistant),
     build: !isPlanMode(assistant),
     assistantError: assistant !== undefined && assistant.info.error !== undefined && assistant.info.error !== null,
-    userNewer: following.some((message) => message.info.role === "user" && !isInjectedUser(message)),
+    userNewer: following.some((message) => message.info.role === "user" && !isInjectedUser(message) && !isSyntheticUser(message)),
     moderatorTrace: INJECTED_MESSAGE.test(response),
     rootBlocked: detectsRootBlock(response),
     blockerDiscussionActive: false,
@@ -43,10 +43,14 @@ export function deriveContext(input: ContextInput): ContextSnapshot {
 
 export function assistantText(message: MessageFact): string {
   return message.parts
-    .filter((part) => part.type === "text" && typeof part.text === "string")
+    .filter((part) => part.type === "text" && part.synthetic !== true && typeof part.text === "string")
     .map((part) => part.text as string)
     .join("\n")
     .trim();
+}
+
+export function isSyntheticUser(message: MessageFact): boolean {
+  return message.info.role === "user" && message.parts.some((part) => part.synthetic === true && part.metadata?.compaction_continue === true);
 }
 
 export function isTerminal(message: MessageFact): boolean {
@@ -66,7 +70,7 @@ export function realUserAncestor(assistant: MessageFact | undefined, messages: r
   const byID = new Map(messages.map((message) => [message.info.id ?? "", message]));
   let current: MessageFact | undefined = assistant;
   while (current) {
-    if (current.info.role === "user" && !isInjectedUser(current)) return current;
+    if (current.info.role === "user" && !isInjectedUser(current) && !isSyntheticUser(current)) return current;
     current = current.info.parentID !== undefined ? byID.get(current.info.parentID) : undefined;
   }
   return undefined;
@@ -92,7 +96,7 @@ export function lastRealUserPrompts(messages: readonly MessageFact[]): string[] 
   const prompts: string[] = [];
   for (let index = messages.length - 1; index >= 0 && prompts.length < REAL_USER_CONTEXT_LIMIT; index -= 1) {
     const message = messages[index];
-    if (message.info.role !== "user" || isInjectedUser(message)) continue;
+    if (message.info.role !== "user" || isInjectedUser(message) || isSyntheticUser(message)) continue;
     const value = assistantText(message);
     if (value.length === 0) {
       if (prompts.length === 0) prompts.unshift(EMPTY_USER_PROMPT);
@@ -116,7 +120,7 @@ export function inBranch(message: MessageFact | undefined, messages: readonly Me
 export function realUserCycleID(messages: readonly MessageFact[]): string | null {
   for (let index = messages.length - 1; index >= 0; index -= 1) {
     const message = messages[index];
-    if (message.info.role !== "user" || isInjectedUser(message)) continue;
+    if (message.info.role !== "user" || isInjectedUser(message) || isSyntheticUser(message)) continue;
     return message.info.id ?? null;
   }
   return null;

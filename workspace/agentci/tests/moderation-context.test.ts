@@ -1,11 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  assistantText,
   deriveContext,
   detectsRootBlock,
   EMPTY_USER_PROMPT,
   inBranch,
   isInjectedUser,
+  isSyntheticUser,
   isTerminal,
   lastRealUserPrompts,
   newestAssistant,
@@ -85,6 +87,18 @@ test("injected moderation messages are excluded from the real user cycle", () =>
   assert.equal(isInjectedUser(user("blocked", "❔ Automated Moderation: awaiting user input.")), true);
   const messages = [user("user_1", "real"), injected];
   assert.equal(realUserCycleID(messages), "user_1");
+});
+
+test("synthetic compaction-continue notes are excluded from real user context", () => {
+  const synthetic: MessageFact = {
+    info: { id: "note", role: "user", time: { created: 1 } },
+    parts: [{ type: "text", synthetic: true, metadata: { compaction_continue: true }, text: "Continue if you have next steps, or stop and ask for clarification if you are unsure how to proceed." }],
+  };
+  assert.equal(isSyntheticUser(synthetic), true);
+  assert.equal(assistantText(synthetic), "");
+  const messages = [user("user_1", "real"), synthetic];
+  assert.equal(realUserCycleID(messages), "user_1");
+  assert.deepEqual(lastRealUserPrompts(messages), ["real"]);
 });
 
 test("newestAssistant selects the newest assistant regardless of terminality", () => {

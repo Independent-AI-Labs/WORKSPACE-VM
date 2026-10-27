@@ -25,6 +25,28 @@ export type VerdictDecision = "AGENT_COMPLETE" | "AGENT_CONTINUING" | "AGENT_STA
 
 export type ReasonCode = "WORK_COMPLETE" | "WORK_REMAINS" | "NO_PROGRESS" | "AWAITING_USER" | "AWAITING_OPERATOR" | "USER_STOP";
 
+export interface ChatMessage {
+  role: "system" | "user";
+  content: string;
+}
+
+export interface ClassifierCapture {
+  messages: ChatMessage[];
+  completion: string;
+  finishReason: string;
+  model: string;
+  sampling: {
+    temperature: number;
+    top_k: number;
+    top_p: number;
+    min_p: number;
+    seed: number;
+    max_tokens: number;
+  };
+  attempts: number;
+  durationMs: number;
+}
+
 export interface Ruling {
   ruling: "PASS" | "FAIL";
   reason: string;
@@ -101,7 +123,7 @@ export type ModerationEvent = { sessionID?: string } & (
       newCycle?: boolean;
       originUserID?: string | null;
     }
-  | { type: "CLASSIFIER_RESULT"; verdict: Verdict; originUserID?: string | null }
+  | { type: "CLASSIFIER_RESULT"; verdict: Verdict; originUserID?: string | null; capture?: ClassifierCapture }
   | { type: "CONTINUATION_PERSISTED" }
   | { type: "BUSY_VERIFIED" }
   | { type: "CONTINUATION_TIMEOUT" }
@@ -122,6 +144,8 @@ export interface TodoFact {
 export interface MessagePartFact {
   type: string;
   text?: string;
+  synthetic?: boolean;
+  metadata?: { compaction_continue?: boolean };
 }
 
 export interface MessageInfoFact {

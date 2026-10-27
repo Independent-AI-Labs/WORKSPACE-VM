@@ -1,0 +1,1212 @@
+{
+  "version": 1,
+  "cases": [
+    {
+      "id": "mined-00d5f1044baba779",
+      "provenance": {
+        "sessionID": "ses_e8712a7e0ffeT5r8DjgLVyygjT",
+        "assistantID": "msg_179ea128b002jPbF5y1q7N7l5o",
+        "decisionID": "1793046750416-e3f211702242"
+      },
+      "expectedDecision": null,
+      "expectedReason": null,
+      "forbiddenDecisions": [
+        "AGENT_CONTINUING",
+        "AGENT_STALLED"
+      ],
+      "labelSource": "mined",
+      "hash": "00d5f1044baba779082ae4c74c98d889946ae0367484417fa837b96e216de07b",
+      "transcript": "transcripts/00d5f1044baba779082ae4c74c98d889946ae0367484417fa837b96e216de07b.json",
+      "observed": {
+        "decision": "AGENT_CONTINUING",
+        "reasonCode": "WORK_REMAINS",
+        "signal": "aborted",
+        "source": "transcript"
+      }
+    },
+    {
+      "id": "mined-066578f2ac3b4e1b",
+      "provenance": {
+        "sessionID": "ses_eb9be77b0ffeHOgKB795K2m6R1",
+        "assistantID": "msg_1464f4f9500275x4OgCV7Ka6br",
+        "decisionID": "1792180970778-9de7bc9185ce"
+      },
+      "expectedDecision": null,
+      "expectedReason": null,
+      "forbiddenDecisions": [
+        "AGENT_CONTINUING",
+        "AGENT_STALLED"
+      ],
+      "labelSource": "mined",
+      "hash": "066578f2ac3b4e1bd82e17fadd64627af626a6869642d36317efd79ded89a1ff",
+      "transcript": "transcripts/066578f2ac3b4e1bd82e17fadd64627af626a6869642d36317efd79ded89a1ff.json",
+      "observed": {
+        "decision": "AGENT_CONTINUING",
+        "reasonCode": "WORK_REMAINS",
+        "signal": "aborted",
+        "source": "transcript"
+      }
+    },
+    {
+      "id": "mined-1661101a5182738e",
+      "provenance": {
+        "sessionID": "ses_ebf0d92d3ffepnUEfAMkuP9EAr",
+        "assistantID": "msg_143bed82a002YHGLBsjf5ellpE",
+        "decisionID": "1792137952753-e279c5a4eda4"
+      },
+      "expectedDecision": null,
+      "expectedReason": null,
+      "forbiddenDecisions": [
+        "AGENT_CONTINUING",
+        "AGENT_STALLED"
+      ],
+      "labelSource": "mined",
+      "hash": "1661101a5182738e963a07fbdb6d2cc5ef91f54d0995a841d217d9c0a9192875",
+      "transcript": "transcripts/1661101a5182738e963a07fbdb6d2cc5ef91f54d0995a841d217d9c0a9192875.json",
+      "observed": {
+        "decision": "AGENT_CONTINUING",
+        "reasonCode": "WORK_REMAINS",
+        "signal": "aborted",
+        "source": "transcript"
+      }
+    },
+    {
+      "id": "op-work-complete",
+      "provenance": {
+        "sessionID": null,
+        "assistantID": null,
+        "decisionID": null
+      },
+      "expectedDecision": "AGENT_COMPLETE",
+      "expectedReason": "WORK_COMPLETE",
+      "forbiddenDecisions": [],
+      "labelSource": "operator",
+      "hash": "1afabd79d9e152416e76258df8f8de59ea9b41e9d4e3ab4de00a8c2ab6600669",
+      "transcript": "transcripts/1afabd79d9e152416e76258df8f8de59ea9b41e9d4e3ab4de00a8c2ab6600669.json"
+    },
+    {
+      "id": "op-no-progress",
+      "provenance": {
+        "sessionID": null,
+        "assistantID": null,
+        "decisionID": null
+      },
+      "expectedDecision": "AGENT_STALLED",
+      "expectedReason": "NO_PROGRESS",
+      "forbiddenDecisions": [],
+      "labelSource": "operator",
+      "hash": "1da8d24a43954c656c53a3ffea3f55e4f365413d6ca7bb7c117dbfabb0bb7229",
+      "transcript": "transcripts/1da8d24a43954c656c53a3ffea3f55e4f365413d6ca7bb7c117dbfabb0bb7229.json"
+    },
+    {
+      "id": "op-user-stop",
+      "provenance": {
+        "sessionID": null,
+        "assistantID": null,
+        "decisionID": null
+      },
+      "expectedDecision": "AGENT_STOPPED",
+      "expectedReason": "USER_STOP",
+      "forbiddenDecisions": [],
+      "labelSource": "operator",
+      "hash": "2435d40545b2aa4853cea63e12d328786d0e188303d2f88e7f75f695294ff281",
+      "transcript": "transcripts/2435d40545b2aa4853cea63e12d328786d0e188303d2f88e7f75f695294ff281.json"
+    },
+    {
+      "id": "mined-27b7106c262743eb",
+      "provenance": {
+        "sessionID": "ses_eb70df548ffenFFppZFrc8XABX",
+        "assistantID": "msg_148f91be9001bx2em16VQSdb1V",
+        "decisionID": "1792225666340-b694a46aad0d"
+      },
+      "expectedDecision": null,
+      "expectedReason": null,
+      "forbiddenDecisions": [
+        "AGENT_CONTINUING",
+        "AGENT_STALLED"
+      ],
+      "labelSource": "mined",
+      "hash": "27b7106c262743eb608af889e58cae6a0d0f299182590809714e9c07b0f8f4ee",
+      "transcript": "transcripts/27b7106c262743eb608af889e58cae6a0d0f299182590809714e9c07b0f8f4ee.json",
+      "observed": {
+        "decision": "AGENT_CONTINUING",
+        "reasonCode": "WORK_REMAINS",
+        "signal": "aborted",
+        "source": "transcript"
+      }
+    },
+    {
+      "id": "mined-2ae4cc37a86f39d9",
+      "provenance": {
+        "sessionID": "ses_ebf0d92d3ffepnUEfAMkuP9EAr",
+        "assistantID": "msg_143681960002urDngnfiYLrfN1",
+        "decisionID": "1792132266879-e4e77cec7d82"
+      },
+      "expectedDecision": null,
+      "expectedReason": null,
+      "forbiddenDecisions": [
+        "AGENT_CONTINUING",
+        "AGENT_STALLED"
+      ],
+      "labelSource": "mined",
+      "hash": "2ae4cc37a86f39d9628a50be9413cb82757d9d9ec9eb5415081d12d908b48280",
+      "transcript": "transcripts/2ae4cc37a86f39d9628a50be9413cb82757d9d9ec9eb5415081d12d908b48280.json",
+      "observed": {
+        "decision": "AGENT_CONTINUING",
+        "reasonCode": "WORK_REMAINS",
+        "signal": "aborted",
+        "source": "transcript"
+      }
+    },
+    {
+      "id": "mined-30ebc063b6ea5b70",
+      "provenance": {
+        "sessionID": "ses_eb6877a23ffedOAfkxQxzvl6Ni",
+        "assistantID": "msg_1497d6523001E3xvaJWeci5L7C",
+        "decisionID": "1792234335316-9615bab9700e"
+      },
+      "expectedDecision": null,
+      "expectedReason": null,
+      "forbiddenDecisions": [
+        "AGENT_CONTINUING",
+        "AGENT_STALLED"
+      ],
+      "labelSource": "mined",
+      "hash": "30ebc063b6ea5b70481bd1b6590b734e29c0e71a70e30e3b9918ecb96c4f9938",
+      "transcript": "transcripts/30ebc063b6ea5b70481bd1b6590b734e29c0e71a70e30e3b9918ecb96c4f9938.json",
+      "observed": {
+        "decision": "AGENT_CONTINUING",
+        "reasonCode": "WORK_REMAINS",
+        "signal": "aborted",
+        "source": "transcript"
+      }
+    },
+    {
+      "id": "mined-3162bc1608a32883",
+      "provenance": {
+        "sessionID": "ses_eb6877a23ffedOAfkxQxzvl6Ni",
+        "assistantID": "msg_1497befb30017pmHfKTdJYXEpK",
+        "decisionID": "1792234240433-dd4d857528c5"
+      },
+      "expectedDecision": null,
+      "expectedReason": null,
+      "forbiddenDecisions": [
+        "AGENT_CONTINUING",
+        "AGENT_STALLED"
+      ],
+      "labelSource": "mined",
+      "hash": "3162bc1608a32883123502eff798014805877bd1355e06782d029e19c3f910b2",
+      "transcript": "transcripts/3162bc1608a32883123502eff798014805877bd1355e06782d029e19c3f910b2.json",
+      "observed": {
+        "decision": "AGENT_CONTINUING",
+        "reasonCode": "WORK_REMAINS",
+        "signal": "aborted",
+        "source": "transcript"
+      }
+    },
+    {
+      "id": "mined-31bd5123c14d1711",
+      "provenance": {
+        "sessionID": "ses_efe59f38fffe2oFL70U2yJNueG",
+        "assistantID": "msg_1461f964f00194suQbd1m6Iq9F",
+        "decisionID": "1792177929402-3140b4936ea0"
+      },
+      "expectedDecision": null,
+      "expectedReason": null,
+      "forbiddenDecisions": [
+        "AGENT_COMPLETE"
+      ],
+      "labelSource": "mined",
+      "hash": "31bd5123c14d1711cc2b16907b16c5487145a52c6573080743c6ceec3b7d37f0",
+      "transcript": "transcripts/31bd5123c14d1711cc2b16907b16c5487145a52c6573080743c6ceec3b7d37f0.json",
+      "observed": {
+        "decision": "AGENT_COMPLETE",
+        "reasonCode": "WORK_COMPLETE",
+        "signal": "removed",
+        "source": "transcript"
+      }
+    },
+    {
+      "id": "mined-37b7c5ee130e180e",
+      "provenance": {
+        "sessionID": "ses_eb70df548ffenFFppZFrc8XABX",
+        "assistantID": "msg_154272f960017UgVXMnqYa7usp",
+        "decisionID": "1792413224528-6e7097aa5422"
+      },
+      "expectedDecision": null,
+      "expectedReason": null,
+      "forbiddenDecisions": [
+        "AGENT_CONTINUING",
+        "AGENT_STALLED"
+      ],
+      "labelSource": "mined",
+      "hash": "37b7c5ee130e180ee50548b4588c74f71f55d2315570848839c3e60f85e0de04",
+      "transcript": "transcripts/37b7c5ee130e180ee50548b4588c74f71f55d2315570848839c3e60f85e0de04.json",
+      "observed": {
+        "decision": "AGENT_CONTINUING",
+        "reasonCode": "WORK_REMAINS",
+        "signal": "aborted",
+        "source": "transcript"
+      }
+    },
+    {
+      "id": "op-operator-reproduction-handoff",
+      "provenance": {
+        "sessionID": null,
+        "assistantID": null,
+        "decisionID": null
+      },
+      "expectedDecision": "AGENT_BLOCKED",
+      "expectedReason": "AWAITING_OPERATOR",
+      "forbiddenDecisions": [],
+      "labelSource": "operator",
+      "hash": "4399a381fb63e50918f41cb511cc42fbc396dcec4d1b9aac7648dbed5ebcf48c",
+      "transcript": "transcripts/4399a381fb63e50918f41cb511cc42fbc396dcec4d1b9aac7648dbed5ebcf48c.json"
+    },
+    {
+      "id": "mined-46fe3661435388b4",
+      "provenance": {
+        "sessionID": "ses_ea1d5be51ffekC3ExKSSHPC8gQ",
+        "assistantID": "msg_163d8b3c7002lgQl8m9gDSflqX",
+        "decisionID": "1792676514834-2c0a101275f9"
+      },
+      "expectedDecision": null,
+      "expectedReason": null,
+      "forbiddenDecisions": [
+        "AGENT_CONTINUING",
+        "AGENT_STALLED"
+      ],
+      "labelSource": "mined",
+      "hash": "46fe3661435388b4cf5f6c4267db55de4bfb55a89878edc65a278a3db27bb47f",
+      "transcript": "transcripts/46fe3661435388b4cf5f6c4267db55de4bfb55a89878edc65a278a3db27bb47f.json",
+      "observed": {
+        "decision": "AGENT_CONTINUING",
+        "reasonCode": "WORK_REMAINS",
+        "signal": "aborted",
+        "source": "transcript"
+      }
+    },
+    {
+      "id": "mined-49a1d05c7a4945dc",
+      "provenance": {
+        "sessionID": "ses_ea1d5be51ffekC3ExKSSHPC8gQ",
+        "assistantID": "msg_162432919002BeOlZzkUmQOR6O",
+        "decisionID": "1792649935804-43909934b409"
+      },
+      "expectedDecision": null,
+      "expectedReason": null,
+      "forbiddenDecisions": [
+        "AGENT_BLOCKED"
+      ],
+      "labelSource": "mined",
+      "hash": "49a1d05c7a4945dc72f59130865dfd66bd164eed46e3307aa076b368c2fb0278",
+      "transcript": "transcripts/49a1d05c7a4945dc72f59130865dfd66bd164eed46e3307aa076b368c2fb0278.json",
+      "observed": {
+        "decision": "AGENT_BLOCKED",
+        "reasonCode": "AWAITING_USER",
+        "signal": "removed",
+        "source": "transcript"
+      }
+    },
+    {
+      "id": "mined-4f54033d8bf127c2",
+      "provenance": {
+        "sessionID": "ses_e8712a7e0ffeT5r8DjgLVyygjT",
+        "assistantID": "msg_179db7647002GF32Qe6YDPHuu5",
+        "decisionID": "1793045790787-dbe6b2d1a0a0"
+      },
+      "expectedDecision": null,
+      "expectedReason": null,
+      "forbiddenDecisions": [
+        "AGENT_CONTINUING",
+        "AGENT_STALLED"
+      ],
+      "labelSource": "mined",
+      "hash": "4f54033d8bf127c296fb7ca76436b6bd59a273e1f3db42fb06a71628644220d8",
+      "transcript": "transcripts/4f54033d8bf127c296fb7ca76436b6bd59a273e1f3db42fb06a71628644220d8.json",
+      "observed": {
+        "decision": "AGENT_CONTINUING",
+        "reasonCode": "WORK_REMAINS",
+        "signal": "aborted",
+        "source": "transcript"
+      }
+    },
+    {
+      "id": "mined-4fd356274a79fe0e",
+      "provenance": {
+        "sessionID": "ses_eb688a15effeLsaRK5vNEeY1fI",
+        "assistantID": "msg_178198b79001v4ikjdTKwSZ0nD",
+        "decisionID": "1793016307375-8920e915008f"
+      },
+      "expectedDecision": null,
+      "expectedReason": null,
+      "forbiddenDecisions": [
+        "AGENT_CONTINUING",
+        "AGENT_STALLED"
+      ],
+      "labelSource": "mined",
+      "hash": "4fd356274a79fe0e9c327901731cbbeb4523f4eaab2ffab4b63fa5bb8a9e24b2",
+      "transcript": "transcripts/4fd356274a79fe0e9c327901731cbbeb4523f4eaab2ffab4b63fa5bb8a9e24b2.json",
+      "observed": {
+        "decision": "AGENT_CONTINUING",
+        "reasonCode": "WORK_REMAINS",
+        "signal": "aborted",
+        "source": "transcript"
+      }
+    },
+    {
+      "id": "mined-53d685909f97400b",
+      "provenance": {
+        "sessionID": "ses_ebf0d92d3ffepnUEfAMkuP9EAr",
+        "assistantID": "msg_143ad0ce80028dhdqYt0UmxIqV",
+        "decisionID": "1792136790914-9d97ce2e1d7f"
+      },
+      "expectedDecision": null,
+      "expectedReason": null,
+      "forbiddenDecisions": [
+        "AGENT_CONTINUING",
+        "AGENT_STALLED"
+      ],
+      "labelSource": "mined",
+      "hash": "53d685909f97400b38572248aa673980e6c3452e3c56da4d978df557085c7713",
+      "transcript": "transcripts/53d685909f97400b38572248aa673980e6c3452e3c56da4d978df557085c7713.json",
+      "observed": {
+        "decision": "AGENT_CONTINUING",
+        "reasonCode": "WORK_REMAINS",
+        "signal": "aborted",
+        "source": "transcript"
+      }
+    },
+    {
+      "id": "mined-546216bd9816e168",
+      "provenance": {
+        "sessionID": "ses_ebf0d92d3ffepnUEfAMkuP9EAr",
+        "assistantID": "msg_14402ed2f001x7OvBKKnj3cS04",
+        "decisionID": "1792142408853-63dc63b124f4"
+      },
+      "expectedDecision": null,
+      "expectedReason": null,
+      "forbiddenDecisions": [
+        "AGENT_CONTINUING",
+        "AGENT_STALLED"
+      ],
+      "labelSource": "mined",
+      "hash": "546216bd9816e1680c70471dd36c9892378e1c6179fc6990db8d4ed09f11d3ee",
+      "transcript": "transcripts/546216bd9816e1680c70471dd36c9892378e1c6179fc6990db8d4ed09f11d3ee.json",
+      "observed": {
+        "decision": "AGENT_CONTINUING",
+        "reasonCode": "WORK_REMAINS",
+        "signal": "aborted",
+        "source": "transcript"
+      }
+    },
+    {
+      "id": "mined-5579219cdb195fb8",
+      "provenance": {
+        "sessionID": "ses_ebf0d92d3ffepnUEfAMkuP9EAr",
+        "assistantID": "msg_143996eef001hVzcAedM3xCPKP",
+        "decisionID": "1792135495242-bd4f761143e6"
+      },
+      "expectedDecision": null,
+      "expectedReason": null,
+      "forbiddenDecisions": [
+        "AGENT_CONTINUING",
+        "AGENT_STALLED"
+      ],
+      "labelSource": "mined",
+      "hash": "5579219cdb195fb8a2ada8dd418e739bee6a1746505d992465d8eb86e241cf15",
+      "transcript": "transcripts/5579219cdb195fb8a2ada8dd418e739bee6a1746505d992465d8eb86e241cf15.json",
+      "observed": {
+        "decision": "AGENT_CONTINUING",
+        "reasonCode": "WORK_REMAINS",
+        "signal": "aborted",
+        "source": "transcript"
+      }
+    },
+    {
+      "id": "mined-60dc6446da9ea03f",
+      "provenance": {
+        "sessionID": "ses_e9c11dcb1ffeWikU9r77KFtUZ5",
+        "assistantID": "msg_164aa2330001Ouf6FnvuQiRpPG",
+        "decisionID": "1792690237452-2f57b207080a"
+      },
+      "expectedDecision": null,
+      "expectedReason": null,
+      "forbiddenDecisions": [
+        "AGENT_CONTINUING",
+        "AGENT_STALLED"
+      ],
+      "labelSource": "mined",
+      "hash": "60dc6446da9ea03f7f7f26e90897a9a70c0d989e8a6c66516af7b178b940c577",
+      "transcript": "transcripts/60dc6446da9ea03f7f7f26e90897a9a70c0d989e8a6c66516af7b178b940c577.json",
+      "observed": {
+        "decision": "AGENT_CONTINUING",
+        "reasonCode": "WORK_REMAINS",
+        "signal": "aborted",
+        "source": "transcript"
+      }
+    },
+    {
+      "id": "mined-639b2ed371852b65",
+      "provenance": {
+        "sessionID": "ses_eb9be77b0ffeHOgKB795K2m6R1",
+        "assistantID": "msg_14675ddb0001IqYGkjatuQ30RK",
+        "decisionID": "1792183497809-ee3e66990bdb"
+      },
+      "expectedDecision": null,
+      "expectedReason": null,
+      "forbiddenDecisions": [
+        "AGENT_CONTINUING",
+        "AGENT_STALLED"
+      ],
+      "labelSource": "mined",
+      "hash": "639b2ed371852b653490f92ce77459e2f4985e6ea330051d1e85615805b09d3a",
+      "transcript": "transcripts/639b2ed371852b653490f92ce77459e2f4985e6ea330051d1e85615805b09d3a.json",
+      "observed": {
+        "decision": "AGENT_CONTINUING",
+        "reasonCode": "WORK_REMAINS",
+        "signal": "aborted",
+        "source": "transcript"
+      }
+    },
+    {
+      "id": "mined-6e5880048b9fef07",
+      "provenance": {
+        "sessionID": "ses_ebf0d92d3ffepnUEfAMkuP9EAr",
+        "assistantID": "msg_1440452ea00120iffHzDy1pYls",
+        "decisionID": "1792142503870-8e26a09b5616"
+      },
+      "expectedDecision": null,
+      "expectedReason": null,
+      "forbiddenDecisions": [
+        "AGENT_CONTINUING",
+        "AGENT_STALLED"
+      ],
+      "labelSource": "mined",
+      "hash": "6e5880048b9fef07b2952d3cce7756e7402f7f91f4576b530fa31ca729acaec1",
+      "transcript": "transcripts/6e5880048b9fef07b2952d3cce7756e7402f7f91f4576b530fa31ca729acaec1.json",
+      "observed": {
+        "decision": "AGENT_CONTINUING",
+        "reasonCode": "WORK_REMAINS",
+        "signal": "aborted",
+        "source": "transcript"
+      }
+    },
+    {
+      "id": "mined-701837398c825dc1",
+      "provenance": {
+        "sessionID": "ses_ebf0d92d3ffepnUEfAMkuP9EAr",
+        "assistantID": "msg_14381bde8001SKN6Ew6W3cFxSZ",
+        "decisionID": "1792133943856-53462fd1ab72"
+      },
+      "expectedDecision": null,
+      "expectedReason": null,
+      "forbiddenDecisions": [
+        "AGENT_CONTINUING",
+        "AGENT_STALLED"
+      ],
+      "labelSource": "mined",
+      "hash": "701837398c825dc17e896b67fdf4d4d6eaa1363c1cdafa64e65b63f6ffa12a7c",
+      "transcript": "transcripts/701837398c825dc17e896b67fdf4d4d6eaa1363c1cdafa64e65b63f6ffa12a7c.json",
+      "observed": {
+        "decision": "AGENT_CONTINUING",
+        "reasonCode": "WORK_REMAINS",
+        "signal": "aborted",
+        "source": "transcript"
+      }
+    },
+    {
+      "id": "mined-719c906bfe91d3e9",
+      "provenance": {
+        "sessionID": "ses_e9c11dcb1ffeWikU9r77KFtUZ5",
+        "assistantID": "msg_164a7472c001Wz5uiSSO2M4eoZ",
+        "decisionID": "1792690051296-eb62ae7520f8"
+      },
+      "expectedDecision": null,
+      "expectedReason": null,
+      "forbiddenDecisions": [
+        "AGENT_CONTINUING",
+        "AGENT_STALLED"
+      ],
+      "labelSource": "mined",
+      "hash": "719c906bfe91d3e9d2e5ebfbcafa75f3c8a023aec4893201f3169419d34b268a",
+      "transcript": "transcripts/719c906bfe91d3e9d2e5ebfbcafa75f3c8a023aec4893201f3169419d34b268a.json",
+      "observed": {
+        "decision": "AGENT_CONTINUING",
+        "reasonCode": "WORK_REMAINS",
+        "signal": "aborted",
+        "source": "transcript"
+      }
+    },
+    {
+      "id": "mined-72593d8b15cf8527",
+      "provenance": {
+        "sessionID": "ses_ebf0d92d3ffepnUEfAMkuP9EAr",
+        "assistantID": "msg_143c0c271002XqwwD13gpKPR45",
+        "decisionID": "1792138074154-800fb7ca9002"
+      },
+      "expectedDecision": null,
+      "expectedReason": null,
+      "forbiddenDecisions": [
+        "AGENT_CONTINUING",
+        "AGENT_STALLED"
+      ],
+      "labelSource": "mined",
+      "hash": "72593d8b15cf8527008f57da30da721865bba9894fa698039456e1809e398d0e",
+      "transcript": "transcripts/72593d8b15cf8527008f57da30da721865bba9894fa698039456e1809e398d0e.json",
+      "observed": {
+        "decision": "AGENT_CONTINUING",
+        "reasonCode": "WORK_REMAINS",
+        "signal": "aborted",
+        "source": "transcript"
+      }
+    },
+    {
+      "id": "mined-7696d2b6b3a01458",
+      "provenance": {
+        "sessionID": "ses_ea1851919ffeXrzFuLJ2aZ7Hu6",
+        "assistantID": "msg_177222faf001GkAz14KUd2I2UO",
+        "decisionID": "1793000103489-5b3637e38d09"
+      },
+      "expectedDecision": null,
+      "expectedReason": null,
+      "forbiddenDecisions": [
+        "AGENT_CONTINUING",
+        "AGENT_STALLED"
+      ],
+      "labelSource": "mined",
+      "hash": "7696d2b6b3a014588ec518636d10dfd26894772361768f6db8ad55e330d4a908",
+      "transcript": "transcripts/7696d2b6b3a014588ec518636d10dfd26894772361768f6db8ad55e330d4a908.json",
+      "observed": {
+        "decision": "AGENT_CONTINUING",
+        "reasonCode": "WORK_REMAINS",
+        "signal": "aborted",
+        "source": "transcript"
+      }
+    },
+    {
+      "id": "mined-891889c0f3e64ea8",
+      "provenance": {
+        "sessionID": "ses_eb9be77b0ffeHOgKB795K2m6R1",
+        "assistantID": "msg_146756808001zGNX5MvWb4lGj3",
+        "decisionID": "1792183468933-63d049b56383"
+      },
+      "expectedDecision": null,
+      "expectedReason": null,
+      "forbiddenDecisions": [
+        "AGENT_CONTINUING",
+        "AGENT_STALLED"
+      ],
+      "labelSource": "mined",
+      "hash": "891889c0f3e64ea8fde7c3cd1b18b8f3b887f82e9e971c5ec5aae27a11dfb66f",
+      "transcript": "transcripts/891889c0f3e64ea8fde7c3cd1b18b8f3b887f82e9e971c5ec5aae27a11dfb66f.json",
+      "observed": {
+        "decision": "AGENT_CONTINUING",
+        "reasonCode": "WORK_REMAINS",
+        "signal": "aborted",
+        "source": "transcript"
+      }
+    },
+    {
+      "id": "mined-8a326fdb1cd932b1",
+      "provenance": {
+        "sessionID": "ses_e9c11dcb1ffeWikU9r77KFtUZ5",
+        "assistantID": "msg_164a9ec42001RkOF5edBjRWusZ",
+        "decisionID": "1792690223601-4d0bfe5ae0bf"
+      },
+      "expectedDecision": null,
+      "expectedReason": null,
+      "forbiddenDecisions": [
+        "AGENT_CONTINUING",
+        "AGENT_STALLED"
+      ],
+      "labelSource": "mined",
+      "hash": "8a326fdb1cd932b1ecd514c80f534278d39bb9be35b876746eb226a84ee00123",
+      "transcript": "transcripts/8a326fdb1cd932b1ecd514c80f534278d39bb9be35b876746eb226a84ee00123.json",
+      "observed": {
+        "decision": "AGENT_CONTINUING",
+        "reasonCode": "WORK_REMAINS",
+        "signal": "aborted",
+        "source": "transcript"
+      }
+    },
+    {
+      "id": "mined-8be6c47a66c051bd",
+      "provenance": {
+        "sessionID": "ses_ebf0d92d3ffepnUEfAMkuP9EAr",
+        "assistantID": "msg_143606918001F30qWMX0iDh8wT",
+        "decisionID": "1792131758661-7f92b4f2b133"
+      },
+      "expectedDecision": null,
+      "expectedReason": null,
+      "forbiddenDecisions": [
+        "AGENT_CONTINUING",
+        "AGENT_STALLED"
+      ],
+      "labelSource": "mined",
+      "hash": "8be6c47a66c051bd8e5376d2a99bf768f5c47aa60eeaba1e0f4bef1711a73ea3",
+      "transcript": "transcripts/8be6c47a66c051bd8e5376d2a99bf768f5c47aa60eeaba1e0f4bef1711a73ea3.json",
+      "observed": {
+        "decision": "AGENT_CONTINUING",
+        "reasonCode": "WORK_REMAINS",
+        "signal": "aborted",
+        "source": "transcript"
+      }
+    },
+    {
+      "id": "mined-9c8958b2dee79fa5",
+      "provenance": {
+        "sessionID": "ses_ea1d5be51ffekC3ExKSSHPC8gQ",
+        "assistantID": "msg_16242156f002RQNcWYAmYG4Xw4",
+        "decisionID": "1792649865707-2a5df4b64bc2"
+      },
+      "expectedDecision": null,
+      "expectedReason": null,
+      "forbiddenDecisions": [
+        "AGENT_CONTINUING",
+        "AGENT_STALLED"
+      ],
+      "labelSource": "mined",
+      "hash": "9c8958b2dee79fa575179f5bfd2d689da85e43c0927bf89e63430aab7ec7a778",
+      "transcript": "transcripts/9c8958b2dee79fa575179f5bfd2d689da85e43c0927bf89e63430aab7ec7a778.json",
+      "observed": {
+        "decision": "AGENT_STALLED",
+        "reasonCode": "NO_PROGRESS",
+        "signal": "aborted",
+        "source": "transcript"
+      }
+    },
+    {
+      "id": "mined-9f5bb0fd0ce8392c",
+      "provenance": {
+        "sessionID": "ses_efe59f38fffe2oFL70U2yJNueG",
+        "assistantID": "msg_148aaade0001ASuJyLEhNdWvDe",
+        "decisionID": "1792220525103-ff87371a6ac6"
+      },
+      "expectedDecision": null,
+      "expectedReason": null,
+      "forbiddenDecisions": [
+        "AGENT_BLOCKED"
+      ],
+      "labelSource": "mined",
+      "hash": "9f5bb0fd0ce8392ce6d8a8302d633cd1b052a5995ee6624069ad5f6996be6a64",
+      "transcript": "transcripts/9f5bb0fd0ce8392ce6d8a8302d633cd1b052a5995ee6624069ad5f6996be6a64.json",
+      "observed": {
+        "decision": "AGENT_BLOCKED",
+        "reasonCode": "AWAITING_USER",
+        "signal": "removed",
+        "source": "transcript"
+      }
+    },
+    {
+      "id": "mined-9f66d5f369ab850d",
+      "provenance": {
+        "sessionID": "ses_e9bc2730effeT8FL71SG8h6lGP",
+        "assistantID": "msg_17739ef7b001blxdKiZhsh8KhO",
+        "decisionID": "1793001650490-6d43585e6a91"
+      },
+      "expectedDecision": null,
+      "expectedReason": null,
+      "forbiddenDecisions": [
+        "AGENT_CONTINUING",
+        "AGENT_STALLED"
+      ],
+      "labelSource": "mined",
+      "hash": "9f66d5f369ab850d87361dbb069c89a1bbf20db2deea135ffa7ad121d2c7b494",
+      "transcript": "transcripts/9f66d5f369ab850d87361dbb069c89a1bbf20db2deea135ffa7ad121d2c7b494.json",
+      "observed": {
+        "decision": "AGENT_CONTINUING",
+        "reasonCode": "WORK_REMAINS",
+        "signal": "aborted",
+        "source": "transcript"
+      }
+    },
+    {
+      "id": "mined-a24e6d52c7701431",
+      "provenance": {
+        "sessionID": "ses_eb688a15effeLsaRK5vNEeY1fI",
+        "assistantID": "msg_177ffd0690022wcyCGqbytRy8M",
+        "decisionID": "1793014621647-c9855754727c"
+      },
+      "expectedDecision": null,
+      "expectedReason": null,
+      "forbiddenDecisions": [
+        "AGENT_CONTINUING",
+        "AGENT_STALLED"
+      ],
+      "labelSource": "mined",
+      "hash": "a24e6d52c77014311bb807e4fc05a43161d897cc3d9f18a4557b4bec0dfe2e81",
+      "transcript": "transcripts/a24e6d52c77014311bb807e4fc05a43161d897cc3d9f18a4557b4bec0dfe2e81.json",
+      "observed": {
+        "decision": "AGENT_CONTINUING",
+        "reasonCode": "WORK_REMAINS",
+        "signal": "aborted",
+        "source": "transcript"
+      }
+    },
+    {
+      "id": "mined-af46de001a697faf",
+      "provenance": {
+        "sessionID": "ses_ebf0d92d3ffepnUEfAMkuP9EAr",
+        "assistantID": "msg_143d18c81001TpN6IqzIX7S7ap",
+        "decisionID": "1792139175051-fa77266db676"
+      },
+      "expectedDecision": null,
+      "expectedReason": null,
+      "forbiddenDecisions": [
+        "AGENT_CONTINUING",
+        "AGENT_STALLED"
+      ],
+      "labelSource": "mined",
+      "hash": "af46de001a697faf7e94642295a7a4768c4eded9239f57b5c3f0de09636bf92d",
+      "transcript": "transcripts/af46de001a697faf7e94642295a7a4768c4eded9239f57b5c3f0de09636bf92d.json",
+      "observed": {
+        "decision": "AGENT_STALLED",
+        "reasonCode": "NO_PROGRESS",
+        "signal": "aborted",
+        "source": "transcript"
+      }
+    },
+    {
+      "id": "mined-b0bf59d0de5fe8a8",
+      "provenance": {
+        "sessionID": "ses_e9bc2730effeT8FL71SG8h6lGP",
+        "assistantID": "msg_164c06ce6001Zo32s3eZRckyB3",
+        "decisionID": "1792691697460-40cff28185cc"
+      },
+      "expectedDecision": null,
+      "expectedReason": null,
+      "forbiddenDecisions": [
+        "AGENT_CONTINUING",
+        "AGENT_STALLED"
+      ],
+      "labelSource": "mined",
+      "hash": "b0bf59d0de5fe8a86cbc6da4c62d2785dc5f438647de659168ddc03ebceca0ad",
+      "transcript": "transcripts/b0bf59d0de5fe8a86cbc6da4c62d2785dc5f438647de659168ddc03ebceca0ad.json",
+      "observed": {
+        "decision": "AGENT_CONTINUING",
+        "reasonCode": "WORK_REMAINS",
+        "signal": "aborted",
+        "source": "transcript"
+      }
+    },
+    {
+      "id": "mined-b76f8de36d4a9d87",
+      "provenance": {
+        "sessionID": "ses_e9c11dcb1ffeWikU9r77KFtUZ5",
+        "assistantID": "msg_163ff820a001pIPeRruNLHhTGO",
+        "decisionID": "1792679058348-20fd4a72c674"
+      },
+      "expectedDecision": null,
+      "expectedReason": null,
+      "forbiddenDecisions": [
+        "AGENT_CONTINUING",
+        "AGENT_STALLED"
+      ],
+      "labelSource": "mined",
+      "hash": "b76f8de36d4a9d8752a3e8a81cd2d12c83b192261bd92de6c4e4806428281070",
+      "transcript": "transcripts/b76f8de36d4a9d8752a3e8a81cd2d12c83b192261bd92de6c4e4806428281070.json",
+      "observed": {
+        "decision": "AGENT_CONTINUING",
+        "reasonCode": "WORK_REMAINS",
+        "signal": "aborted",
+        "source": "transcript"
+      }
+    },
+    {
+      "id": "mined-b7e81640f338edb1",
+      "provenance": {
+        "sessionID": "ses_ea1d5be51ffekC3ExKSSHPC8gQ",
+        "assistantID": "msg_16244f46e002OUAOUzSQZpduCY",
+        "decisionID": "1792650054422-cba7f86dd8b7"
+      },
+      "expectedDecision": null,
+      "expectedReason": null,
+      "forbiddenDecisions": [
+        "AGENT_BLOCKED"
+      ],
+      "labelSource": "mined",
+      "hash": "b7e81640f338edb1a641a277ca3e8579ee3b72bc46f6dc7a357c5e220da2aa74",
+      "transcript": "transcripts/b7e81640f338edb1a641a277ca3e8579ee3b72bc46f6dc7a357c5e220da2aa74.json",
+      "observed": {
+        "decision": "AGENT_BLOCKED",
+        "reasonCode": "AWAITING_USER",
+        "signal": "removed",
+        "source": "transcript"
+      }
+    },
+    {
+      "id": "mined-b8e55d526649d3e5",
+      "provenance": {
+        "sessionID": "ses_ebf0d92d3ffepnUEfAMkuP9EAr",
+        "assistantID": "msg_143add890002pRmwQvhE46CdcA",
+        "decisionID": "1792136838450-307008ede59e"
+      },
+      "expectedDecision": null,
+      "expectedReason": null,
+      "forbiddenDecisions": [
+        "AGENT_CONTINUING",
+        "AGENT_STALLED"
+      ],
+      "labelSource": "mined",
+      "hash": "b8e55d526649d3e517cfde29bf095178763582ddad837753224b700cfd0149bb",
+      "transcript": "transcripts/b8e55d526649d3e517cfde29bf095178763582ddad837753224b700cfd0149bb.json",
+      "observed": {
+        "decision": "AGENT_CONTINUING",
+        "reasonCode": "WORK_REMAINS",
+        "signal": "aborted",
+        "source": "transcript"
+      }
+    },
+    {
+      "id": "mined-b97bad8b970d6154",
+      "provenance": {
+        "sessionID": "ses_ebf0d92d3ffepnUEfAMkuP9EAr",
+        "assistantID": "msg_144013ee7001bocp9gjhlLoPmq",
+        "decisionID": "1792142298631-55a5e203bc6b"
+      },
+      "expectedDecision": null,
+      "expectedReason": null,
+      "forbiddenDecisions": [
+        "AGENT_CONTINUING",
+        "AGENT_STALLED"
+      ],
+      "labelSource": "mined",
+      "hash": "b97bad8b970d615450373b7859983de04961363c0c85755399b9a5b7d0220888",
+      "transcript": "transcripts/b97bad8b970d615450373b7859983de04961363c0c85755399b9a5b7d0220888.json",
+      "observed": {
+        "decision": "AGENT_CONTINUING",
+        "reasonCode": "WORK_REMAINS",
+        "signal": "aborted",
+        "source": "transcript"
+      }
+    },
+    {
+      "id": "mined-b9f15d3f034c3cbe",
+      "provenance": {
+        "sessionID": "ses_e8712a7e0ffeT5r8DjgLVyygjT",
+        "assistantID": "msg_179c4a27a002pKMYNpNmDxUkS6",
+        "decisionID": "1793044294362-944f8c0b867d"
+      },
+      "expectedDecision": null,
+      "expectedReason": null,
+      "forbiddenDecisions": [
+        "AGENT_CONTINUING",
+        "AGENT_STALLED"
+      ],
+      "labelSource": "mined",
+      "hash": "b9f15d3f034c3cbec9f0301425223d208a3fe798110ef9602df74484dcb1a20c",
+      "transcript": "transcripts/b9f15d3f034c3cbec9f0301425223d208a3fe798110ef9602df74484dcb1a20c.json",
+      "observed": {
+        "decision": "AGENT_CONTINUING",
+        "reasonCode": "WORK_REMAINS",
+        "signal": "aborted",
+        "source": "transcript"
+      }
+    },
+    {
+      "id": "mined-c3769698d61cfc02",
+      "provenance": {
+        "sessionID": "ses_eb688a15effeLsaRK5vNEeY1fI",
+        "assistantID": "msg_17821e37a001N0Qh0iWd8eds2J",
+        "decisionID": "1793016857260-e8ce643bb164"
+      },
+      "expectedDecision": null,
+      "expectedReason": null,
+      "forbiddenDecisions": [
+        "AGENT_CONTINUING",
+        "AGENT_STALLED"
+      ],
+      "labelSource": "mined",
+      "hash": "c3769698d61cfc0284cdaa4051ef0ceaffb822caccfaffe72ca66be454579ea9",
+      "transcript": "transcripts/c3769698d61cfc0284cdaa4051ef0ceaffb822caccfaffe72ca66be454579ea9.json",
+      "observed": {
+        "decision": "AGENT_CONTINUING",
+        "reasonCode": "WORK_REMAINS",
+        "signal": "aborted",
+        "source": "transcript"
+      }
+    },
+    {
+      "id": "mined-cbe867fbe60d66e6",
+      "provenance": {
+        "sessionID": "ses_eb5189997ffewT33xLLvh49NGP",
+        "assistantID": "msg_15e1ca03b0021Euqlj12yn9CyC",
+        "decisionID": "1792580318188-ed0464a92b58"
+      },
+      "expectedDecision": null,
+      "expectedReason": null,
+      "forbiddenDecisions": [
+        "AGENT_CONTINUING",
+        "AGENT_STALLED"
+      ],
+      "labelSource": "mined",
+      "hash": "cbe867fbe60d66e6a7db6c5ae774bb326e2da2c1bfa32191b7f59d1f7eb156b9",
+      "transcript": "transcripts/cbe867fbe60d66e6a7db6c5ae774bb326e2da2c1bfa32191b7f59d1f7eb156b9.json",
+      "observed": {
+        "decision": "AGENT_CONTINUING",
+        "reasonCode": "WORK_REMAINS",
+        "signal": "aborted",
+        "source": "transcript"
+      }
+    },
+    {
+      "id": "mined-cd59a406aa2b815f",
+      "provenance": {
+        "sessionID": "ses_e8712a7e0ffeT5r8DjgLVyygjT",
+        "assistantID": "msg_179ea9b91002IrbnhKpcISlYXh",
+        "decisionID": "1793046783623-42a8c685946f"
+      },
+      "expectedDecision": null,
+      "expectedReason": null,
+      "forbiddenDecisions": [
+        "AGENT_CONTINUING",
+        "AGENT_STALLED"
+      ],
+      "labelSource": "mined",
+      "hash": "cd59a406aa2b815f17e152762e5fafa9d92af8103f8e69c1c7857470f5dfb365",
+      "transcript": "transcripts/cd59a406aa2b815f17e152762e5fafa9d92af8103f8e69c1c7857470f5dfb365.json",
+      "observed": {
+        "decision": "AGENT_CONTINUING",
+        "reasonCode": "WORK_REMAINS",
+        "signal": "aborted",
+        "source": "transcript"
+      }
+    },
+    {
+      "id": "mined-d091dd85b5b24439",
+      "provenance": {
+        "sessionID": "ses_ebf0d92d3ffepnUEfAMkuP9EAr",
+        "assistantID": "msg_143969c74001F5vrpCw6ZUGE7D",
+        "decisionID": "1792135313272-d265f97f6a37"
+      },
+      "expectedDecision": null,
+      "expectedReason": null,
+      "forbiddenDecisions": [
+        "AGENT_CONTINUING",
+        "AGENT_STALLED"
+      ],
+      "labelSource": "mined",
+      "hash": "d091dd85b5b244394de49ada5871c73e3f5727465e33af828177886daef84474",
+      "transcript": "transcripts/d091dd85b5b244394de49ada5871c73e3f5727465e33af828177886daef84474.json",
+      "observed": {
+        "decision": "AGENT_CONTINUING",
+        "reasonCode": "WORK_REMAINS",
+        "signal": "aborted",
+        "source": "transcript"
+      }
+    },
+    {
+      "id": "mined-d2798491c9a1a013",
+      "provenance": {
+        "sessionID": "ses_ebf0d92d3ffepnUEfAMkuP9EAr",
+        "assistantID": "msg_14420fdc1001Sa8JZ0H6qiYCfe",
+        "decisionID": "1792144947552-90250e213b13"
+      },
+      "expectedDecision": null,
+      "expectedReason": null,
+      "forbiddenDecisions": [
+        "AGENT_CONTINUING",
+        "AGENT_STALLED"
+      ],
+      "labelSource": "mined",
+      "hash": "d2798491c9a1a013a00577aa4b3a74a345a0eeee3e951b98cf96664fdc978273",
+      "transcript": "transcripts/d2798491c9a1a013a00577aa4b3a74a345a0eeee3e951b98cf96664fdc978273.json",
+      "observed": {
+        "decision": "AGENT_CONTINUING",
+        "reasonCode": "WORK_REMAINS",
+        "signal": "aborted",
+        "source": "transcript"
+      }
+    },
+    {
+      "id": "mined-d3089d816c6d3574",
+      "provenance": {
+        "sessionID": "ses_ebf0d92d3ffepnUEfAMkuP9EAr",
+        "assistantID": "msg_14380cc250013f9F1NnbceQkOU",
+        "decisionID": "1792133882996-c193f5c96f80"
+      },
+      "expectedDecision": null,
+      "expectedReason": null,
+      "forbiddenDecisions": [
+        "AGENT_CONTINUING",
+        "AGENT_STALLED"
+      ],
+      "labelSource": "mined",
+      "hash": "d3089d816c6d3574f024da1b5bb60e1e414a49b2e01610c766c580f1b115bac2",
+      "transcript": "transcripts/d3089d816c6d3574f024da1b5bb60e1e414a49b2e01610c766c580f1b115bac2.json",
+      "observed": {
+        "decision": "AGENT_CONTINUING",
+        "reasonCode": "WORK_REMAINS",
+        "signal": "aborted",
+        "source": "transcript"
+      }
+    },
+    {
+      "id": "mined-d9028aaa30a400ec",
+      "provenance": {
+        "sessionID": "ses_eb5189997ffewT33xLLvh49NGP",
+        "assistantID": "msg_150ae8c25002J0Hn9b1ilX2DUO",
+        "decisionID": "1792354985476-bb6bc3a0d9e1"
+      },
+      "expectedDecision": null,
+      "expectedReason": null,
+      "forbiddenDecisions": [
+        "AGENT_CONTINUING",
+        "AGENT_STALLED"
+      ],
+      "labelSource": "mined",
+      "hash": "d9028aaa30a400ec3f2e54d4b24802ea73d8a645a62d89d22dc7981d16802e40",
+      "transcript": "transcripts/d9028aaa30a400ec3f2e54d4b24802ea73d8a645a62d89d22dc7981d16802e40.json",
+      "observed": {
+        "decision": "AGENT_CONTINUING",
+        "reasonCode": "WORK_REMAINS",
+        "signal": "aborted",
+        "source": "transcript"
+      }
+    },
+    {
+      "id": "mined-e2fac5b0772378a8",
+      "provenance": {
+        "sessionID": "ses_e8712a7e0ffeT5r8DjgLVyygjT",
+        "assistantID": "msg_179c41ffe002qQ8d0g17QKaWrw",
+        "decisionID": "1793044262398-2c7d734a2c07"
+      },
+      "expectedDecision": null,
+      "expectedReason": null,
+      "forbiddenDecisions": [
+        "AGENT_CONTINUING",
+        "AGENT_STALLED"
+      ],
+      "labelSource": "mined",
+      "hash": "e2fac5b0772378a8eba8b0beb663127be66a1660e6e9108b00d70351fd5c2b68",
+      "transcript": "transcripts/e2fac5b0772378a8eba8b0beb663127be66a1660e6e9108b00d70351fd5c2b68.json",
+      "observed": {
+        "decision": "AGENT_CONTINUING",
+        "reasonCode": "WORK_REMAINS",
+        "signal": "aborted",
+        "source": "transcript"
+      }
+    },
+    {
+      "id": "mined-ea1237048ffd6520",
+      "provenance": {
+        "sessionID": "ses_eb5189997ffewT33xLLvh49NGP",
+        "assistantID": "msg_1597010380013r1Th03yo615KC",
+        "decisionID": "1792501883286-e75a368c2315"
+      },
+      "expectedDecision": null,
+      "expectedReason": null,
+      "forbiddenDecisions": [
+        "AGENT_CONTINUING",
+        "AGENT_STALLED"
+      ],
+      "labelSource": "mined",
+      "hash": "ea1237048ffd652001ca5f31b30be258223c4621a8a2f1b276dbd16d5b794643",
+      "transcript": "transcripts/ea1237048ffd652001ca5f31b30be258223c4621a8a2f1b276dbd16d5b794643.json",
+      "observed": {
+        "decision": "AGENT_CONTINUING",
+        "reasonCode": "WORK_REMAINS",
+        "signal": "aborted",
+        "source": "transcript"
+      }
+    },
+    {
+      "id": "mined-eb0284987fb076d7",
+      "provenance": {
+        "sessionID": "ses_ebf0d92d3ffepnUEfAMkuP9EAr",
+        "assistantID": "msg_143a171d8001mMVxE3IWZLz6k6",
+        "decisionID": "1792136022004-fad80844f21a"
+      },
+      "expectedDecision": null,
+      "expectedReason": null,
+      "forbiddenDecisions": [
+        "AGENT_CONTINUING",
+        "AGENT_STALLED"
+      ],
+      "labelSource": "mined",
+      "hash": "eb0284987fb076d7f32e6653ea9b3f02d3fc3e594e08494da77bd6848a1abc8b",
+      "transcript": "transcripts/eb0284987fb076d7f32e6653ea9b3f02d3fc3e594e08494da77bd6848a1abc8b.json",
+      "observed": {
+        "decision": "AGENT_CONTINUING",
+        "reasonCode": "WORK_REMAINS",
+        "signal": "aborted",
+        "source": "transcript"
+      }
+    },
+    {
+      "id": "mined-ed8110b854025002",
+      "provenance": {
+        "sessionID": "ses_e9bc2730effeT8FL71SG8h6lGP",
+        "assistantID": "msg_1773a6fc40014No82pOuAmlwly",
+        "decisionID": "1793001684619-56f4e9e9e15e"
+      },
+      "expectedDecision": null,
+      "expectedReason": null,
+      "forbiddenDecisions": [
+        "AGENT_CONTINUING",
+        "AGENT_STALLED"
+      ],
+      "labelSource": "mined",
+      "hash": "ed8110b854025002c3d8ab30441f149c0f2be68526a5da61500033c2d73042f8",
+      "transcript": "transcripts/ed8110b854025002c3d8ab30441f149c0f2be68526a5da61500033c2d73042f8.json",
+      "observed": {
+        "decision": "AGENT_CONTINUING",
+        "reasonCode": "WORK_REMAINS",
+        "signal": "aborted",
+        "source": "transcript"
+      }
+    },
+    {
+      "id": "op-work-remains",
+      "provenance": {
+        "sessionID": null,
+        "assistantID": null,
+        "decisionID": null
+      },
+      "expectedDecision": "AGENT_CONTINUING",
+      "expectedReason": "WORK_REMAINS",
+      "forbiddenDecisions": [],
+      "labelSource": "operator",
+      "hash": "f355a8b9ba27edc2b4d8cb0aabba18ad5328e0269263e32a450de7895cfad19b",
+      "transcript": "transcripts/f355a8b9ba27edc2b4d8cb0aabba18ad5328e0269263e32a450de7895cfad19b.json"
+    },
+    {
+      "id": "op-user-question",
+      "provenance": {
+        "sessionID": null,
+        "assistantID": null,
+        "decisionID": null
+      },
+      "expectedDecision": "AGENT_BLOCKED",
+      "expectedReason": "AWAITING_USER",
+      "forbiddenDecisions": [],
+      "labelSource": "operator",
+      "hash": "f7b190392020fbaceb970e5d6d1d6638a3f10baed8baf3d223d05481c8acb6c3",
+      "transcript": "transcripts/f7b190392020fbaceb970e5d6d1d6638a3f10baed8baf3d223d05481c8acb6c3.json"
+    },
+    {
+      "id": "mined-fd20063aaf519d45",
+      "provenance": {
+        "sessionID": "ses_ebf0d92d3ffepnUEfAMkuP9EAr",
+        "assistantID": "msg_143827fa200178ILEPrhCRAMuU",
+        "decisionID": "1792133993855-05bd4e1d2fc8"
+      },
+      "expectedDecision": null,
+      "expectedReason": null,
+      "forbiddenDecisions": [
+        "AGENT_CONTINUING",
+        "AGENT_STALLED"
+      ],
+      "labelSource": "mined",
+      "hash": "fd20063aaf519d4546fd82a331d6f2156186734bf53271c4ce7c70b3ba5d9202",
+      "transcript": "transcripts/fd20063aaf519d4546fd82a331d6f2156186734bf53271c4ce7c70b3ba5d9202.json",
+      "observed": {
+        "decision": "AGENT_CONTINUING",
+        "reasonCode": "WORK_REMAINS",
+        "signal": "aborted",
+        "source": "transcript"
+      }
+    }
+  ]
+}

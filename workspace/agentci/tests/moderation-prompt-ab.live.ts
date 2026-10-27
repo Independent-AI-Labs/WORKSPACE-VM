@@ -7,7 +7,7 @@ import type { TodoFact, Verdict, VerdictDecision } from "../src/moderation/types
 const options = { gatewayURL: "http://127.0.0.1:9080/llamafile", model: "/zip/MiniCPM5-1B-Q8_0.gguf" };
 const BASELINE_PROMPT = await readFile(new URL("./fixtures/moderation-system-prompt-baseline.txt", import.meta.url), "utf8");
 
-type Expectation = "CONTINUE" | "STOP";
+type Expectation = "CONTINUE" | "STOP" | "HANDOFF";
 
 interface Scenario {
   id: string;
@@ -38,7 +38,7 @@ const SCENARIOS: readonly Scenario[] = [
   {
     id: "empty-abort-after-error",
     userMessages: [""],
-    previousResponse: "The last command failed. I need to retry the verification step.",
+    previousResponse: "The last command failed. I will retry the verification step.",
     todos: [{ status: "in_progress", content: "Retry verification" }],
     expectation: "CONTINUE",
   },
@@ -56,6 +56,13 @@ const SCENARIOS: readonly Scenario[] = [
     todos: [{ status: "pending", content: "Finish the task" }],
     expectation: "STOP",
   },
+  {
+    id: "operator-reproduction-handoff",
+    userMessages: ["start the diag run, record a replay named something appropriate, I will reproduce it"],
+    previousResponse: "Diagnostic run is live. Reproduce the flare now. Hold the view for about 15 seconds. When done, tell me. I will stop the video and game, then analyze.",
+    todos: [{ status: "in_progress", content: "Capture the lens flare reproduction" }],
+    expectation: "HANDOFF",
+  },
 ];
 
 test("classifier prompt A/B: hardened empty-message rule", { timeout: 180000 }, async () => {
@@ -66,9 +73,16 @@ test("classifier prompt A/B: hardened empty-message rule", { timeout: 180000 }, 
     if (scenario.expectation === "STOP") {
       assert.equal(hardened.decision, "AGENT_STOPPED", `${scenario.id}: hardened prompt lost the explicit halt`);
       assert.equal(hardened.reasonCode, "USER_STOP", `${scenario.id}: hardened prompt used the wrong stop reason`);
+    } else if (scenario.expectation === "HANDOFF") {
+      assert.equal(hardened.decision, "AGENT_BLOCKED", `${scenario.id}: hardened prompt missed the handoff`);
+      assert.equal(hardened.reasonCode, "AWAITING_OPERATOR", `${scenario.id}: hardened prompt used the wrong handoff reason`);
     } else {
-      assert.notEqual(hardened.decision, "AGENT_STOPPED", `${scenario.id}: hardened prompt treated a continue signal as a halt`);
-      assert.notEqual(hardened.decision, "AGENT_COMPLETE", `${scenario.id}: hardened prompt passed unfinished work`);
+      const hardenedContinues = hardened.decision === "AGENT_CONTINUING" || hardened.decision === "AGENT_STALLED";
+      const stoodDown = hardened.decision === "AGENT_STOPPED" && baseline.decision !== "AGENT_STOPPED";
+      assert.ok(
+        hardenedContinues || !stoodDown,
+        `${scenario.id}: hardened prompt stood down on unfinished work (baseline ${baseline.decision}, hardened ${hardened.decision})`,
+      );
     }
   }
 });

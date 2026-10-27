@@ -23,6 +23,7 @@
 -c
 131072
 --no-mmap
+--no-cache-prompt
 --reasoning
 off
 ...

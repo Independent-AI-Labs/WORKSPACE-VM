@@ -1,0 +1,194 @@
+{
+  "version": 1,
+  "cases": [
+    {
+      "id": "reducer-0071bb1e29c700f9",
+      "provenance": {
+        "sessionID": "ses_eb5189997ffewT33xLLvh49NGP",
+        "decisionID": "1792333943200-31d664787054"
+      },
+      "event": {
+        "type": "STATUS_IDLE"
+      },
+      "previousState": {
+        "phase": "IDLE",
+        "inflightAssistantID": "msg_14f5b77c2002D03j0sijtGRkmp",
+        "lastTerminalAssistantID": "msg_14f5b77c2002D03j0sijtGRkmp",
+        "realUserCycleID": "msg_14f6d7e9c001aY8oyYf2YJzzeT",
+        "consecutiveNoProgressCount": 0,
+        "blocker": null,
+        "compaction": {
+          "active": false
+        }
+      },
+      "expected": {
+        "ignored": true,
+        "nextPhase": "IDLE",
+        "decisionType": "idle-outside-observation"
+      },
+      "hash": "0071bb1e29c700f9438dbebfd2775010bf27aed3d551a7125170d209a888be2d"
+    },
+    {
+      "id": "reducer-0127799055076afa",
+      "provenance": {
+        "sessionID": "ses_eb70df548ffenFFppZFrc8XABX",
+        "decisionID": "1792404009111-5af834d6c393"
+      },
+      "event": {
+        "type": "STATUS_IDLE"
+      },
+      "previousState": {
+        "phase": "IDLE",
+        "inflightAssistantID": "msg_153991afe0027x4xcEfTslxO8y",
+        "lastTerminalAssistantID": "msg_153991afe0027x4xcEfTslxO8y",
+        "realUserCycleID": "msg_1539a7ea0001kocljFQW7FXKu0",
+        "consecutiveNoProgressCount": 0,
+        "blocker": null,
+        "compaction": {
+          "active": false
+        }
+      },
+      "expected": {
+        "ignored": true,
+        "nextPhase": "IDLE",
+        "decisionType": "idle-outside-observation"
+      },
+      "hash": "0127799055076afa4277d87993231baa002e2426712f6a9b10f6f20e26eaa72d"
+    },
+    {
+      "id": "reducer-012911315d70f4bd",
+      "provenance": {
+        "sessionID": "ses_eb70df548ffenFFppZFrc8XABX",
+        "decisionID": "1792356797449-2bb06a99949a"
+      },
+      "event": {
+        "type": "STATUS_IDLE"
+      },
+      "previousState": {
+        "phase": "IDLE",
+        "inflightAssistantID": "msg_15051f354001jzJX9uNMn8o3sy",
+        "lastTerminalAssistantID": "msg_15051f354001jzJX9uNMn8o3sy",
+        "realUserCycleID": "msg_1507409bb001vs3SsndHlNEFpw",
+        "consecutiveNoProgressCount": 0,
+        "blocker": null,
+        "compaction": {
+          "active": false
+        }
+      },
+      "expected": {
+        "ignored": true,
+        "nextPhase": "IDLE",
+        "decisionType": "idle-outside-observation"
+      },
+      "hash": "012911315d70f4bd318dca55c06ced4d02a282ce575c9d96c3f4cfdd66f29b59"
+    },
+    {
+      "id": "reducer-01d2dc3e7e92e315",
+      "provenance": {
+        "sessionID": "ses_e9bc2730effeT8FL71SG8h6lGP",
+        "decisionID": "1792737866542-f33091445912"
+      },
+      "event": {
+        "type": "STATUS_IDLE"
+      },
+      "previousState": {
+        "phase": "IDLE",
+        "inflightAssistantID": "msg_167796874002oIqgcv1xQOd4BF",
+        "lastTerminalAssistantID": "msg_167796874002oIqgcv1xQOd4BF",
+        "realUserCycleID": "msg_1677e7340001XMteqLfJnCsG5t",
+        "consecutiveNoProgressCount": 0,
+        "blocker": null,
+        "compaction": {
+          "active": false
+        }
+      },
+      "expected": {
+        "ignored": true,
+        "nextPhase": "IDLE",
+        "decisionType": "idle-outside-observation"
+      },
+      "hash": "01d2dc3e7e92e3158379b56b9f0e7342fda37dc60c644e6e05887555f9983004"
+    },
+    {
+      "id": "reducer-02d2783d7871c63d",
+      "provenance": {
+        "sessionID": "ses_e9bc2730effeT8FL71SG8h6lGP",
+        "decisionID": "1793029349250-b0afe4e7eb2f"
+      },
+      "event": {
+        "type": "STATUS_IDLE"
+      },
+      "previousState": {
+        "phase": "IDLE",
+        "inflightAssistantID": "msg_17819047c002O94jyIgIrm1qzV",
+        "lastTerminalAssistantID": "msg_17819047c002O94jyIgIrm1qzV",
+        "realUserCycleID": "msg_178e0749c0010uWnVNo1w95AcS",
+        "consecutiveNoProgressCount": 0,
+        "blocker": null,
+        "compaction": {
+          "active": false
+        }
+      },
+      "expected": {
+        "ignored": true,
+        "nextPhase": "IDLE",
+        "decisionType": "idle-outside-observation"
+      },
+      "hash": "02d2783d7871c63d0fcadb6dd27d24330c5183234e628937cc080cf9b83a8c50"
+    },
+    {
+      "id": "reducer-e29e0d3d23d061e1",
+      "provenance": {
+        "sessionID": "ses_eb688a15effeLsaRK5vNEeY1fI",
+        "decisionID": "1793086600341-65fa8b655542"
+      },
+      "event": {
+        "type": "STATUS_IDLE"
+      },
+      "previousState": {
+        "phase": "IDLE",
+        "inflightAssistantID": null,
+        "lastTerminalAssistantID": "msg_178ca5873002nWlPWYrKGliA7C",
+        "realUserCycleID": "msg_17c48e9670015CR558Yvzn4XKE",
+        "consecutiveNoProgressCount": 0,
+        "blocker": null,
+        "compaction": {
+          "active": false
+        }
+      },
+      "expected": {
+        "ignored": true,
+        "nextPhase": "IDLE",
+        "decisionType": "idle-outside-observation"
+      },
+      "hash": "e29e0d3d23d061e1b530002fb14641c528eaa1dd52ed9b0ab1eba56201ef720f"
+    },
+    {
+      "id": "reducer-f05748e3276414c4",
+      "provenance": {
+        "sessionID": "ses_e861133fcffeP1X1EABxMhaoOn",
+        "decisionID": "1793084773552-a22cbbb1495b"
+      },
+      "event": {
+        "type": "STATUS_IDLE"
+      },
+      "previousState": {
+        "phase": "IDLE",
+        "inflightAssistantID": "msg_17c266e97002A5RQMzXWo0qY1o",
+        "lastTerminalAssistantID": "msg_17c266e97002A5RQMzXWo0qY1o",
+        "realUserCycleID": "msg_17c29b5ee001heNCdm0Uy5HcRS",
+        "consecutiveNoProgressCount": 0,
+        "blocker": null,
+        "compaction": {
+          "active": false
+        }
+      },
+      "expected": {
+        "ignored": true,
+        "nextPhase": "IDLE",
+        "decisionType": "idle-outside-observation"
+      },
+      "hash": "f05748e3276414c437199a6e2ea3b21ed0c6259b916a444673de255f0d6e3d66"
+    }
+  ]
+}

@@ -1,12 +1,12 @@
-import { classify, type FetchLike } from "./classifier.ts";
-import { assistantText, deriveContext, inBranch, isInjectedUser, newestAssistant, realUserAncestor } from "./context.ts";
+import { classify, loadPrompt, type FetchLike } from "./classifier.ts";
+import { assistantText, deriveContext, inBranch, isInjectedUser, isSyntheticUser, newestAssistant, realUserAncestor } from "./context.ts";
 import type { ModerationOptions } from "./config.ts";
 import { persistSnapshot, restoreSnapshot, sessionDirectory, writeDecisionRecord } from "./audit.ts";
 import { createInitialState, isValidState, normalizeRestoredState, transition } from "./machine.ts";
 import type { ContextSnapshot, Effect, MessageFact, ModerationEvent, ModerationState, ReasonCode, TodoFact, TransitionResult, Verdict, VerdictDecision } from "./types.ts";
 
-const CONTINUATION_LINE = "⚠️ Automated Moderation: work appears unfinished; continue unless explicitly requested to halt by the operator or the system.";
-const OPERATOR_LINE = "⚠️ Automated Moderation: operator action required.";
+const CONTINUATION_LINE = loadPrompt("continuation.txt").trimEnd();
+const OPERATOR_LINE = loadPrompt("operator.txt").trimEnd();
 const CONTEXT_TIMEOUT_MS = 15000;
 const BUSY_POLL_ATTEMPTS = 50;
 const BUSY_POLL_INTERVAL_MS = 100;
@@ -200,7 +200,7 @@ export function createModerationAdapter(input: ModerationServerInput, options: M
     const verdict = outcome.verdict;
     if (!verdict) throw new Error("AgentCI moderation classifier returned no verdict");
     const originUserID = event.type === "CONTEXT_LOADED" ? event.originUserID ?? null : null;
-    return { type: "CLASSIFIER_RESULT", verdict, originUserID };
+    return { type: "CLASSIFIER_RESULT", verdict, originUserID, capture: outcome.capture };
   };
   const writeTrace = async (sessionID: string, session: Session, verdict: Verdict | undefined): Promise<ModerationEvent> => {
     const text = verdict ? statusLine(verdict.decision, verdict.reasonCode) : OPERATOR_LINE;
@@ -274,7 +274,7 @@ export async function loadMessages(client: ModerationClient, sessionID: string):
 }
 
 function realUser(messages: MessageFact[], moderatorMessageIDs: Set<string>): MessageFact | undefined {
-  return messages.filter((message) => message.info.role === "user" && !moderatorMessageIDs.has(message.info.id ?? "") && !isInjectedUser(message)).at(-1);
+  return messages.filter((message) => message.info.role === "user" && !moderatorMessageIDs.has(message.info.id ?? "") && !isInjectedUser(message) && !isSyntheticUser(message)).at(-1);
 }
 
 export async function continuationPersisted(client: ModerationClient, sessionID: string): Promise<boolean> {
@@ -302,24 +302,34 @@ async function showToast(client: ModerationClient, kind: string): Promise<null> 
 function decisionRecord(event: ModerationEvent, previous: ModerationState, result: TransitionResult, effectResults: unknown[]): Record<string, unknown> {
   const decision = result.effects.find((effect) => effect.type === "WRITE_DECISION");
   const verdict = event.type === "CLASSIFIER_RESULT" ? event.verdict : null;
+  const capture = event.type === "CLASSIFIER_RESULT" ? event.capture ?? null : null;
   const error = event.type === "EFFECT_ERROR" ? event.error ?? null : null;
   const assistantID = event.type === "CONTEXT_LOADED" ? event.assistantID ?? null : null;
   return {
     timestamp: new Date().toISOString(),
+    schemaVersion: 1,
     sessionID: event.sessionID ?? null,
     assistantID,
     event: event.type,
+    eventPayload: event.type === "CLASSIFIER_RESULT" ? null : eventPayload(event),
     decisionType: decision?.decisionType ?? event.type,
     previousPhase: result.transition.previousPhase,
     nextPhase: result.transition.nextPhase,
     ignored: result.ignored,
     verdict,
+    capture,
     error,
     effects: result.effects,
     effectResults,
     previousState: previous,
     stateSnapshot: result.state,
   };
+}
+
+function eventPayload(event: ModerationEvent): Record<string, unknown> {
+  const payload = { ...event } as Record<string, unknown>;
+  delete payload.sessionID;
+  return payload;
 }
 
 function toast(kind: string): { title: string; message: string; variant: string; duration: number } {

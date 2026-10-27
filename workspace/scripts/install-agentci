@@ -11,6 +11,7 @@ AGENTCI_DIR="${WORKSPACE_ROOT}/workspace/agentci"
 SOURCE_BUNDLE="${AGENTCI_DIR}/dist/agentci.bundle.js"
 SOURCE_CONFIG="${WORKSPACE_ROOT}/workspace/config/opencode/agentci/agentci.template.json"
 SOURCE_POLICIES="${WORKSPACE_ROOT}/workspace/config/opencode/agentci/policies.yaml"
+SOURCE_PROMPTS="${AGENTCI_DIR}/src/moderation/prompts"
 CONFIG_ROOT="${XDG_CONFIG_HOME:-${HOME}/.config}/opencode"
 PLUGIN_DIR="${CONFIG_ROOT}/plugins"
 STATE_DIR="${PLUGIN_DIR}/.agentci"
@@ -101,6 +102,9 @@ verify_release() {
     local release="$1"
     [[ -f "${release}/agentci.js" ]] || fail "plugin bundle missing from release"
     [[ -f "${release}/options.json" ]] || fail "configuration missing from release"
+    [[ -f "${release}/prompts/classifier-system.txt" ]] || fail "classifier prompt missing from release"
+    [[ -f "${release}/prompts/continuation.txt" ]] || fail "continuation prompt missing from release"
+    [[ -f "${release}/prompts/operator.txt" ]] || fail "operator prompt missing from release"
     read_config "${release}/options.json"
     validate_policies "${release}/options.json"
     verify_gateway "${release}/options.json"
@@ -115,6 +119,7 @@ install() {
     [[ -f "$SOURCE_BUNDLE" ]] || fail "plugin bundle source missing: ${SOURCE_BUNDLE}"
     [[ -f "$SOURCE_CONFIG" ]] || fail "configuration template missing: ${SOURCE_CONFIG}"
     [[ -f "$SOURCE_POLICIES" ]] || fail "policies source missing: ${SOURCE_POLICIES}"
+    [[ -d "$SOURCE_PROMPTS" ]] || fail "prompts source missing: ${SOURCE_PROMPTS}"
     read_config "$SOURCE_CONFIG"
     verify_gateway "$SOURCE_CONFIG"
     if [[ -e "$ENTRY_LINK" || -L "$ENTRY_LINK" ]]; then
@@ -128,7 +133,8 @@ install() {
     trap 'rm -rf "$stage"' EXIT
     cp "$SOURCE_BUNDLE" "${stage}/agentci.js"
     render_options "${stage}/options.json"
-    release_id="$(cksum "$SOURCE_BUNDLE" "${stage}/options.json" | cksum | cut -d ' ' -f 1)"
+    cp -r "$SOURCE_PROMPTS" "${stage}/prompts"
+    release_id="$(cksum "$SOURCE_BUNDLE" "${stage}/options.json" "${stage}/prompts/"*.txt | cksum | cut -d ' ' -f 1)"
     release="${RELEASES_DIR}/${release_id}"
     if [[ -d "$release" ]]; then
         rm -rf "$stage"
@@ -159,6 +165,17 @@ verify() {
     if [[ -f "$SOURCE_BUNDLE" ]]; then
         cmp "$SOURCE_BUNDLE" "${release}/agentci.js"
     fi
+    if [[ -d "$SOURCE_PROMPTS" ]]; then
+        if ! cmp "$SOURCE_PROMPTS/classifier-system.txt" "${release}/prompts/classifier-system.txt"; then
+            fail "active AgentCI release prompts do not match the source"
+        fi
+        if ! cmp "$SOURCE_PROMPTS/continuation.txt" "${release}/prompts/continuation.txt"; then
+            fail "active AgentCI release prompts do not match the source"
+        fi
+        if ! cmp "$SOURCE_PROMPTS/operator.txt" "${release}/prompts/operator.txt"; then
+            fail "active AgentCI release prompts do not match the source"
+        fi
+    fi
     if [[ -f "$SOURCE_CONFIG" && -f "$SOURCE_POLICIES" ]]; then
         expected="$(mktemp)"
         render_options "$expected"
@@ -174,13 +191,17 @@ status() {
     release="$(release_dir)"
     printf 'active release: %s\n' "$release"
     jq -r '"gateway: \(.gateway_url)\nmodel: \(.model)"' "${release}/options.json"
-    if [[ ! -f "$SOURCE_BUNDLE" || ! -f "$SOURCE_CONFIG" || ! -f "$SOURCE_POLICIES" ]]; then
+    if [[ ! -f "$SOURCE_BUNDLE" || ! -f "$SOURCE_CONFIG" || ! -f "$SOURCE_POLICIES" || ! -d "$SOURCE_PROMPTS" ]]; then
         printf 'source drift: detected\n'
         return
     fi
     expected="$(mktemp)"
     render_options "$expected"
-    if cmp -s "$SOURCE_BUNDLE" "${release}/agentci.js" && cmp -s "$expected" "${release}/options.json"; then
+    if cmp -s "$SOURCE_BUNDLE" "${release}/agentci.js" \
+        && cmp -s "$expected" "${release}/options.json" \
+        && cmp -s "$SOURCE_PROMPTS/classifier-system.txt" "${release}/prompts/classifier-system.txt" \
+        && cmp -s "$SOURCE_PROMPTS/continuation.txt" "${release}/prompts/continuation.txt" \
+        && cmp -s "$SOURCE_PROMPTS/operator.txt" "${release}/prompts/operator.txt"; then
         rm -f "$expected"
         printf 'source drift: none\n'
         return

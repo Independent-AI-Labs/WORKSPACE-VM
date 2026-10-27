@@ -63,9 +63,10 @@ session stay idle.
    `/llamafile` relay. It SHALL NOT connect directly to the llamafile port or
    start, install, or manage an inference server. Each classification request
    SHALL pin deterministic greedy sampling (`temperature` 0, `top_k` 1, `top_p`
-   1, `min_p` 0, and a fixed seed) so that identical inputs produce identical
-   verdicts. The serving model SHALL likewise pin greedy sampling and run with a
-   single slot and a fixed thread count so verdicts do not vary between runs.
+   1, `min_p` 0, and a fixed seed) and SHALL set `cache_prompt` false so that
+   identical inputs produce identical verdicts. The serving model SHALL likewise
+   pin greedy sampling, disable prompt caching, and run with a single slot and a
+   fixed thread count so verdicts do not vary between runs.
 9. The classifier input SHALL contain the todo list and the last three real
    user messages. It SHALL call the Gateway token-count endpoint on the final
    candidate request and remove oldest intervening agent context until the
@@ -92,17 +93,30 @@ session stay idle.
     the classifier for every eligible response. No controller eligibility rule
     SHALL override a classifier verdict: an `AGENT_COMPLETE` SHALL stand even
     when tracked todos remain `pending` or `in_progress`. The classifier SHALL
-    return `AGENT_CONTINUING` or `AGENT_STALLED` when the request is unfinished
-    and the agent can keep working on its own, and `AGENT_BLOCKED` when the
-    agent genuinely requests user clarification (`AWAITING_USER`), reports a
-    genuine external blocker, or hands off to an operator (`AWAITING_OPERATOR`).
-    The classifier SHALL return `AGENT_STOPPED` with `USER_STOP` when the most
-    recent real user message explicitly instructs the agent to halt, stop,
-    cancel, abort, wait, or otherwise not continue. An empty, whitespace-only,
-    or missing user message is not a halt: it marks an interrupted, cancelled,
-    aborted, errored, or cleared turn and SHALL be treated as a request to
-    continue. That verdict SHALL stand even when tracked todos remain `pending`
-    or `in_progress`, and SHALL take precedence over an automatic continuation.
+    apply this ordered decision procedure, first match wins:
+    1. `AGENT_BLOCKED` when the assistant asks the user or operator to act or
+       answer before the agent can proceed. `AWAITING_OPERATOR` SHALL cover any
+       request for a concrete external action, command, credential, access,
+       experiment, reproduction, observation, or reported result that the agent
+       cannot perform itself. `AWAITING_USER` SHALL cover a question, decision,
+       approval, or clarification. A handoff SHALL stand even when the overall
+       task is unfinished and even when the assistant also promises later work
+       after the user responds.
+    2. `AGENT_STOPPED` with `USER_STOP` when the most recent real user message
+       explicitly instructs the agent to halt, stop, cancel, abort, wait, or
+       otherwise not continue.
+    3. `AGENT_COMPLETE` with `WORK_COMPLETE` when the assistant response has
+       fully satisfied the request.
+    4. `AGENT_CONTINUING` with `WORK_REMAINS` when the request is unfinished and
+       the agent can keep working on its own, or `AGENT_STALLED` with
+       `NO_PROGRESS` when the agent can act but has made no progress.
+    An empty, whitespace-only, or missing user message is not a halt: it marks an
+    interrupted, cancelled, aborted, errored, or cleared turn and SHALL be treated
+    as a request to continue. The classifier SHALL judge the assistant response,
+    not the user request alone. A response that lists remaining work, or promises
+    future work without asking the user to act, is not a handoff. A handoff
+    verdict SHALL take precedence over an automatic continuation. `AGENT_STALLED`
+    SHALL remain a distinct decision, separate from `AGENT_CONTINUING`.
 12. Invalid classifier output or a failed relay request SHALL be reported as an
     error. It SHALL NOT be treated as `AGENT_COMPLETE`.
 
@@ -201,10 +215,16 @@ session stay idle.
     file; missing files SHALL be treated as an observability failure.
 26. Each decision file SHALL include timestamp, plugin version, session ID,
     assistant ID, decision ID, decision type, exact assistant response, marker
-    results, todos, selected context, exact classifier prompt and request
-    settings when applicable, raw YAML response when applicable, parsed
-    verdict, blocker-discussion state and source, prompt/toast results, errors,
-    and timings.
+    results, todos, selected context, parsed verdict, blocker-discussion state
+    and source, prompt/toast results, errors, and timings. A `CLASSIFIER_RESULT`
+    record SHALL embed the classifier capture inline: the exact messages sent,
+    the raw completion, the model, the sampling settings, the seed, the attempt
+    count, and the request duration. The capture SHALL be persisted in the
+    existing decision record and SHALL NOT add a separate capture file. A
+    non-classifier decision record SHALL omit the capture field. The captured
+    messages SHALL be the authoritative record of what the classifier saw; a
+    later reconstruction from the session database SHALL not be required to
+    audit a decision.
 27. Decision types SHALL include `blocker-discussion`, `moderation-complete`,
     `moderation-continue`, `moderation-agent-blocked`, `moderation-user-stop`,
     `moderation-escalated`,
@@ -235,6 +255,93 @@ session stay idle.
     message id. A replay failure SHALL be surfaced to the operator as a visible
     client toast and, when a session is known, an error audit record; it SHALL
     never be treated as a completion.
+
+### Classifier Prompt And Input Layout
+
+31. The classifier system prompt SHALL encode the ordered decision procedure from
+    requirement 11 as a short, explicit, first-match-wins list. It SHALL state
+    that the assistant response is the decision target, that a handoff to the
+    user or operator takes precedence over unfinished work, that listing
+    remaining work or promising future work is not a handoff, and that only an
+    explicit user halt produces `AGENT_STOPPED`. It SHALL NOT contain a trailing
+    instruction that biases the model toward continuing, and its final rule SHALL
+    be neutral.
+32. The prompt SHALL contain a small representative example set, one example per
+    decision family. It SHALL include a handoff example in which the assistant
+    asks the user to perform an action and report back, the exact failure case
+    that motivated this requirement. It SHALL also include a launched-and-ready
+    handoff, a game-up handoff, and a response that asks the user for a decision.
+33. The classifier request SHALL place the assistant response first, labeled as
+    the decision target, followed by the real user messages and then the tracked
+    todos. It SHALL place a one-line instruction immediately above that data,
+    SHALL NOT place the user request before the assistant response, and SHALL end
+    with a one-line reminder that a request for the user to act or answer is
+    `AGENT_BLOCKED`.
+34. The adapter SHALL expose the exact input layout and prompt as testable
+    values. Unit tests SHALL assert the prompt invariants from requirements 31
+    and 32, and the exact section order and labels from requirement 33. A frozen
+    baseline prompt fixture SHALL exist so the reworked prompt can be compared
+    against its predecessor in a live A/B run.
+
+### Failure Mining And Regression Testing
+
+35. The integration suite SHALL exercise every classifier decision and every
+    valid decision/reason pair against inputs drawn from real conversation
+    transcripts.
+36. The suite SHALL hunt prior failures by comparing the recorded verdict with
+    the observed user reaction, because the classifier verdict is not ground
+    truth. Two failure types SHALL be mined:
+    - False continue: a `AGENT_CONTINUING` or `AGENT_STALLED` verdict with a sent
+      continuation, followed within a bounded window by an aborted assistant
+      message or a removed moderator message. The expected decision SHALL forbid
+      that continue verdict.
+    - False stop: an `AGENT_BLOCKED`, `AGENT_COMPLETE`, or `AGENT_STOPPED`
+      verdict followed within the same window by a removed moderator message.
+      The expected decision SHALL forbid that stop verdict.
+    The default window SHALL be 300 seconds and SHALL be configurable.
+37. Failure signals SHALL come from the OpenCode session database and its
+    append-only event log. An aborted assistant SHALL be detected from
+    `message.data.error.name` equal to `MessageAbortedError`. A removed message
+    SHALL be detected from `event` rows of type `message.removed.1`. The content
+    of a removed message SHALL be reconstructed from earlier
+    `message.updated.1` and `message.part.updated.1` event rows, because the
+    `message` row is deleted. `session.revert` is transient and SHALL NOT be the
+    source of a revert signal.
+38. Every mined case SHALL record its provenance (session ID, assistant message
+    ID, decision ID), its inputs, the forbidden decision, and a `labelSource`.
+    Transcript bodies SHALL be machine-local files under
+    `tests/fixtures/transcripts/<hash>.json` and SHALL be gitignored, mirroring
+    the transcript-classifier benchmark. The tracked manifest SHALL carry the
+    provenance, hash, labels, and a transcript reference, never the body text.
+    A mined case SHALL record a forbidden-decision constraint. An
+    operator-confirmed exact expected decision SHALL be permitted to upgrade a
+    case. The live suite SHALL assert the exact expected decision when present
+    and the forbidden-decision constraint otherwise.
+39. A test-case sourcing script SHALL extract cases from the audit directory and
+    the session databases. It SHALL be idempotent: each case SHALL have a stable
+    content hash, only hashes absent from the manifest SHALL be appended, a body
+    SHALL be rewritten only when its content changes, and a run over
+    already-imported data SHALL write nothing. It SHALL write atomically,
+    sort deterministically by hash, never mutate its source data, and report
+    added, skipped, and total counts plus per-pathway coverage. It SHALL support a
+    dry-run mode and a rebuild mode that re-derives every body from its
+    provenance and fails when a hash changes.
+40. Each sourcing run SHALL also add up to five fresh non-classifier reducer
+    cases drawn from real decision records that exercised ignored, duplicate,
+    cancellation, compaction, timeout, or escalation paths. Cases SHALL be
+    deduplicated by hash. When fewer than five unseen cases exist, the script
+    SHALL add the available cases and report the shortage. These cases SHALL be
+    stored separately from the classifier cases and SHALL feed the deterministic
+    reducer tests.
+41. The live classifier suite SHALL be bounded by a configurable case limit and
+    SHALL remain excluded from hermetic CI.
+42. The sourcing script SHALL be a development tool. It SHALL NOT run as part of
+    plugin startup, moderation, or the shipped bundle.
+43. The sourcing script SHALL keep a ledger of consumed source decision IDs, so
+    each real decision is considered once and re-running over the same data adds
+    nothing. A non-classifier decision record SHALL persist its replayable event
+    payload and a schema version; the script SHALL skip records whose state shape
+    predates the current schema.
 
 ## Constraints
 
@@ -291,6 +398,15 @@ session stay idle.
   prompting.
 - An isolated OpenCode server test SHALL verify plugin discovery and event
   dispatch using the installed plugin contract.
+- A handoff response that asks the user to perform an action and report back
+  SHALL be classified `AGENT_BLOCKED`, not `AGENT_CONTINUING`, including when
+  the overall task is unfinished.
+- A `CLASSIFIER_RESULT` decision record SHALL contain the exact classifier
+  messages and raw completion inline.
+- A test-case sourcing run over already-imported data SHALL write nothing, and a
+  run over new data SHALL append only unseen cases.
+- The regression suite SHALL include mined false-continue and false-stop cases
+  and non-classifier reducer cases.
 
 ## Finite-State-Machine Architecture
 
@@ -424,5 +540,13 @@ restored session).
 
 The implementation SHALL use random temporary files for classifier snapshots
 and captures, paginate message history when necessary, and preserve complete
-atomic decision records including timings, raw classifier exchange,
+atomic decision records including timings, the inline classifier capture,
 prompt/action results, and the final state transition.
+
+Unit tests SHALL assert the classifier prompt invariants, the exact classifier
+input section order and labels, and the inline capture shape. A sourcing-script
+test SHALL run the miner twice over the same input and assert the second run
+writes nothing, and SHALL assert deterministic ordering. The reducer test suite
+SHALL consume the mined non-classifier cases. The live classifier suite SHALL
+consume the mined and operator-confirmed cases and enforce the forbidden-decision
+constraint for every case without an exact label.

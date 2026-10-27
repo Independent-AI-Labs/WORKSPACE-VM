@@ -74,13 +74,19 @@ const SCENARIOS: readonly Scenario[] = [
     user: "Fix the git guard pull --rebase deadlock and deploy it.",
     assistant: "Created /tmp/guard-rebase-064-deploy.sh (operator-only, not committed). Run it as the operator: `sudo bash /tmp/guard-rebase-064-deploy.sh`. I did not run it; tell me the result.",
     expectation: "BLOCKED",
-    reason: "AWAITING_OPERATOR",
     todos: [
       { status: "in_progress", content: "Refactor ArgState to ordered pull/merge modes" },
       { status: "pending", content: "Add scan_pull_args/scan_merge_args" },
       { status: "pending", content: "Update block.rs pull/merge/rebase rules" },
       { status: "pending", content: "Run make test / lint / test-shell" },
     ],
+  },
+  {
+    id: "ses_live_operator_reproduction_handoff",
+    user: "start the diag run, record a replay named something appropriate, I will reproduce it",
+    assistant: "Diagnostic run is live.\n\n- Session: `lens-flare`\n- Video: recording\n- Replay file: `pfx/drive_c/recomp-record-lens-flare.txt`\n\nReproduce the flare now. Hold the view for about 15 seconds.\n\nWhen done, tell me. I will stop the video and game, then analyze.",
+    expectation: "BLOCKED",
+    todos: [{ status: "in_progress", content: "Capture the lens flare reproduction" }],
   },
   {
     id: "ses_live_open_todos_clarify",

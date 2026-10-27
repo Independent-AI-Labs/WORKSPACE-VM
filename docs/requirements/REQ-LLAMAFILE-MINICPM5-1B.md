@@ -70,7 +70,7 @@ argument manifest, so no host toolchain is required at run time.
 | FR-2.2 | `make build-llamafile MODEL=minicpm5-1b MODE=server|chat|all` MUST embed the GGUF and the selected manifest as zip entry `.args` via zipalign. |
 | FR-2.3 | The server bundle MUST serve an OpenAI-compatible HTTP API on port 8765 by default. |
 | FR-2.4 | The chat bundle MUST run as an interactive chat by default (`--chat`, no `--server`): the user converses with MiniCPM5-1B in a terminal chat session, and exiting the session ends the process. |
-| FR-2.5 | The server manifests (`models/minicpm5-1b/.args`, `models/minicpm5-1b/.args.vulkan`) MUST pin deterministic greedy sampling: `--temp 0`, `--top-k 1`, `--top-p 1`, `--min-p 0`, `--seed 0`, `--repeat-penalty 1.0`, so identical prompts produce identical completions. The chat manifests MUST pin the same sampling for consistency. |
+| FR-2.5 | The server manifests (`models/minicpm5-1b/.args`, `models/minicpm5-1b/.args.vulkan`) MUST pin deterministic greedy sampling: `--temp 0`, `--top-k 1`, `--top-p 1`, `--min-p 0`, `--seed 0`, `--repeat-penalty 1.0`, so identical prompts produce identical completions. They MUST also pass `--no-cache-prompt`: llama.cpp prompt-prefix reuse changes the batch shape, so logits are not bit-identical and greedy output can flip. The chat manifests MUST pin the same sampling and prompt-cache setting for consistency. |
 
 ## 3. Verification
 
