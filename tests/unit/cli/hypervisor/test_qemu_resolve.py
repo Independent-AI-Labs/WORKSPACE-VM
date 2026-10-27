@@ -154,3 +154,75 @@ def test_resolve_cloud_localds_boot_bin(
         qr, "workspace_boot_dir", lambda root=None: tmp_path / ".boot-macos"
     )
     assert qr.resolve_cloud_localds(allow_path=False) == boot_bin
+
+
+def test_resolve_qemu_img_path_fallback(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys
+) -> None:
+    monkeypatch.setattr(
+        qr, "workspace_boot_dir", lambda root=None: tmp_path / ".boot-macos"
+    )
+    monkeypatch.setattr(qr.shutil, "which", lambda _name: "/usr/bin/qemu-img")
+    assert qr.resolve_qemu_img() == Path("/usr/bin/qemu-img")
+    assert "using PATH qemu-img" in capsys.readouterr().err
+
+
+def test_resolve_qemu_img_missing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(
+        qr, "workspace_boot_dir", lambda root=None: tmp_path / ".boot-macos"
+    )
+    monkeypatch.setattr(qr.shutil, "which", lambda _name: None)
+    with pytest.raises(FileNotFoundError, match="qemu-img"):
+        qr.resolve_qemu_img()
+
+
+def test_resolve_cloud_localds_path_and_missing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(
+        qr, "workspace_boot_dir", lambda root=None: tmp_path / ".boot-macos"
+    )
+    monkeypatch.setattr(qr.shutil, "which", lambda _name: "/usr/bin/cloud-localds")
+    assert qr.resolve_cloud_localds() == Path("/usr/bin/cloud-localds")
+    monkeypatch.setattr(qr.shutil, "which", lambda _name: None)
+    with pytest.raises(FileNotFoundError, match="cloud-localds"):
+        qr.resolve_cloud_localds()
+
+
+def test_resolve_aarch64_firmware_linux_distro(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(
+        qr, "workspace_boot_dir", lambda root=None: tmp_path / ".boot-macos"
+    )
+    monkeypatch.setattr(qr.platform, "system", lambda: "Linux")
+    distro = tmp_path / "distro.fd"
+    distro.write_bytes(b"efi")
+    monkeypatch.setattr(qr, "Path", lambda _value: distro)
+    assert qr.resolve_aarch64_firmware() == distro
+
+
+def test_probe_accel_timeout_is_success(monkeypatch: pytest.MonkeyPatch) -> None:
+    def _timeout(*_a: object, **_k: object) -> None:
+        raise qr.subprocess.TimeoutExpired("qemu", 5)
+
+    monkeypatch.setattr(qr.subprocess, "run", _timeout)
+    assert qr.probe_accel(Path("/opt/qemu"), "kvm") is True
+
+
+def test_probe_accel_failures_surface(monkeypatch: pytest.MonkeyPatch, capsys) -> None:
+    def _failed(*_a: object, **_k: object) -> None:
+        raise qr.subprocess.CalledProcessError(1, "qemu", stderr="no kvm")
+
+    monkeypatch.setattr(qr.subprocess, "run", _failed)
+    assert qr.probe_accel(Path("/opt/qemu"), "kvm") is False
+    assert "no kvm" in capsys.readouterr().err
+
+    def _oserror(*_a: object, **_k: object) -> None:
+        raise OSError("missing")
+
+    monkeypatch.setattr(qr.subprocess, "run", _oserror)
+    assert qr.probe_accel(Path("/opt/qemu"), "kvm") is False
+    assert "missing" in capsys.readouterr().err

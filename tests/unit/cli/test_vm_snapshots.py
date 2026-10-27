@@ -97,3 +97,43 @@ def test_import_rejects_missing_manifest(
     _prepare(tmp_path, monkeypatch)
     with pytest.raises(FileNotFoundError, match="manifest"):
         vm_snapshots.import_vm(tmp_path / "bundle")
+
+
+def test_require_qemu_rejects_other_backend(monkeypatch: pytest.MonkeyPatch) -> None:
+    cfg = MagicMock()
+    cfg.isolation.backend = "podman"
+    monkeypatch.setattr(vm_snapshots, "load_vm_config", lambda _uuid: cfg)
+    with pytest.raises(ValueError, match="require the qemu backend"):
+        vm_snapshots._require_qemu("vm-uuid")
+
+
+def test_run_qemu_img_reports_failure(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(vm_snapshots, "resolve_qemu_img", lambda: tmp_path / "qemu-img")
+    monkeypatch.setattr(
+        vm_snapshots.subprocess,
+        "run",
+        MagicMock(
+            side_effect=subprocess.CalledProcessError(1, "qemu-img", stderr="boom")
+        ),
+    )
+    with pytest.raises(RuntimeError, match="qemu-img failed: boom"):
+        vm_snapshots._run_qemu_img("info", "disk.qcow2")
+
+
+def test_import_rejects_unknown_format(tmp_path: Path) -> None:
+    bundle = tmp_path / "bundle"
+    bundle.mkdir()
+    (bundle / "manifest.json").write_text(json.dumps({"format": 999}))
+    with pytest.raises(ValueError, match="unsupported import format"):
+        vm_snapshots.import_vm(bundle)
+
+
+def test_import_rejects_missing_disk(tmp_path: Path) -> None:
+    bundle = tmp_path / "bundle"
+    bundle.mkdir()
+    (bundle / "manifest.json").write_text(json.dumps({"format": 1}))
+    (bundle / "vm.yaml").write_text("components: [uv]\n")
+    with pytest.raises(FileNotFoundError, match="missing disk or config"):
+        vm_snapshots.import_vm(bundle)
