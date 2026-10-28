@@ -36,7 +36,6 @@ require_tools() {
 }
 
 build_bundle() {
-    [[ -f "$SOURCE_BUNDLE" ]] && return
     printf 'install-agentci: building the AgentCI bundle\n'
     local output
     if ! output="$( cd "$AGENTCI_DIR" && npm run bundle )"; then

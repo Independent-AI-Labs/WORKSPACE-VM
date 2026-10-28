@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import { createModerationAdapter, type ModerationClient } from "../src/moderation/adapter.ts";
+import { BOOLEAN_GRAMMAR } from "../src/moderation/config.ts";
 import { sessionDirectory } from "../src/moderation/audit.ts";
 import type { MessageFact, TodoFact } from "../src/moderation/types.ts";
 
@@ -231,37 +232,6 @@ test("the agent's reply to an injected continuation is classified and can comple
   }
 });
 
-test("the status protocol is appended to the system prompt once", async () => {
-  const store = new Harness([]);
-  const adapter = createModerationAdapter({ client: store.client }, options, classifierFetch("decision: AGENT_COMPLETE\nreason: WORK_COMPLETE"));
-  const output = { system: [] as string[] };
-  await adapter["experimental.chat.system.transform"]({}, output);
-  await adapter["experimental.chat.system.transform"]({}, output);
-  assert.equal(output.system.length, 1);
-  assert.match(output.system[0], /STATUS: COMPLETE/);
-});
-
-test("a declared status line decides without the classifier", async () => {
-  const home = await mkdtemp(join(tmpdir(), "agentci-adapter-declared-"));
-  const previous = process.env.XDG_STATE_HOME;
-  process.env.XDG_STATE_HOME = home;
-  const sessionID = "ses_adapter12";
-  const store = new Harness([user("user_1", "Finish the task."), assistant("msg_1", "user_1", "I need your answer.\nSTATUS: WAITING_FOR_USER")]);
-  const captured: string[] = [];
-  const adapter = createModerationAdapter({ client: store.client }, options, classifierFetch("decision: AGENT_CONTINUING\nreason: WORK_REMAINS", captured));
-  try {
-    adapter.event({ event: { type: "session.status", properties: { sessionID, status: { type: "busy" } } } });
-    adapter.event({ event: { type: "session.status", properties: { sessionID, status: { type: "idle" } } } });
-    await store.waitFor(() => store.toasts.includes("agent-blocked"), "the declared status was not applied");
-    assert.equal(captured.length, 0, "a declared status must not call the classifier");
-    assert.equal(store.promptAsyncCalls.length, 0, "a declared handoff must not prompt a continuation");
-  } finally {
-    if (previous === undefined) delete process.env.XDG_STATE_HOME;
-    else process.env.XDG_STATE_HOME = previous;
-    await rm(home, { recursive: true, force: true });
-  }
-});
-
 test("a user message arriving during classification cancels the continuation", async () => {
   const home = await mkdtemp(join(tmpdir(), "agentci-adapter-race-"));
   const previous = process.env.XDG_STATE_HOME;
@@ -270,6 +240,7 @@ test("a user message arriving during classification cancels the continuation", a
   const store = new Harness([user("user_1", "Finish the task."), assistant("msg_1", "user_1", "I stopped early.")]);
   const fetchImpl = async (url: string, init?: RequestInit) => {
     if (url.endsWith("/input_tokens")) return new Response(JSON.stringify({ input_tokens: 64 }), { status: 200 });
+    if (booleanRequest(init)) return new Response(JSON.stringify({ choices: [{ finish_reason: "stop", message: { content: "NO" } }] }), { status: 200 });
     store.messages.push(user("user_2", "Wait, stop the work."));
     return new Response(JSON.stringify({ choices: [{ finish_reason: "stop", message: { content: "decision: AGENT_CONTINUING\nreason: WORK_REMAINS" } }] }), { status: 200 });
   };
@@ -403,15 +374,23 @@ function toastKind(title: string): string {
 function classifierFetch(verdict: string, captured: string[] = []): (url: string, init?: RequestInit) => Promise<Response> {
   return async (url, init) => {
     if (url.endsWith("/input_tokens")) return new Response(JSON.stringify({ input_tokens: 64 }), { status: 200 });
+    if (booleanRequest(init)) return new Response(JSON.stringify({ choices: [{ finish_reason: "stop", message: { content: "NO" } }] }), { status: 200 });
     captured.push(String(init?.body));
     return new Response(JSON.stringify({ choices: [{ finish_reason: "stop", message: { content: verdict } }] }), { status: 200 });
   };
+}
+
+function booleanRequest(init?: RequestInit): boolean {
+  if (typeof init?.body !== "string") return false;
+  const body = JSON.parse(init.body) as { grammar?: string };
+  return body.grammar === BOOLEAN_GRAMMAR;
 }
 
 function classifierSequence(verdicts: string[], captured: string[] = []): (url: string, init?: RequestInit) => Promise<Response> {
   let index = 0;
   return async (url, init) => {
     if (url.endsWith("/input_tokens")) return new Response(JSON.stringify({ input_tokens: 64 }), { status: 200 });
+    if (booleanRequest(init)) return new Response(JSON.stringify({ choices: [{ finish_reason: "stop", message: { content: "NO" } }] }), { status: 200 });
     captured.push(String(init?.body));
     const verdict = verdicts[Math.min(index, verdicts.length - 1)];
     index += 1;

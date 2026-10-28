@@ -73,6 +73,34 @@
       "hash": "00a90ec04e41dae1898dafd675506ae41703fab9f28ef4929f1b8456729fb9d7"
     },
     {
+      "id": "reducer-010c3571716c0315",
+      "provenance": {
+        "sessionID": "ses_e7d6edc47ffeYrr4hitRbHQJQA",
+        "decisionID": "1793192955888-14d4cb881f75"
+      },
+      "event": {
+        "type": "TRACE_PERSISTED",
+        "messageID": "msg_182a10feb001wFMHc0iqrWGRbC"
+      },
+      "previousState": {
+        "phase": "IDLE",
+        "inflightAssistantID": "msg_182a0e9070014oYnuf4YuQQhzk",
+        "lastTerminalAssistantID": "msg_182a0e9070014oYnuf4YuQQhzk",
+        "realUserCycleID": "msg_182a0e8f4001isfdlARH13GxnZ",
+        "consecutiveNoProgressCount": 0,
+        "blocker": null,
+        "compaction": {
+          "active": false
+        }
+      },
+      "expected": {
+        "ignored": true,
+        "nextPhase": "IDLE",
+        "decisionType": "trace-recorded"
+      },
+      "hash": "010c3571716c0315564ee5f43297062813509bcee583f78abdb513e0890d124a"
+    },
+    {
       "id": "reducer-0127799055076afa",
       "provenance": {
         "sessionID": "ses_eb70df548ffenFFppZFrc8XABX",
@@ -185,6 +213,76 @@
       "hash": "0228f104abc30c70997f08445dd3f1625435929b489516c98a5a005b85fd03bc"
     },
     {
+      "id": "reducer-02582c8d856c149d",
+      "provenance": {
+        "sessionID": "ses_e80c53348ffeS3LEN5wcfwmn3t",
+        "decisionID": "1793186238227-486275d5e54a"
+      },
+      "event": {
+        "type": "CONTEXT_LOADED",
+        "todos": [
+          {
+            "content": "Map all mounted-control camera paths (gun, flame gun, Goliath, Tank, Vulture)",
+            "status": "in_progress",
+            "priority": "high"
+          },
+          {
+            "content": "Implement KBM mounted-control detection and direct aim injection in xinput_device.c",
+            "status": "pending",
+            "priority": "high"
+          },
+          {
+            "content": "Commit runtime fix on toolkit fork",
+            "status": "pending",
+            "priority": "high"
+          },
+          {
+            "content": "Build and write diary",
+            "status": "pending",
+            "priority": "high"
+          },
+          {
+            "content": "Runtime test on Zergling Rush turret and user verification",
+            "status": "pending",
+            "priority": "medium"
+          }
+        ],
+        "assistantID": "msg_1823a8c68001wcFKfor71wh46A",
+        "terminal": false,
+        "assistantPresent": false,
+        "duplicate": false,
+        "compaction": false,
+        "planMode": false,
+        "build": true,
+        "assistantError": true,
+        "userNewer": false,
+        "moderatorTrace": false,
+        "rootBlocked": false,
+        "blockerDiscussionActive": false,
+        "blockerBranch": false,
+        "realUserCycleID": "msg_1818ae96b001dhJ21MD01k829n",
+        "newCycle": false,
+        "originUserID": "msg_1818ae96b001dhJ21MD01k829n"
+      },
+      "previousState": {
+        "phase": "OBSERVING",
+        "inflightAssistantID": null,
+        "lastTerminalAssistantID": "msg_18192a0a8001iik7Fo66dGup6Z",
+        "realUserCycleID": "msg_1818ae96b001dhJ21MD01k829n",
+        "consecutiveNoProgressCount": 0,
+        "blocker": null,
+        "compaction": {
+          "active": false
+        }
+      },
+      "expected": {
+        "ignored": true,
+        "nextPhase": "IDLE",
+        "decisionType": "ignored-cancellation"
+      },
+      "hash": "02582c8d856c149da99074aaf6ffe2146d5cd17e9060aca3a0838f438464ab9f"
+    },
+    {
       "id": "reducer-02c83a0f027739f6",
       "provenance": {
         "sessionID": "ses_e861133fcffeP1X1EABxMhaoOn",
@@ -270,6 +368,84 @@
       "hash": "06fd66582a6bf8c59babeb1b3b6aa46087a4ffd8a0039d1fc8d7cf859b565c92"
     },
     {
+      "id": "reducer-07ddbe147ce10514",
+      "provenance": {
+        "sessionID": "ses_ec8f858baffevETo4aj6XXioEH",
+        "decisionID": "1793191875306-33ba45862dac"
+      },
+      "event": {
+        "type": "CONTEXT_LOADED",
+        "todos": [
+          {
+            "content": "types.ts: drop busyGeneration/pendingIdleGenerations/generation; compaction to {active}",
+            "status": "completed",
+            "priority": "high"
+          },
+          {
+            "content": "machine.ts: remove counter logic, identity/phase gating, add normalizeRestoredState",
+            "status": "completed",
+            "priority": "high"
+          },
+          {
+            "content": "adapter.ts: ephemeral busy latch, drop generation, restore normalization",
+            "status": "completed",
+            "priority": "high"
+          },
+          {
+            "content": "Update machine + adapter tests; add restart regression test",
+            "status": "completed",
+            "priority": "high"
+          },
+          {
+            "content": "Update REQ + SPEC docs",
+            "status": "completed",
+            "priority": "medium"
+          },
+          {
+            "content": "typecheck, test, build+install, status-agentci, commit+push",
+            "status": "completed",
+            "priority": "high"
+          }
+        ],
+        "assistantID": "msg_182907d4c001ywB6tTYo8vIpAU",
+        "terminal": false,
+        "assistantPresent": false,
+        "duplicate": false,
+        "compaction": false,
+        "planMode": false,
+        "build": true,
+        "assistantError": true,
+        "userNewer": false,
+        "moderatorTrace": false,
+        "rootBlocked": false,
+        "blockerDiscussionActive": false,
+        "blockerBranch": false,
+        "realUserCycleID": "msg_182902663001g2sSvQ8Zt43ebd",
+        "newCycle": true,
+        "originUserID": "msg_182902663001g2sSvQ8Zt43ebd"
+      },
+      "previousState": {
+        "phase": "OBSERVING",
+        "inflightAssistantID": "msg_1828f8fff001dTW1Sdk2il8KPh",
+        "lastTerminalAssistantID": "msg_1828f8fff001dTW1Sdk2il8KPh",
+        "realUserCycleID": "msg_1828f8f91001IphTZIeJ7etOiT",
+        "consecutiveNoProgressCount": 0,
+        "blocker": {
+          "source": "agent-blocked",
+          "originUserID": "msg_1828f8f91001IphTZIeJ7etOiT"
+        },
+        "compaction": {
+          "active": false
+        }
+      },
+      "expected": {
+        "ignored": true,
+        "nextPhase": "IDLE",
+        "decisionType": "ignored-cancellation"
+      },
+      "hash": "07ddbe147ce10514384478920cc5af0560c1b33d19d9b92730e3bfbb96c476ef"
+    },
+    {
       "id": "reducer-0aa9b1d57f64cadb",
       "provenance": {
         "sessionID": "ses_e861133fcffeP1X1EABxMhaoOn",
@@ -315,6 +491,277 @@
         "decisionType": "ignored-nonterminal-assistant"
       },
       "hash": "0aa9b1d57f64cadb172ad9b7b8f94937acb5d8492d0e592f6eb7db3595103470"
+    },
+    {
+      "id": "reducer-107e65fba85d43d6",
+      "provenance": {
+        "sessionID": "ses_ec8f858baffevETo4aj6XXioEH",
+        "decisionID": "1793191731483-10413a545798"
+      },
+      "event": {
+        "type": "TRACE_PERSISTED",
+        "messageID": "msg_1828e6115001wP0LovMHAFjTNf"
+      },
+      "previousState": {
+        "phase": "IDLE",
+        "inflightAssistantID": "msg_1828e3c99001pXk16DcOHUH3W4",
+        "lastTerminalAssistantID": "msg_1828e3c99001pXk16DcOHUH3W4",
+        "realUserCycleID": "msg_1828e3c3b001de3QvkLkF012Cc",
+        "consecutiveNoProgressCount": 0,
+        "blocker": {
+          "source": "agent-blocked",
+          "originUserID": "msg_1828e3c3b001de3QvkLkF012Cc"
+        },
+        "compaction": {
+          "active": false
+        }
+      },
+      "expected": {
+        "ignored": true,
+        "nextPhase": "IDLE",
+        "decisionType": "trace-recorded"
+      },
+      "hash": "107e65fba85d43d6cc4ec065694291acd92306d9729c685f2f953757cc188a4a"
+    },
+    {
+      "id": "reducer-112400eb022efd6d",
+      "provenance": {
+        "sessionID": "ses_ec8f858baffevETo4aj6XXioEH",
+        "decisionID": "1793195092773-6c3a515eedcc"
+      },
+      "event": {
+        "type": "CONTEXT_LOADED",
+        "todos": [
+          {
+            "content": "Fix 1B classifier logic so 300/300 real extracted cases classify correctly and deterministically",
+            "status": "in_progress",
+            "priority": "high"
+          }
+        ],
+        "assistantID": "msg_182c0bf02002YdH0HbOX97MY3Z",
+        "terminal": false,
+        "assistantPresent": false,
+        "duplicate": false,
+        "compaction": false,
+        "planMode": false,
+        "build": true,
+        "assistantError": true,
+        "userNewer": false,
+        "moderatorTrace": false,
+        "rootBlocked": false,
+        "blockerDiscussionActive": false,
+        "blockerBranch": false,
+        "realUserCycleID": "msg_182c0be910017QA6AfmYwCFf0L",
+        "newCycle": true,
+        "originUserID": "msg_182c0be910017QA6AfmYwCFf0L"
+      },
+      "previousState": {
+        "phase": "OBSERVING",
+        "inflightAssistantID": "msg_182bfe52f002GChPTGU4HCpQQ2",
+        "lastTerminalAssistantID": "msg_182bfe52f002GChPTGU4HCpQQ2",
+        "realUserCycleID": "msg_182bb037a001SWxxnr4IifXCJW",
+        "consecutiveNoProgressCount": 0,
+        "blocker": {
+          "source": "agent-blocked",
+          "originUserID": "msg_182bb037a001SWxxnr4IifXCJW"
+        },
+        "compaction": {
+          "active": false
+        }
+      },
+      "expected": {
+        "ignored": true,
+        "nextPhase": "IDLE",
+        "decisionType": "ignored-cancellation"
+      },
+      "hash": "112400eb022efd6d17b5281f5eed5d3c116366edcc60c9fd4528a092287ae2ca"
+    },
+    {
+      "id": "reducer-4c59c8980c449c02",
+      "provenance": {
+        "sessionID": "ses_e80c53348ffeS3LEN5wcfwmn3t",
+        "decisionID": "1793195749630-8eb2e651b9b6"
+      },
+      "event": {
+        "type": "STATUS_IDLE"
+      },
+      "previousState": {
+        "phase": "IDLE",
+        "inflightAssistantID": null,
+        "lastTerminalAssistantID": "msg_182c111b3001Se51KAOxDkUtw9",
+        "realUserCycleID": "msg_1818ae96b001dhJ21MD01k829n",
+        "consecutiveNoProgressCount": 0,
+        "blocker": {
+          "source": "agent-blocked",
+          "originUserID": "msg_1818ae96b001dhJ21MD01k829n"
+        },
+        "compaction": {
+          "active": false
+        }
+      },
+      "expected": {
+        "ignored": true,
+        "nextPhase": "IDLE",
+        "decisionType": "idle-outside-observation"
+      },
+      "hash": "4c59c8980c449c0226a978f2fb64dc4d0a60554841dac53c6a7778a437964f77"
+    },
+    {
+      "id": "reducer-9068831aa264c4b1",
+      "provenance": {
+        "sessionID": "ses_e80c53348ffeS3LEN5wcfwmn3t",
+        "decisionID": "1793196114382-94b771649d3b"
+      },
+      "event": {
+        "type": "CONTEXT_LOADED",
+        "todos": [
+          {
+            "content": "Map all mounted-control camera paths (gun, flame gun, Goliath, Tank, Vulture)",
+            "status": "in_progress",
+            "priority": "high"
+          },
+          {
+            "content": "Implement KBM mounted-control detection and direct aim injection in xinput_device.c",
+            "status": "pending",
+            "priority": "high"
+          },
+          {
+            "content": "Commit runtime fix on toolkit fork",
+            "status": "pending",
+            "priority": "high"
+          },
+          {
+            "content": "Build and write diary",
+            "status": "pending",
+            "priority": "high"
+          },
+          {
+            "content": "Runtime test on Zergling Rush turret and user verification",
+            "status": "pending",
+            "priority": "medium"
+          }
+        ],
+        "assistantID": "msg_182d13999001x84QWhWOSkqg9o",
+        "terminal": false,
+        "assistantPresent": false,
+        "duplicate": false,
+        "compaction": false,
+        "planMode": false,
+        "build": true,
+        "assistantError": true,
+        "userNewer": false,
+        "moderatorTrace": false,
+        "rootBlocked": false,
+        "blockerDiscussionActive": true,
+        "blockerBranch": true,
+        "realUserCycleID": "msg_1818ae96b001dhJ21MD01k829n",
+        "newCycle": false,
+        "originUserID": "msg_1818ae96b001dhJ21MD01k829n"
+      },
+      "previousState": {
+        "phase": "OBSERVING",
+        "inflightAssistantID": null,
+        "lastTerminalAssistantID": "msg_182c111b3001Se51KAOxDkUtw9",
+        "realUserCycleID": "msg_1818ae96b001dhJ21MD01k829n",
+        "consecutiveNoProgressCount": 0,
+        "blocker": {
+          "source": "agent-blocked",
+          "originUserID": "msg_1818ae96b001dhJ21MD01k829n"
+        },
+        "compaction": {
+          "active": false
+        }
+      },
+      "expected": {
+        "ignored": true,
+        "nextPhase": "IDLE",
+        "decisionType": "ignored-cancellation"
+      },
+      "hash": "9068831aa264c4b16d89668561a28a8b16520f63a187e2381ca47e9a522d0d36"
+    },
+    {
+      "id": "reducer-970b2c59c2817844",
+      "provenance": {
+        "sessionID": "ses_ec8f858baffevETo4aj6XXioEH",
+        "decisionID": "1793195896883-08fda35ebaff"
+      },
+      "event": {
+        "type": "TRACE_PERSISTED",
+        "messageID": "msg_182cdf02000182EkDOVgh05rx5"
+      },
+      "previousState": {
+        "phase": "IDLE",
+        "inflightAssistantID": "msg_182cdd3d4001OOnzrAB1nNC0Ax",
+        "lastTerminalAssistantID": "msg_182cdd3d4001OOnzrAB1nNC0Ax",
+        "realUserCycleID": "msg_182c9c008001No5SIBwXXqo1j5",
+        "consecutiveNoProgressCount": 0,
+        "blocker": {
+          "source": "agent-blocked",
+          "originUserID": "msg_182c9c008001No5SIBwXXqo1j5"
+        },
+        "compaction": {
+          "active": false
+        }
+      },
+      "expected": {
+        "ignored": true,
+        "nextPhase": "IDLE",
+        "decisionType": "trace-recorded"
+      },
+      "hash": "970b2c59c281784487306d5b730b847fbd36156f4f28bd7b97bbec47bbf25a32"
+    },
+    {
+      "id": "reducer-9f6486abf6dce5f9",
+      "provenance": {
+        "sessionID": "ses_ec8f858baffevETo4aj6XXioEH",
+        "decisionID": "1793196128428-490042434e68"
+      },
+      "event": {
+        "type": "CONTEXT_LOADED",
+        "todos": [
+          {
+            "content": "Fix 1B classifier logic so 300/300 real extracted cases classify correctly and deterministically",
+            "status": "in_progress",
+            "priority": "high"
+          }
+        ],
+        "assistantID": "msg_182d173e100165PcXePGeT6A22",
+        "terminal": false,
+        "assistantPresent": false,
+        "duplicate": false,
+        "compaction": false,
+        "planMode": false,
+        "build": true,
+        "assistantError": true,
+        "userNewer": false,
+        "moderatorTrace": false,
+        "rootBlocked": false,
+        "blockerDiscussionActive": false,
+        "blockerBranch": false,
+        "realUserCycleID": "msg_182d17373001wjDHF253E20z6n",
+        "newCycle": true,
+        "originUserID": "msg_182d17373001wjDHF253E20z6n"
+      },
+      "previousState": {
+        "phase": "OBSERVING",
+        "inflightAssistantID": "msg_182cdd3d4001OOnzrAB1nNC0Ax",
+        "lastTerminalAssistantID": "msg_182cdd3d4001OOnzrAB1nNC0Ax",
+        "realUserCycleID": "msg_182c9c008001No5SIBwXXqo1j5",
+        "consecutiveNoProgressCount": 0,
+        "blocker": {
+          "source": "agent-blocked",
+          "originUserID": "msg_182c9c008001No5SIBwXXqo1j5"
+        },
+        "compaction": {
+          "active": false
+        }
+      },
+      "expected": {
+        "ignored": true,
+        "nextPhase": "IDLE",
+        "decisionType": "ignored-cancellation"
+      },
+      "hash": "9f6486abf6dce5f9bcf000694b69f810dfe792538f278dd64d81e4dfde625919"
     },
     {
       "id": "reducer-e29e0d3d23d061e1",
@@ -369,6 +816,79 @@
         "decisionType": "idle-outside-observation"
       },
       "hash": "f05748e3276414c437199a6e2ea3b21ed0c6259b916a444673de255f0d6e3d66"
+    },
+    {
+      "id": "reducer-f93ca4c0fcc4c1c4",
+      "provenance": {
+        "sessionID": "ses_e80c53348ffeS3LEN5wcfwmn3t",
+        "decisionID": "1793195749630-d396212146b0"
+      },
+      "event": {
+        "type": "CONTEXT_LOADED",
+        "todos": [
+          {
+            "content": "Map all mounted-control camera paths (gun, flame gun, Goliath, Tank, Vulture)",
+            "status": "in_progress",
+            "priority": "high"
+          },
+          {
+            "content": "Implement KBM mounted-control detection and direct aim injection in xinput_device.c",
+            "status": "pending",
+            "priority": "high"
+          },
+          {
+            "content": "Commit runtime fix on toolkit fork",
+            "status": "pending",
+            "priority": "high"
+          },
+          {
+            "content": "Build and write diary",
+            "status": "pending",
+            "priority": "high"
+          },
+          {
+            "content": "Runtime test on Zergling Rush turret and user verification",
+            "status": "pending",
+            "priority": "medium"
+          }
+        ],
+        "assistantID": "msg_182cba1d30015TCxLaeg3BdGbA",
+        "terminal": false,
+        "assistantPresent": false,
+        "duplicate": false,
+        "compaction": false,
+        "planMode": false,
+        "build": true,
+        "assistantError": true,
+        "userNewer": false,
+        "moderatorTrace": false,
+        "rootBlocked": false,
+        "blockerDiscussionActive": true,
+        "blockerBranch": true,
+        "realUserCycleID": "msg_1818ae96b001dhJ21MD01k829n",
+        "newCycle": false,
+        "originUserID": "msg_1818ae96b001dhJ21MD01k829n"
+      },
+      "previousState": {
+        "phase": "OBSERVING",
+        "inflightAssistantID": null,
+        "lastTerminalAssistantID": "msg_182c111b3001Se51KAOxDkUtw9",
+        "realUserCycleID": "msg_1818ae96b001dhJ21MD01k829n",
+        "consecutiveNoProgressCount": 0,
+        "blocker": {
+          "source": "agent-blocked",
+          "originUserID": "msg_1818ae96b001dhJ21MD01k829n"
+        },
+        "compaction": {
+          "active": false
+        }
+      },
+      "expected": {
+        "ignored": true,
+        "nextPhase": "IDLE",
+        "decisionType": "ignored-cancellation"
+      },
+      "hash": "f93ca4c0fcc4c1c4fb94d4702b2c4bd758fb67ceb6d778d41a63d2facd78ce6b"
     }
   ]
 }

@@ -147,9 +147,9 @@ session stay idle.
     adapter SHALL not request self-certification or a second adjudication of the
     same classifier input.
 16. `AGENT_CONTINUING` and `AGENT_STALLED` SHALL send a corrective prompt to the
-    same session with `promptAsync`. The prompt SHALL be a single concise status
-    line that also instructs the agent to continue. It SHALL be sent as one
-    message with two parts, both carrying moderation metadata: a synthetic
+    same session with `promptAsync`. The directive SHALL instruct the agent to
+    continue and SHALL NOT request any self-certification status line. It SHALL
+    be sent as one message with two parts, both carrying moderation metadata: a synthetic
     directive (persisted and delivered to the next agent turn, not rendered) and
     a short visible note (rendered in the transcript so the operator can see why
     the moderator spoke). Moderator-generated prompts SHALL be identified by
@@ -159,14 +159,6 @@ session stay idle.
     unfinished and that the agent must continue unless the operator or the
     system has explicitly requested a halt. It SHALL NOT instruct the agent to
     disregard an explicit halt or to suppress an explanation the user requested.
-    It SHALL require the agent to end its response with a single declared
-    status line: `STATUS: COMPLETE`, `STATUS: WAITING_FOR_USER`,
-    `STATUS: WAITING_FOR_OPERATOR`, or `STATUS: STOPPED`.
-17a. The plugin SHALL append the same status protocol to every system prompt
-    through `experimental.chat.system.transform`, so that responses to a fresh
-    user request also declare a status. A response ending with a declared status
-    line SHALL decide the verdict without a classifier request, using the same
-    resolution path as the live adapter and the replay path.
 18. The plugin SHALL show client-visible feedback while checking, on
     `AGENT_COMPLETE`, on `AGENT_BLOCKED`, on `AGENT_STOPPED`, and when issuing a
     corrective prompt.

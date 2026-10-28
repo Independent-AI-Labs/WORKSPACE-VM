@@ -1,0 +1,1 @@
+Does the response ask the user to perform an action outside the agent (run, test, play, click, press, reproduce, observe, watch, listen, check, confirm) or to report an observed result? Answer YES or NO.

@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { CLASSIFIER_FORMAT_RETRIES, CLASSIFIER_SEED, CLASSIFIER_TIMEOUT_MS, MAX_COMPLETION_TOKENS, MAX_INPUT_TOKENS, MINICPM_MODEL_ID, MODERATION_GRAMMAR, type ModerationOptions } from "./config.ts";
+import { BOOLEAN_GRAMMAR, CLASSIFIER_FORMAT_RETRIES, CLASSIFIER_SEED, CLASSIFIER_TIMEOUT_MS, MAX_COMPLETION_TOKENS, MAX_INPUT_TOKENS, MINICPM_MODEL_ID, MODERATION_GRAMMAR, type ModerationOptions } from "./config.ts";
 import { EMPTY_USER_PROMPT, summarizeTodos } from "./context.ts";
 import type { ChatMessage, ClassifierCapture, ReasonCode, Ruling, TodoFact, Verdict, VerdictDecision } from "./types.ts";
 
@@ -32,6 +32,8 @@ export function loadPrompt(name: string): string {
 }
 
 export const SYSTEM_PROMPT = loadPrompt("classifier-system.txt");
+const REASON_PROMPT = loadPrompt("classifier-reason.txt").trimEnd();
+const USER_ACTION_PROMPT = loadPrompt("classifier-user-action.txt").trimEnd();
 
 const VALID_DECISIONS: Record<string, readonly ReasonCode[]> = {
   AGENT_COMPLETE: ["WORK_COMPLETE"],
@@ -42,7 +44,90 @@ const VALID_DECISIONS: Record<string, readonly ReasonCode[]> = {
 };
 
 export async function classify(options: ModerationOptions, input: ClassifyInput, fetchImpl: FetchLike = fetch): Promise<ClassifyOutcome> {
-  return classifyWithPrompt(options, input, SYSTEM_PROMPT, fetchImpl);
+  const first = await classifyWithPrompt(options, input, SYSTEM_PROMPT, fetchImpl);
+  if (first.formatError || !first.verdict) return first;
+  if (first.verdict.decision === "AGENT_BLOCKED") {
+    const reason = await askBoolean(options, input, REASON_PROMPT, fetchImpl);
+    if (reason.formatError || reason.answer === undefined) return reason;
+    return {
+      verdict: verdictFor("AGENT_BLOCKED", reason.answer ? "AWAITING_OPERATOR" : "AWAITING_USER"),
+      capture: mergeCapture(first.capture, reason.capture),
+      formatError: false,
+    };
+  }
+  const action = await askBoolean(options, input, USER_ACTION_PROMPT, fetchImpl);
+  if (action.formatError || action.answer === undefined) return action;
+  if (!action.answer) return first;
+  const reason = await askBoolean(options, input, REASON_PROMPT, fetchImpl);
+  if (reason.formatError || reason.answer === undefined) return reason;
+  return {
+    verdict: verdictFor("AGENT_BLOCKED", reason.answer ? "AWAITING_OPERATOR" : "AWAITING_USER"),
+    capture: mergeCapture(mergeCapture(first.capture, action.capture), reason.capture),
+    formatError: false,
+  };
+}
+
+function mergeCapture(base: ClassifierCapture, extra: ClassifierCapture): ClassifierCapture {
+  return {
+    ...extra,
+    attempts: base.attempts + extra.attempts,
+    durationMs: base.durationMs + extra.durationMs,
+  };
+}
+
+async function askBoolean(options: ModerationOptions, input: ClassifyInput, prompt: string, fetchImpl: FetchLike): Promise<ClassifyOutcome & { answer?: boolean }> {
+  const startedAt = Date.now();
+  const messages: ChatMessage[] = [
+    { role: "system", content: prompt },
+    { role: "user", content: buildPayload(input) },
+  ];
+  let attemptCount = 0;
+  let lastMessages = messages;
+  let lastCompletion = "";
+  let lastFinish = "";
+  const capture = (): ClassifierCapture => ({
+    messages: lastMessages,
+    completion: lastCompletion,
+    finishReason: lastFinish,
+    model: options.model,
+    sampling: { ...SAMPLING },
+    attempts: attemptCount,
+    durationMs: Date.now() - startedAt,
+  });
+  for (let attempt = 0; attempt < CLASSIFIER_FORMAT_RETRIES; attempt += 1) {
+    attemptCount = attempt + 1;
+    const trimmed = await trimToBudget(options, messages, fetchImpl);
+    lastMessages = trimmed;
+    const response = await requestCompletion(options, trimmed, fetchImpl, BOOLEAN_GRAMMAR);
+    lastCompletion = response.content;
+    lastFinish = response.finishReason;
+    if (response.finishReason !== "stop") {
+      if (attempt + 1 === CLASSIFIER_FORMAT_RETRIES) return { capture: capture(), formatError: true, error: `classifier finished with reason '${response.finishReason}'` };
+      continue;
+    }
+    const answer = parseBoolean(response.content);
+    if (answer !== undefined) return { answer, capture: capture(), formatError: false };
+  }
+  return { capture: capture(), formatError: true, error: "classifier did not return a valid answer" };
+}
+
+export function parseBoolean(content: string): boolean | undefined {
+  const normalized = content.trim();
+  if (normalized === "YES") return true;
+  if (normalized === "NO") return false;
+  return undefined;
+}
+
+function buildPayload(input: ClassifyInput): string {
+  const sections = [
+    "The agent's latest response (judge this):",
+    input.previousResponse,
+    "",
+    "User request(s):",
+    input.userMessages.length > 0 ? input.userMessages.map((message) => `- ${message.trim().length > 0 ? message : EMPTY_USER_PROMPT}`).join("\n") : "- (none recorded)",
+  ];
+  if (input.todos.length > 0) sections.push("", "Tracked todos:", summarizeTodos(input.todos));
+  return sections.join("\n");
 }
 
 export async function classifyWithPrompt(options: ModerationOptions, input: ClassifyInput, systemPrompt: string, fetchImpl: FetchLike = fetch): Promise<ClassifyOutcome> {
@@ -89,7 +174,7 @@ export function buildMessages(input: ClassifyInput, systemPrompt: string = SYSTE
     input.userMessages.length > 0 ? input.userMessages.map((message) => `- ${message.trim().length > 0 ? message : EMPTY_USER_PROMPT}`).join("\n") : "- (none recorded)",
   ];
   if (input.todos.length > 0) sections.push("", "Tracked todos:", summarizeTodos(input.todos));
-  sections.push("", "Reminder: if the response asks the user to run, test, play, listen, look, check, confirm, report, or decide something, choose AGENT_BLOCKED.");
+  sections.push("", "Reminder. Apply these in order and stop at the first match:", "1. The response asks the user to run, test, play, click, press, try, reproduce, observe, watch, listen, check, confirm, or report a result -> decision: AGENT_BLOCKED, reason: AWAITING_OPERATOR.", "2. The response only asks the user to answer, decide, approve, or clarify -> decision: AGENT_BLOCKED, reason: AWAITING_USER. A question the response answers itself is not a handoff.", "2a. If the response states what the agent itself will do next and does not ask the user to act or answer, choose decision: AGENT_CONTINUING, reason: WORK_REMAINS.", "3. The last real user message says halt, stop, cancel, abort, or wait -> decision: AGENT_STOPPED, reason: USER_STOP.", "4. The request is fully done -> decision: AGENT_COMPLETE, reason: WORK_COMPLETE.", "5. The agent can keep working alone -> decision: AGENT_CONTINUING, reason: WORK_REMAINS.", "6. Otherwise -> decision: AGENT_STALLED, reason: NO_PROGRESS.");
   return [
     { role: "system", content: systemPrompt },
     { role: "user", content: sections.join("\n") },
@@ -159,7 +244,7 @@ interface CompletionResult {
   finishReason: string;
 }
 
-async function requestCompletion(options: ModerationOptions, messages: ChatMessage[], fetchImpl: FetchLike): Promise<CompletionResult> {
+async function requestCompletion(options: ModerationOptions, messages: ChatMessage[], fetchImpl: FetchLike, grammar: string = MODERATION_GRAMMAR): Promise<CompletionResult> {
   const response = await fetchImpl(`${options.gatewayURL}/v1/chat/completions`, {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -172,7 +257,7 @@ async function requestCompletion(options: ModerationOptions, messages: ChatMessa
       min_p: SAMPLING.min_p,
       seed: SAMPLING.seed,
       max_tokens: SAMPLING.max_tokens,
-      grammar: MODERATION_GRAMMAR,
+      grammar,
       cache_prompt: false,
       stream: false,
     }),

@@ -781,6 +781,20 @@
       }
     },
     {
+      "id": "op-work-then-click-then-next",
+      "provenance": {
+        "sessionID": null,
+        "assistantID": null,
+        "decisionID": null
+      },
+      "expectedDecision": "AGENT_BLOCKED",
+      "expectedReason": "AWAITING_OPERATOR",
+      "forbiddenDecisions": [],
+      "labelSource": "operator",
+      "hash": "7e5dc306534ab5d926830e639265ef1d2db6a88a97cb7d8318b873cdc1202279",
+      "transcript": "transcripts/7e5dc306534ab5d926830e639265ef1d2db6a88a97cb7d8318b873cdc1202279.json"
+    },
+    {
       "id": "mined-7ea02152fd8947ed",
       "provenance": {
         "sessionID": "ses_e861133fcffeP1X1EABxMhaoOn",
@@ -890,6 +904,28 @@
         "decision": "AGENT_CONTINUING",
         "reasonCode": "WORK_REMAINS",
         "signal": "aborted",
+        "source": "transcript"
+      }
+    },
+    {
+      "id": "mined-902b5548e3c058f7",
+      "provenance": {
+        "sessionID": "ses_ec8f858baffevETo4aj6XXioEH",
+        "assistantID": "msg_182b605de002LvK90sl4BMVqII",
+        "decisionID": "1793194340705-cb13466d62d8"
+      },
+      "expectedDecision": null,
+      "expectedReason": null,
+      "forbiddenDecisions": [
+        "AGENT_COMPLETE"
+      ],
+      "labelSource": "mined",
+      "hash": "902b5548e3c058f714b7b2f077e76be76b6153f3789da11d15b41a8592c3dee0",
+      "transcript": "transcripts/902b5548e3c058f714b7b2f077e76be76b6153f3789da11d15b41a8592c3dee0.json",
+      "observed": {
+        "decision": "AGENT_COMPLETE",
+        "reasonCode": "WORK_COMPLETE",
+        "signal": "removed",
         "source": "transcript"
       }
     },
@@ -1020,6 +1056,20 @@
         "signal": "aborted",
         "source": "transcript"
       }
+    },
+    {
+      "id": "op-click-then-try-with-open-todos",
+      "provenance": {
+        "sessionID": null,
+        "assistantID": null,
+        "decisionID": null
+      },
+      "expectedDecision": "AGENT_BLOCKED",
+      "expectedReason": "AWAITING_OPERATOR",
+      "forbiddenDecisions": [],
+      "labelSource": "operator",
+      "hash": "b0b9958226dd0a67930d885c4790130fb035d4edab6ec73d4058117c4ea08e5b",
+      "transcript": "transcripts/b0b9958226dd0a67930d885c4790130fb035d4edab6ec73d4058117c4ea08e5b.json"
     },
     {
       "id": "mined-b0bf59d0de5fe8a8",

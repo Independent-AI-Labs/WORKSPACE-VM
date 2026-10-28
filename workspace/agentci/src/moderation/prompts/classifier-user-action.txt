@@ -1,0 +1,5 @@
+Does the response tell the user to do something outside the agent (click, press, play, run, test, try, enter, open, restart, launch, reproduce, observe, watch, listen, grant access) or to report back what they see or get?
+
+Answer YES when the user must act or observe before the agent can proceed, even if the agent also says what it will do afterward.
+
+Answer NO when the response only describes the agent's own past or future work, asks the user to decide or approve, or reports completion.

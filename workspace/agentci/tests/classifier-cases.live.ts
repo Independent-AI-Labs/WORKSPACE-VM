@@ -28,6 +28,7 @@ test("mined classifier cases honor their exact or forbidden decision", { timeout
   const prompt = PROMPT_PATH === undefined ? null : await readFile(PROMPT_PATH, "utf8");
   const failures: string[] = [];
   const observed = new Map<string, number>();
+  const firstVerdict = new Map<string, string>();
   let total = 0;
   for (let run = 1; run <= REPEAT; run += 1) {
     for (const value of cases) {
@@ -39,7 +40,11 @@ test("mined classifier cases honor their exact or forbidden decision", { timeout
         continue;
       }
       const verdict = outcome.verdict;
-      observed.set(`${verdict.decision}/${verdict.reasonCode}`, (observed.get(`${verdict.decision}/${verdict.reasonCode}`) ?? 0) + 1);
+      const label = `${verdict.decision}/${verdict.reasonCode}`;
+      const prior = firstVerdict.get(value.id);
+      if (prior === undefined) firstVerdict.set(value.id, label);
+      else if (prior !== label) failures.push(`run ${run} ${value.id}: nondeterministic ${prior} then ${label}`);
+      observed.set(label, (observed.get(label) ?? 0) + 1);
       const detail = scoreClassifierCase(value, verdict);
       if (detail === null) {
         if (REPORT) console.log(`PASS run ${run} ${value.id} ${verdict.decision}/${verdict.reasonCode}`);

@@ -296,6 +296,71 @@
       "expectedReason": "WORK_REMAINS",
       "forbiddenDecisions": [],
       "labelSource": "operator"
+    },
+    {
+      "id": "op-work-then-click-then-next",
+      "provenance": {
+        "sessionID": null,
+        "assistantID": null,
+        "decisionID": null
+      },
+      "inputs": {
+        "previousResponse": "Found it. The game was unfocused, so the cutscene was paused. I focused it; cut went from 1 to 0 and the camera started moving. Click back into the game and let the turret cutscene finish. Then try mouse look.",
+        "userMessages": [
+          "check the turret cutscene and mouse look"
+        ],
+        "todos": [
+          {
+            "status": "in_progress",
+            "content": "Verify the turret cutscene"
+          }
+        ]
+      },
+      "expectedDecision": "AGENT_BLOCKED",
+      "expectedReason": "AWAITING_OPERATOR",
+      "forbiddenDecisions": [],
+      "labelSource": "operator"
+    },
+    {
+      "id": "op-click-then-try-with-open-todos",
+      "provenance": {
+        "sessionID": null,
+        "assistantID": null,
+        "decisionID": null
+      },
+      "inputs": {
+        "previousResponse": "Found it. The game was unfocused, so the cutscene was paused. I focused it; cut went from 1 to 0 and the camera started moving. Click back into the game and let the turret cutscene finish. Then try mouse look.",
+        "userMessages": [
+          "THE TURRET CUTSCENE IS STILL STUCK",
+          "OK BITCH FIX THE MOUNTED CONTROLS"
+        ],
+        "todos": [
+          {
+            "status": "in_progress",
+            "content": "Map all mounted-control camera paths (gun, flame gun, Goliath, Tank, Vulture)"
+          },
+          {
+            "status": "pending",
+            "content": "Implement KBM mounted-control detection and direct aim injection in xinput_device.c"
+          },
+          {
+            "status": "pending",
+            "content": "Commit runtime fix on toolkit fork"
+          },
+          {
+            "status": "pending",
+            "content": "Build and write diary"
+          },
+          {
+            "status": "pending",
+            "content": "Runtime test on Zergling Rush turret and user verification"
+          }
+        ]
+      },
+      "expectedDecision": "AGENT_BLOCKED",
+      "expectedReason": "AWAITING_OPERATOR",
+      "forbiddenDecisions": [],
+      "labelSource": "operator"
     }
   ]
 }

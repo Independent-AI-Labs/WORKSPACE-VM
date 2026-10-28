@@ -48,14 +48,9 @@ export default {
     }
     if (moderation !== null) {
       const adapter = createModerationAdapter(input, moderation);
-      const policyTransform = hooks["experimental.chat.system.transform"] as ((transformInput: V1SystemTransformInput, transformOutput: V1SystemTransformOutput) => Promise<void>) | undefined;
       hooks.event = adapter.event;
       hooks["experimental.session.compacting"] = adapter["experimental.session.compacting"];
       hooks["experimental.compaction.autocontinue"] = adapter["experimental.compaction.autocontinue"];
-      hooks["experimental.chat.system.transform"] = async (transformInput: V1SystemTransformInput, transformOutput: V1SystemTransformOutput) => {
-        if (policyTransform !== undefined) await policyTransform(transformInput, transformOutput);
-        await adapter["experimental.chat.system.transform"](transformInput, transformOutput);
-      };
       if (runModRequested()) {
         void runReplay(input.client as unknown as ReplayClient, moderation, process.env.AGENTCI_RUN_MOD_SESSION);
       }

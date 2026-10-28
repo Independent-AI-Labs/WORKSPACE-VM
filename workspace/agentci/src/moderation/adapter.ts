@@ -9,7 +9,6 @@ import type { ContextSnapshot, Effect, MessageFact, ModerationEvent, ModerationS
 const CONTINUATION_LINE = loadPrompt("continuation.txt").trimEnd();
 const CONTINUATION_NOTE = loadPrompt("continuation-note.txt").trimEnd();
 const OPERATOR_LINE = loadPrompt("operator.txt").trimEnd();
-const STATUS_INSTRUCTION = loadPrompt("status-protocol.txt").trimEnd();
 const CONTEXT_TIMEOUT_MS = 15000;
 const BUSY_POLL_ATTEMPTS = 50;
 const BUSY_POLL_INTERVAL_MS = 100;
@@ -71,7 +70,6 @@ export interface ModerationAdapter {
   event(input: { event: OpenCodeEvent }): void;
   "experimental.session.compacting"(input: { sessionID?: string }): Promise<void>;
   "experimental.compaction.autocontinue"(input: { sessionID?: string }): Promise<void>;
-  "experimental.chat.system.transform"(input: { sessionID?: string }, output: { system: string[] }): Promise<void>;
 }
 
 interface OpenCodeEvent {
@@ -270,9 +268,6 @@ export function createModerationAdapter(input: ModerationServerInput, options: M
     },
     async "experimental.compaction.autocontinue"(hookInput) {
       sessionEvent(hookInput.sessionID, { type: "COMPACTION_AUTOCONTINUE" });
-    },
-    async "experimental.chat.system.transform"(_hookInput, hookOutput) {
-      if (!hookOutput.system.includes(STATUS_INSTRUCTION)) hookOutput.system.push(STATUS_INSTRUCTION);
     },
   };
 }

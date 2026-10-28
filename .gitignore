@@ -203,3 +203,10 @@ docs/benchmarking/llamafile-context-audit/
 
 *.coverage.*
 .coverage.*
+
+# Rejected classifier cascade leftovers (unlink blocked in this sandbox)
+workspace/agentci/src/moderation/prompts/classifier-action.txt
+workspace/agentci/src/moderation/prompts/classifier-complete.txt
+workspace/agentci/src/moderation/prompts/classifier-halt.txt
+workspace/agentci/src/moderation/prompts/classifier-progress.txt
+workspace/agentci/src/moderation/prompts/classifier-waiting.txt

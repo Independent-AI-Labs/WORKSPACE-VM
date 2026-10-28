@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { buildMessages, classify, parseVerdict, SYSTEM_PROMPT, type FetchLike } from "../src/moderation/classifier.ts";
-import { MAX_INPUT_TOKENS, MODERATION_GRAMMAR, resolveModerationOptions } from "../src/moderation/config.ts";
+import { BOOLEAN_GRAMMAR, MAX_INPUT_TOKENS, MODERATION_GRAMMAR, resolveModerationOptions } from "../src/moderation/config.ts";
 
 const options = { gatewayURL: "http://127.0.0.1:9080/llamafile", model: "/zip/MiniCPM5-1B-Q8_0.gguf" };
 const input = { todos: [], previousResponse: "Done.", userMessages: ["Do the thing."] };
@@ -40,7 +40,7 @@ test("buildMessages omits the todos section when there are no tracked todos", ()
 
 test("the system prompt prioritizes handoffs and has no trailing continue bias", () => {
   assert.match(SYSTEM_PROMPT, /The agent's latest response is the decision target\./);
-  assert.match(SYSTEM_PROMPT, /Asking the user to do something and report back is a handoff, not progress\./);
+  assert.match(SYSTEM_PROMPT, /Step 1 always beats step 2\. A request to act and report a result is AWAITING_OPERATOR, not AWAITING_USER\./);
   assert.match(SYSTEM_PROMPT, /Listing remaining work, proposing a plan, or promising future work without asking the user to act is not a handoff\./);
   assert.match(SYSTEM_PROMPT, /An empty or whitespace-only user message is an interruption artifact, not a halt\./);
   assert.match(SYSTEM_PROMPT, /Reproduce the flare now/);
@@ -94,6 +94,25 @@ test("classify retries malformed output before returning a verdict", async () =>
   assert.equal(calls, 2);
 });
 
+test("classify overrides a continuing verdict when the response asks the user to act", async () => {
+  const result = await classify(options, input, router({
+    tokens: 100,
+    completion: { finish: "stop", content: "decision: AGENT_CONTINUING\nreason: WORK_REMAINS" },
+  }, 100, "YES"));
+  assert.equal(result.verdict?.decision, "AGENT_BLOCKED");
+  assert.equal(result.verdict?.reasonCode, "AWAITING_OPERATOR");
+  assert.equal(result.capture.attempts, 3);
+});
+
+test("classify keeps the verdict when the response asks the user to do nothing", async () => {
+  const result = await classify(options, input, router({
+    tokens: 100,
+    completion: { finish: "stop", content: "decision: AGENT_CONTINUING\nreason: WORK_REMAINS" },
+  }));
+  assert.equal(result.verdict?.decision, "AGENT_CONTINUING");
+  assert.equal(result.capture.attempts, 1);
+});
+
 test("classify fails after exhausting format retries", async () => {
   const result = await classify(options, input, router({ tokens: 100, completion: { finish: "stop", content: "nope" } }));
   assert.equal(result.formatError, true);
@@ -115,6 +134,7 @@ test("classify trims the prompt to the fixed token budget", async () => {
       calls.push(tokens);
       return new Response(JSON.stringify({ input_tokens: tokens }), { status: 200 });
     }
+    if (booleanRequest(init)) return completion("stop", "NO");
     return completion("stop", "decision: AGENT_COMPLETE\nreason: WORK_COMPLETE");
   });
   assert.equal(result.verdict?.decision, "AGENT_COMPLETE");
@@ -132,12 +152,19 @@ function completion(finish: string, content: string): Response {
   return new Response(JSON.stringify({ choices: [{ finish_reason: finish, message: { content } }] }), { status: 200 });
 }
 
-function router(spec: number | { tokens: number; completion: { finish: string; content: string } } | (() => Promise<Response>), forcedTokens?: number): FetchLike {
+function booleanRequest(init?: RequestInit): boolean {
+  if (typeof init?.body !== "string") return false;
+  const body = JSON.parse(init.body) as { grammar?: string };
+  return body.grammar === BOOLEAN_GRAMMAR;
+}
+
+function router(spec: number | { tokens: number; completion: { finish: string; content: string } } | (() => Promise<Response>), forcedTokens?: number, booleanAnswer = "NO"): FetchLike {
   return async (url, init) => {
     if (url.endsWith("/input_tokens")) {
       const tokens = forcedTokens ?? (typeof spec === "object" && spec !== null && "tokens" in spec ? spec.tokens : 100);
       return new Response(JSON.stringify({ input_tokens: tokens }), { status: 200 });
     }
+    if (booleanRequest(init)) return completion("stop", booleanAnswer);
     if (typeof spec === "function") return spec();
     if (typeof spec === "number") throw new Error("numeric spec requires a completion function");
     return completion(spec.completion.finish, spec.completion.content);

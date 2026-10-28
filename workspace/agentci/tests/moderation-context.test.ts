@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   assistantText,
-  declaredStatus,
   deriveContext,
   detectsRootBlock,
   EMPTY_USER_PROMPT,
@@ -25,15 +24,6 @@ test("deriveContext selects the assistant response and detects a fresh cycle", (
   assert.equal(snapshot.duplicate, false);
   assert.equal(snapshot.assistantResponse, "All done.");
   assert.equal(snapshot.realUserCycleID, "user_1");
-});
-
-test("declaredStatus reads only a trailing status line", () => {
-  assert.equal(declaredStatus("All done.\nSTATUS: COMPLETE"), "COMPLETE");
-  assert.equal(declaredStatus("Waiting.\n\nSTATUS: WAITING_FOR_USER"), "WAITING_FOR_USER");
-  assert.equal(declaredStatus("Need root.\nSTATUS: WAITING_FOR_OPERATOR"), "WAITING_FOR_OPERATOR");
-  assert.equal(declaredStatus("Halting.\nSTATUS: STOPPED"), "STOPPED");
-  assert.equal(declaredStatus("STATUS: COMPLETE\nMore prose follows."), null);
-  assert.equal(declaredStatus("No status here."), null);
 });
 
 test("deriveContext marks a repeated assistant as duplicate", () => {
