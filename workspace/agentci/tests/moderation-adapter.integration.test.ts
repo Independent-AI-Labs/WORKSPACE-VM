@@ -22,6 +22,7 @@ test("a failed response triggers a persisted continuation prompt", async (contex
     await store.waitFor(() => store.promptAsyncCalls.length > 0, "continuation prompt was not sent");
     assert.equal(store.promptAsyncCalls.length, 1);
     assert.match(store.promptAsyncCalls[0].text, /Automated Moderation: work appears unfinished/);
+    assert.match(store.promptAsyncCalls[0].note ?? "", /continuing the unfinished task/);
     assert.equal(store.promptAsyncCalls[0].synthetic, true);
     assert.deepEqual(store.promptAsyncCalls[0].metadata, { moderation: true });
     adapter.event({ event: { type: "session.status", properties: { sessionID, status: { type: "busy" } } } });
@@ -314,7 +315,7 @@ test("moderation resumes after a restart instead of going stale", async () => {
 class Harness {
   readonly messages: MessageFact[];
   readonly todos: TodoFact[];
-  readonly promptAsyncCalls: { text: string; synthetic?: boolean; metadata?: unknown }[] = [];
+  readonly promptAsyncCalls: { text: string; synthetic?: boolean; metadata?: unknown; note?: string }[] = [];
   readonly toasts: string[] = [];
   readonly client: ModerationClient;
 
@@ -331,11 +332,19 @@ class Harness {
           return { data: { info: { id } } };
         },
         promptAsync: async (call) => {
-          const part = (call.body.parts as { text: string; synthetic?: boolean; metadata?: unknown }[])[0];
+          const parts = call.body.parts as { text: string; synthetic?: boolean; metadata?: unknown }[];
+          const part = parts[0];
+          const note = parts[1];
           const text = String(part.text);
-          this.promptAsyncCalls.push({ text, synthetic: part.synthetic, metadata: part.metadata });
+          this.promptAsyncCalls.push({ text, synthetic: part.synthetic, metadata: part.metadata, note: note ? String(note.text) : undefined });
           const id = `cont_${this.promptAsyncCalls.length}`;
-          this.messages.push({ info: { id, role: "user", time: { created: Date.now() } }, parts: [{ type: "text", text, synthetic: part.synthetic, metadata: part.metadata as { moderation?: boolean } }] });
+          this.messages.push({
+            info: { id, role: "user", time: { created: Date.now() } },
+            parts: [
+              { type: "text", text, synthetic: part.synthetic, metadata: part.metadata as { moderation?: boolean } },
+              ...(note ? [{ type: "text" as const, text: String(note.text), metadata: note.metadata as { moderation?: boolean } }] : []),
+            ],
+          });
         },
       },
       tui: {

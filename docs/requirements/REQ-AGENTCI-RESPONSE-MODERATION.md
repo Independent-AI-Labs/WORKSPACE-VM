@@ -148,12 +148,13 @@ session stay idle.
     same classifier input.
 16. `AGENT_CONTINUING` and `AGENT_STALLED` SHALL send a corrective prompt to the
     same session with `promptAsync`. The prompt SHALL be a single concise status
-    line that also instructs the agent to continue. It SHALL be injected as a
-    synthetic user part with moderation metadata: persisted and available to
-    the next agent turn, but not rendered as a chat message. Moderator-generated
-    prompts SHALL be identified by that metadata, not by their text, and
-    excluded from the last three real user messages. `AGENT_STOPPED` SHALL NOT
-    send any corrective prompt.
+    line that also instructs the agent to continue. It SHALL be sent as one
+    message with two parts, both carrying moderation metadata: a synthetic
+    directive (persisted and delivered to the next agent turn, not rendered) and
+    a short visible note (rendered in the transcript so the operator can see why
+    the moderator spoke). Moderator-generated prompts SHALL be identified by
+    that metadata, not by their text, and excluded from the last three real user
+    messages. `AGENT_STOPPED` SHALL NOT send any corrective prompt.
 17. The corrective prompt SHALL explicitly state that the work appears
     unfinished and that the agent must continue unless the operator or the
     system has explicitly requested a halt. It SHALL NOT instruct the agent to

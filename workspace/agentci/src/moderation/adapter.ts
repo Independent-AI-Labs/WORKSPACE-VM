@@ -7,6 +7,7 @@ import { createInitialState, isValidState, normalizeRestoredState, transition } 
 import type { ContextSnapshot, Effect, MessageFact, ModerationEvent, ModerationState, ReasonCode, TodoFact, TransitionResult, Verdict, VerdictDecision } from "./types.ts";
 
 const CONTINUATION_LINE = loadPrompt("continuation.txt").trimEnd();
+const CONTINUATION_NOTE = loadPrompt("continuation-note.txt").trimEnd();
 const OPERATOR_LINE = loadPrompt("operator.txt").trimEnd();
 const STATUS_INSTRUCTION = loadPrompt("status-protocol.txt").trimEnd();
 const CONTEXT_TIMEOUT_MS = 15000;
@@ -299,7 +300,15 @@ function realUser(messages: MessageFact[], moderatorMessageIDs: Set<string>): Me
 }
 
 export async function sendContinuationPrompt(client: ModerationClient, sessionID: string, text: string): Promise<unknown> {
-  return client.session.promptAsync({ path: { id: sessionID }, body: { parts: [{ type: "text", text, synthetic: true, metadata: { moderation: true } }] } });
+  return client.session.promptAsync({
+    path: { id: sessionID },
+    body: {
+      parts: [
+        { type: "text", text, synthetic: true, metadata: { moderation: true } },
+        { type: "text", text: CONTINUATION_NOTE, metadata: { moderation: true } },
+      ],
+    },
+  });
 }
 
 export async function continuationPersisted(client: ModerationClient, sessionID: string): Promise<boolean> {

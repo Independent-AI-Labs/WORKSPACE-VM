@@ -145,9 +145,11 @@ imply a pass.
 6. `AGENT_COMPLETE` writes a single-line passive status (`✅ Automated Moderation:
    work completion verified.`) and stays idle. `AGENT_CONTINUING` /
    `AGENT_STALLED` send a single-line corrective status through `promptAsync`
-   as a synthetic part with moderation metadata, so it is not rendered as a chat
-   message and is excluded from later real-user context by metadata rather than
-   text. Every system prompt carries the status protocol through
+   as one message with two parts, both carrying moderation metadata: a synthetic
+   directive (delivered to the model, not rendered) and a short visible note
+   (rendered so the operator sees why the moderator spoke). The parts are
+   excluded from later real-user context by metadata rather than text. Every
+   system prompt carries the status protocol through
    `experimental.chat.system.transform`; a response ending in a declared
    `STATUS:` line resolves directly, without a classifier request, through the
    same path used by replay. `AGENT_BLOCKED` writes a single-line status and

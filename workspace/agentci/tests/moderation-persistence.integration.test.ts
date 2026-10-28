@@ -61,6 +61,10 @@ test("a moderation continuation round-trips through a real OpenCode server", { t
     assert.equal(persisted.parts[0].synthetic, true, "the async path dropped the synthetic marker");
     assert.deepEqual(persisted.parts[0].metadata, { moderation: true }, "the async path dropped the moderation metadata");
     assert.equal(isInjectedUser(persisted), true, "metadata detection missed the async continuation");
+    const note = persisted.parts[1];
+    assert.ok(note !== undefined, "the async path dropped the visible note");
+    assert.notEqual(note.synthetic, true, "the visible note must not be synthetic");
+    assert.match(String(note.text), /continuing the unfinished task/);
     await abort(server.baseURL, asyncSession);
   } finally {
     await stopServer(server.child);

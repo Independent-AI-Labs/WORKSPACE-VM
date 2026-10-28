@@ -157,9 +157,9 @@ function classifierResult(state: ModerationState, event: ResultEvent): Transitio
       [decision("moderation-user-stop"), toast("user-stop")],
     );
   }
-  const count = verdict.decision === "AGENT_CONTINUING"
-    ? 0
-    : state.consecutiveNoProgressCount + 1;
+  const count = verdict.decision === "AGENT_STALLED"
+    ? state.consecutiveNoProgressCount + 1
+    : state.consecutiveNoProgressCount;
   if (count >= ESCALATION_LIMIT) {
     return result(
       { ...state, phase: "IDLE", consecutiveNoProgressCount: count },
@@ -181,7 +181,7 @@ function continuationPersisted(state: ModerationState, event: ContinuationPersis
 function continuationFinished(state: ModerationState, event: ContinuationFinishedEvent): TransitionResult {
   const effects = [decision(event.type === "BUSY_VERIFIED" ? "continuation-verified" : "continuation-timeout")];
   if (event.type === "CONTINUATION_TIMEOUT") effects.push(toast("continuation-error"));
-  return result({ ...state, phase: "IDLE" }, event, effects);
+  return result({ ...state, phase: event.type === "BUSY_VERIFIED" ? "OBSERVING" : "IDLE" }, event, effects);
 }
 
 function compactionStarted(state: ModerationState, event: CompactionStartedEvent): TransitionResult {

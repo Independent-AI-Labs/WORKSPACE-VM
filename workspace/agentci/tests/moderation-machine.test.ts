@@ -104,11 +104,25 @@ test("AGENT_STOPPED verdict stands down without a transcript line or continuatio
   assert.ok(result.effects.some((effect) => effect.type === "WRITE_DECISION" && effect.decisionType === "moderation-user-stop"));
 });
 
-test("progress verdict resets the no-progress counter", () => {
+test("progress verdict keeps the no-progress counter", () => {
   const state = { ...classifying(), consecutiveNoProgressCount: 2 };
   const result = transition(state, { type: "CLASSIFIER_RESULT", verdict: verdicts.progress });
-  assert.equal(result.state.consecutiveNoProgressCount, 0);
+  assert.equal(result.state.consecutiveNoProgressCount, 2);
   assert.equal(result.state.phase, "CONTINUING");
+});
+
+test("verified continuation returns to observation so the next idle is classified", () => {
+  const continuing = transition(classifying(), { type: "CLASSIFIER_RESULT", verdict: verdicts.progress }).state;
+  const result = transition(continuing, { type: "BUSY_VERIFIED" });
+  assert.equal(result.state.phase, "OBSERVING");
+  const idle = transition(result.state, { type: "STATUS_IDLE" });
+  assert.ok(idle.effects.some((effect) => effect.type === "LOAD_CONTEXT"));
+});
+
+test("timed-out continuation returns to idle", () => {
+  const continuing = transition(classifying(), { type: "CLASSIFIER_RESULT", verdict: verdicts.progress }).state;
+  const result = transition(continuing, { type: "CONTINUATION_TIMEOUT" });
+  assert.equal(result.state.phase, "IDLE");
 });
 
 test("three consecutive no-progress verdicts escalate", () => {
