@@ -1,4 +1,4 @@
-import { statusLine, isSessionID, loadMessages, type ModerationClient } from "./adapter.ts";
+import { statusLine, isSessionID, loadMessages, sendContinuationPrompt, type ModerationClient } from "./adapter.ts";
 import { sessionDirectory, writeDecisionRecord } from "./audit.ts";
 import type { FetchLike } from "./classifier.ts";
 import type { ModerationOptions } from "./config.ts";
@@ -130,7 +130,7 @@ function selectReplayTarget(messages: readonly MessageFact[]): ReplayTarget | nu
 async function applyReplay(input: ReplayInput, verdict: Verdict): Promise<Record<string, unknown>[]> {
   const text = statusLine(verdict.decision, verdict.reasonCode);
   if (verdict.decision === "AGENT_CONTINUING" || verdict.decision === "AGENT_STALLED") {
-    await input.client.session.promptAsync({ path: { id: input.sessionID }, body: { parts: [{ type: "text", text }] } });
+    await sendContinuationPrompt(input.client, input.sessionID, text);
     return [{ effect: "SEND_CONTINUATION", status: "ok" }];
   }
   if (verdict.decision === "AGENT_STOPPED") {

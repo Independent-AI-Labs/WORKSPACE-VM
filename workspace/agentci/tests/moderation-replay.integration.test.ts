@@ -41,7 +41,9 @@ test("replaying a continuation reverts the moderator line, recomputes, and sends
     assert.equal(captured.length, 1);
     assert.match(captured[0], /I stopped early/);
     assert.equal(store.promptAsyncCalls.length, 1);
-    assert.match(store.promptAsyncCalls[0], /work appears unfinished/);
+    assert.match(store.promptAsyncCalls[0].text, /work appears unfinished/);
+    assert.equal(store.promptAsyncCalls[0].synthetic, true, "replay sent a rendered continuation");
+    assert.deepEqual(store.promptAsyncCalls[0].metadata, { moderation: true });
     assert.equal(result.revertedMessageID, "cont_1");
     assert.equal(result.decisionType, "moderation-continue");
     const replay = await replayRecords(sessionID);
@@ -142,7 +144,7 @@ class Harness {
   readonly todos: TodoFact[];
   readonly sessions: ReplaySessionSummary[] = [];
   readonly revertCalls: string[] = [];
-  readonly promptAsyncCalls: string[] = [];
+  readonly promptAsyncCalls: { text: string; synthetic?: boolean; metadata?: unknown }[] = [];
   readonly promptCalls: string[] = [];
   readonly toasts: string[] = [];
   readonly client: ReplayClient;
@@ -161,7 +163,8 @@ class Harness {
           return { data: { info: { id: `trace_${this.promptCalls.length}` } } };
         },
         promptAsync: async (call) => {
-          this.promptAsyncCalls.push(String((call.body.parts as { text: string }[])[0].text));
+          const part = (call.body.parts as { text: string; synthetic?: boolean; metadata?: unknown }[])[0];
+          this.promptAsyncCalls.push({ text: String(part.text), synthetic: part.synthetic, metadata: part.metadata });
         },
         revert: async (call) => {
           this.revertCalls.push(call.body.messageID);

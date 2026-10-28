@@ -230,7 +230,7 @@ export function createModerationAdapter(input: ModerationServerInput, options: M
     if (!verdict) throw new Error("AgentCI moderation continuation ran without a verdict");
     if (await userSpokeAfterJudged(sessionID, session)) throw new Error("AgentCI moderation cancelled the continuation: a user message arrived after the judged response");
     session.continuationBaseline = session.busyCount;
-    const response = await input.client.session.promptAsync({ path: { id: sessionID }, body: { parts: [{ type: "text", text: statusLine(verdict.decision, verdict.reasonCode), synthetic: true, metadata: { moderation: true } }] } });
+    const response = await sendContinuationPrompt(input.client, sessionID, statusLine(verdict.decision, verdict.reasonCode));
     const id = promptAsyncMessageID(response);
     if (id !== null) session.moderatorMessageIDs.add(id);
     return { type: "CONTINUATION_PERSISTED" };
@@ -296,6 +296,10 @@ export async function loadMessages(client: ModerationClient, sessionID: string):
 
 function realUser(messages: MessageFact[], moderatorMessageIDs: Set<string>): MessageFact | undefined {
   return messages.filter((message) => message.info.role === "user" && !moderatorMessageIDs.has(message.info.id ?? "") && !isInjectedUser(message) && !isSyntheticUser(message)).at(-1);
+}
+
+export async function sendContinuationPrompt(client: ModerationClient, sessionID: string, text: string): Promise<unknown> {
+  return client.session.promptAsync({ path: { id: sessionID }, body: { parts: [{ type: "text", text, synthetic: true, metadata: { moderation: true } }] } });
 }
 
 export async function continuationPersisted(client: ModerationClient, sessionID: string): Promise<boolean> {

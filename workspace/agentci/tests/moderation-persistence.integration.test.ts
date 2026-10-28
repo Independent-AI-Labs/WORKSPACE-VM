@@ -7,7 +7,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
-import { continuationPersisted, loadMessages, statusLine, type ModerationClient } from "../src/moderation/adapter.ts";
+import { continuationPersisted, loadMessages, sendContinuationPrompt, statusLine, type ModerationClient } from "../src/moderation/adapter.ts";
 import { isInjectedUser, isSyntheticUser, lastRealUserPrompts, realUserCycleID } from "../src/moderation/context.ts";
 import type { MessageFact } from "../src/moderation/types.ts";
 
@@ -56,7 +56,7 @@ test("a moderation continuation round-trips through a real OpenCode server", { t
     assert.equal(afterRevert.some((message) => message.info.id === user.messageID), true, "revert removed the real user message");
 
     const asyncSession = await createSession(server.baseURL);
-    await sendAsync(server.baseURL, asyncSession, continuation);
+    await sendContinuationPrompt(client, asyncSession, continuation);
     const persisted = await waitForMessage(client, asyncSession, continuation);
     assert.equal(persisted.parts[0].synthetic, true, "the async path dropped the synthetic marker");
     assert.deepEqual(persisted.parts[0].metadata, { moderation: true }, "the async path dropped the moderation metadata");
@@ -157,7 +157,16 @@ function httpClient(baseURL: string): ModerationClient {
         return { data: await response.json() as MessageFact[] };
       },
       prompt: async () => ({ data: {} }),
-      promptAsync: async () => ({}),
+      promptAsync: async (input) => {
+        const response = await fetch(`${baseURL}/session/${input.path.id}/prompt_async`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(input.body),
+          signal: AbortSignal.timeout(10000),
+        });
+        if (response.status !== 204) throw new Error(`async send failed with HTTP ${response.status}`);
+        return {};
+      },
     },
     tui: { showToast: async () => ({}) },
   };
@@ -189,16 +198,6 @@ async function sendMessage(baseURL: string, sessionID: string, text: string, mod
   const messageID = payload.info?.id;
   if (messageID === undefined) throw new Error("message send returned no id");
   return { messageID };
-}
-
-async function sendAsync(baseURL: string, sessionID: string, text: string): Promise<void> {
-  const response = await fetch(`${baseURL}/session/${sessionID}/prompt_async`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ parts: [{ type: "text", text, synthetic: true, metadata: { moderation: true } }] }),
-    signal: AbortSignal.timeout(10000),
-  });
-  if (response.status !== 204) throw new Error(`async send failed with HTTP ${response.status}`);
 }
 
 async function waitForMessage(client: ModerationClient, sessionID: string, text: string): Promise<MessageFact> {
