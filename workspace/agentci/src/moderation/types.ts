@@ -145,7 +145,7 @@ export interface MessagePartFact {
   type: string;
   text?: string;
   synthetic?: boolean;
-  metadata?: { compaction_continue?: boolean };
+  metadata?: { compaction_continue?: boolean; moderation?: boolean };
 }
 
 export interface MessageInfoFact {

@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { continuationPersisted, type ModerationClient } from "../src/moderation/adapter.ts";
+import { continuationPersisted, statusLine, type ModerationClient } from "../src/moderation/adapter.ts";
 import type { MessageFact } from "../src/moderation/types.ts";
 
 const continuation: MessageFact = {
   info: { id: "msg_cont", role: "user", time: { created: 1 } },
-  parts: [{ type: "text", text: "⚠️ Automated Moderation: work appears unfinished; continue unless explicitly requested to halt by the operator or the system." }],
+  parts: [{ type: "text", text: statusLine("AGENT_CONTINUING", "WORK_REMAINS") }],
 };
 
 const ordinary: MessageFact = {

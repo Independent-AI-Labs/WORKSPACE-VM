@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   assistantText,
+  declaredStatus,
   deriveContext,
   detectsRootBlock,
   EMPTY_USER_PROMPT,
@@ -24,6 +25,15 @@ test("deriveContext selects the assistant response and detects a fresh cycle", (
   assert.equal(snapshot.duplicate, false);
   assert.equal(snapshot.assistantResponse, "All done.");
   assert.equal(snapshot.realUserCycleID, "user_1");
+});
+
+test("declaredStatus reads only a trailing status line", () => {
+  assert.equal(declaredStatus("All done.\nSTATUS: COMPLETE"), "COMPLETE");
+  assert.equal(declaredStatus("Waiting.\n\nSTATUS: WAITING_FOR_USER"), "WAITING_FOR_USER");
+  assert.equal(declaredStatus("Need root.\nSTATUS: WAITING_FOR_OPERATOR"), "WAITING_FOR_OPERATOR");
+  assert.equal(declaredStatus("Halting.\nSTATUS: STOPPED"), "STOPPED");
+  assert.equal(declaredStatus("STATUS: COMPLETE\nMore prose follows."), null);
+  assert.equal(declaredStatus("No status here."), null);
 });
 
 test("deriveContext marks a repeated assistant as duplicate", () => {
@@ -87,6 +97,16 @@ test("injected moderation messages are excluded from the real user cycle", () =>
   assert.equal(isInjectedUser(user("blocked", "❔ Automated Moderation: awaiting user input.")), true);
   const messages = [user("user_1", "real"), injected];
   assert.equal(realUserCycleID(messages), "user_1");
+});
+
+test("moderation synthetic parts are excluded from real user context", () => {
+  const moderation: MessageFact = {
+    info: { id: "mod_1", role: "user", time: { created: 1 } },
+    parts: [{ type: "text", synthetic: true, metadata: { moderation: true }, text: "⚠️ Automated Moderation: work appears unfinished." }],
+  };
+  assert.equal(isInjectedUser(moderation), true);
+  assert.equal(isSyntheticUser(moderation), true);
+  assert.equal(assistantText(moderation), "");
 });
 
 test("synthetic compaction-continue notes are excluded from real user context", () => {

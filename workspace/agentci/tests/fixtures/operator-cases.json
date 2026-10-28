@@ -1,0 +1,301 @@
+{
+  "version": 1,
+  "cases": [
+    {
+      "id": "op-work-complete",
+      "provenance": {
+        "sessionID": null,
+        "assistantID": null,
+        "decisionID": null
+      },
+      "inputs": {
+        "previousResponse": "Done. hello() is implemented and its test passes.",
+        "userMessages": [
+          "Add hello() and run its test"
+        ],
+        "todos": [
+          {
+            "status": "completed",
+            "content": "Implement hello()"
+          },
+          {
+            "status": "completed",
+            "content": "Run the test"
+          }
+        ]
+      },
+      "expectedDecision": "AGENT_COMPLETE",
+      "expectedReason": "WORK_COMPLETE",
+      "forbiddenDecisions": [],
+      "labelSource": "operator"
+    },
+    {
+      "id": "op-no-progress",
+      "provenance": {
+        "sessionID": null,
+        "assistantID": null,
+        "decisionID": null
+      },
+      "inputs": {
+        "previousResponse": "I explored the code but did not change anything yet.",
+        "userMessages": [
+          "Implement the parser and the writer"
+        ],
+        "todos": [
+          {
+            "status": "in_progress",
+            "content": "Implement parser"
+          },
+          {
+            "status": "pending",
+            "content": "Implement writer"
+          }
+        ]
+      },
+      "expectedDecision": "AGENT_STALLED",
+      "expectedReason": "NO_PROGRESS",
+      "forbiddenDecisions": [],
+      "labelSource": "operator"
+    },
+    {
+      "id": "op-user-stop",
+      "provenance": {
+        "sessionID": null,
+        "assistantID": null,
+        "decisionID": null
+      },
+      "inputs": {
+        "previousResponse": "Understood, I have stopped.",
+        "userMessages": [
+          "Optimize the build until it is as fast as possible",
+          "Stop now."
+        ],
+        "todos": [
+          {
+            "status": "in_progress",
+            "content": "Optimize the build"
+          }
+        ]
+      },
+      "expectedDecision": "AGENT_STOPPED",
+      "expectedReason": "USER_STOP",
+      "forbiddenDecisions": [],
+      "labelSource": "operator"
+    },
+    {
+      "id": "op-operator-reproduction-handoff",
+      "provenance": {
+        "sessionID": null,
+        "assistantID": null,
+        "decisionID": null
+      },
+      "inputs": {
+        "previousResponse": "Diagnostic run is live. Reproduce the flare now. Hold the view for about 15 seconds. When done, tell me. I will stop the video and game, then analyze.",
+        "userMessages": [
+          "start the diag run, record a replay named something appropriate, I will reproduce it"
+        ],
+        "todos": [
+          {
+            "status": "in_progress",
+            "content": "Capture the lens flare reproduction"
+          }
+        ]
+      },
+      "expectedDecision": "AGENT_BLOCKED",
+      "expectedReason": "AWAITING_OPERATOR",
+      "forbiddenDecisions": [],
+      "labelSource": "operator"
+    },
+    {
+      "id": "op-work-remains",
+      "provenance": {
+        "sessionID": null,
+        "assistantID": null,
+        "decisionID": null
+      },
+      "inputs": {
+        "previousResponse": "I implemented the parser. I will implement the writer next.",
+        "userMessages": [
+          "Implement the parser and the writer"
+        ],
+        "todos": [
+          {
+            "status": "completed",
+            "content": "Implement parser"
+          },
+          {
+            "status": "pending",
+            "content": "Implement writer"
+          }
+        ]
+      },
+      "expectedDecision": "AGENT_CONTINUING",
+      "expectedReason": "WORK_REMAINS",
+      "forbiddenDecisions": [],
+      "labelSource": "operator"
+    },
+    {
+      "id": "op-user-question",
+      "provenance": {
+        "sessionID": null,
+        "assistantID": null,
+        "decisionID": null
+      },
+      "inputs": {
+        "previousResponse": "I can keep the existing behavior or change the public API. Which do you want me to do?",
+        "userMessages": [
+          "Refactor the config loader"
+        ],
+        "todos": [
+          {
+            "status": "in_progress",
+            "content": "Refactor the loader"
+          }
+        ]
+      },
+      "expectedDecision": "AGENT_BLOCKED",
+      "expectedReason": "AWAITING_USER",
+      "forbiddenDecisions": [],
+      "labelSource": "operator"
+    },
+    {
+      "id": "op-question-to-user",
+      "provenance": {
+        "sessionID": null,
+        "assistantID": null,
+        "decisionID": null
+      },
+      "inputs": {
+        "previousResponse": "Root cause is proven. The failure reproduces identically on every run. The remaining choice is a product decision, not a technical one. Which do you want?",
+        "userMessages": [
+          "Why did the moderator kick in?",
+          "WOW AND WHY THE FUCK DOES THE MODERATOR KICK IN NOW"
+        ],
+        "todos": []
+      },
+      "expectedDecision": "AGENT_BLOCKED",
+      "expectedReason": "AWAITING_USER",
+      "forbiddenDecisions": [],
+      "labelSource": "operator"
+    },
+    {
+      "id": "op-physical-handoff",
+      "provenance": {
+        "sessionID": null,
+        "assistantID": null,
+        "decisionID": null
+      },
+      "inputs": {
+        "previousResponse": "Found it. The game was unfocused, so input went nowhere. I focused the window and the camera started moving. Click back into the game and let the turret cutscene finish. Then try mouse look.",
+        "userMessages": [
+          "the mouse look is still broken"
+        ],
+        "todos": [
+          {
+            "status": "in_progress",
+            "content": "Verify mouse look in game"
+          }
+        ]
+      },
+      "expectedDecision": "AGENT_BLOCKED",
+      "expectedReason": "AWAITING_OPERATOR",
+      "forbiddenDecisions": [],
+      "labelSource": "operator"
+    },
+    {
+      "id": "op-game-handoff-full",
+      "provenance": {
+        "sessionID": null,
+        "assistantID": null,
+        "decisionID": null
+      },
+      "inputs": {
+        "previousResponse": "Found it. The game window never received focus, so every synthetic input was discarded. I focused it and the camera responded. Click back into the game, let the turret cutscene finish, then try mouse look and tell me if the drift is gone.",
+        "userMessages": [
+          "the mouse look drifts when the turret scene plays"
+        ],
+        "todos": [
+          {
+            "status": "in_progress",
+            "content": "Reproduce the drift"
+          },
+          {
+            "status": "pending",
+            "content": "Confirm the fix with the user"
+          }
+        ]
+      },
+      "expectedDecision": "AGENT_BLOCKED",
+      "expectedReason": "AWAITING_OPERATOR",
+      "forbiddenDecisions": [],
+      "labelSource": "operator"
+    },
+    {
+      "id": "op-plan-handoff",
+      "provenance": {
+        "sessionID": null,
+        "assistantID": null,
+        "decisionID": null
+      },
+      "inputs": {
+        "previousResponse": "Diagnosis is complete. The loop comes from the state machine, not from the model. Next step is your call: keep tuning the prompt, or move classification to a larger local model.",
+        "userMessages": [
+          "why does the moderator not let you stop"
+        ],
+        "todos": []
+      },
+      "expectedDecision": "AGENT_BLOCKED",
+      "expectedReason": "AWAITING_USER",
+      "forbiddenDecisions": [],
+      "labelSource": "operator"
+    },
+    {
+      "id": "op-imperative-report-back",
+      "provenance": {
+        "sessionID": null,
+        "assistantID": null,
+        "decisionID": null
+      },
+      "inputs": {
+        "previousResponse": "The build is ready on your machine. Press F5 to reload the level, then watch the console while the effect plays and report the first error line you see.",
+        "userMessages": [
+          "check the particle effect"
+        ],
+        "todos": [
+          {
+            "status": "in_progress",
+            "content": "Check particle effect"
+          }
+        ]
+      },
+      "expectedDecision": "AGENT_BLOCKED",
+      "expectedReason": "AWAITING_OPERATOR",
+      "forbiddenDecisions": [],
+      "labelSource": "operator"
+    },
+    {
+      "id": "op-self-answered-question-continue",
+      "provenance": {
+        "sessionID": null,
+        "assistantID": null,
+        "decisionID": null
+      },
+      "inputs": {
+        "previousResponse": "Is the cache the cause? Yes. The stale entry is the only difference between the passing and failing runs. I will clear it and rerun the suite.",
+        "userMessages": [
+          "make the tests pass"
+        ],
+        "todos": [
+          {
+            "status": "in_progress",
+            "content": "Fix the failing tests"
+          }
+        ]
+      },
+      "expectedDecision": "AGENT_CONTINUING",
+      "expectedReason": "WORK_REMAINS",
+      "forbiddenDecisions": [],
+      "labelSource": "operator"
+    }
+  ]
+}

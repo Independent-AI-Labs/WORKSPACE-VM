@@ -1,5 +1,6 @@
-import { classify, loadPrompt, type FetchLike } from "./classifier.ts";
-import { assistantText, deriveContext, inBranch, isInjectedUser, isSyntheticUser, newestAssistant, realUserAncestor } from "./context.ts";
+import { loadPrompt, type FetchLike } from "./classifier.ts";
+import { deriveContext, inBranch, isInjectedUser, isSyntheticUser, newestAssistant, realUserAncestor } from "./context.ts";
+import { resolveVerdict } from "./verdict.ts";
 import type { ModerationOptions } from "./config.ts";
 import { persistSnapshot, restoreSnapshot, sessionDirectory, writeDecisionRecord } from "./audit.ts";
 import { createInitialState, isValidState, normalizeRestoredState, transition } from "./machine.ts";
@@ -7,6 +8,7 @@ import type { ContextSnapshot, Effect, MessageFact, ModerationEvent, ModerationS
 
 const CONTINUATION_LINE = loadPrompt("continuation.txt").trimEnd();
 const OPERATOR_LINE = loadPrompt("operator.txt").trimEnd();
+const STATUS_INSTRUCTION = loadPrompt("status-protocol.txt").trimEnd();
 const CONTEXT_TIMEOUT_MS = 15000;
 const BUSY_POLL_ATTEMPTS = 50;
 const BUSY_POLL_INTERVAL_MS = 100;
@@ -58,6 +60,7 @@ interface Session {
   draining: boolean;
   busyCount: number;
   continuationBaseline: number;
+  judgedAssistantID: string | null;
   moderatorMessageIDs: Set<string>;
   context: ContextSnapshot | null;
   userMessages: string[];
@@ -67,6 +70,7 @@ export interface ModerationAdapter {
   event(input: { event: OpenCodeEvent }): void;
   "experimental.session.compacting"(input: { sessionID?: string }): Promise<void>;
   "experimental.compaction.autocontinue"(input: { sessionID?: string }): Promise<void>;
+  "experimental.chat.system.transform"(input: { sessionID?: string }, output: { system: string[] }): Promise<void>;
 }
 
 interface OpenCodeEvent {
@@ -97,6 +101,7 @@ export function createModerationAdapter(input: ModerationServerInput, options: M
       draining: false,
       busyCount: 0,
       continuationBaseline: 0,
+      judgedAssistantID: null,
       moderatorMessageIDs: new Set(),
       context: null,
       userMessages: [],
@@ -160,6 +165,7 @@ export function createModerationAdapter(input: ModerationServerInput, options: M
     const assistant = newestAssistant(messages);
     const origin = realUserAncestor(assistant, messages) ?? realUser(messages, session.moderatorMessageIDs);
     const assistantID = assistant?.info.id ?? null;
+    session.judgedAssistantID = assistantID;
     const blockerBranch = inBranch(origin, messages, session.state.blocker?.originUserID ?? null);
     session.context = deriveContext({
       messages,
@@ -195,7 +201,7 @@ export function createModerationAdapter(input: ModerationServerInput, options: M
     const context = session.context;
     if (!context) throw new Error("AgentCI moderation classifier ran without a context snapshot");
     const todos = event.type === "CONTEXT_LOADED" ? event.todos ?? [] : [];
-    const outcome = await classify(options, { todos, previousResponse: context.assistantResponse, userMessages: session.userMessages }, fetchImpl);
+    const outcome = await resolveVerdict(options, { todos, previousResponse: context.assistantResponse, userMessages: session.userMessages }, fetchImpl);
     if (outcome.error) throw new Error(outcome.error);
     const verdict = outcome.verdict;
     if (!verdict) throw new Error("AgentCI moderation classifier returned no verdict");
@@ -209,10 +215,22 @@ export function createModerationAdapter(input: ModerationServerInput, options: M
     if (id) session.moderatorMessageIDs.add(id);
     return { type: "TRACE_PERSISTED", messageID: id ?? null };
   };
+  const userSpokeAfterJudged = async (sessionID: string, session: Session): Promise<boolean> => {
+    const judged = session.judgedAssistantID;
+    if (judged === null) return false;
+    const history = await loadMessages(input.client, sessionID);
+    const index = history.findIndex((message) => message.info.id === judged);
+    if (index < 0) return false;
+    return history.slice(index + 1).some((message) => message.info.role === "user"
+      && !isInjectedUser(message)
+      && !isSyntheticUser(message)
+      && !session.moderatorMessageIDs.has(message.info.id ?? ""));
+  };
   const sendContinuation = async (sessionID: string, session: Session, verdict: Verdict | undefined): Promise<ModerationEvent> => {
     if (!verdict) throw new Error("AgentCI moderation continuation ran without a verdict");
+    if (await userSpokeAfterJudged(sessionID, session)) throw new Error("AgentCI moderation cancelled the continuation: a user message arrived after the judged response");
     session.continuationBaseline = session.busyCount;
-    const response = await input.client.session.promptAsync({ path: { id: sessionID }, body: { parts: [{ type: "text", text: statusLine(verdict.decision, verdict.reasonCode) }] } });
+    const response = await input.client.session.promptAsync({ path: { id: sessionID }, body: { parts: [{ type: "text", text: statusLine(verdict.decision, verdict.reasonCode), synthetic: true, metadata: { moderation: true } }] } });
     const id = promptAsyncMessageID(response);
     if (id !== null) session.moderatorMessageIDs.add(id);
     return { type: "CONTINUATION_PERSISTED" };
@@ -252,6 +270,9 @@ export function createModerationAdapter(input: ModerationServerInput, options: M
     async "experimental.compaction.autocontinue"(hookInput) {
       sessionEvent(hookInput.sessionID, { type: "COMPACTION_AUTOCONTINUE" });
     },
+    async "experimental.chat.system.transform"(_hookInput, hookOutput) {
+      if (!hookOutput.system.includes(STATUS_INSTRUCTION)) hookOutput.system.push(STATUS_INSTRUCTION);
+    },
   };
 }
 
@@ -280,7 +301,7 @@ function realUser(messages: MessageFact[], moderatorMessageIDs: Set<string>): Me
 export async function continuationPersisted(client: ModerationClient, sessionID: string): Promise<boolean> {
   for (let attempt = 0; attempt < CONTINUATION_VERIFY_ATTEMPTS; attempt += 1) {
     const messages = (await client.session.messages({ path: { id: sessionID }, query: { limit: 20 } })).data ?? [];
-    if (messages.some((message) => assistantText(message) === CONTINUATION_LINE)) return true;
+    if (messages.some((message) => message.parts.some((part) => part.text === CONTINUATION_LINE))) return true;
     await sleep(BUSY_POLL_INTERVAL_MS);
   }
   return false;

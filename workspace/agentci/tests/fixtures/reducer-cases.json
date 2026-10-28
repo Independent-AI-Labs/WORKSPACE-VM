@@ -29,6 +29,50 @@
       "hash": "0071bb1e29c700f9438dbebfd2775010bf27aed3d551a7125170d209a888be2d"
     },
     {
+      "id": "reducer-00a90ec04e41dae1",
+      "provenance": {
+        "sessionID": "ses_e861133fcffeP1X1EABxMhaoOn",
+        "decisionID": "1793128701414-9856b9d8d77e"
+      },
+      "event": {
+        "type": "CONTEXT_LOADED",
+        "todos": [],
+        "assistantID": "msg_17ecb9379001vYRMsqR2xWoSYh",
+        "terminal": false,
+        "assistantPresent": false,
+        "duplicate": false,
+        "compaction": false,
+        "planMode": false,
+        "build": true,
+        "assistantError": false,
+        "userNewer": false,
+        "moderatorTrace": false,
+        "rootBlocked": false,
+        "blockerDiscussionActive": false,
+        "blockerBranch": false,
+        "realUserCycleID": "msg_17eb476aa001faUR1LQROSW3c0",
+        "newCycle": false,
+        "originUserID": "msg_17eb476aa001faUR1LQROSW3c0"
+      },
+      "previousState": {
+        "phase": "OBSERVING",
+        "inflightAssistantID": "msg_17eb3f9650018MmiQOrQgbNvPz",
+        "lastTerminalAssistantID": "msg_17eb3f9650018MmiQOrQgbNvPz",
+        "realUserCycleID": "msg_17eb476aa001faUR1LQROSW3c0",
+        "consecutiveNoProgressCount": 0,
+        "blocker": null,
+        "compaction": {
+          "active": false
+        }
+      },
+      "expected": {
+        "ignored": true,
+        "nextPhase": "IDLE",
+        "decisionType": "ignored-nonterminal-assistant"
+      },
+      "hash": "00a90ec04e41dae1898dafd675506ae41703fab9f28ef4929f1b8456729fb9d7"
+    },
+    {
       "id": "reducer-0127799055076afa",
       "provenance": {
         "sessionID": "ses_eb70df548ffenFFppZFrc8XABX",
@@ -110,6 +154,68 @@
       "hash": "01d2dc3e7e92e3158379b56b9f0e7342fda37dc60c644e6e05887555f9983004"
     },
     {
+      "id": "reducer-0228f104abc30c70",
+      "provenance": {
+        "sessionID": "ses_e80c53348ffeS3LEN5wcfwmn3t",
+        "decisionID": "1793172650374-d50bc27ae83d"
+      },
+      "event": {
+        "type": "TRACE_PERSISTED",
+        "messageID": "msg_1816b397f001kj5p2D6oHPlmbI"
+      },
+      "previousState": {
+        "phase": "IDLE",
+        "inflightAssistantID": "msg_1816b2751001EfdmusAMv1zrVX",
+        "lastTerminalAssistantID": "msg_1816b2751001EfdmusAMv1zrVX",
+        "realUserCycleID": "msg_1816a8d3d0011349Gn1uHOqNqn",
+        "consecutiveNoProgressCount": 0,
+        "blocker": {
+          "source": "agent-blocked",
+          "originUserID": "msg_1816a8d3d0011349Gn1uHOqNqn"
+        },
+        "compaction": {
+          "active": false
+        }
+      },
+      "expected": {
+        "ignored": true,
+        "nextPhase": "IDLE",
+        "decisionType": "trace-recorded"
+      },
+      "hash": "0228f104abc30c70997f08445dd3f1625435929b489516c98a5a005b85fd03bc"
+    },
+    {
+      "id": "reducer-02c83a0f027739f6",
+      "provenance": {
+        "sessionID": "ses_e861133fcffeP1X1EABxMhaoOn",
+        "decisionID": "1793122284481-8fea4ed14a24"
+      },
+      "event": {
+        "type": "TRACE_PERSISTED",
+        "messageID": "msg_17e6ab3b8001B1h3nKI3ZvhvIF"
+      },
+      "previousState": {
+        "phase": "IDLE",
+        "inflightAssistantID": "msg_17e6a8e2d00211d5IQF59v9FI2",
+        "lastTerminalAssistantID": "msg_17e6a8e2d00211d5IQF59v9FI2",
+        "realUserCycleID": "msg_17e6a69d5001asRdPJn8KCiwEF",
+        "consecutiveNoProgressCount": 0,
+        "blocker": {
+          "source": "agent-blocked",
+          "originUserID": "msg_17e6a69d5001asRdPJn8KCiwEF"
+        },
+        "compaction": {
+          "active": false
+        }
+      },
+      "expected": {
+        "ignored": true,
+        "nextPhase": "IDLE",
+        "decisionType": "trace-recorded"
+      },
+      "hash": "02c83a0f027739f6c450dda42d99082dc47e97e513465efc9853338876dec2b3"
+    },
+    {
       "id": "reducer-02d2783d7871c63d",
       "provenance": {
         "sessionID": "ses_e9bc2730effeT8FL71SG8h6lGP",
@@ -135,6 +241,80 @@
         "decisionType": "idle-outside-observation"
       },
       "hash": "02d2783d7871c63d0fcadb6dd27d24330c5183234e628937cc080cf9b83a8c50"
+    },
+    {
+      "id": "reducer-06fd66582a6bf8c5",
+      "provenance": {
+        "sessionID": "ses_ec8f858baffevETo4aj6XXioEH",
+        "decisionID": "1793177093369-bcda3c223ac1"
+      },
+      "event": {
+        "type": "STATUS_IDLE"
+      },
+      "previousState": {
+        "phase": "IDLE",
+        "inflightAssistantID": "msg_181ad011c0014heXvK24CeXBhN",
+        "lastTerminalAssistantID": "msg_181ad011c0014heXvK24CeXBhN",
+        "realUserCycleID": "msg_181aec6330018nalWQFGnhcFxK",
+        "consecutiveNoProgressCount": 0,
+        "blocker": null,
+        "compaction": {
+          "active": false
+        }
+      },
+      "expected": {
+        "ignored": true,
+        "nextPhase": "IDLE",
+        "decisionType": "idle-outside-observation"
+      },
+      "hash": "06fd66582a6bf8c59babeb1b3b6aa46087a4ffd8a0039d1fc8d7cf859b565c92"
+    },
+    {
+      "id": "reducer-0aa9b1d57f64cadb",
+      "provenance": {
+        "sessionID": "ses_e861133fcffeP1X1EABxMhaoOn",
+        "decisionID": "1793120395123-0324e863b6d3"
+      },
+      "event": {
+        "type": "CONTEXT_LOADED",
+        "todos": [],
+        "assistantID": "msg_17e4dda46002CA2nscSguRvUrN",
+        "terminal": false,
+        "assistantPresent": false,
+        "duplicate": false,
+        "compaction": false,
+        "planMode": true,
+        "build": false,
+        "assistantError": false,
+        "userNewer": false,
+        "moderatorTrace": false,
+        "rootBlocked": false,
+        "blockerDiscussionActive": false,
+        "blockerBranch": false,
+        "realUserCycleID": "msg_17e4dd9de001gUZLOGKJ6FyarI",
+        "newCycle": true,
+        "originUserID": "msg_17e4dd9de001gUZLOGKJ6FyarI"
+      },
+      "previousState": {
+        "phase": "OBSERVING",
+        "inflightAssistantID": "msg_17e4cd2c50017aztJgzQUjL43d",
+        "lastTerminalAssistantID": "msg_17e4cd2c50017aztJgzQUjL43d",
+        "realUserCycleID": "msg_17e4cb568001ygoOFYL6npymYN",
+        "consecutiveNoProgressCount": 0,
+        "blocker": {
+          "source": "agent-blocked",
+          "originUserID": "msg_17e4cb568001ygoOFYL6npymYN"
+        },
+        "compaction": {
+          "active": false
+        }
+      },
+      "expected": {
+        "ignored": true,
+        "nextPhase": "IDLE",
+        "decisionType": "ignored-nonterminal-assistant"
+      },
+      "hash": "0aa9b1d57f64cadb172ad9b7b8f94937acb5d8492d0e592f6eb7db3595103470"
     },
     {
       "id": "reducer-e29e0d3d23d061e1",

@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { CLASSIFIER_FORMAT_RETRIES, CLASSIFIER_SEED, MAX_COMPLETION_TOKENS, MAX_INPUT_TOKENS, MINICPM_MODEL_ID, MODERATION_GRAMMAR, type ModerationOptions } from "./config.ts";
+import { CLASSIFIER_FORMAT_RETRIES, CLASSIFIER_SEED, CLASSIFIER_TIMEOUT_MS, MAX_COMPLETION_TOKENS, MAX_INPUT_TOKENS, MINICPM_MODEL_ID, MODERATION_GRAMMAR, type ModerationOptions } from "./config.ts";
 import { EMPTY_USER_PROMPT, summarizeTodos } from "./context.ts";
 import type { ChatMessage, ClassifierCapture, ReasonCode, Ruling, TodoFact, Verdict, VerdictDecision } from "./types.ts";
 
@@ -105,10 +105,10 @@ export function parseVerdict(content: string): Verdict | undefined {
   const decision = decisionLine[1] as VerdictDecision;
   const allowed = VALID_DECISIONS[decision];
   if (!allowed || !allowed.includes(reasonLine[1] as ReasonCode)) return undefined;
-  return verdict(decision, reasonLine[1] as ReasonCode);
+  return verdictFor(decision, reasonLine[1] as ReasonCode);
 }
 
-function verdict(decision: VerdictDecision, reasonCode: ReasonCode): Verdict {
+export function verdictFor(decision: VerdictDecision, reasonCode: ReasonCode): Verdict {
   const pass = decision === "AGENT_COMPLETE";
   const completion: Ruling = pass
     ? { ruling: "PASS", reason: "Classifier reported the request complete." }
@@ -145,6 +145,7 @@ async function countInputTokens(options: ModerationOptions, messages: ChatMessag
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ model: options.model, messages }),
+    signal: AbortSignal.timeout(CLASSIFIER_TIMEOUT_MS),
   });
   if (!response.ok) throw new Error(`AgentCI classifier token endpoint failed with HTTP ${response.status}`);
   const payload = await response.json() as Record<string, unknown>;
@@ -175,6 +176,7 @@ async function requestCompletion(options: ModerationOptions, messages: ChatMessa
       cache_prompt: false,
       stream: false,
     }),
+    signal: AbortSignal.timeout(CLASSIFIER_TIMEOUT_MS),
   });
   if (!response.ok) throw new Error(`AgentCI classifier completion failed with HTTP ${response.status}`);
   const payload = await response.json() as { choices?: Array<{ finish_reason?: string; message?: { content?: string } }> };

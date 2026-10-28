@@ -6,6 +6,7 @@ export const MAX_INPUT_TOKENS = 16384;
 export const MAX_COMPLETION_TOKENS = 128;
 export const CLASSIFIER_FORMAT_RETRIES = 3;
 export const CLASSIFIER_SEED = 0;
+export const CLASSIFIER_TIMEOUT_MS = 30000;
 
 export const MODERATION_GRAMMAR =
   'root ::= "decision: AGENT_COMPLETE\\nreason: WORK_COMPLETE" | "decision: AGENT_CONTINUING\\nreason: WORK_REMAINS" | "decision: AGENT_STALLED\\nreason: NO_PROGRESS" | "decision: AGENT_BLOCKED\\nreason: AWAITING_USER" | "decision: AGENT_BLOCKED\\nreason: AWAITING_OPERATOR" | "decision: AGENT_STOPPED\\nreason: USER_STOP"';

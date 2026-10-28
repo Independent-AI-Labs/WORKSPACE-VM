@@ -53,6 +53,29 @@ test("replaying a continuation reverts the moderator line, recomputes, and sends
   }
 });
 
+test("replaying a declared status decides without the classifier", async () => {
+  const home = await mkdtemp(join(tmpdir(), "agentci-replay-declared-"));
+  const previous = process.env.XDG_STATE_HOME;
+  process.env.XDG_STATE_HOME = home;
+  const sessionID = "ses_replay04";
+  const store = new Harness([
+    user("user_1", "the mouse look is broken"),
+    assistant("msg_1", "user_1", "Click back into the game and let the cutscene finish.\nSTATUS: WAITING_FOR_OPERATOR"),
+  ]);
+  try {
+    const captured: string[] = [];
+    const result = await replayLastDecision({ client: store.client, options, sessionID, fetchImpl: classifierFetch("decision: AGENT_CONTINUING\nreason: WORK_REMAINS", captured) });
+    assert.equal(captured.length, 0, "a declared status must not call the classifier");
+    assert.equal(result.decisionType, "moderation-agent-blocked");
+    assert.equal(store.promptAsyncCalls.length, 0, "a declared handoff must not prompt upstream");
+    assert.equal(store.promptCalls.length, 1);
+    assert.match(store.promptCalls[0], /operator action required/);
+  } finally {
+    await restoreState(previous);
+    await rm(home, { recursive: true, force: true });
+  }
+});
+
 test("replaying a completion writes a passive trace and never prompts upstream", async () => {
   const home = await mkdtemp(join(tmpdir(), "agentci-replay-complete-"));
   const previous = process.env.XDG_STATE_HOME;

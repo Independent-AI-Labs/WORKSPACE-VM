@@ -144,10 +144,15 @@ imply a pass.
    verdicts across runs.
 6. `AGENT_COMPLETE` writes a single-line passive status (`✅ Automated Moderation:
    work completion verified.`) and stays idle. `AGENT_CONTINUING` /
-   `AGENT_STALLED` send a single-line corrective status through `promptAsync`,
-   marked and excluded from later real-user context. `AGENT_BLOCKED` writes a
-   single-line status and activates blocker-discussion scope. `AGENT_STOPPED`
-   writes no transcript line, sends no prompt, and stays idle with a toast.
+   `AGENT_STALLED` send a single-line corrective status through `promptAsync`
+   as a synthetic part with moderation metadata, so it is not rendered as a chat
+   message and is excluded from later real-user context by metadata rather than
+   text. Every system prompt carries the status protocol through
+   `experimental.chat.system.transform`; a response ending in a declared
+   `STATUS:` line resolves directly, without a classifier request, through the
+   same path used by replay. `AGENT_BLOCKED` writes a single-line status and
+   activates blocker-discussion scope. `AGENT_STOPPED` writes no transcript
+   line, sends no prompt, and stays idle with a toast.
 7. Three consecutive `AGENT_STALLED` outcomes in one real-user cycle produce
    `moderation-escalated` (toast + audit only) and stop automatic continuation.
 8. Internal outcomes (blocker discussion, escalation, error) and a user stop
@@ -167,8 +172,9 @@ and moderation is enabled, the plugin runs one replay on startup:
    transcript line and the completed assistant response it followed.
 3. Revert that injected line through the SDK (`session.revert` with its
    `messageID`), keeping the assistant response intact.
-4. Recompute the verdict with a fresh classifier call over the current todos, the
-   last three real user prompts, and that assistant response.
+4. Resolve the verdict from a declared `STATUS:` line when present, otherwise
+   with a fresh classifier call over the current todos, the last three real user
+   prompts, and that assistant response.
 5. Reconcile the transcript to the new verdict, exactly as the moderation path:
    `AGENT_CONTINUING`/`AGENT_STALLED` send a corrective prompt through
    `promptAsync` (a new upstream turn); `AGENT_COMPLETE`/`AGENT_BLOCKED` write a

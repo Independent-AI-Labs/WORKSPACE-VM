@@ -1,0 +1,1 @@
+End every response with exactly one status line: STATUS: COMPLETE, STATUS: WAITING_FOR_USER, STATUS: WAITING_FOR_OPERATOR, or STATUS: STOPPED.

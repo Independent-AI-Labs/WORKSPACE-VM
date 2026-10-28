@@ -13,6 +13,7 @@ const DRY_RUN = process.argv.includes("--dry-run");
 const REBUILD = process.argv.includes("--rebuild");
 const SINCE = readSince();
 const CLASSIFIER_FIXTURE = fileURLToPath(new URL("../tests/fixtures/classifier-cases.json", import.meta.url));
+const OPERATOR_FIXTURE = fileURLToPath(new URL("../tests/fixtures/operator-cases.json", import.meta.url));
 const REDUCER_FIXTURE = fileURLToPath(new URL("../tests/fixtures/reducer-cases.json", import.meta.url));
 const LEDGER_FIXTURE = fileURLToPath(new URL("../tests/fixtures/source-ledger.json", import.meta.url));
 const TRANSCRIPTS_DIR = fileURLToPath(new URL("../tests/fixtures/transcripts/", import.meta.url));
@@ -135,6 +136,14 @@ async function rebuildBodies(manifest, shards) {
   const cache = new Map();
   let written = 0;
   for (const value of manifest.cases ?? []) {
+    if (value.labelSource === "operator") {
+      const inputs = classifierInputs(value);
+      const computed = classifierHash({ inputs, forbiddenDecisions: value.forbiddenDecisions });
+      if (computed !== value.hash) throw new Error(`classifier case ${value.id}: operator hash does not match its inputs`);
+      await writeBody(value.hash, inputs);
+      written += 1;
+      continue;
+    }
     const sessionID = value.provenance?.sessionID;
     const assistantID = value.provenance?.assistantID;
     if (!sessionID || !assistantID) throw new Error(`classifier case ${value.id} has no provenance to rebuild from`);
@@ -349,7 +358,10 @@ function merge(existing, discovered, limit, hashOf) {
   return { document: { version: 1, cases }, added };
 }
 
-const classifierExisting = await readJson(CLASSIFIER_FIXTURE, { version: 1, cases: [] });
+const operatorDocument = await readJson(OPERATOR_FIXTURE, { version: 1, cases: [] });
+const operatorCases = (operatorDocument.cases ?? []).map((value) => ({ ...value, hash: classifierHash(value) }));
+const manifestDocument = await readJson(CLASSIFIER_FIXTURE, { version: 1, cases: [] });
+const classifierExisting = { version: 1, cases: [...(manifestDocument.cases ?? []).filter((value) => value.labelSource !== "operator"), ...operatorCases] };
 const reducerExisting = await readJson(REDUCER_FIXTURE, { version: 1, cases: [] });
 const ledger = await readJson(LEDGER_FIXTURE, { version: 1, seenDecisionIDs: [] });
 const seenDecisionIDs = new Set(ledger.seenDecisionIDs ?? []);

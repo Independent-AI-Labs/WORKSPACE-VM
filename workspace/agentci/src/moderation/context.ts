@@ -50,7 +50,8 @@ export function assistantText(message: MessageFact): string {
 }
 
 export function isSyntheticUser(message: MessageFact): boolean {
-  return message.info.role === "user" && message.parts.some((part) => part.synthetic === true && part.metadata?.compaction_continue === true);
+  return message.info.role === "user" && message.parts.some((part) => part.synthetic === true
+    && (part.metadata?.compaction_continue === true || part.metadata?.moderation === true));
 }
 
 export function isTerminal(message: MessageFact): boolean {
@@ -81,7 +82,18 @@ export function isPlanMode(message: MessageFact | undefined): boolean {
   return message.info.mode === "plan" || message.info.agent === "plan";
 }
 
+export type DeclaredStatus = "COMPLETE" | "WAITING_FOR_USER" | "WAITING_FOR_OPERATOR" | "STOPPED";
+
+const STATUS_LINE = /(?:^|\n)\s*STATUS:\s*(COMPLETE|WAITING_FOR_USER|WAITING_FOR_OPERATOR|STOPPED)\s*$/i;
+
+export function declaredStatus(text: string): DeclaredStatus | null {
+  const match = STATUS_LINE.exec(text);
+  if (!match) return null;
+  return match[1].toUpperCase() as DeclaredStatus;
+}
+
 export function isInjectedUser(message: MessageFact): boolean {
+  if (message.info.role === "user" && message.parts.some((part) => part.synthetic === true && part.metadata?.moderation === true)) return true;
   return INJECTED_MESSAGE.test(assistantText(message));
 }
 

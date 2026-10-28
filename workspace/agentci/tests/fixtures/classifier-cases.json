@@ -2,6 +2,28 @@
   "version": 1,
   "cases": [
     {
+      "id": "mined-001586d1c29123b2",
+      "provenance": {
+        "sessionID": "ses_e861133fcffeP1X1EABxMhaoOn",
+        "assistantID": "msg_17e486ecb001Tsupq7nTD6Bu0n",
+        "decisionID": "1793120042618-6b4f6da5f234"
+      },
+      "expectedDecision": null,
+      "expectedReason": null,
+      "forbiddenDecisions": [
+        "AGENT_BLOCKED"
+      ],
+      "labelSource": "mined",
+      "hash": "001586d1c29123b2b49b9c7af58c7c2599c26e3b8829d9d6f44056c3377f7c17",
+      "transcript": "transcripts/001586d1c29123b2b49b9c7af58c7c2599c26e3b8829d9d6f44056c3377f7c17.json",
+      "observed": {
+        "decision": "AGENT_BLOCKED",
+        "reasonCode": "AWAITING_USER",
+        "signal": "removed",
+        "source": "transcript"
+      }
+    },
+    {
       "id": "mined-00d5f1044baba779",
       "provenance": {
         "sessionID": "ses_e8712a7e0ffeT5r8DjgLVyygjT",
@@ -21,6 +43,42 @@
         "decision": "AGENT_CONTINUING",
         "reasonCode": "WORK_REMAINS",
         "signal": "aborted",
+        "source": "transcript"
+      }
+    },
+    {
+      "id": "op-physical-handoff",
+      "provenance": {
+        "sessionID": null,
+        "assistantID": null,
+        "decisionID": null
+      },
+      "expectedDecision": "AGENT_BLOCKED",
+      "expectedReason": "AWAITING_OPERATOR",
+      "forbiddenDecisions": [],
+      "labelSource": "operator",
+      "hash": "023a2206498e9ad7ae77bc2e69502ec7d0a9b6d9567e6938aa0ef1449a3c92b2",
+      "transcript": "transcripts/023a2206498e9ad7ae77bc2e69502ec7d0a9b6d9567e6938aa0ef1449a3c92b2.json"
+    },
+    {
+      "id": "mined-0631b4bc107e6f46",
+      "provenance": {
+        "sessionID": "ses_e861133fcffeP1X1EABxMhaoOn",
+        "assistantID": "msg_17f023d2c0014grU5Yt34NTFn1",
+        "decisionID": "1793132227752-6f648574e18d"
+      },
+      "expectedDecision": null,
+      "expectedReason": null,
+      "forbiddenDecisions": [
+        "AGENT_BLOCKED"
+      ],
+      "labelSource": "mined",
+      "hash": "0631b4bc107e6f46ec317cb236f43e6bd8a034d10d43342f8f8c56506772da6e",
+      "transcript": "transcripts/0631b4bc107e6f46ec317cb236f43e6bd8a034d10d43342f8f8c56506772da6e.json",
+      "observed": {
+        "decision": "AGENT_BLOCKED",
+        "reasonCode": "AWAITING_USER",
+        "signal": "removed",
         "source": "transcript"
       }
     },
@@ -71,6 +129,20 @@
       }
     },
     {
+      "id": "op-question-to-user",
+      "provenance": {
+        "sessionID": null,
+        "assistantID": null,
+        "decisionID": null
+      },
+      "expectedDecision": "AGENT_BLOCKED",
+      "expectedReason": "AWAITING_USER",
+      "forbiddenDecisions": [],
+      "labelSource": "operator",
+      "hash": "177a818189023105791c16e445326e9dd9254eb3ac095d50de8bc80d98b19bd8",
+      "transcript": "transcripts/177a818189023105791c16e445326e9dd9254eb3ac095d50de8bc80d98b19bd8.json"
+    },
+    {
       "id": "op-work-complete",
       "provenance": {
         "sessionID": null,
@@ -97,6 +169,28 @@
       "labelSource": "operator",
       "hash": "1da8d24a43954c656c53a3ffea3f55e4f365413d6ca7bb7c117dbfabb0bb7229",
       "transcript": "transcripts/1da8d24a43954c656c53a3ffea3f55e4f365413d6ca7bb7c117dbfabb0bb7229.json"
+    },
+    {
+      "id": "mined-1e2bd792518a47eb",
+      "provenance": {
+        "sessionID": "ses_e861133fcffeP1X1EABxMhaoOn",
+        "assistantID": "msg_17defd2da002LS2wPwe3hLXOjl",
+        "decisionID": "1793114246073-3dc84603101a"
+      },
+      "expectedDecision": null,
+      "expectedReason": null,
+      "forbiddenDecisions": [
+        "AGENT_BLOCKED"
+      ],
+      "labelSource": "mined",
+      "hash": "1e2bd792518a47eb6b93fd20cf468bad688f818c8c36dc6b7a64cf806b90a5d6",
+      "transcript": "transcripts/1e2bd792518a47eb6b93fd20cf468bad688f818c8c36dc6b7a64cf806b90a5d6.json",
+      "observed": {
+        "decision": "AGENT_BLOCKED",
+        "reasonCode": "AWAITING_USER",
+        "signal": "removed",
+        "source": "transcript"
+      }
     },
     {
       "id": "op-user-stop",
@@ -250,6 +344,28 @@
       }
     },
     {
+      "id": "mined-3dcc3d55f6d5dd99",
+      "provenance": {
+        "sessionID": "ses_e861133fcffeP1X1EABxMhaoOn",
+        "assistantID": "msg_17ef3b4c6001ALky4zxf9xdzhs",
+        "decisionID": "1793131273311-ee78cdfca755"
+      },
+      "expectedDecision": null,
+      "expectedReason": null,
+      "forbiddenDecisions": [
+        "AGENT_BLOCKED"
+      ],
+      "labelSource": "mined",
+      "hash": "3dcc3d55f6d5dd99772e8d14066ea754dd018c9909db35f4c5777d9bbe9b8cbc",
+      "transcript": "transcripts/3dcc3d55f6d5dd99772e8d14066ea754dd018c9909db35f4c5777d9bbe9b8cbc.json",
+      "observed": {
+        "decision": "AGENT_BLOCKED",
+        "reasonCode": "AWAITING_USER",
+        "signal": "removed",
+        "source": "transcript"
+      }
+    },
+    {
       "id": "op-operator-reproduction-handoff",
       "provenance": {
         "sessionID": null,
@@ -262,6 +378,28 @@
       "labelSource": "operator",
       "hash": "4399a381fb63e50918f41cb511cc42fbc396dcec4d1b9aac7648dbed5ebcf48c",
       "transcript": "transcripts/4399a381fb63e50918f41cb511cc42fbc396dcec4d1b9aac7648dbed5ebcf48c.json"
+    },
+    {
+      "id": "mined-4657f841fd92dae4",
+      "provenance": {
+        "sessionID": "ses_e861133fcffeP1X1EABxMhaoOn",
+        "assistantID": "msg_17e4cd2c50017aztJgzQUjL43d",
+        "decisionID": "1793120340084-0ae5a2da8768"
+      },
+      "expectedDecision": null,
+      "expectedReason": null,
+      "forbiddenDecisions": [
+        "AGENT_BLOCKED"
+      ],
+      "labelSource": "mined",
+      "hash": "4657f841fd92dae4e72f9a3ece44d66ed3da5c59d9d200e4a9df6d86342ccfb1",
+      "transcript": "transcripts/4657f841fd92dae4e72f9a3ece44d66ed3da5c59d9d200e4a9df6d86342ccfb1.json",
+      "observed": {
+        "decision": "AGENT_BLOCKED",
+        "reasonCode": "AWAITING_USER",
+        "signal": "removed",
+        "source": "transcript"
+      }
     },
     {
       "id": "mined-46fe3661435388b4",
@@ -301,6 +439,28 @@
       "labelSource": "mined",
       "hash": "49a1d05c7a4945dc72f59130865dfd66bd164eed46e3307aa076b368c2fb0278",
       "transcript": "transcripts/49a1d05c7a4945dc72f59130865dfd66bd164eed46e3307aa076b368c2fb0278.json",
+      "observed": {
+        "decision": "AGENT_BLOCKED",
+        "reasonCode": "AWAITING_USER",
+        "signal": "removed",
+        "source": "transcript"
+      }
+    },
+    {
+      "id": "mined-4a366699b5f8330d",
+      "provenance": {
+        "sessionID": "ses_e861133fcffeP1X1EABxMhaoOn",
+        "assistantID": "msg_17e2cb369001h17aQW8p7NKz3O",
+        "decisionID": "1793118227474-060cf1e8c6f0"
+      },
+      "expectedDecision": null,
+      "expectedReason": null,
+      "forbiddenDecisions": [
+        "AGENT_BLOCKED"
+      ],
+      "labelSource": "mined",
+      "hash": "4a366699b5f8330db5baeb41823009df9617fd50030c9ea245bb35642a299b1c",
+      "transcript": "transcripts/4a366699b5f8330db5baeb41823009df9617fd50030c9ea245bb35642a299b1c.json",
       "observed": {
         "decision": "AGENT_BLOCKED",
         "reasonCode": "AWAITING_USER",
@@ -470,6 +630,20 @@
       }
     },
     {
+      "id": "op-game-handoff-full",
+      "provenance": {
+        "sessionID": null,
+        "assistantID": null,
+        "decisionID": null
+      },
+      "expectedDecision": "AGENT_BLOCKED",
+      "expectedReason": "AWAITING_OPERATOR",
+      "forbiddenDecisions": [],
+      "labelSource": "operator",
+      "hash": "6c52c09bc3a6f3e2f2ff3b1f00fb9a422e16102adbcd351faba6edcc8611861f",
+      "transcript": "transcripts/6c52c09bc3a6f3e2f2ff3b1f00fb9a422e16102adbcd351faba6edcc8611861f.json"
+    },
+    {
       "id": "mined-6e5880048b9fef07",
       "provenance": {
         "sessionID": "ses_ebf0d92d3ffepnUEfAMkuP9EAr",
@@ -489,6 +663,28 @@
         "decision": "AGENT_CONTINUING",
         "reasonCode": "WORK_REMAINS",
         "signal": "aborted",
+        "source": "transcript"
+      }
+    },
+    {
+      "id": "mined-6f091e79964caa9f",
+      "provenance": {
+        "sessionID": "ses_e861133fcffeP1X1EABxMhaoOn",
+        "assistantID": "msg_17c4493b3001x3WlkMkdlCJkxE",
+        "decisionID": "1793086234754-4674c01ea594"
+      },
+      "expectedDecision": null,
+      "expectedReason": null,
+      "forbiddenDecisions": [
+        "AGENT_BLOCKED"
+      ],
+      "labelSource": "mined",
+      "hash": "6f091e79964caa9f651237d1aab27310dad38dc2542b92745663ba5b4fde8280",
+      "transcript": "transcripts/6f091e79964caa9f651237d1aab27310dad38dc2542b92745663ba5b4fde8280.json",
+      "observed": {
+        "decision": "AGENT_BLOCKED",
+        "reasonCode": "AWAITING_USER",
+        "signal": "removed",
         "source": "transcript"
       }
     },
@@ -585,6 +781,28 @@
       }
     },
     {
+      "id": "mined-7ea02152fd8947ed",
+      "provenance": {
+        "sessionID": "ses_e861133fcffeP1X1EABxMhaoOn",
+        "assistantID": "msg_17e49032f001pOt6fnnI0oQ8X6",
+        "decisionID": "1793120079949-311d6d9c5218"
+      },
+      "expectedDecision": null,
+      "expectedReason": null,
+      "forbiddenDecisions": [
+        "AGENT_BLOCKED"
+      ],
+      "labelSource": "mined",
+      "hash": "7ea02152fd8947ed6a5c9580e508adf45cd0a47828abf610ea2d325130b7e6d7",
+      "transcript": "transcripts/7ea02152fd8947ed6a5c9580e508adf45cd0a47828abf610ea2d325130b7e6d7.json",
+      "observed": {
+        "decision": "AGENT_BLOCKED",
+        "reasonCode": "AWAITING_USER",
+        "signal": "removed",
+        "source": "transcript"
+      }
+    },
+    {
       "id": "mined-891889c0f3e64ea8",
       "provenance": {
         "sessionID": "ses_eb9be77b0ffeHOgKB795K2m6R1",
@@ -627,6 +845,28 @@
         "decision": "AGENT_CONTINUING",
         "reasonCode": "WORK_REMAINS",
         "signal": "aborted",
+        "source": "transcript"
+      }
+    },
+    {
+      "id": "mined-8af15b29a6d52f19",
+      "provenance": {
+        "sessionID": "ses_e861133fcffeP1X1EABxMhaoOn",
+        "assistantID": "msg_17df51938002JNpjj3ByJ9ahs6",
+        "decisionID": "1793114649316-eb0b7eb1f563"
+      },
+      "expectedDecision": null,
+      "expectedReason": null,
+      "forbiddenDecisions": [
+        "AGENT_BLOCKED"
+      ],
+      "labelSource": "mined",
+      "hash": "8af15b29a6d52f195ea6fa9c2d2654117806ece147a9515e62c6d400f9d57146",
+      "transcript": "transcripts/8af15b29a6d52f195ea6fa9c2d2654117806ece147a9515e62c6d400f9d57146.json",
+      "observed": {
+        "decision": "AGENT_BLOCKED",
+        "reasonCode": "AWAITING_USER",
+        "signal": "removed",
         "source": "transcript"
       }
     },
@@ -720,6 +960,20 @@
         "signal": "aborted",
         "source": "transcript"
       }
+    },
+    {
+      "id": "op-self-answered-question-continue",
+      "provenance": {
+        "sessionID": null,
+        "assistantID": null,
+        "decisionID": null
+      },
+      "expectedDecision": "AGENT_CONTINUING",
+      "expectedReason": "WORK_REMAINS",
+      "forbiddenDecisions": [],
+      "labelSource": "operator",
+      "hash": "9fa5c1ea72a4ec4a0d5b20fb602ebcdaafae09f555bf1473b2b509dcdd7ce770",
+      "transcript": "transcripts/9fa5c1ea72a4ec4a0d5b20fb602ebcdaafae09f555bf1473b2b509dcdd7ce770.json"
     },
     {
       "id": "mined-a24e6d52c7701431",
@@ -928,6 +1182,20 @@
       }
     },
     {
+      "id": "op-plan-handoff",
+      "provenance": {
+        "sessionID": null,
+        "assistantID": null,
+        "decisionID": null
+      },
+      "expectedDecision": "AGENT_BLOCKED",
+      "expectedReason": "AWAITING_USER",
+      "forbiddenDecisions": [],
+      "labelSource": "operator",
+      "hash": "c7103bf03e110ebfbd2c4db0d49307f1a16bce0b7e52ddc8fc0235946a8baac1",
+      "transcript": "transcripts/c7103bf03e110ebfbd2c4db0d49307f1a16bce0b7e52ddc8fc0235946a8baac1.json"
+    },
+    {
       "id": "mined-cbe867fbe60d66e6",
       "provenance": {
         "sessionID": "ses_eb5189997ffewT33xLLvh49NGP",
@@ -970,6 +1238,28 @@
         "decision": "AGENT_CONTINUING",
         "reasonCode": "WORK_REMAINS",
         "signal": "aborted",
+        "source": "transcript"
+      }
+    },
+    {
+      "id": "mined-ce73300266ff914a",
+      "provenance": {
+        "sessionID": "ses_e861133fcffeP1X1EABxMhaoOn",
+        "assistantID": "msg_17e80817f002xGjZB1hMem4UWQ",
+        "decisionID": "1793123723222-f40a9ce289e0"
+      },
+      "expectedDecision": null,
+      "expectedReason": null,
+      "forbiddenDecisions": [
+        "AGENT_BLOCKED"
+      ],
+      "labelSource": "mined",
+      "hash": "ce73300266ff914adf463d79e4c9f9acc06cde7b37b708901262351cd2d2cc4f",
+      "transcript": "transcripts/ce73300266ff914adf463d79e4c9f9acc06cde7b37b708901262351cd2d2cc4f.json",
+      "observed": {
+        "decision": "AGENT_BLOCKED",
+        "reasonCode": "AWAITING_USER",
+        "signal": "removed",
         "source": "transcript"
       }
     },
@@ -1043,6 +1333,20 @@
       }
     },
     {
+      "id": "op-imperative-report-back",
+      "provenance": {
+        "sessionID": null,
+        "assistantID": null,
+        "decisionID": null
+      },
+      "expectedDecision": "AGENT_BLOCKED",
+      "expectedReason": "AWAITING_OPERATOR",
+      "forbiddenDecisions": [],
+      "labelSource": "operator",
+      "hash": "d79d1f64ac19c0522f1fea7c8d8894cc1663f06e68bb34f77886f1c313aa156c",
+      "transcript": "transcripts/d79d1f64ac19c0522f1fea7c8d8894cc1663f06e68bb34f77886f1c313aa156c.json"
+    },
+    {
       "id": "mined-d9028aaa30a400ec",
       "provenance": {
         "sessionID": "ses_eb5189997ffewT33xLLvh49NGP",
@@ -1062,6 +1366,28 @@
         "decision": "AGENT_CONTINUING",
         "reasonCode": "WORK_REMAINS",
         "signal": "aborted",
+        "source": "transcript"
+      }
+    },
+    {
+      "id": "mined-dadd7342581e75c4",
+      "provenance": {
+        "sessionID": "ses_e861133fcffeP1X1EABxMhaoOn",
+        "assistantID": "msg_17e6a8e2d00211d5IQF59v9FI2",
+        "decisionID": "1793122284480-ed9079052d7d"
+      },
+      "expectedDecision": null,
+      "expectedReason": null,
+      "forbiddenDecisions": [
+        "AGENT_BLOCKED"
+      ],
+      "labelSource": "mined",
+      "hash": "dadd7342581e75c4abfaf6c90ea0a2e58fa637d1821117818cfd740ca7224a38",
+      "transcript": "transcripts/dadd7342581e75c4abfaf6c90ea0a2e58fa637d1821117818cfd740ca7224a38.json",
+      "observed": {
+        "decision": "AGENT_BLOCKED",
+        "reasonCode": "AWAITING_USER",
+        "signal": "removed",
         "source": "transcript"
       }
     },

@@ -37,6 +37,21 @@ function missingFile(error: unknown): boolean {
   return typeof error === "object" && error !== null && "code" in error && (error as { code?: unknown }).code === "ENOENT";
 }
 
+export interface ClassifierVerdictFact {
+  decision: string;
+  reasonCode: string;
+}
+
+export function scoreClassifierCase(value: ClassifierCaseManifest, verdict: ClassifierVerdictFact): string | null {
+  if (value.expectedDecision) {
+    if (verdict.decision !== value.expectedDecision) return `expected ${value.expectedDecision}, got ${verdict.decision}`;
+    if (value.expectedReason && verdict.reasonCode !== value.expectedReason) return `expected ${value.expectedReason}, got ${verdict.reasonCode}`;
+    return null;
+  }
+  if (value.forbiddenDecisions.includes(verdict.decision)) return `repeated mined failure ${verdict.decision}/${verdict.reasonCode}`;
+  return null;
+}
+
 export async function loadClassifierCases(): Promise<LoadedClassifierCase[]> {
   const fixture = await loadClassifierManifest();
   const cases: LoadedClassifierCase[] = [];
