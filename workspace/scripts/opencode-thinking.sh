@@ -98,12 +98,15 @@ oc_wrapper_apply_session_variant() {
     if [[ ! -f "$db_path" ]]; then
         return 0
     fi
-    model_json="$(
+    if ! model_json="$(
         {
             printf ".parameter set :sid '%s'\n" "${sid//\'/\'\'}"
             cat -- "${_OC_WRAPPER_DIR}/../sql/oc_session_model.sql"
         } | "$sqlite_bin" "$db_path"
-    )"
+    )"; then
+        echo "oc: session variant skipped: model query failed for ${sid} in ${db_path}" >&2
+        return 0
+    fi
     if [[ -z "$model_json" ]]; then
         echo "oc: session variant skipped: ${sid} not found in ${db_path}" >&2
         return 0
@@ -120,11 +123,14 @@ oc_wrapper_apply_session_variant() {
     if [[ "$("$jq_bin" -r '.variant // empty' <<< "$model_json")" == "$chosen" ]]; then
         return 0
     fi
-    {
+    if ! {
         printf ".parameter set :sid '%s'\n" "${sid//\'/\'\'}"
         printf ".parameter set :variant '%s'\n" "${chosen//\'/\'\'}"
         cat -- "${_OC_WRAPPER_DIR}/../sql/oc_session_set_variant.sql"
-    } | "$sqlite_bin" "$db_path"
+    } | "$sqlite_bin" "$db_path"; then
+        echo "oc: session variant not stored for ${sid} in ${db_path}" >&2
+        return 0
+    fi
     printf '[oc] session %s: variant %s\n' "$sid" "$chosen" >&2
 }
 

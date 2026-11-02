@@ -40,6 +40,8 @@ class TestOcWrappers:
             "run",
             "--dir",
             str(tmp_path / f"caller-{wrapper.name}"),
+            "--variant",
+            "low",
             "normal task",
         ]
         assert (expected_config / "opencode.jsonc").is_file()
@@ -123,9 +125,10 @@ class TestOcWrappers:
             str(tmp_path / f"caller-{wrapper.name}"),
             "--agent",
             "answer",
+            "--variant",
+            "low",
             "answer task",
         ]
-
     @pytest.mark.parametrize("wrapper", WRAPPERS)
     def test_agent_option_without_task_starts_interactive(
         self, tmp_path: Path, wrapper: Path
