@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { createHash } from "node:crypto";
-import { mkdir, readFile, readdir, rename, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, rename, unlink, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -106,11 +106,13 @@ function transcriptPath(caseHash) {
 }
 
 function classifierInputs(value) {
-  return {
+  const inputs = {
     previousResponse: value.previousResponse ?? value.inputs?.previousResponse,
     userMessages: value.userMessages ?? value.inputs?.userMessages ?? [],
     todos: value.todos ?? value.inputs?.todos ?? [],
   };
+  if (value.answerMode ?? value.inputs?.answerMode) inputs.answerMode = true;
+  return inputs;
 }
 
 function manifestOf(value) {
@@ -130,6 +132,24 @@ function manifestOf(value) {
 
 async function writeBody(caseHash, inputs) {
   await writeAtomicIfChanged(transcriptPath(caseHash), inputs);
+}
+
+async function pruneBodies(keep) {
+  let names;
+  try {
+    names = await readdir(TRANSCRIPTS_DIR);
+  } catch (error) {
+    if (error.code === "ENOENT") return 0;
+    throw error;
+  }
+  let removed = 0;
+  for (const name of names) {
+    if (!name.endsWith(".json")) continue;
+    if (keep.has(name.slice(0, -".json".length))) continue;
+    await unlink(join(TRANSCRIPTS_DIR, name));
+    removed += 1;
+  }
+  return removed;
 }
 
 async function rebuildBodies(manifest, shards) {
@@ -421,6 +441,8 @@ if (!DRY_RUN) {
     manifestCases.push(manifestOf(value));
   }
   await writeAtomicIfChanged(CLASSIFIER_FIXTURE, { version: 1, cases: manifestCases });
+  const pruned = await pruneBodies(new Set(manifestCases.map((value) => value.hash)));
+  if (pruned > 0) console.log(`pruned ${pruned} orphaned transcript bodies`);
 }
 if (!DRY_RUN && freshReducer.length > 0) {
   const document = { version: 1, cases: [...(reducerExisting.cases ?? []), ...freshReducer] };

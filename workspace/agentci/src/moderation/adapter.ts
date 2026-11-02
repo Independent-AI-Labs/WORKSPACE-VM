@@ -1,6 +1,6 @@
-import { loadPrompt, type FetchLike } from "./classifier.ts";
+import { classify, loadPrompt, type FetchLike } from "./classifier.ts";
 import { deriveContext, inBranch, isInjectedUser, isSyntheticUser, newestAssistant, realUserAncestor } from "./context.ts";
-import { resolveVerdict } from "./verdict.ts";
+
 import type { ModerationOptions } from "./config.ts";
 import { persistSnapshot, restoreSnapshot, sessionDirectory, writeDecisionRecord } from "./audit.ts";
 import { createInitialState, isValidState, normalizeRestoredState, transition } from "./machine.ts";
@@ -64,6 +64,9 @@ interface Session {
   moderatorMessageIDs: Set<string>;
   context: ContextSnapshot | null;
   userMessages: string[];
+  generation: number;
+  classifyGeneration: number;
+  controller: AbortController | null;
 }
 
 export interface ModerationAdapter {
@@ -104,6 +107,9 @@ export function createModerationAdapter(input: ModerationServerInput, options: M
       moderatorMessageIDs: new Set(),
       context: null,
       userMessages: [],
+      generation: 0,
+      classifyGeneration: 0,
+      controller: null,
     };
     sessions.set(sessionID, created);
     return created;
@@ -145,9 +151,11 @@ export function createModerationAdapter(input: ModerationServerInput, options: M
   const perform = async (sessionID: string, session: Session, effect: Effect, event: ModerationEvent): Promise<ModerationEvent | null> => {
     switch (effect.type) {
       case "LOAD_CONTEXT": return loadContext(sessionID, session);
-      case "CLASSIFY": return classifyEffect(session, event);
+      case "CLASSIFY": return classifyEffect(sessionID, session, event);
       case "WRITE_TRACE": return writeTrace(sessionID, session, effect.verdict);
-      case "SHOW_TOAST": return showToast(input.client, effect.kind);
+      case "SHOW_TOAST":
+        if (await superseded(sessionID, session)) return { type: "CANCELLED", reason: "ignored-user-cancelled" };
+        return showToast(input.client, effect.kind);
       case "SEND_CONTINUATION": return sendContinuation(sessionID, session, effect.verdict);
       case "VERIFY_PROMPT": return verifyPrompt(sessionID);
       case "WAIT_FOR_BUSY": return waitForBusy(sessionID, session);
@@ -196,38 +204,68 @@ export function createModerationAdapter(input: ModerationServerInput, options: M
       originUserID: realUserCycleID,
     };
   };
-  const classifyEffect = async (session: Session, event: ModerationEvent): Promise<ModerationEvent> => {
-    const context = session.context;
-    if (!context) throw new Error("AgentCI moderation classifier ran without a context snapshot");
+  const classifyEffect = async (sessionID: string, session: Session, event: ModerationEvent): Promise<ModerationEvent> => {
     const todos = event.type === "CONTEXT_LOADED" ? event.todos ?? [] : [];
-    const outcome = await resolveVerdict(options, { todos, previousResponse: context.assistantResponse, userMessages: session.userMessages }, fetchImpl);
-    if (outcome.error) throw new Error(outcome.error);
+    const judgedAssistantID = session.judgedAssistantID;
+    const generation = session.generation;
+    const messages = await loadMessages(input.client, sessionID);
+    const assistant = newestAssistant(messages);
+    const context = deriveContext({
+      messages,
+      assistantID: assistant?.info.id ?? null,
+      lastTerminalAssistantID: session.state.lastTerminalAssistantID,
+      inflightAssistantID: session.state.inflightAssistantID,
+    });
+    const fresh = context.assistantPresent && context.terminal && !context.assistantError && !context.userNewer
+      && assistant?.info.id === judgedAssistantID && context.build !== false && !context.planMode && !context.compaction;
+    if (!fresh) return { type: "CANCELLED", reason: "ignored-stale-context" };
+    session.context = context;
+    session.userMessages = context.realUserPrompts;
+    session.classifyGeneration = generation;
+    const controller = new AbortController();
+    session.controller = controller;
+    let outcome: Awaited<ReturnType<typeof classify>>;
+    try {
+      outcome = await classify(options, { todos, previousResponse: context.assistantResponse, userMessages: context.realUserPrompts, answerMode: context.answerMode }, fetchImpl, controller.signal);
+    } catch (error) {
+      if (controller.signal.aborted) return { type: "CANCELLED", reason: "ignored-user-cancelled" };
+      throw error;
+    } finally {
+      session.controller = null;
+    }
+    if (session.generation !== generation) return { type: "CANCELLED", reason: "ignored-user-cancelled" };
     const verdict = outcome.verdict;
-    if (!verdict) throw new Error("AgentCI moderation classifier returned no verdict");
+    if (!verdict) throw new Error(outcome.error ?? "AgentCI moderation classifier returned no verdict");
     const originUserID = event.type === "CONTEXT_LOADED" ? event.originUserID ?? null : null;
     return { type: "CLASSIFIER_RESULT", verdict, originUserID, capture: outcome.capture };
   };
+  const superseded = async (sessionID: string, session: Session): Promise<boolean> => {
+    if (session.controller?.signal.aborted) return true;
+    if (session.generation !== session.classifyGeneration) return true;
+    const judged = session.judgedAssistantID;
+    if (judged === null) return false;
+    const history = await loadMessages(input.client, sessionID);
+    const index = history.findIndex((message) => message.info.id === judged);
+    if (index < 0) return true;
+    const spoke = history.slice(index + 1).some((message) => message.info.role === "user"
+      && !isInjectedUser(message)
+      && !isSyntheticUser(message)
+      && !session.moderatorMessageIDs.has(message.info.id ?? ""));
+    if (spoke) return true;
+    const newest = newestAssistant(history);
+    return newest !== undefined && newest.info.id !== judged;
+  };
   const writeTrace = async (sessionID: string, session: Session, verdict: Verdict | undefined): Promise<ModerationEvent> => {
+    if (await superseded(sessionID, session)) return { type: "CANCELLED", reason: "ignored-user-cancelled" };
     const text = verdict ? statusLine(verdict.decision, verdict.reasonCode) : OPERATOR_LINE;
     const response = await input.client.session.prompt({ path: { id: sessionID }, body: { noReply: true, parts: [{ type: "text", text }] } });
     const id = response.data?.info?.id;
     if (id) session.moderatorMessageIDs.add(id);
     return { type: "TRACE_PERSISTED", messageID: id ?? null };
   };
-  const userSpokeAfterJudged = async (sessionID: string, session: Session): Promise<boolean> => {
-    const judged = session.judgedAssistantID;
-    if (judged === null) return false;
-    const history = await loadMessages(input.client, sessionID);
-    const index = history.findIndex((message) => message.info.id === judged);
-    if (index < 0) return false;
-    return history.slice(index + 1).some((message) => message.info.role === "user"
-      && !isInjectedUser(message)
-      && !isSyntheticUser(message)
-      && !session.moderatorMessageIDs.has(message.info.id ?? ""));
-  };
   const sendContinuation = async (sessionID: string, session: Session, verdict: Verdict | undefined): Promise<ModerationEvent> => {
     if (!verdict) throw new Error("AgentCI moderation continuation ran without a verdict");
-    if (await userSpokeAfterJudged(sessionID, session)) throw new Error("AgentCI moderation cancelled the continuation: a user message arrived after the judged response");
+    if (await superseded(sessionID, session)) return { type: "CANCELLED", reason: "ignored-user-cancelled" };
     session.continuationBaseline = session.busyCount;
     const response = await sendContinuationPrompt(input.client, sessionID, statusLine(verdict.decision, verdict.reasonCode));
     const id = promptAsyncMessageID(response);
@@ -252,7 +290,11 @@ export function createModerationAdapter(input: ModerationServerInput, options: M
     if (event.type === "session.status") {
       const session = record(sessionID);
       const status = event.properties?.status?.type;
-      if (status === "busy") session.busyCount += 1;
+      if (status === "busy") {
+        session.busyCount += 1;
+        session.generation += 1;
+        session.controller?.abort();
+      }
       enqueue(sessionID, { type: status === "busy" ? "STATUS_BUSY" : "STATUS_IDLE" });
       return;
     }

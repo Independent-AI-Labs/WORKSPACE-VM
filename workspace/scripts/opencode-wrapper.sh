@@ -155,6 +155,8 @@ oc_wrapper_set_ctx() {
     fi
 }
 
+source "${_OC_WRAPPER_DIR}/opencode-thinking.sh" || exit 1
+
 oc_wrapper_shard_db() {
     if [[ -n "${OPENCODE_DB:-}" ]]; then
         return 0
@@ -423,6 +425,17 @@ oc_wrapper_dispatch() {
     if [[ -n "$set_ctx_spec" ]]; then
         oc_wrapper_set_ctx "$set_ctx_spec" "$set_ctx_size" "$persist_ctx" || return 2
     fi
+    oc_wrapper_apply_variant
+    local effort resume_sid=""
+    effort="$(oc_wrapper_requested_effort)"
+    if resume_sid="$(oc_wrapper_session_arg "${args[@]}")"; then
+        oc_wrapper_apply_session_variant "$resume_sid" "$effort"
+    elif oc_wrapper_resumes_session "${args[@]}"; then
+        resume_sid="$(oc_wrapper_latest_session)"
+        if [[ -n "$resume_sid" ]]; then
+            oc_wrapper_apply_session_variant "$resume_sid" "$effort"
+        fi
+    fi
     if [[ $run_mod -eq 1 ]]; then
         local run_mod_sid="" _run_mod_arg
         for _run_mod_arg in "${args[@]}"; do
@@ -440,6 +453,12 @@ oc_wrapper_dispatch() {
             exec "$opencode" --session "$run_mod_sid" "${args[@]/$run_mod_sid}"
         fi
         printf '[oc] run-mod: replaying the last moderation decision for the latest session\n' >&2
+        if [[ -z "$resume_sid" ]]; then
+            resume_sid="$(oc_wrapper_latest_session)"
+            if [[ -n "$resume_sid" ]]; then
+                oc_wrapper_apply_session_variant "$resume_sid" "$effort"
+            fi
+        fi
         exec "$opencode" --continue "${args[@]}"
     fi
     if [[ $direct -eq 1 ]]; then
@@ -457,8 +476,12 @@ oc_wrapper_dispatch() {
         fi
         exec "$opencode" "${args[@]}"
     fi
-    if [[ -n "$agent" ]]; then
-        exec "$opencode" run --dir "$original_pwd" --agent "$agent" "${args[@]}"
+    local -a run_variant=()
+    if ! oc_wrapper_has_variant_arg "${args[@]}"; then
+        run_variant=(--variant "$effort")
     fi
-    exec "$opencode" run --dir "$original_pwd" "${args[@]}"
+    if [[ -n "$agent" ]]; then
+        exec "$opencode" run --dir "$original_pwd" --agent "$agent" "${run_variant[@]}" "${args[@]}"
+    fi
+    exec "$opencode" run --dir "$original_pwd" "${run_variant[@]}" "${args[@]}"
 }

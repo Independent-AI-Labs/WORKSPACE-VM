@@ -1,9 +1,9 @@
 import { statusLine, isSessionID, loadMessages, sendContinuationPrompt, type ModerationClient } from "./adapter.ts";
 import { sessionDirectory, writeDecisionRecord } from "./audit.ts";
-import type { FetchLike } from "./classifier.ts";
+import { classify, type FetchLike } from "./classifier.ts";
 import type { ModerationOptions } from "./config.ts";
-import { assistantText, isInjectedUser, lastRealUserPrompts } from "./context.ts";
-import { resolveVerdict } from "./verdict.ts";
+import { assistantText, isAnswerMode, isInjectedUser, lastRealUserPrompts } from "./context.ts";
+
 import type { MessageFact, TodoFact, Verdict, VerdictDecision } from "./types.ts";
 
 const REPLAY_READY_ATTEMPTS = 40;
@@ -64,9 +64,9 @@ export async function replayLastDecision(input: ReplayInput): Promise<ReplayResu
   if (target.moderatorMessageID !== null) {
     await input.client.session.revert({ path: { id: input.sessionID }, body: { messageID: target.moderatorMessageID } });
   }
-  const outcome = await resolveVerdict(
+  const outcome = await classify(
     input.options,
-    { todos, previousResponse: assistantText(target.assistant), userMessages: lastRealUserPrompts(messages) },
+    { todos, previousResponse: assistantText(target.assistant), userMessages: lastRealUserPrompts(messages), answerMode: isAnswerMode(target.assistant) },
     input.fetchImpl ?? fetch,
   );
   if (outcome.error) throw new Error(outcome.error);

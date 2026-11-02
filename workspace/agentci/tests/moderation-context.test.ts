@@ -47,12 +47,24 @@ test("deriveContext detects plan mode and compaction messages", () => {
   assert.equal(deriveContext({ messages: [summary], assistantID: "msg_2", lastTerminalAssistantID: null, inflightAssistantID: null }).compaction, true);
 });
 
-test("deriveContext keeps the answer agent in the moderated build path", () => {
-  const answer = assistant("msg_1", "user_1", "verified answer");
+test("compaction summaries and oversized messages are never real user prompts", () => {
+  const summary = user("summary_1", "OSV scanner output".repeat(1000));
+  summary.info.summary = true;
+  const oversized = user("user_big", "x".repeat(4001));
+  const real = user("user_real", "fix the build");
+  const prompts = lastRealUserPrompts([summary, oversized, real]);
+  assert.deepEqual(prompts, ["fix the build"]);
+  assert.equal(isSyntheticUser(summary), true);
+  assert.equal(realUserAncestor(assistant("msg_1", "summary_1", "done"), [summary, real]), undefined);
+  assert.equal(realUserCycleID([summary, real]), "user_real");
+});
+
+test("deriveContext keeps the answer agent in the moderated build path", () => {  const answer = assistant("msg_1", "user_1", "verified answer");
   answer.info.agent = "answer";
   const snapshot = deriveContext({ messages: [answer], assistantID: "msg_1", lastTerminalAssistantID: null, inflightAssistantID: null });
   assert.equal(snapshot.planMode, false);
   assert.equal(snapshot.build, true);
+  assert.equal(snapshot.answerMode, true);
 });
 
 test("root block detection flags privileged fenced command blocks", () => {

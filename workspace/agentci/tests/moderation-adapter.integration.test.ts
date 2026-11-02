@@ -4,7 +4,6 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import { createModerationAdapter, type ModerationClient } from "../src/moderation/adapter.ts";
-import { BOOLEAN_GRAMMAR } from "../src/moderation/config.ts";
 import { sessionDirectory } from "../src/moderation/audit.ts";
 import type { MessageFact, TodoFact } from "../src/moderation/types.ts";
 
@@ -240,7 +239,6 @@ test("a user message arriving during classification cancels the continuation", a
   const store = new Harness([user("user_1", "Finish the task."), assistant("msg_1", "user_1", "I stopped early.")]);
   const fetchImpl = async (url: string, init?: RequestInit) => {
     if (url.endsWith("/input_tokens")) return new Response(JSON.stringify({ input_tokens: 64 }), { status: 200 });
-    if (booleanRequest(init)) return new Response(JSON.stringify({ choices: [{ finish_reason: "stop", message: { content: "NO" } }] }), { status: 200 });
     store.messages.push(user("user_2", "Wait, stop the work."));
     return new Response(JSON.stringify({ choices: [{ finish_reason: "stop", message: { content: "decision: AGENT_CONTINUING\nreason: WORK_REMAINS" } }] }), { status: 200 });
   };
@@ -248,8 +246,41 @@ test("a user message arriving during classification cancels the continuation", a
   try {
     adapter.event({ event: { type: "session.status", properties: { sessionID, status: { type: "busy" } } } });
     adapter.event({ event: { type: "session.status", properties: { sessionID, status: { type: "idle" } } } });
-    await waitForDecisionType(sessionID, "moderation-error", "the cancelled continuation was not recorded");
+    await waitForDecisionType(sessionID, "ignored-user-cancelled", "the cancelled continuation was not recorded");
     assert.equal(store.promptAsyncCalls.length, 0, "a user message after the judged response must cancel the continuation");
+  } finally {
+    if (previous === undefined) delete process.env.XDG_STATE_HOME;
+    else process.env.XDG_STATE_HOME = previous;
+    await rm(home, { recursive: true, force: true });
+  }
+});
+
+test("a user turn during classification aborts the model call and writes nothing", async () => {
+  const home = await mkdtemp(join(tmpdir(), "agentci-adapter-abort-"));
+  const previous = process.env.XDG_STATE_HOME;
+  process.env.XDG_STATE_HOME = home;
+  const sessionID = "ses_adapter12";
+  const store = new Harness([user("user_1", "Finish the task."), assistant("msg_1", "user_1", "I stopped early.")]);
+  let aborted = false;
+  const fetchImpl = async (url: string, init?: RequestInit) => {
+    if (url.endsWith("/input_tokens")) return new Response(JSON.stringify({ input_tokens: 64 }), { status: 200 });
+    return new Promise<Response>((_resolve, reject) => {
+      init?.signal?.addEventListener("abort", () => {
+        aborted = true;
+        reject(new DOMException("aborted", "AbortError"));
+      }, { once: true });
+    });
+  };
+  const adapter = createModerationAdapter({ client: store.client }, options, fetchImpl);
+  try {
+    adapter.event({ event: { type: "session.status", properties: { sessionID, status: { type: "busy" } } } });
+    adapter.event({ event: { type: "session.status", properties: { sessionID, status: { type: "idle" } } } });
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    adapter.event({ event: { type: "session.status", properties: { sessionID, status: { type: "busy" } } } });
+    await store.waitFor(() => aborted, "the classifier was not aborted when the user spoke");
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    assert.equal(store.promptCalls.length, 0, "no trace may be written after a user turn");
+    assert.equal(store.promptAsyncCalls.length, 0, "no continuation may be sent after a user turn");
   } finally {
     if (previous === undefined) delete process.env.XDG_STATE_HOME;
     else process.env.XDG_STATE_HOME = previous;
@@ -287,6 +318,7 @@ class Harness {
   readonly messages: MessageFact[];
   readonly todos: TodoFact[];
   readonly promptAsyncCalls: { text: string; synthetic?: boolean; metadata?: unknown; note?: string }[] = [];
+  readonly promptCalls: string[] = [];
   readonly toasts: string[] = [];
   readonly client: ModerationClient;
 
@@ -299,7 +331,9 @@ class Harness {
         messages: async () => ({ data: this.messages }),
         prompt: async (call) => {
           const id = `trace_${this.messages.length}`;
-          this.messages.push({ info: { id, role: "user", time: { created: Date.now() } }, parts: [{ type: "text", text: String((call.body.parts as { text: string }[])[0].text) }] });
+          const text = String((call.body.parts as { text: string }[])[0].text);
+          this.promptCalls.push(text);
+          this.messages.push({ info: { id, role: "user", time: { created: Date.now() } }, parts: [{ type: "text", text }] });
           return { data: { info: { id } } };
         },
         promptAsync: async (call) => {
@@ -374,23 +408,15 @@ function toastKind(title: string): string {
 function classifierFetch(verdict: string, captured: string[] = []): (url: string, init?: RequestInit) => Promise<Response> {
   return async (url, init) => {
     if (url.endsWith("/input_tokens")) return new Response(JSON.stringify({ input_tokens: 64 }), { status: 200 });
-    if (booleanRequest(init)) return new Response(JSON.stringify({ choices: [{ finish_reason: "stop", message: { content: "NO" } }] }), { status: 200 });
     captured.push(String(init?.body));
     return new Response(JSON.stringify({ choices: [{ finish_reason: "stop", message: { content: verdict } }] }), { status: 200 });
   };
-}
-
-function booleanRequest(init?: RequestInit): boolean {
-  if (typeof init?.body !== "string") return false;
-  const body = JSON.parse(init.body) as { grammar?: string };
-  return body.grammar === BOOLEAN_GRAMMAR;
 }
 
 function classifierSequence(verdicts: string[], captured: string[] = []): (url: string, init?: RequestInit) => Promise<Response> {
   let index = 0;
   return async (url, init) => {
     if (url.endsWith("/input_tokens")) return new Response(JSON.stringify({ input_tokens: 64 }), { status: 200 });
-    if (booleanRequest(init)) return new Response(JSON.stringify({ choices: [{ finish_reason: "stop", message: { content: "NO" } }] }), { status: 200 });
     captured.push(String(init?.body));
     const verdict = verdicts[Math.min(index, verdicts.length - 1)];
     index += 1;

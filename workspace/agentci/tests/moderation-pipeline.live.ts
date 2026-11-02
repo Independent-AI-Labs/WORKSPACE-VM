@@ -96,6 +96,16 @@ const SCENARIOS: readonly Scenario[] = [
     reason: "AWAITING_USER",
     todos: [{ status: "in_progress", content: "Refactor the config loader" }],
   },
+  {
+    id: "ses_live_phase_summary_with_open_todos",
+    user: "implement the model groups backend and UI, then the filter dialogs",
+    assistant: "Phase 0 model repair is in place.\n\n- Fixed Prettier on all docs.\n- Added the declared-link catalog and verification SQL.\n- Passed format, lint, typecheck, and unit tests.\n\nNext: model groups backend and UI.",
+    expectation: "CONTINUE",
+    todos: [
+      { status: "in_progress", content: "Add model group backend" },
+      { status: "pending", content: "Build the model groups UI" },
+    ],
+  },
 ];
 
 test("the live classifier returns grammar-valid verdicts through the Workspace Gateway relay", { timeout: 120000 }, async () => {

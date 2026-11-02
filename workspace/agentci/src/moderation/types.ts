@@ -89,6 +89,7 @@ export interface ContextSnapshot {
   duplicate: boolean;
   compaction: boolean;
   planMode: boolean;
+  answerMode: boolean;
   build: boolean;
   assistantError: boolean;
   userNewer: boolean;
@@ -124,6 +125,7 @@ export type ModerationEvent = { sessionID?: string } & (
       originUserID?: string | null;
     }
   | { type: "CLASSIFIER_RESULT"; verdict: Verdict; originUserID?: string | null; capture?: ClassifierCapture }
+  | { type: "CANCELLED"; reason: string }
   | { type: "CONTINUATION_PERSISTED" }
   | { type: "BUSY_VERIFIED" }
   | { type: "CONTINUATION_TIMEOUT" }

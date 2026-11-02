@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { BOOLEAN_GRAMMAR, CLASSIFIER_FORMAT_RETRIES, CLASSIFIER_SEED, CLASSIFIER_TIMEOUT_MS, MAX_COMPLETION_TOKENS, MAX_INPUT_TOKENS, MINICPM_MODEL_ID, MODERATION_GRAMMAR, type ModerationOptions } from "./config.ts";
+import { CLASSIFIER_FORMAT_RETRIES, CLASSIFIER_SEED, CLASSIFIER_TIMEOUT_MS, MAX_COMPLETION_TOKENS, MAX_INPUT_TOKENS, MINICPM_MODEL_ID, MODERATION_GRAMMAR, type ModerationOptions } from "./config.ts";
 import { EMPTY_USER_PROMPT, summarizeTodos } from "./context.ts";
 import type { ChatMessage, ClassifierCapture, ReasonCode, Ruling, TodoFact, Verdict, VerdictDecision } from "./types.ts";
 
@@ -9,6 +9,7 @@ export interface ClassifyInput {
   todos: readonly TodoFact[];
   previousResponse: string;
   userMessages: readonly string[];
+  answerMode?: boolean;
 }
 
 export interface ClassifyOutcome {
@@ -32,8 +33,6 @@ export function loadPrompt(name: string): string {
 }
 
 export const SYSTEM_PROMPT = loadPrompt("classifier-system.txt");
-const REASON_PROMPT = loadPrompt("classifier-reason.txt").trimEnd();
-const USER_ACTION_PROMPT = loadPrompt("classifier-user-action.txt").trimEnd();
 
 const VALID_DECISIONS: Record<string, readonly ReasonCode[]> = {
   AGENT_COMPLETE: ["WORK_COMPLETE"],
@@ -43,79 +42,19 @@ const VALID_DECISIONS: Record<string, readonly ReasonCode[]> = {
   AGENT_STOPPED: ["USER_STOP"],
 };
 
-export async function classify(options: ModerationOptions, input: ClassifyInput, fetchImpl: FetchLike = fetch): Promise<ClassifyOutcome> {
-  const first = await classifyWithPrompt(options, input, SYSTEM_PROMPT, fetchImpl);
+export async function classify(options: ModerationOptions, input: ClassifyInput, fetchImpl: FetchLike = fetch, signal?: AbortSignal): Promise<ClassifyOutcome> {
+  const first = await classifyWithPrompt(options, input, SYSTEM_PROMPT, fetchImpl, signal);
   if (first.formatError || !first.verdict) return first;
-  if (first.verdict.decision === "AGENT_BLOCKED") {
-    const reason = await askBoolean(options, input, REASON_PROMPT, fetchImpl);
-    if (reason.formatError || reason.answer === undefined) return reason;
-    return {
-      verdict: verdictFor("AGENT_BLOCKED", reason.answer ? "AWAITING_OPERATOR" : "AWAITING_USER"),
-      capture: mergeCapture(first.capture, reason.capture),
-      formatError: false,
-    };
-  }
-  const action = await askBoolean(options, input, USER_ACTION_PROMPT, fetchImpl);
-  if (action.formatError || action.answer === undefined) return action;
-  if (!action.answer) return first;
-  const reason = await askBoolean(options, input, REASON_PROMPT, fetchImpl);
-  if (reason.formatError || reason.answer === undefined) return reason;
-  return {
-    verdict: verdictFor("AGENT_BLOCKED", reason.answer ? "AWAITING_OPERATOR" : "AWAITING_USER"),
-    capture: mergeCapture(mergeCapture(first.capture, action.capture), reason.capture),
-    formatError: false,
-  };
-}
-
-function mergeCapture(base: ClassifierCapture, extra: ClassifierCapture): ClassifierCapture {
-  return {
-    ...extra,
-    attempts: base.attempts + extra.attempts,
-    durationMs: base.durationMs + extra.durationMs,
-  };
-}
-
-async function askBoolean(options: ModerationOptions, input: ClassifyInput, prompt: string, fetchImpl: FetchLike): Promise<ClassifyOutcome & { answer?: boolean }> {
-  const startedAt = Date.now();
-  const messages: ChatMessage[] = [
-    { role: "system", content: prompt },
-    { role: "user", content: buildPayload(input) },
-  ];
-  let attemptCount = 0;
-  let lastMessages = messages;
-  let lastCompletion = "";
-  let lastFinish = "";
-  const capture = (): ClassifierCapture => ({
-    messages: lastMessages,
-    completion: lastCompletion,
-    finishReason: lastFinish,
-    model: options.model,
-    sampling: { ...SAMPLING },
-    attempts: attemptCount,
-    durationMs: Date.now() - startedAt,
-  });
-  for (let attempt = 0; attempt < CLASSIFIER_FORMAT_RETRIES; attempt += 1) {
-    attemptCount = attempt + 1;
-    const trimmed = await trimToBudget(options, messages, fetchImpl);
-    lastMessages = trimmed;
-    const response = await requestCompletion(options, trimmed, fetchImpl, BOOLEAN_GRAMMAR);
-    lastCompletion = response.content;
-    lastFinish = response.finishReason;
-    if (response.finishReason !== "stop") {
-      if (attempt + 1 === CLASSIFIER_FORMAT_RETRIES) return { capture: capture(), formatError: true, error: `classifier finished with reason '${response.finishReason}'` };
-      continue;
+  if (input.answerMode === true) {
+    if (first.verdict.decision !== "AGENT_STOPPED") {
+      return { verdict: verdictFor("AGENT_COMPLETE", "WORK_COMPLETE"), capture: first.capture, formatError: false };
     }
-    const answer = parseBoolean(response.content);
-    if (answer !== undefined) return { answer, capture: capture(), formatError: false };
+    return first;
   }
-  return { capture: capture(), formatError: true, error: "classifier did not return a valid answer" };
-}
-
-export function parseBoolean(content: string): boolean | undefined {
-  const normalized = content.trim();
-  if (normalized === "YES") return true;
-  if (normalized === "NO") return false;
-  return undefined;
+  if (first.verdict.decision === "AGENT_BLOCKED" && isSelfAnswered(input.previousResponse)) {
+    return { verdict: verdictFor("AGENT_CONTINUING", "WORK_REMAINS"), capture: first.capture, formatError: false };
+  }
+  return first;
 }
 
 function buildPayload(input: ClassifyInput): string {
@@ -130,7 +69,11 @@ function buildPayload(input: ClassifyInput): string {
   return sections.join("\n");
 }
 
-export async function classifyWithPrompt(options: ModerationOptions, input: ClassifyInput, systemPrompt: string, fetchImpl: FetchLike = fetch): Promise<ClassifyOutcome> {
+export function isSelfAnswered(response: string): boolean {
+  return /\?\s*(?:Yes|No|Correct|Exactly)\b/i.test(response);
+}
+
+export async function classifyWithPrompt(options: ModerationOptions, input: ClassifyInput, systemPrompt: string, fetchImpl: FetchLike = fetch, signal?: AbortSignal): Promise<ClassifyOutcome> {
   const startedAt = Date.now();
   const messages = buildMessages(input, systemPrompt);
   let attemptCount = 0;
@@ -148,9 +91,9 @@ export async function classifyWithPrompt(options: ModerationOptions, input: Clas
   });
   for (let attempt = 0; attempt < CLASSIFIER_FORMAT_RETRIES; attempt += 1) {
     attemptCount = attempt + 1;
-    const trimmed = await trimToBudget(options, messages, fetchImpl);
+    const trimmed = await trimToBudget(options, messages, fetchImpl, signal);
     lastMessages = trimmed;
-    const response = await requestCompletion(options, trimmed, fetchImpl);
+    const response = await requestCompletion(options, trimmed, fetchImpl, MODERATION_GRAMMAR, signal);
     lastCompletion = response.content;
     lastFinish = response.finishReason;
     if (response.finishReason !== "stop") {
@@ -166,6 +109,9 @@ export async function classifyWithPrompt(options: ModerationOptions, input: Clas
 export function buildMessages(input: ClassifyInput, systemPrompt: string = SYSTEM_PROMPT): ChatMessage[] {
   const sections = [
     "Judge the agent's latest response. It is the decision target; the user request is context.",
+    ...(input.answerMode === true
+      ? ["Agent mode: answer. This response is the final answer to the user's question. A complete answer is AGENT_COMPLETE; never choose AGENT_CONTINUING or AGENT_STALLED for answer mode."]
+      : []),
     "",
     "The agent's latest response (judge this):",
     input.previousResponse,
@@ -174,6 +120,7 @@ export function buildMessages(input: ClassifyInput, systemPrompt: string = SYSTE
     input.userMessages.length > 0 ? input.userMessages.map((message) => `- ${message.trim().length > 0 ? message : EMPTY_USER_PROMPT}`).join("\n") : "- (none recorded)",
   ];
   if (input.todos.length > 0) sections.push("", "Tracked todos:", summarizeTodos(input.todos));
+  if (input.answerMode === true) sections.push("", "Answer mode: the response answers the user's question. Answering it fully is AGENT_COMPLETE.");
   sections.push("", "Reminder. Apply these in order and stop at the first match:", "1. The response asks the user to run, test, play, click, press, try, reproduce, observe, watch, listen, check, confirm, or report a result -> decision: AGENT_BLOCKED, reason: AWAITING_OPERATOR.", "2. The response only asks the user to answer, decide, approve, or clarify -> decision: AGENT_BLOCKED, reason: AWAITING_USER. A question the response answers itself is not a handoff.", "2a. If the response states what the agent itself will do next and does not ask the user to act or answer, choose decision: AGENT_CONTINUING, reason: WORK_REMAINS.", "3. The last real user message says halt, stop, cancel, abort, or wait -> decision: AGENT_STOPPED, reason: USER_STOP.", "4. The request is fully done -> decision: AGENT_COMPLETE, reason: WORK_COMPLETE.", "5. The agent can keep working alone -> decision: AGENT_CONTINUING, reason: WORK_REMAINS.", "6. Otherwise -> decision: AGENT_STALLED, reason: NO_PROGRESS.");
   return [
     { role: "system", content: systemPrompt },
@@ -188,9 +135,10 @@ export function parseVerdict(content: string): Verdict | undefined {
   const reasonLine = /^reason:\s*([A-Z_]+)$/.exec(lines[1]);
   if (!decisionLine || !reasonLine) return undefined;
   const decision = decisionLine[1] as VerdictDecision;
+  const reasonCode = reasonLine[1] as ReasonCode;
   const allowed = VALID_DECISIONS[decision];
-  if (!allowed || !allowed.includes(reasonLine[1] as ReasonCode)) return undefined;
-  return verdictFor(decision, reasonLine[1] as ReasonCode);
+  if (!allowed || !allowed.includes(reasonCode)) return undefined;
+  return verdictFor(decision, reasonCode);
 }
 
 export function verdictFor(decision: VerdictDecision, reasonCode: ReasonCode): Verdict {
@@ -210,14 +158,19 @@ export function verdictFor(decision: VerdictDecision, reasonCode: ReasonCode): V
   };
 }
 
-async function trimToBudget(options: ModerationOptions, messages: ChatMessage[], fetchImpl: FetchLike): Promise<ChatMessage[]> {
+async function trimToBudget(options: ModerationOptions, messages: ChatMessage[], fetchImpl: FetchLike, signal?: AbortSignal): Promise<ChatMessage[]> {
   let current = messages;
   for (;;) {
-    const tokens = await countInputTokens(options, current, fetchImpl);
+    const tokens = await countInputTokens(options, current, fetchImpl, signal);
     if (tokens <= MAX_INPUT_TOKENS) return current;
     if (current.length < 2) throw new Error(`AgentCI classifier prompt (${tokens} tokens) exceeds the fixed ${MAX_INPUT_TOKENS}-token budget`);
     current = [current[0], truncate(current[1]), ...current.slice(2)];
   }
+}
+
+function combineSignal(signal?: AbortSignal): AbortSignal {
+  const timeout = AbortSignal.timeout(CLASSIFIER_TIMEOUT_MS);
+  return signal === undefined ? timeout : AbortSignal.any([timeout, signal]);
 }
 
 function truncate(message: ChatMessage): ChatMessage {
@@ -225,12 +178,12 @@ function truncate(message: ChatMessage): ChatMessage {
   return { role: message.role, content: `${message.content.slice(0, limit)}\n[truncated by AgentCI classifier]` };
 }
 
-async function countInputTokens(options: ModerationOptions, messages: ChatMessage[], fetchImpl: FetchLike): Promise<number> {
+async function countInputTokens(options: ModerationOptions, messages: ChatMessage[], fetchImpl: FetchLike, signal?: AbortSignal): Promise<number> {
   const response = await fetchImpl(`${options.gatewayURL}/v1/chat/completions/input_tokens`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ model: options.model, messages }),
-    signal: AbortSignal.timeout(CLASSIFIER_TIMEOUT_MS),
+    signal: combineSignal(signal),
   });
   if (!response.ok) throw new Error(`AgentCI classifier token endpoint failed with HTTP ${response.status}`);
   const payload = await response.json() as Record<string, unknown>;
@@ -244,7 +197,7 @@ interface CompletionResult {
   finishReason: string;
 }
 
-async function requestCompletion(options: ModerationOptions, messages: ChatMessage[], fetchImpl: FetchLike, grammar: string = MODERATION_GRAMMAR): Promise<CompletionResult> {
+async function requestCompletion(options: ModerationOptions, messages: ChatMessage[], fetchImpl: FetchLike, grammar: string = MODERATION_GRAMMAR, signal?: AbortSignal): Promise<CompletionResult> {
   const response = await fetchImpl(`${options.gatewayURL}/v1/chat/completions`, {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -261,7 +214,7 @@ async function requestCompletion(options: ModerationOptions, messages: ChatMessa
       cache_prompt: false,
       stream: false,
     }),
-    signal: AbortSignal.timeout(CLASSIFIER_TIMEOUT_MS),
+    signal: combineSignal(signal),
   });
   if (!response.ok) throw new Error(`AgentCI classifier completion failed with HTTP ${response.status}`);
   const payload = await response.json() as { choices?: Array<{ finish_reason?: string; message?: { content?: string } }> };

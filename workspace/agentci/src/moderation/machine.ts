@@ -68,6 +68,8 @@ export function transition(state: ModerationState, event: ModerationEvent): Tran
       return state.phase === "OBSERVING" ? onContextLoaded(state, event) : ignored(state, event, "context-outside-observation");
     case "CLASSIFIER_RESULT":
       return state.phase === "CLASSIFYING" ? classifierResult(state, event) : ignored(state, event, "result-outside-classification");
+    case "CANCELLED":
+      return cancel(state, event);
     case "CONTINUATION_PERSISTED":
       return state.phase === "CONTINUING" ? continuationPersisted(state, event) : ignored(state, event, "continuation-outside-continuing");
     case "BUSY_VERIFIED":
@@ -92,10 +94,15 @@ function assertNeverEvent(event: never): never {
 }
 
 function onBusy(state: ModerationState, event: BusyEvent): TransitionResult {
-  if (state.phase === "IDLE" || state.phase === "ERROR") {
+  if (state.phase === "IDLE" || state.phase === "ERROR" || state.phase === "CLASSIFYING") {
     return result({ ...state, phase: "OBSERVING" }, event, [decision("status-busy")]);
   }
   return result(state, event, [decision("status-busy")]);
+}
+
+function cancel(state: ModerationState, event: Extract<ModerationEvent, { type: "CANCELLED" }>): TransitionResult {
+  if (state.phase !== "CLASSIFYING" && state.phase !== "CONTINUING") return ignored(state, event, "cancel-outside-moderation");
+  return ignored({ ...state, phase: "IDLE", inflightAssistantID: null }, event, event.reason);
 }
 
 function onIdle(state: ModerationState, event: IdleEvent): TransitionResult {

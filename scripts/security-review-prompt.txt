@@ -1,0 +1,16 @@
+Security review of the repository given as the first argument.
+
+Write findings only under WORKSPACE-VM/docs/audits/ as AUDIT-<TOPIC>-YYYY-MM.md.
+Match existing audits: date, status, scope, executive summary, then findings.
+Each finding needs evidence (file path and behavior), impact, and a concrete fix.
+Do not edit product code. Do not commit.
+
+Work in this order, one audit file at a time, and keep going until the list is done:
+1. Auth, virtual keys, and credential storage
+2. Gateway routes and passthrough trust boundaries
+3. Plugin pipeline and request mutation
+4. SQL and data stores
+5. Scripts, hooks, and secret handling
+
+Start with WORKSPACE-GATEWAY when that is the repo. Read the code. Record what you verified.
+If a previous AUDIT file already covers an item, update it instead of duplicating it.

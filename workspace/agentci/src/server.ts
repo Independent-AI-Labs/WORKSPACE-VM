@@ -6,6 +6,7 @@ import { loadPolicies } from "./policies.ts";
 import { createModerationAdapter, type ModerationClient } from "./moderation/adapter.ts";
 import { loadModerationOptions, resolveModerationOptions, type ModerationOptions } from "./moderation/config.ts";
 import { runReplay, type ReplayClient } from "./moderation/replay.ts";
+import { applyThinkingEffort } from "./thinking.ts";
 
 interface AgentCIOptions {
   policies?: string[];
@@ -23,11 +24,11 @@ export default {
   server: async (input: AgentCIInput, options: AgentCIOptions = {}) => {
     const policies = await resolvePolicies(options);
     const moderation = moderationDisabled() ? null : await resolveModeration(options);
+    const hooks: Record<string, unknown> = { "chat.params": applyThinkingEffort };
     if (policies === null && moderation === null) {
-      if (moderationDisabled()) return {};
+      if (moderationDisabled()) return hooks;
       throw new Error("AgentCI requires either a non-empty 'policies' array or moderation options");
     }
-    const hooks: Record<string, unknown> = {};
     if (policies !== null) {
       const loaded = await loadPolicies(policies);
       const v1 = createV1HookAdapter(loaded);

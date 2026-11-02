@@ -210,3 +210,8 @@ workspace/agentci/src/moderation/prompts/classifier-complete.txt
 workspace/agentci/src/moderation/prompts/classifier-halt.txt
 workspace/agentci/src/moderation/prompts/classifier-progress.txt
 workspace/agentci/src/moderation/prompts/classifier-waiting.txt
+
+# Security-review runtime state (contains transcribed secrets)
+scripts/state/*.jsonl
+scripts/state/*.session
+

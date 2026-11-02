@@ -106,6 +106,42 @@
       }
     },
     {
+      "id": "mined-06692a747ad52d45",
+      "provenance": {
+        "sessionID": "ses_e6f34e2feffeT3RntN4XoCEIOn",
+        "assistantID": "msg_190f39a93001Aa06oP45ayjmtU",
+        "decisionID": "1793433284339-0d897cba98d6"
+      },
+      "expectedDecision": null,
+      "expectedReason": null,
+      "forbiddenDecisions": [
+        "AGENT_BLOCKED"
+      ],
+      "labelSource": "mined",
+      "hash": "06692a747ad52d45883ac53392ca427650ba03b4fdefa8b0526d0f297d0980cd",
+      "transcript": "transcripts/06692a747ad52d45883ac53392ca427650ba03b4fdefa8b0526d0f297d0980cd.json",
+      "observed": {
+        "decision": "AGENT_BLOCKED",
+        "reasonCode": "AWAITING_OPERATOR",
+        "signal": "removed",
+        "source": "transcript"
+      }
+    },
+    {
+      "id": "op-answer-mode-final-answer",
+      "provenance": {
+        "sessionID": null,
+        "assistantID": null,
+        "decisionID": null
+      },
+      "expectedDecision": "AGENT_COMPLETE",
+      "expectedReason": "WORK_COMPLETE",
+      "forbiddenDecisions": [],
+      "labelSource": "operator",
+      "hash": "08356251fc16174badb95c01dbdf022d6b8c76770f572784179f78dcb4811e96",
+      "transcript": "transcripts/08356251fc16174badb95c01dbdf022d6b8c76770f572784179f78dcb4811e96.json"
+    },
+    {
       "id": "mined-1661101a5182738e",
       "provenance": {
         "sessionID": "ses_ebf0d92d3ffepnUEfAMkuP9EAr",
@@ -625,6 +661,29 @@
       "observed": {
         "decision": "AGENT_CONTINUING",
         "reasonCode": "WORK_REMAINS",
+        "signal": "aborted",
+        "source": "transcript"
+      }
+    },
+    {
+      "id": "mined-66b0087452339013",
+      "provenance": {
+        "sessionID": "ses_e6cd89cc0ffeMn4IP0DcfsZv0M",
+        "assistantID": "msg_1974fe7e6001aIkfnDEUXlm8zh",
+        "decisionID": "1793539981224-6effada29ae8"
+      },
+      "expectedDecision": null,
+      "expectedReason": null,
+      "forbiddenDecisions": [
+        "AGENT_CONTINUING",
+        "AGENT_STALLED"
+      ],
+      "labelSource": "mined",
+      "hash": "66b0087452339013a148c8863f598bb9b0dcd43145979f318fdd2c4b4e8ac9bb",
+      "transcript": "transcripts/66b0087452339013a148c8863f598bb9b0dcd43145979f318fdd2c4b4e8ac9bb.json",
+      "observed": {
+        "decision": "AGENT_STALLED",
+        "reasonCode": "NO_PROGRESS",
         "signal": "aborted",
         "source": "transcript"
       }

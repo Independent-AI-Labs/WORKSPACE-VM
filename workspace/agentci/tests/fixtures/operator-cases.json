@@ -361,6 +361,31 @@
       "expectedReason": "AWAITING_OPERATOR",
       "forbiddenDecisions": [],
       "labelSource": "operator"
+    },
+    {
+      "id": "op-answer-mode-final-answer",
+      "provenance": {
+        "sessionID": null,
+        "assistantID": null,
+        "decisionID": null
+      },
+      "inputs": {
+        "answerMode": true,
+        "previousResponse": "They are separate because they answer four different questions: the schema browser shows which types exist and which fields and link types define them; object admin shows which instances exist for one type and lets you inspect or change one record; the graph explorer shows what is connected to an object, how two objects are related, and the blast radius; the audit ledger shows what changed, when, by whom, and whether the hash chain verifies. The graph panel is not a duplicate schema view: the schema ERD shows type-level relations, the graph shows instance-level edges. The real failure is not the split. It is that the four are disconnected drawers with no shared context: the schema cannot open objects, object admin cannot open the object in graph or ledger, graph can open object admin but loses graph context, the ledger is global and not scoped to an object. Correct shape: keep the data split, unify the experience. One Knowledge workspace with tabs and a shared selection for type and object. Schema to objects. Object to graph and ledger for that object. Graph to the same object view. Ledger to object history plus global audit.",
+        "userMessages": [
+          "explain why these are four half-baked panels"
+        ],
+        "todos": [
+          {
+            "status": "in_progress",
+            "content": "Explain the four knowledge panels"
+          }
+        ]
+      },
+      "expectedDecision": "AGENT_COMPLETE",
+      "expectedReason": "WORK_COMPLETE",
+      "forbiddenDecisions": [],
+      "labelSource": "operator"
     }
   ]
 }

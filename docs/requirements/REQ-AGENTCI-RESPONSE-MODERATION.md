@@ -117,12 +117,23 @@ session stay idle.
     future work without asking the user to act, is not a handoff. A handoff
     verdict SHALL take precedence over an automatic continuation. `AGENT_STALLED`
     SHALL remain a distinct decision, separate from `AGENT_CONTINUING`.
-12. Invalid classifier output or a failed relay request SHALL be reported as an
+12. Except for the deterministic rules in clauses 13 and 14, the adapter SHALL
+    issue exactly one classifier call per eligible response. It SHALL NOT issue
+    supplementary yes/no calls to confirm, refine, or override the verdict, and
+    it SHALL NOT upgrade a non-blocked verdict to `AGENT_BLOCKED`.
+13. A question the response answers itself in the same response SHALL NOT be a
+    handoff. When the classifier returns `AGENT_BLOCKED` and the response
+    contains such a self-answered question, the adapter SHALL emit
+    `AGENT_CONTINUING` with `WORK_REMAINS`.
+14. Answer mode SHALL be a deterministic override: when the judged response is
+    the final answer to a user question, a classifier verdict other than
+    `AGENT_STOPPED` SHALL become `AGENT_COMPLETE` with `WORK_COMPLETE`.
+15. Invalid classifier output or a failed relay request SHALL be reported as an
     error. It SHALL NOT be treated as `AGENT_COMPLETE`.
 
 ### Moderation Path
 
-13. Every eligible terminal Build response SHALL enter one checklist-free
+16. Every eligible terminal Build response SHALL enter one checklist-free
     moderation path. The adapter SHALL resolve mechanically knowable facts
     (duplicates, nonterminal/tool-call updates, interrupted/aborted assistants,
     compaction, blocker discussion, and fenced-`sudo` root handoffs) before
@@ -131,7 +142,7 @@ session stay idle.
     request(s) and tracked todos as input; MiniCPM is the single authority on
     completion. The adapter SHALL not issue a completion checklist or require a
     completion marker.
-14. `AGENT_COMPLETE` SHALL stand as the completion decision whenever the
+17. `AGENT_COMPLETE` SHALL stand as the completion decision whenever the
     classifier returns it, even when tracked todos remain `pending` or
     `in_progress`; the adapter SHALL NOT override a classifier `AGENT_COMPLETE`.
     A response that leaves work undone SHALL be classified `AGENT_CONTINUING` or
@@ -139,14 +150,14 @@ session stay idle.
     operator handoff SHALL be classified `AGENT_BLOCKED`, never `AGENT_COMPLETE`.
     An explicit user halt SHALL be classified `AGENT_STOPPED`, never
     `AGENT_CONTINUING` or `AGENT_STALLED`.
-15. `AGENT_COMPLETE` SHALL allow the session to remain idle only after the
+18. `AGENT_COMPLETE` SHALL allow the session to remain idle only after the
     plugin persists a passive audit trace in the transcript. That trace SHALL be
     a single concise status line and SHALL be excluded from subsequent
     moderation context. The decision, reason, derived completion/adherence
     rulings, and decision ID SHALL be recorded in the audit file only. The
     adapter SHALL not request self-certification or a second adjudication of the
     same classifier input.
-16. `AGENT_CONTINUING` and `AGENT_STALLED` SHALL send a corrective prompt to the
+19. `AGENT_CONTINUING` and `AGENT_STALLED` SHALL send a corrective prompt to the
     same session with `promptAsync`. The directive SHALL instruct the agent to
     continue and SHALL NOT request any self-certification status line. It SHALL
     be sent as one message with two parts, both carrying moderation metadata: a synthetic
@@ -155,11 +166,11 @@ session stay idle.
     the moderator spoke). Moderator-generated prompts SHALL be identified by
     that metadata, not by their text, and excluded from the last three real user
     messages. `AGENT_STOPPED` SHALL NOT send any corrective prompt.
-17. The corrective prompt SHALL explicitly state that the work appears
+20. The corrective prompt SHALL explicitly state that the work appears
     unfinished and that the agent must continue unless the operator or the
     system has explicitly requested a halt. It SHALL NOT instruct the agent to
     disregard an explicit halt or to suppress an explanation the user requested.
-18. The plugin SHALL show client-visible feedback while checking, on
+21. The plugin SHALL show client-visible feedback while checking, on
     `AGENT_COMPLETE`, on `AGENT_BLOCKED`, on `AGENT_STOPPED`, and when issuing a
     corrective prompt.
     Every transcript status line SHALL be exactly one line of the form
@@ -172,38 +183,38 @@ session stay idle.
 
 ### Retry Cycle
 
-19. `AGENT_CONTINUING` SHALL reset the consecutive no-progress count.
+22. `AGENT_CONTINUING` SHALL reset the consecutive no-progress count.
     `AGENT_STALLED` SHALL increment it. Automatic continuation SHALL stop only
     after three consecutive `AGENT_STALLED` decisions in one real-user cycle,
     with a visible `moderation-escalated` trace. `AGENT_STOPPED` SHALL return the
     session to idle, reset the consecutive no-progress count, and SHALL NOT
     escalate or continue.
-20. A new real user message SHALL start a new retry cycle and reset the
+23. A new real user message SHALL start a new retry cycle and reset the
     per-cycle no-progress count. It SHALL clear blocker-discussion state unless
     its `parentID` continues the blocker-originating user branch.
 
 ### Blockers
 
-21. The adapter SHALL inspect fenced shell-like code blocks before classifier
+24. The adapter SHALL inspect fenced shell-like code blocks before classifier
     invocation. A block containing `sudo` as a command token SHALL produce the
     terminal `root-handoff` decision. It is a legitimate operator blocker, not
     a failure, and SHALL create a single visible passive status line and toast
     without an automatic continuation. It SHALL activate durable
     blocker-discussion state.
-22. A valid `AGENT_BLOCKED` verdict SHALL also activate blocker-discussion state.
+25. A valid `AGENT_BLOCKED` verdict SHALL also activate blocker-discussion state.
     The state SHALL store its originating real-user message ID and persist
     across restart. It SHALL apply only to later prompt-response pairs in that
     `parentID` branch. It SHALL clear for an unrelated user task or a final
     accepted `AGENT_COMPLETE` in the blocker-originating branch.
     `AGENT_CONTINUING` and `AGENT_STALLED` outcomes SHALL not clear it.
-23. Blocker-discussion state is nudge-suppression context, not a continuing
+26. Blocker-discussion state is nudge-suppression context, not a continuing
     operator-action requirement. A response in this state SHALL persist a
     deterministic passive `blocker-discussion` decision without a classifier
     request, corrective prompt, or operator-action claim.
 
 ### Compaction
 
-24. The plugin SHALL observe the OpenCode compaction lifecycle. It SHALL mark
+27. The plugin SHALL observe the OpenCode compaction lifecycle. It SHALL mark
     `experimental.session.compacting` before compaction processing and record
     `session.compacted` after successful compaction. A compaction event SHALL
     not consume, reset, or increment the real-user retry cycle. A later Build
@@ -211,11 +222,11 @@ session stay idle.
 
 ### Audit Persistence
 
-25. The plugin SHALL write one YAML decision file per decision under
+28. The plugin SHALL write one YAML decision file per decision under
     `${XDG_STATE_HOME:-$HOME/.local/state}/opencode/agentci/moderation/<sessionID>/`.
     Every status event and every decision outcome SHALL produce its own YAML
     file; missing files SHALL be treated as an observability failure.
-26. Each decision file SHALL include timestamp, plugin version, session ID,
+29. Each decision file SHALL include timestamp, plugin version, session ID,
     assistant ID, decision ID, decision type, exact assistant response, marker
     results, todos, selected context, parsed verdict, blocker-discussion state
     and source, prompt/toast results, errors, and timings. A `CLASSIFIER_RESULT`
@@ -227,7 +238,7 @@ session stay idle.
     messages SHALL be the authoritative record of what the classifier saw; a
     later reconstruction from the session database SHALL not be required to
     audit a decision.
-27. Decision types SHALL include `blocker-discussion`, `moderation-complete`,
+30. Decision types SHALL include `blocker-discussion`, `moderation-complete`,
     `moderation-continue`, `moderation-agent-blocked`, `moderation-user-stop`,
     `moderation-escalated`,
     `moderation-error`, `root-handoff`, `ignored-cancellation`,
@@ -238,21 +249,21 @@ session stay idle.
 
 ### Operator Replay
 
-28. The plugin SHALL support an operator replay mode enabled by the
+31. The plugin SHALL support an operator replay mode enabled by the
     `AGENTCI_RUN_MOD` environment flag (set by the `oc --run-mod` wrapper launch
     mode). When enabled, it SHALL replay the last moderator decision for a single
     session: the current project's most recently updated session by default (the
     session the launcher resumes), or the session named by
     `AGENTCI_RUN_MOD_SESSION`. An invalid session id SHALL be rejected, and an
     absent session SHALL be a visible replay failure.
-29. Replay SHALL revert the moderator's most recent injected transcript line for
+32. Replay SHALL revert the moderator's most recent injected transcript line for
     that session (when one exists), recompute the moderation decision with a
     fresh classifier call over the same assistant response and current context,
     and reconcile the transcript to the new verdict: `AGENT_CONTINUING` and
     `AGENT_STALLED` SHALL send a new corrective prompt that starts a new upstream
     turn, `AGENT_COMPLETE` and `AGENT_BLOCKED` SHALL write a passive status line,
     and `AGENT_STOPPED` SHALL write no transcript line.
-30. Replay SHALL require moderation to be enabled and SHALL record its outcome
+33. Replay SHALL require moderation to be enabled and SHALL record its outcome
     as a `REPLAY` audit event carrying the recomputed verdict and the reverted
     message id. A replay failure SHALL be surfaced to the operator as a visible
     client toast and, when a session is known, an error audit record; it SHALL
@@ -260,7 +271,7 @@ session stay idle.
 
 ### Classifier Prompt And Input Layout
 
-31. The classifier system prompt SHALL encode the ordered decision procedure from
+34. The classifier system prompt SHALL encode the ordered decision procedure from
     requirement 11 as a short, explicit, first-match-wins list. It SHALL state
     that the assistant response is the decision target, that a handoff to the
     user or operator takes precedence over unfinished work, that listing
@@ -268,18 +279,18 @@ session stay idle.
     explicit user halt produces `AGENT_STOPPED`. It SHALL NOT contain a trailing
     instruction that biases the model toward continuing, and its final rule SHALL
     be neutral.
-32. The prompt SHALL contain a small representative example set, one example per
+35. The prompt SHALL contain a small representative example set, one example per
     decision family. It SHALL include a handoff example in which the assistant
     asks the user to perform an action and report back, the exact failure case
     that motivated this requirement. It SHALL also include a launched-and-ready
     handoff, a game-up handoff, and a response that asks the user for a decision.
-33. The classifier request SHALL place the assistant response first, labeled as
+36. The classifier request SHALL place the assistant response first, labeled as
     the decision target, followed by the real user messages and then the tracked
     todos. It SHALL place a one-line instruction immediately above that data,
     SHALL NOT place the user request before the assistant response, and SHALL end
     with a one-line reminder that a request for the user to act or answer is
     `AGENT_BLOCKED`.
-34. The adapter SHALL expose the exact input layout and prompt as testable
+37. The adapter SHALL expose the exact input layout and prompt as testable
     values. Unit tests SHALL assert the prompt invariants from requirements 31
     and 32, and the exact section order and labels from requirement 33. A frozen
     baseline prompt fixture SHALL exist so the reworked prompt can be compared
@@ -287,10 +298,10 @@ session stay idle.
 
 ### Failure Mining And Regression Testing
 
-35. The integration suite SHALL exercise every classifier decision and every
+38. The integration suite SHALL exercise every classifier decision and every
     valid decision/reason pair against inputs drawn from real conversation
     transcripts.
-36. The suite SHALL hunt prior failures by comparing the recorded verdict with
+39. The suite SHALL hunt prior failures by comparing the recorded verdict with
     the observed user reaction, because the classifier verdict is not ground
     truth. Two failure types SHALL be mined:
     - False continue: a `AGENT_CONTINUING` or `AGENT_STALLED` verdict with a sent
@@ -301,7 +312,7 @@ session stay idle.
       verdict followed within the same window by a removed moderator message.
       The expected decision SHALL forbid that stop verdict.
     The default window SHALL be 300 seconds and SHALL be configurable.
-37. Failure signals SHALL come from the OpenCode session database and its
+40. Failure signals SHALL come from the OpenCode session database and its
     append-only event log. An aborted assistant SHALL be detected from
     `message.data.error.name` equal to `MessageAbortedError`. A removed message
     SHALL be detected from `event` rows of type `message.removed.1`. The content
@@ -309,7 +320,7 @@ session stay idle.
     `message.updated.1` and `message.part.updated.1` event rows, because the
     `message` row is deleted. `session.revert` is transient and SHALL NOT be the
     source of a revert signal.
-38. Every mined case SHALL record its provenance (session ID, assistant message
+41. Every mined case SHALL record its provenance (session ID, assistant message
     ID, decision ID), its inputs, the forbidden decision, and a `labelSource`.
     Transcript bodies SHALL be machine-local files under
     `tests/fixtures/transcripts/<hash>.json` and SHALL be gitignored, mirroring
@@ -319,7 +330,7 @@ session stay idle.
     operator-confirmed exact expected decision SHALL be permitted to upgrade a
     case. The live suite SHALL assert the exact expected decision when present
     and the forbidden-decision constraint otherwise.
-39. A test-case sourcing script SHALL extract cases from the audit directory and
+42. A test-case sourcing script SHALL extract cases from the audit directory and
     the session databases. It SHALL be idempotent: each case SHALL have a stable
     content hash, only hashes absent from the manifest SHALL be appended, a body
     SHALL be rewritten only when its content changes, and a run over
@@ -328,18 +339,18 @@ session stay idle.
     added, skipped, and total counts plus per-pathway coverage. It SHALL support a
     dry-run mode and a rebuild mode that re-derives every body from its
     provenance and fails when a hash changes.
-40. Each sourcing run SHALL also add up to five fresh non-classifier reducer
+43. Each sourcing run SHALL also add up to five fresh non-classifier reducer
     cases drawn from real decision records that exercised ignored, duplicate,
     cancellation, compaction, timeout, or escalation paths. Cases SHALL be
     deduplicated by hash. When fewer than five unseen cases exist, the script
     SHALL add the available cases and report the shortage. These cases SHALL be
     stored separately from the classifier cases and SHALL feed the deterministic
     reducer tests.
-41. The live classifier suite SHALL be bounded by a configurable case limit and
+44. The live classifier suite SHALL be bounded by a configurable case limit and
     SHALL remain excluded from hermetic CI.
-42. The sourcing script SHALL be a development tool. It SHALL NOT run as part of
+45. The sourcing script SHALL be a development tool. It SHALL NOT run as part of
     plugin startup, moderation, or the shipped bundle.
-43. The sourcing script SHALL keep a ledger of consumed source decision IDs, so
+46. The sourcing script SHALL keep a ledger of consumed source decision IDs, so
     each real decision is considered once and re-running over the same data adds
     nothing. A non-classifier decision record SHALL persist its replayable event
     payload and a schema version; the script SHALL skip records whose state shape

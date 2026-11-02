@@ -4,7 +4,6 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import { sessionDirectory } from "../src/moderation/audit.ts";
-import { BOOLEAN_GRAMMAR } from "../src/moderation/config.ts";
 import { replayDecisionType, replayLastDecision, resolveReplaySession, runReplay, type ReplayClient, type ReplaySessionSummary } from "../src/moderation/replay.ts";
 import type { MessageFact, TodoFact } from "../src/moderation/types.ts";
 
@@ -23,6 +22,26 @@ test("resolveReplaySession honors an explicit id and otherwise picks the newest 
     { id: "ses_middle", time: { updated: 1500 } },
   );
   assert.equal(await resolveReplaySession(store.client), "ses_newer");
+});
+
+test("replaying an answer-mode response forwards answer mode", async () => {
+  const home = await mkdtemp(join(tmpdir(), "agentci-replay-answer-"));
+  const previous = process.env.XDG_STATE_HOME;
+  process.env.XDG_STATE_HOME = home;
+  const sessionID = "ses_replay04";
+  const answer = assistant("msg_1", "user_1", "Four panels, four questions. The fix is one workspace.");
+  answer.info.agent = "answer";
+  const store = new Harness([user("user_1", "explain the panels"), answer]);
+  try {
+    const captured: string[] = [];
+    await replayLastDecision({ client: store.client, options, sessionID, fetchImpl: classifierFetch("decision: AGENT_COMPLETE\nreason: WORK_COMPLETE", captured) });
+    assert.equal(captured.length, 1);
+    assert.match(captured[0], /Agent mode: answer/);
+  } finally {
+    if (previous === undefined) delete process.env.XDG_STATE_HOME;
+    else process.env.XDG_STATE_HOME = previous;
+    await rm(home, { recursive: true, force: true });
+  }
 });
 
 test("replaying a continuation reverts the moderator line, recomputes, and sends a new prompt", async () => {
@@ -180,16 +199,9 @@ async function restoreState(previous: string | undefined): Promise<void> {
 function classifierFetch(verdict: string, captured: string[] = []): (url: string, init?: RequestInit) => Promise<Response> {
   return async (url, init) => {
     if (url.endsWith("/input_tokens")) return new Response(JSON.stringify({ input_tokens: 64 }), { status: 200 });
-    if (booleanRequest(init)) return new Response(JSON.stringify({ choices: [{ finish_reason: "stop", message: { content: "NO" } }] }), { status: 200 });
     captured.push(String(init?.body));
     return new Response(JSON.stringify({ choices: [{ finish_reason: "stop", message: { content: verdict } }] }), { status: 200 });
   };
-}
-
-function booleanRequest(init?: RequestInit): boolean {
-  if (typeof init?.body !== "string") return false;
-  const body = JSON.parse(init.body) as { grammar?: string };
-  return body.grammar === BOOLEAN_GRAMMAR;
 }
 
 function user(id: string, content: string): MessageFact {

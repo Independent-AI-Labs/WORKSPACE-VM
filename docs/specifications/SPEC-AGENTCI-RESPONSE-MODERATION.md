@@ -213,6 +213,12 @@ decision question. It does not end with a continue instruction. An empty or
 whitespace-only user message is a continue sentinel, not a halt, and that rule is
 stated in the notes, not as the closing line.
 
+The classifier is called exactly once per eligible response. The adapter does not
+ask a second model question to confirm, refine, or override the verdict. Two
+deterministic rules apply after the call: a self-answered question is never a
+handoff (the verdict becomes `AGENT_CONTINUING`/`WORK_REMAINS`), and answer mode
+turns any non-stopped verdict into `AGENT_COMPLETE`/`WORK_COMPLETE`.
+
 The request layout is fixed and testable:
 
 ```text

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildMessages, classify, parseVerdict, SYSTEM_PROMPT, type FetchLike } from "../src/moderation/classifier.ts";
-import { BOOLEAN_GRAMMAR, MAX_INPUT_TOKENS, MODERATION_GRAMMAR, resolveModerationOptions } from "../src/moderation/config.ts";
+import { classify, buildMessages, isSelfAnswered, parseVerdict, SYSTEM_PROMPT, type FetchLike } from "../src/moderation/classifier.ts";
+import { MAX_INPUT_TOKENS, MODERATION_GRAMMAR, resolveModerationOptions } from "../src/moderation/config.ts";
 
 const options = { gatewayURL: "http://127.0.0.1:9080/llamafile", model: "/zip/MiniCPM5-1B-Q8_0.gguf" };
 const input = { todos: [], previousResponse: "Done.", userMessages: ["Do the thing."] };
@@ -16,6 +16,7 @@ test("parseVerdict accepts the grammar output and rejects anything else", () => 
   assert.equal(parseVerdict("decision: AGENT_COMPLETE\nreason: WORK_COMPLETE")?.decision, "AGENT_COMPLETE");
   assert.equal(parseVerdict("decision: AGENT_BLOCKED\nreason: AWAITING_OPERATOR")?.reasonCode, "AWAITING_OPERATOR");
   assert.equal(parseVerdict("decision: AGENT_STOPPED\nreason: USER_STOP")?.decision, "AGENT_STOPPED");
+  assert.equal(parseVerdict("decision: AGENT_COMPLETE\nreason: WORK_COMPLETE\nawaited: USER"), undefined);
   assert.equal(parseVerdict("decision: AGENT_COMPLETE\nreason: WORK_REMAINS"), undefined);
   assert.equal(parseVerdict("decision: AGENT_STOPPED\nreason: WORK_REMAINS"), undefined);
   assert.equal(parseVerdict("decision: MAYBE\nreason: WORK_COMPLETE"), undefined);
@@ -94,23 +95,81 @@ test("classify retries malformed output before returning a verdict", async () =>
   assert.equal(calls, 2);
 });
 
-test("classify overrides a continuing verdict when the response asks the user to act", async () => {
-  const result = await classify(options, input, router({
-    tokens: 100,
-    completion: { finish: "stop", content: "decision: AGENT_CONTINUING\nreason: WORK_REMAINS" },
-  }, 100, "YES"));
-  assert.equal(result.verdict?.decision, "AGENT_BLOCKED");
-  assert.equal(result.verdict?.reasonCode, "AWAITING_OPERATOR");
-  assert.equal(result.capture.attempts, 3);
+test("isSelfAnswered rejects a question the response answers itself", () => {
+  assert.equal(isSelfAnswered("Is the cache the cause? Yes. I will clear it and rerun the suite."), true);
+  assert.equal(isSelfAnswered("Is that ok? No, the suite already covers it."), true);
+  assert.equal(isSelfAnswered("Which do you want me to do?"), false);
+  assert.equal(isSelfAnswered("Phase 0 is done. Next: build the groups backend."), false);
 });
 
-test("classify keeps the verdict when the response asks the user to do nothing", async () => {
+test("classify refutes a blocked verdict for a self-answered question", async () => {
+  const result = await classify(options, { ...input, previousResponse: "Is the cache the cause? Yes. I will clear it and rerun the suite." }, router({
+    tokens: 100,
+    completion: { finish: "stop", content: "decision: AGENT_BLOCKED\nreason: AWAITING_USER" },
+  }));
+  assert.equal(result.verdict?.decision, "AGENT_CONTINUING");
+  assert.equal(result.verdict?.reasonCode, "WORK_REMAINS");
+});
+
+test("classify keeps a blocked verdict and makes one call", async () => {
+  let calls = 0;
+  const result = await classify(options, input, async (url) => {
+    if (url.endsWith("/input_tokens")) return new Response(JSON.stringify({ input_tokens: 100 }), { status: 200 });
+    calls += 1;
+    return completion("stop", "decision: AGENT_BLOCKED\nreason: AWAITING_OPERATOR");
+  });
+  assert.equal(result.verdict?.decision, "AGENT_BLOCKED");
+  assert.equal(result.verdict?.reasonCode, "AWAITING_OPERATOR");
+  assert.equal(calls, 1);
+});
+
+test("classify keeps the reason the classifier returned", async () => {
+  const result = await classify(options, { ...input, previousResponse: "Which do you want me to do?" }, router({
+    tokens: 100,
+    completion: { finish: "stop", content: "decision: AGENT_BLOCKED\nreason: AWAITING_USER" },
+  }));
+  assert.equal(result.verdict?.decision, "AGENT_BLOCKED");
+  assert.equal(result.verdict?.reasonCode, "AWAITING_USER");
+});
+
+test("classify does not upgrade a continuing verdict", async () => {
+  const result = await classify(options, { ...input, previousResponse: "Click back into the game and let the cutscene finish. Then try mouse look." }, router({
+    tokens: 100,
+    completion: { finish: "stop", content: "decision: AGENT_CONTINUING\nreason: WORK_REMAINS" },
+  }));
+  assert.equal(result.verdict?.decision, "AGENT_CONTINUING");
+  assert.equal(result.capture.attempts, 1);
+});
+
+test("classify keeps a continuing verdict when the response asks the user to do nothing", async () => {
   const result = await classify(options, input, router({
     tokens: 100,
     completion: { finish: "stop", content: "decision: AGENT_CONTINUING\nreason: WORK_REMAINS" },
   }));
   assert.equal(result.verdict?.decision, "AGENT_CONTINUING");
   assert.equal(result.capture.attempts, 1);
+});
+
+test("answer mode asks for completion and makes one call", async () => {
+  let calls = 0;
+  const result = await classify(options, { ...input, answerMode: true }, router(async () => {
+    calls += 1;
+    return completion("stop", "decision: AGENT_COMPLETE\nreason: WORK_COMPLETE");
+  }));
+  assert.equal(result.verdict?.decision, "AGENT_COMPLETE");
+  assert.equal(calls, 1);
+  assert.match(buildMessages({ ...input, answerMode: true })[1].content, /Agent mode: answer/);
+});
+
+test("answer mode turns a continuing or stalled verdict into completion", async () => {
+  for (const verdict of ["AGENT_CONTINUING\nreason: WORK_REMAINS", "AGENT_STALLED\nreason: NO_PROGRESS"]) {
+    const result = await classify(options, { ...input, answerMode: true }, router({
+      tokens: 100,
+      completion: { finish: "stop", content: `decision: ${verdict}` },
+    }));
+    assert.equal(result.verdict?.decision, "AGENT_COMPLETE");
+    assert.equal(result.verdict?.reasonCode, "WORK_COMPLETE");
+  }
 });
 
 test("classify fails after exhausting format retries", async () => {
@@ -134,7 +193,6 @@ test("classify trims the prompt to the fixed token budget", async () => {
       calls.push(tokens);
       return new Response(JSON.stringify({ input_tokens: tokens }), { status: 200 });
     }
-    if (booleanRequest(init)) return completion("stop", "NO");
     return completion("stop", "decision: AGENT_COMPLETE\nreason: WORK_COMPLETE");
   });
   assert.equal(result.verdict?.decision, "AGENT_COMPLETE");
@@ -152,19 +210,12 @@ function completion(finish: string, content: string): Response {
   return new Response(JSON.stringify({ choices: [{ finish_reason: finish, message: { content } }] }), { status: 200 });
 }
 
-function booleanRequest(init?: RequestInit): boolean {
-  if (typeof init?.body !== "string") return false;
-  const body = JSON.parse(init.body) as { grammar?: string };
-  return body.grammar === BOOLEAN_GRAMMAR;
-}
-
-function router(spec: number | { tokens: number; completion: { finish: string; content: string } } | (() => Promise<Response>), forcedTokens?: number, booleanAnswer = "NO"): FetchLike {
-  return async (url, init) => {
+function router(spec: number | { tokens: number; completion: { finish: string; content: string } } | (() => Promise<Response>), forcedTokens?: number): FetchLike {
+  return async (url) => {
     if (url.endsWith("/input_tokens")) {
       const tokens = forcedTokens ?? (typeof spec === "object" && spec !== null && "tokens" in spec ? spec.tokens : 100);
       return new Response(JSON.stringify({ input_tokens: tokens }), { status: 200 });
     }
-    if (booleanRequest(init)) return completion("stop", booleanAnswer);
     if (typeof spec === "function") return spec();
     if (typeof spec === "number") throw new Error("numeric spec requires a completion function");
     return completion(spec.completion.finish, spec.completion.content);

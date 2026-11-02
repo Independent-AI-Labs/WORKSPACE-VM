@@ -35,6 +35,12 @@ _oc_help() {
     echo "      the moderator's injected line, recompute the verdict, and start a"
     echo "      new upstream turn when the verdict is a continuation. Defaults to"
     echo "      the latest session; no task argument is accepted."
+    echo ""
+    echo "  OC_THINKING_EFFORT=<variant>  (default: low)"
+    echo "      Sets the thinking effort for every configured model before launch"
+    echo "      and for resumed sessions, and passes --variant on one-shot runs."
+    echo "      Uses the named variant when the model defines it, otherwise the"
+    echo "      minimum non-off variant. Never selects off/none."
 }
 
 if [[ "${1:-}" == "--help" ]] || [[ "${1:-}" == "-h" ]]; then

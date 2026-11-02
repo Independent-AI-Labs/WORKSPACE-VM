@@ -20,12 +20,12 @@ const client: ReplayClient = {
   tui: { showToast: async () => null },
 };
 
-test("AGENTCI_MODERATION=off returns empty hooks and skips moderation", async () => {
+test("AGENTCI_MODERATION=off skips moderation but keeps the thinking-effort hook", async () => {
   const previous = process.env.AGENTCI_MODERATION;
   process.env.AGENTCI_MODERATION = "off";
   try {
     const hooks = await plugin.server({ client }, { moderation });
-    assert.deepEqual(hooks, {});
+    assert.deepEqual(Object.keys(hooks), ["chat.params"]);
   } finally {
     if (previous === undefined) delete process.env.AGENTCI_MODERATION;
     else process.env.AGENTCI_MODERATION = previous;

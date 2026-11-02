@@ -33,7 +33,7 @@ test("mined classifier cases honor their exact or forbidden decision", { timeout
   for (let run = 1; run <= REPEAT; run += 1) {
     for (const value of cases) {
       total += 1;
-      const input = { todos: value.inputs.todos, previousResponse: value.inputs.previousResponse, userMessages: value.inputs.userMessages };
+      const input = { todos: value.inputs.todos, previousResponse: value.inputs.previousResponse, userMessages: value.inputs.userMessages, answerMode: value.inputs.answerMode };
       const outcome = prompt === null ? await classify(options, input) : await classifyWithPrompt(options, input, prompt);
       if (outcome.formatError || !outcome.verdict) {
         failures.push(`run ${run} ${value.id}: no parseable verdict (capture: ${JSON.stringify(outcome.capture.completion)})`);
@@ -47,10 +47,10 @@ test("mined classifier cases honor their exact or forbidden decision", { timeout
       observed.set(label, (observed.get(label) ?? 0) + 1);
       const detail = scoreClassifierCase(value, verdict);
       if (detail === null) {
-        if (REPORT) console.log(`PASS run ${run} ${value.id} ${verdict.decision}/${verdict.reasonCode}`);
+        if (REPORT) console.log(`PASS run ${run} ${value.id} ${verdict.decision}/${verdict.reasonCode} capture=${JSON.stringify(outcome.capture.completion)} attempts=${outcome.capture.attempts}`);
       } else {
         failures.push(`run ${run} ${value.id}: ${detail}`);
-        console.log(`FAIL run ${run} ${value.id}: ${detail}`);
+        console.log(`FAIL run ${run} ${value.id}: ${detail} capture=${JSON.stringify(outcome.capture.completion)} attempts=${outcome.capture.attempts}`);
       }
     }
   }

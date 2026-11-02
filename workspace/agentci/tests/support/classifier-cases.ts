@@ -4,6 +4,7 @@ export interface ClassifierCaseInputs {
   previousResponse: string;
   userMessages: string[];
   todos: Array<{ status?: string; content?: string }>;
+  answerMode?: boolean;
 }
 
 export interface ClassifierCaseManifest {

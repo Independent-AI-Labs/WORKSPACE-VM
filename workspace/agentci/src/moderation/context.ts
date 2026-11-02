@@ -2,6 +2,7 @@ import type { ContextSnapshot, MessageFact, TodoFact } from "./types.ts";
 
 export const MODERATION_MARKER = "Automated Moderation:";
 export const EMPTY_USER_PROMPT = "Continue the unfinished work.";
+export const MAX_REAL_USER_PROMPT_CHARS = 4000;
 
 const INJECTED_MESSAGE = new RegExp(`^[^\\p{L}\\p{N}]*${MODERATION_MARKER}`, "u");
 
@@ -29,6 +30,7 @@ export function deriveContext(input: ContextInput): ContextSnapshot {
     duplicate: duplicates,
     compaction: assistant?.info.summary === true,
     planMode: isPlanMode(assistant),
+    answerMode: isAnswerMode(assistant),
     build: !isPlanMode(assistant),
     assistantError: assistant !== undefined && assistant.info.error !== undefined && assistant.info.error !== null,
     userNewer: following.some((message) => message.info.role === "user" && !isInjectedUser(message) && !isSyntheticUser(message)),
@@ -50,7 +52,9 @@ export function assistantText(message: MessageFact): string {
 }
 
 export function isSyntheticUser(message: MessageFact): boolean {
-  return message.info.role === "user" && message.parts.some((part) => part.synthetic === true
+  if (message.info.role !== "user") return false;
+  if (message.info.summary === true) return true;
+  return message.parts.some((part) => part.synthetic === true
     && (part.metadata?.compaction_continue === true || part.metadata?.moderation === true));
 }
 
@@ -82,6 +86,11 @@ export function isPlanMode(message: MessageFact | undefined): boolean {
   return message.info.mode === "plan" || message.info.agent === "plan";
 }
 
+export function isAnswerMode(message: MessageFact | undefined): boolean {
+  if (!message) return false;
+  return message.info.mode === "answer" || message.info.agent === "answer";
+}
+
 export function isInjectedUser(message: MessageFact): boolean {
   if (message.info.role === "user" && message.parts.some((part) => part.synthetic === true && part.metadata?.moderation === true)) return true;
   return INJECTED_MESSAGE.test(assistantText(message));
@@ -104,6 +113,7 @@ export function lastRealUserPrompts(messages: readonly MessageFact[]): string[] 
       if (prompts.length === 0) prompts.unshift(EMPTY_USER_PROMPT);
       continue;
     }
+    if (value.length > MAX_REAL_USER_PROMPT_CHARS) continue;
     prompts.unshift(value);
   }
   return prompts;
