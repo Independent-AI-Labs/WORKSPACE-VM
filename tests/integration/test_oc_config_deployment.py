@@ -129,6 +129,7 @@ class TestOcWrappers:
             "low",
             "answer task",
         ]
+
     @pytest.mark.parametrize("wrapper", WRAPPERS)
     def test_agent_option_without_task_starts_interactive(
         self, tmp_path: Path, wrapper: Path

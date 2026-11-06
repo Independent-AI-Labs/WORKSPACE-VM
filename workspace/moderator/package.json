@@ -1,0 +1,30 @@
+{
+  "name": "moderator",
+  "version": "0.0.0",
+  "type": "module",
+  "exports": {
+    "./server": "./dist/server.js",
+    "./tui": "./dist/tui.js",
+    "./cli": "./dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc --project tsconfig.build.json && npm run bundle",
+    "bundle": "esbuild src/server.ts src/tui.ts --bundle --platform=node --format=esm --target=node22 --outdir=dist --out-extension:.js=.js",
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-strip-types --test --test-concurrency=1 tests/*.test.ts",
+    "score": "node --experimental-strip-types --experimental-transform-types --import ./tests/register-ts.mjs tests/score-models.ts 1 workspace-gw-opencode-go-api-key/gpt-6-luna"
+  },
+  "dependencies": {
+    "@opencode-ai/plugin": "1.17.11",
+    "@opencode-ai/sdk": "1.17.11",
+    "zod": "4.1.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "esbuild": "^0.28.2",
+    "typescript": "^5.7.0"
+  }
+}

@@ -25,7 +25,7 @@ make init-check    # report missing apt/brew packages
 sudo make init     # install from config/system-deps.yaml + privileged bootstrap
 ```
 
-Run as root, `make init` also performs the privileged bootstrap (audit 2026-07-18 section 4.6): publishes the sealed WORKSPACE-CI artifact at `/opt/workspace-ci` via `deploy-ci`, installs the git guard, root-owns hooks and exemption files in every consumer repo, and enforces syslog limits. It fails loudly if `projects/WORKSPACE-CI` is missing; clone it first with non-root `make ensure-repos`.
+Run as root, `make init` also performs the privileged bootstrap (audit 2026-07-18 section 4.6): publishes the sealed WORKSPACE-CI artifact at `/opt/workspace-ci` via `deploy-ci`, runs the host configuration TUI (storage locations, optional backup mount/format, diagnostics, AgentCI, DATAOPS profiles), installs the git guard, root-owns hooks and exemption files in every consumer repo, and enforces syslog limits. It fails loudly if `projects/WORKSPACE-CI` is missing; clone it first with non-root `make ensure-repos`. Contract: [`docs/requirements/REQ-INSTALLER.md`](docs/requirements/REQ-INSTALLER.md).
 
 ### Installation paths
 
@@ -36,6 +36,9 @@ Choose the installer that matches what you are setting up. Each path has its own
 
 - **CI / unattended bootstrap** (same components, fixed defaults):  
   `make install-ci`. Config: [`workspace/config/install-defaults.yaml`](workspace/config/install-defaults.yaml)
+
+- **Host configuration** (storage seam, backup mount/persist, optional fast-disk format/migrate, diagnostics, AgentCI, DATAOPS profiles):
+  `sudo make init` (interactive host TUI) or `make install-aux` (agent scope). Non-interactive: `make install-aux-ci`. Registry: [`workspace/config/install-aux.yaml`](workspace/config/install-aux.yaml). Spec: [`docs/specifications/SPEC-INSTALLER.md`](docs/specifications/SPEC-INSTALLER.md)
 
 - **LLM inference, Intel GPU, Vulkan, llamafile / llama.cpp** (builds, bundles, systemd deploy, diagnostics):  
   `make llama-setup`. Operator guide: [`docs/specifications/SPEC-LLAMA-SETUP-TUI.md`](docs/specifications/SPEC-LLAMA-SETUP-TUI.md).  
@@ -143,7 +146,7 @@ flowchart TB
   server --> clients
 ```
 
-The wizard runs **one** profile per invocation; the other stack is not built or deployed. The `llamafile_cpu_chat` profile skips systemd deploy and runs as a local binary (see table).
+The wizard runs **one** profile per invocation. CPU inference profiles are not offered.
 
 Bundle zipalign detail: [`docs/specifications/SPEC-LLAMAFILE-MINICPM5-1B.md`](docs/specifications/SPEC-LLAMAFILE-MINICPM5-1B.md).
 
@@ -154,8 +157,7 @@ Stack profiles:
 | `llamafile_vulkan_server` | `llamafile-<model>` | 8765 |
 | `llama_cpp_vulkan` | `llamaserver@vulkan` | 8080 |
 | `llama_cpp_sycl` | `llamaserver@sycl` | 8082 |
-| `llama_cpp_cpu` | `llamaserver@cpu` | 8081 |
-| `llamafile_cpu_chat` | none (local binary) | n/a |
+
 
 Escape hatches (scripting / CI):
 

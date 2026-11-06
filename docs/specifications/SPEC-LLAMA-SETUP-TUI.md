@@ -43,8 +43,7 @@ Defined in `llama-setup.yaml`:
 | `llamafile_vulkan_server` | Llamafile Vulkan server (recommended) | `llamafile-<model>` systemd unit |
 | `llama_cpp_vulkan` | llama.cpp Vulkan | `llamaserver@vulkan` |
 | `llama_cpp_sycl` | llama.cpp SYCL | `llamaserver@sycl` |
-| `llama_cpp_cpu` | llama.cpp CPU | `llamaserver@cpu` |
-| `llamafile_cpu_chat` | Llamafile CPU chat TUI | None (local binary) |
+
 
 ## Prereq scripts
 

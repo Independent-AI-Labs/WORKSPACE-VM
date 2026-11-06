@@ -1,0 +1,99 @@
+# Auxiliary installer feature registry - loaded by
+# workspace/scripts/bootstrap_aux_defs.py. See docs/specifications/SPEC-INSTALLER.md.
+#
+# scope: agent -> runs as the checkout owner
+# scope: root  -> runs only in the privileged stage (sudo make init)
+# action:    -> fixed handler in workspace/scripts/bootstrap_aux.py
+
+groups:
+  - Storage
+  - Host Services
+
+features:
+  - id: storage-locations
+    label: Storage locations
+    description: Write the fast/backup storage-locations seam
+    group: Storage
+    scope: agent
+    action: storage-configure
+    order: 10
+    enabled_by_default: true
+    detect_path: workspace/config/storage-locations.yaml
+    args:
+      fast:
+        default: /mnt/ws-fast
+        description: Fast storage root
+      backup:
+        default: /mnt/ws-backup
+        description: Backup storage root
+
+  - id: storage-backup-mount
+    label: Mount ws-backup
+    description: Mount the archive disk at the configured backup root
+    group: Storage
+    scope: root
+    action: storage-mount-backup
+    order: 20
+    requires: [storage-locations]
+    detect_mount: /mnt/ws-backup
+
+  - id: storage-backup-persist
+    label: Persist ws-backup
+    description: Add the archive disk to /etc/fstab by UUID
+    group: Storage
+    scope: root
+    action: storage-persist-backup
+    order: 30
+    requires: [storage-locations]
+    detect_cmd: [grep, -q, ws-backup, /etc/fstab]
+
+  - id: storage-fast-provision
+    label: Provision ws-fast
+    description: Mount, persist, lay out, and swap the fast disk (dry-run then apply)
+    group: Storage
+    scope: root
+    action: storage-provision-fast
+    order: 40
+    requires: [storage-locations]
+    detect_mount: /mnt/ws-fast
+
+  - id: storage-migrate
+    label: Migrate to ws-fast
+    description: Copy-only migration of IO-heavy trees onto fast storage
+    group: Storage
+    scope: agent
+    action: storage-migrate
+    order: 50
+    requires: [storage-fast-provision]
+
+  - id: diagnostics
+    label: Hang diagnostics
+    description: Install and start the hang-evidence sampler user unit
+    group: Host Services
+    scope: agent
+    action: install-diagnostics
+    order: 60
+    enabled_by_default: true
+    detect_path: ~/.config/systemd/user/hang-evidence-sampler.service
+
+  - id: agentci
+    label: AgentCI plugin
+    description: Install and verify the AgentCI OpenCode plugin release
+    group: Host Services
+    scope: agent
+    action: install-agentci
+    order: 70
+    enabled_by_default: true
+    detect_path: ~/.config/opencode/plugins/agentci.js
+
+  - id: dataops-profiles
+    label: DATAOPS profiles
+    description: Bring up selected DATAOPS service profiles
+    group: Host Services
+    scope: agent
+    action: dataops-profiles
+    order: 80
+    args:
+      profiles:
+        default: data,secrets
+        description: Comma-separated DATAOPS profiles

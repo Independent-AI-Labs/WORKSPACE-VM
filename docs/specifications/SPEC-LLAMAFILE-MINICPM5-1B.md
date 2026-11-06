@@ -87,7 +87,7 @@ inference with runtime SIMD dispatch:
 
 GPU support in llamafile is opt-in via dynamic runtime loading of host GPU
 libraries; if absent, it falls back to CPU. This spec produces a binary with
-no GPU code compiled in, and pins `-ngl 0` in `.args` so CPU inference is
+Vulkan is required. Manifests pin `--gpu vulkan` and `-ngl 99`. CPU inference is
 explicit even on GPU-capable hosts.
 
 ### Why MiniCPM5-1B loads without custom kernels
@@ -160,12 +160,12 @@ where the AMD64 slice is dead weight.
 
 ### Supported OS × ISA matrix (runtime)
 Per llamafile `docs/support.md`. The fat APE covers the union; CPU-only mode
-(`-ngl 0`) is used everywhere.
+(`--gpu vulkan -ngl 99`) is used everywhere.
 
 | OS | AMD64 | ARM64 | Notes |
 | --- | :---: | :---: | --- |
 | Linux 2.6.18+ | ✅ | ✅ | Primary target; both ISAs fully supported |
-| Darwin (macOS) 23.1.0+ | ✅ | ✅ | Metal GPU is ARM64-only, but disabled here via `-ngl 0` |
+| Darwin (macOS) 23.1.0+ | ✅ | ✅ | Inference requires Vulkan, not CPU |
 | Windows 10+ | ✅ | ❌ | AMD64 only; Windows-on-ARM not supported by APE |
 | FreeBSD 13+ | ✅ | ✅ | Both ISAs |
 | NetBSD 9.2+ | ✅ | ❌ | AMD64 only |
@@ -179,8 +179,8 @@ Per llamafile `docs/support.md`. The fat APE covers the union; CPU-only mode
   operator task, not an agent task:
   - Linux ARM64: copy `ape-aarch64.elf` → `/usr/bin/ape`, optionally register `binfmt_misc`.
   - Apple ARM64 (M1+): compile `cc -O -o ape bin/ape-m1.c` → `/usr/local/bin/ape` (needs Xcode CLT).
-- **GPU:** ARM64 macOS can use Metal, but this spec pins `-ngl 0` → pure CPU.
-- **RAM:** ≥ 1.5 GB free for Q8_0 weights + KV cache at `-c 8192`.
+- **GPU:** Vulkan is required. CPU inference is forbidden.
+- **RAM:** ≥ 1.5 GB free for Q8_0 weights + KV cache at `MODERATOR_CTX` (default 32768).
 
 ### Assimilate (optional, native-format conversion)
 The cosmocc-bundled `assimilate` tool can rewrite the fat APE into the host's
@@ -208,7 +208,7 @@ pipelines that reject polyglot binaries. Not required for normal operation.
 ┌────────────────┐   ┌──────────────────┐   ┌────────────────────┐
 │ o/llamafile/   │   | models/minicpm5-  │   │ .args manifest     │
 │   llamafile    │   │ 1b/MiniCPM5-1B-   │   │ (server, temp 0,   │
-│ (fat APE:      │   │   Q8_0.gguf        │   │  -ngl 0, /zip/…)   │
+│ (fat APE:      │   │   Q8_0.gguf        │   │  -ngl 99, /zip/…)   │
 │  AMD64+ARM64)  │   │                    │   │                    │
 └───────┬────────┘   └─────────┬────────┘   └──────────┬─────────┘
         │                      │                       │
@@ -333,14 +333,14 @@ trailing `...` token injects any runtime CLI arguments the user passes.
 0.0.0.0
 --port
 8765
+--gpu
+vulkan
 -ngl
-0
+99
 --temp
 0
 --top-p
 0.95
--c
-8192
 --no-mmap
 --reasoning
 off
@@ -354,14 +354,14 @@ off
 /zip/MiniCPM5-1B-Q8_0.gguf
 --jinja
 --chat
+--gpu
+vulkan
 -ngl
-0
+99
 --temp
 0
 --top-p
 0.95
--c
-8192
 --no-mmap
 --reasoning
 off
@@ -447,10 +447,10 @@ printf 'What is 1+1? Reply with just the number.\n' | "$CHAT"
 | `--server` | - | Run as OpenAI-compatible HTTP server (not TUI) |
 | `--host` | `0.0.0.0` | Bind all interfaces |
 | `--port` | `8765` | Listen port (server manifest only) |
-| `-ngl` | `0` | Zero GPU layers offloaded → force CPU (makes CPU-only intent explicit) |
+| `-ngl` | `99` | All layers on Vulkan. CPU offload is forbidden. |
 | `--temp` | `0` | Greedy decoding (No-think, deterministic) |
 | `--top-p` | `0.95` | Inert at temp 0; retained for clarity / easy mode switching |
-| `-c` | `8192` | Context window (model supports 131072; 8192 bounds RAM for CPU) |
+| context | `MODERATOR_CTX` | Context window. Default 32768. Not pinned in `.args`. |
 | `--no-mmap` | - | Force weights resident in RAM (matches llamafile example .args); optional |
 | `--reasoning` | `off` | Disable thinking/reasoning mode; responses go straight to `content` (no `reasoning_content`) |
 | `...` | - | Pass-through token for user runtime overrides |
@@ -486,7 +486,7 @@ assistant. To use MiniCPM5-1B's Think setting, override at runtime:
 ### CPU requirements
 - AMD64: AVX minimum (Intel Core 2006+ / AMD K8 2003+).
 - ARM64: ARMv8a+ (Apple Silicon, 64-bit Raspberry Pi).
-- RAM: ≥ 1.5 GB free for the Q8_0 weights + KV cache at `-c 8192`.
+- RAM: ≥ 1.5 GB free for the Q8_0 weights + KV cache at `MODERATOR_CTX` (default 32768).
 
 ### Build environment (sandbox)
 This build requires no root. The `sudo make install` step from the upstream

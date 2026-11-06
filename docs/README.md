@@ -26,9 +26,10 @@ Start here for onboarding: [`../README.md`](../README.md)
 | [`requirements/REQ-AGENT-POLICY.md`](requirements/REQ-AGENT-POLICY.md) | Agent policy engine: YAML DSL, profiles, audit trail (Draft) |
 | [`requirements/REQ-A2A.md`](requirements/REQ-A2A.md) | A2A remote-agent client integration, regulatory controls (Draft) |
 | [`requirements/REQ-ANDROID-WORKSPACE.md`](requirements/REQ-ANDROID-WORKSPACE.md) | Native Android app plus WSL or chroot developer path (Draft) |
+| [`requirements/REQ-INSTALLER.md`](requirements/REQ-INSTALLER.md) | Installer lifecycle, stage boundaries, auxiliary features (Active) |
 | [`requirements/REQ-LLAMA-SETUP-TUI.md`](requirements/REQ-LLAMA-SETUP-TUI.md) | `make llama-setup` unified llama/GPU setup wizard |
 | [`requirements/REQ-LLAMAFILE-MINICPM5-1B.md`](requirements/REQ-LLAMAFILE-MINICPM5-1B.md) | MiniCPM5-1B llamafile bundles (server + chat) |
-| [`requirements/REQ-AGENTCI-RESPONSE-MODERATION.md`](requirements/REQ-AGENTCI-RESPONSE-MODERATION.md) | Local MiniCPM5 Build moderation and finite-state-machine continuation controller (AgentCI, TypeScript) |
+| [`requirements/REQ-AGENTCI-RESPONSE-MODERATION.md`](requirements/REQ-AGENTCI-RESPONSE-MODERATION.md) | Standalone response moderator: in-process `LLM.generate`, adapter end-to-end transcripts, audit JSONL (Specified) |
 | [`requirements/REQ-OPENVPN.md`](requirements/REQ-OPENVPN.md) | Host and VM OpenVPN client automation |
 | [`requirements/REQ-AGENTCI.md`](requirements/REQ-AGENTCI.md) | AgentCI plugin: explicit policy files, hooks, file injection |
 | [`requirements/REQ-VM-HYPERVISOR.md`](requirements/REQ-VM-HYPERVISOR.md) | `make vm` dual isolation backends (Podman + QEMU) |
@@ -41,12 +42,13 @@ Start here for onboarding: [`../README.md`](../README.md)
 | [`specifications/SPEC-AGENT-POLICY.md`](specifications/SPEC-AGENT-POLICY.md) | Policy engine implementation: bash + yq pipeline, static plugin (Draft) |
 | [`specifications/SPEC-A2A.md`](specifications/SPEC-A2A.md) | A2A client implementation design (Draft) |
 | [`specifications/SPEC-ANDROID-WORKSPACE.md`](specifications/SPEC-ANDROID-WORKSPACE.md) | Android VM app implementation design (Draft) |
+| [`specifications/SPEC-INSTALLER.md`](specifications/SPEC-INSTALLER.md) | Installer registries, host TUI, storage seam writer (Active) |
 | [`specifications/SPEC-LLAMA-SETUP-TUI.md`](specifications/SPEC-LLAMA-SETUP-TUI.md) | Setup wizard phases, profiles, prereq scripts |
 | [`specifications/SPEC-LLAMAFILE-MINICPM5-1B.md`](specifications/SPEC-LLAMAFILE-MINICPM5-1B.md) | llamafile bundle format and CPU cosmocc build |
 | [`specifications/SPEC-OPENCODE-RESPONSE-MODERATOR.md`](specifications/SPEC-OPENCODE-RESPONSE-MODERATOR.md) | Superseded by REQ-AGENTCI-RESPONSE-MODERATION (historical reference) |
 | [`specifications/SPEC-OPENVPN.md`](specifications/SPEC-OPENVPN.md) | `make vpn-*` automation: bootstrap, host service, VM pipeline |
 | [`specifications/SPEC-AGENTCI.md`](specifications/SPEC-AGENTCI.md) | AgentCI TypeScript plugin design (Draft) |
-| [`specifications/SPEC-AGENTCI-RESPONSE-MODERATION.md`](specifications/SPEC-AGENTCI-RESPONSE-MODERATION.md) | AgentCI completion-gating moderation: FSM, classifier, audit, installer |
+| [`specifications/SPEC-AGENTCI-RESPONSE-MODERATION.md`](specifications/SPEC-AGENTCI-RESPONSE-MODERATION.md) | Standalone moderator: in-process `LLM.generate`, adapter transcript end-to-end, FSM, audit JSONL (Specified) |
 | [`specifications/SPEC-OPENCODE-ISOLATED-INTEGRATION-TESTS.md`](specifications/SPEC-OPENCODE-ISOLATED-INTEGRATION-TESTS.md) | Temporary-root OpenCode, plugin, database, and live-provider test contract (Draft) |
 | [`specifications/SPEC-VM-HYPERVISOR.md`](specifications/SPEC-VM-HYPERVISOR.md) | Hypervisor architecture, QEMU backend, guard E2E gate |
 

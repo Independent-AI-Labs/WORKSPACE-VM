@@ -26,8 +26,8 @@ export function chooseEffort(requested: string, variants: Record<string, unknown
   return null;
 }
 
-export function applyThinkingEffort(input: ThinkingParamsInput, output: ThinkingParamsOutput): void {
-  const chosen = chooseEffort(requestedEffort(process.env.OC_THINKING_EFFORT), input.model.variants);
+export function applyThinkingEffort(input: ThinkingParamsInput, output: ThinkingParamsOutput, requested: string | undefined): void {
+  const chosen = chooseEffort(requestedEffort(requested), input.model.variants);
   if (chosen === null) return;
   output.options = { ...(output.options ?? {}), reasoningEffort: chosen };
 }

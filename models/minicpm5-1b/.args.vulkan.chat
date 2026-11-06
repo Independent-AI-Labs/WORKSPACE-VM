@@ -18,8 +18,6 @@ vulkan
 0
 --repeat-penalty
 1.0
--c
-8192
 --no-mmap
 --no-cache-prompt
 --reasoning

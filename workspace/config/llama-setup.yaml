@@ -51,36 +51,7 @@ stacks:
       kind: llamaserver
       flavor: sycl
 
-  - id: llama_cpp_cpu
-    label: 'llama.cpp CPU'
-    description: 'Native llama-server CPU-only backend'
-    prereqs: []
-    build_steps:
-      - id: llama_cpu_build
-        label: 'llama.cpp CPU build'
-        script: scripts/setup/build-llama-cpu.sh
-        detect_path: projects/llama.cpp/build-cpu/bin/llama-server
-    deploy:
-      kind: llamaserver
-      flavor: cpu
-
-  - id: llamafile_cpu_chat
-    label: 'Llamafile CPU chat'
-    description: 'Portable .llamafile interactive chat (CPU engine)'
-    prereqs: []
-    build_steps:
-      - id: llamafile_engine
-        label: 'llamafile CPU engine'
-        script: scripts/setup/build-llamafile-engine.sh
-        detect_path: projects/llamafile/o/llamafile/llamafile
-      - id: llamafile_cpu_bundle
-        label: 'CPU chat .llamafile bundle'
-        make_target: build-llamafile
-        make_vars: { MODEL: minicpm5-1b, MODE: chat, GPU: cpu }
-        detect_glob: 'models/minicpm5-1b/*-chat.llamafile'
-    deploy: null
-
-prereqs:
+  prereqs:
   - id: intel_drivers
     label: 'Intel GPU drivers'
     description: 'Intel compute/media stack, render/video groups'

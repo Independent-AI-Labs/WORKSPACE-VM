@@ -1,0 +1,1022 @@
+{
+  "createdAt": "2026-11-06T12:03:04.607Z",
+  "models": [
+    {
+      "providerID": "workspace-gw-opencode-go-api-key",
+      "modelID": "gpt-6-luna",
+      "inputCost": 0.1,
+      "outputCost": 0.5,
+      "price": 0.6,
+      "matched": 99,
+      "total": 100,
+      "avgMs": 1399,
+      "minMs": 985,
+      "p50Ms": 1255,
+      "p95Ms": 1890,
+      "maxMs": 5096,
+      "totalMs": 139933,
+      "cases": [
+        {
+          "id": "mined-001586d1c29123b2",
+          "expectedDecision": "AGENT_BLOCKED",
+          "expectedReason": "AWAITING_OPERATOR",
+          "gotDecision": "AGENT_BLOCKED",
+          "gotReason": "AWAITING_OPERATOR",
+          "match": true,
+          "ms": 1890,
+          "error": null
+        },
+        {
+          "id": "mined-00d5f1044baba779",
+          "expectedDecision": "AGENT_CONTINUING",
+          "expectedReason": "WORK_REMAINS",
+          "gotDecision": "AGENT_CONTINUING",
+          "gotReason": "WORK_REMAINS",
+          "match": true,
+          "ms": 1622,
+          "error": null
+        },
+        {
+          "id": "op-physical-handoff",
+          "expectedDecision": "AGENT_BLOCKED",
+          "expectedReason": "AWAITING_OPERATOR",
+          "gotDecision": "AGENT_BLOCKED",
+          "gotReason": "AWAITING_OPERATOR",
+          "match": true,
+          "ms": 1245,
+          "error": null
+        },
+        {
+          "id": "mined-0631b4bc107e6f46",
+          "expectedDecision": "AGENT_COMPLETE",
+          "expectedReason": "WORK_COMPLETE",
+          "gotDecision": "AGENT_COMPLETE",
+          "gotReason": "WORK_COMPLETE",
+          "match": true,
+          "ms": 1680,
+          "error": null
+        },
+        {
+          "id": "mined-066578f2ac3b4e1b",
+          "expectedDecision": "AGENT_COMPLETE",
+          "expectedReason": "WORK_COMPLETE",
+          "gotDecision": "AGENT_COMPLETE",
+          "gotReason": "WORK_COMPLETE",
+          "match": true,
+          "ms": 1387,
+          "error": null
+        },
+        {
+          "id": "mined-06692a747ad52d45",
+          "expectedDecision": "AGENT_COMPLETE",
+          "expectedReason": "WORK_COMPLETE",
+          "gotDecision": "AGENT_COMPLETE",
+          "gotReason": "WORK_COMPLETE",
+          "match": true,
+          "ms": 1213,
+          "error": null
+        },
+        {
+          "id": "op-answer-mode-final-answer",
+          "expectedDecision": "AGENT_COMPLETE",
+          "expectedReason": "WORK_COMPLETE",
+          "gotDecision": "AGENT_COMPLETE",
+          "gotReason": "WORK_COMPLETE",
+          "match": true,
+          "ms": 1274,
+          "error": null
+        },
+        {
+          "id": "mined-1661101a5182738e",
+          "expectedDecision": "AGENT_CONTINUING",
+          "expectedReason": "WORK_REMAINS",
+          "gotDecision": "AGENT_CONTINUING",
+          "gotReason": "WORK_REMAINS",
+          "match": true,
+          "ms": 1299,
+          "error": null
+        },
+        {
+          "id": "op-question-to-user",
+          "expectedDecision": "AGENT_BLOCKED",
+          "expectedReason": "AWAITING_USER",
+          "gotDecision": "AGENT_BLOCKED",
+          "gotReason": "AWAITING_USER",
+          "match": true,
+          "ms": 1860,
+          "error": null
+        },
+        {
+          "id": "op-work-complete",
+          "expectedDecision": "AGENT_COMPLETE",
+          "expectedReason": "WORK_COMPLETE",
+          "gotDecision": "AGENT_COMPLETE",
+          "gotReason": "WORK_COMPLETE",
+          "match": true,
+          "ms": 1089,
+          "error": null
+        },
+        {
+          "id": "op-no-progress",
+          "expectedDecision": "AGENT_STALLED",
+          "expectedReason": "NO_PROGRESS",
+          "gotDecision": "AGENT_STALLED",
+          "gotReason": "NO_PROGRESS",
+          "match": true,
+          "ms": 1120,
+          "error": null
+        },
+        {
+          "id": "mined-1e2bd792518a47eb",
+          "expectedDecision": "AGENT_BLOCKED",
+          "expectedReason": "AWAITING_OPERATOR",
+          "gotDecision": "AGENT_BLOCKED",
+          "gotReason": "AWAITING_OPERATOR",
+          "match": true,
+          "ms": 1143,
+          "error": null
+        },
+        {
+          "id": "op-user-stop",
+          "expectedDecision": "AGENT_STOPPED",
+          "expectedReason": "USER_STOP",
+          "gotDecision": "AGENT_STOPPED",
+          "gotReason": "USER_STOP",
+          "match": true,
+          "ms": 2295,
+          "error": null
+        },
+        {
+          "id": "mined-27b7106c262743eb",
+          "expectedDecision": "AGENT_CONTINUING",
+          "expectedReason": "WORK_REMAINS",
+          "gotDecision": "AGENT_CONTINUING",
+          "gotReason": "WORK_REMAINS",
+          "match": true,
+          "ms": 1400,
+          "error": null
+        },
+        {
+          "id": "mined-2ae4cc37a86f39d9",
+          "expectedDecision": "AGENT_COMPLETE",
+          "expectedReason": "WORK_COMPLETE",
+          "gotDecision": "AGENT_COMPLETE",
+          "gotReason": "WORK_COMPLETE",
+          "match": true,
+          "ms": 1119,
+          "error": null
+        },
+        {
+          "id": "mined-30ebc063b6ea5b70",
+          "expectedDecision": "AGENT_COMPLETE",
+          "expectedReason": "WORK_COMPLETE",
+          "gotDecision": "AGENT_COMPLETE",
+          "gotReason": "WORK_COMPLETE",
+          "match": true,
+          "ms": 1252,
+          "error": null
+        },
+        {
+          "id": "mined-3162bc1608a32883",
+          "expectedDecision": "AGENT_COMPLETE",
+          "expectedReason": "WORK_COMPLETE",
+          "gotDecision": "AGENT_COMPLETE",
+          "gotReason": "WORK_COMPLETE",
+          "match": true,
+          "ms": 1554,
+          "error": null
+        },
+        {
+          "id": "mined-31bd5123c14d1711",
+          "expectedDecision": "AGENT_CONTINUING",
+          "expectedReason": "WORK_REMAINS",
+          "gotDecision": "AGENT_CONTINUING",
+          "gotReason": "WORK_REMAINS",
+          "match": true,
+          "ms": 1180,
+          "error": null
+        },
+        {
+          "id": "mined-37b7c5ee130e180e",
+          "expectedDecision": "AGENT_COMPLETE",
+          "expectedReason": "WORK_COMPLETE",
+          "gotDecision": "AGENT_COMPLETE",
+          "gotReason": "WORK_COMPLETE",
+          "match": true,
+          "ms": 1245,
+          "error": null
+        },
+        {
+          "id": "mined-3dcc3d55f6d5dd99",
+          "expectedDecision": "AGENT_COMPLETE",
+          "expectedReason": "WORK_COMPLETE",
+          "gotDecision": "AGENT_COMPLETE",
+          "gotReason": "WORK_COMPLETE",
+          "match": true,
+          "ms": 1337,
+          "error": null
+        },
+        {
+          "id": "op-operator-reproduction-handoff",
+          "expectedDecision": "AGENT_BLOCKED",
+          "expectedReason": "AWAITING_OPERATOR",
+          "gotDecision": "AGENT_BLOCKED",
+          "gotReason": "AWAITING_OPERATOR",
+          "match": true,
+          "ms": 1377,
+          "error": null
+        },
+        {
+          "id": "mined-4657f841fd92dae4",
+          "expectedDecision": "AGENT_BLOCKED",
+          "expectedReason": "AWAITING_OPERATOR",
+          "gotDecision": "AGENT_BLOCKED",
+          "gotReason": "AWAITING_OPERATOR",
+          "match": true,
+          "ms": 1612,
+          "error": null
+        },
+        {
+          "id": "mined-46fe3661435388b4",
+          "expectedDecision": "AGENT_COMPLETE",
+          "expectedReason": "WORK_COMPLETE",
+          "gotDecision": "AGENT_COMPLETE",
+          "gotReason": "WORK_COMPLETE",
+          "match": true,
+          "ms": 1279,
+          "error": null
+        },
+        {
+          "id": "mined-49a1d05c7a4945dc",
+          "expectedDecision": "AGENT_COMPLETE",
+          "expectedReason": "WORK_COMPLETE",
+          "gotDecision": "AGENT_COMPLETE",
+          "gotReason": "WORK_COMPLETE",
+          "match": true,
+          "ms": 1301,
+          "error": null
+        },
+        {
+          "id": "mined-4a366699b5f8330d",
+          "expectedDecision": "AGENT_BLOCKED",
+          "expectedReason": "AWAITING_OPERATOR",
+          "gotDecision": "AGENT_BLOCKED",
+          "gotReason": "AWAITING_OPERATOR",
+          "match": true,
+          "ms": 1873,
+          "error": null
+        },
+        {
+          "id": "mined-4f54033d8bf127c2",
+          "expectedDecision": "AGENT_COMPLETE",
+          "expectedReason": "WORK_COMPLETE",
+          "gotDecision": "AGENT_COMPLETE",
+          "gotReason": "WORK_COMPLETE",
+          "match": true,
+          "ms": 1230,
+          "error": null
+        },
+        {
+          "id": "mined-4fd356274a79fe0e",
+          "expectedDecision": "AGENT_CONTINUING",
+          "expectedReason": "WORK_REMAINS",
+          "gotDecision": "AGENT_CONTINUING",
+          "gotReason": "WORK_REMAINS",
+          "match": true,
+          "ms": 1274,
+          "error": null
+        },
+        {
+          "id": "mined-53d685909f97400b",
+          "expectedDecision": "AGENT_CONTINUING",
+          "expectedReason": "WORK_REMAINS",
+          "gotDecision": "AGENT_CONTINUING",
+          "gotReason": "WORK_REMAINS",
+          "match": true,
+          "ms": 1159,
+          "error": null
+        },
+        {
+          "id": "mined-546216bd9816e168",
+          "expectedDecision": "AGENT_CONTINUING",
+          "expectedReason": "WORK_REMAINS",
+          "gotDecision": "AGENT_CONTINUING",
+          "gotReason": "WORK_REMAINS",
+          "match": true,
+          "ms": 1207,
+          "error": null
+        },
+        {
+          "id": "mined-5579219cdb195fb8",
+          "expectedDecision": "AGENT_BLOCKED",
+          "expectedReason": "AWAITING_OPERATOR",
+          "gotDecision": "AGENT_BLOCKED",
+          "gotReason": "AWAITING_OPERATOR",
+          "match": true,
+          "ms": 1107,
+          "error": null
+        },
+        {
+          "id": "mined-60dc6446da9ea03f",
+          "expectedDecision": "AGENT_COMPLETE",
+          "expectedReason": "WORK_COMPLETE",
+          "gotDecision": "AGENT_COMPLETE",
+          "gotReason": "WORK_COMPLETE",
+          "match": true,
+          "ms": 1560,
+          "error": null
+        },
+        {
+          "id": "mined-639b2ed371852b65",
+          "expectedDecision": "AGENT_COMPLETE",
+          "expectedReason": "WORK_COMPLETE",
+          "gotDecision": "AGENT_COMPLETE",
+          "gotReason": "WORK_COMPLETE",
+          "match": true,
+          "ms": 1109,
+          "error": null
+        },
+        {
+          "id": "mined-66b0087452339013",
+          "expectedDecision": "AGENT_CONTINUING",
+          "expectedReason": "WORK_REMAINS",
+          "gotDecision": "AGENT_CONTINUING",
+          "gotReason": "WORK_REMAINS",
+          "match": true,
+          "ms": 1689,
+          "error": null
+        },
+        {
+          "id": "op-game-handoff-full",
+          "expectedDecision": "AGENT_BLOCKED",
+          "expectedReason": "AWAITING_OPERATOR",
+          "gotDecision": "AGENT_BLOCKED",
+          "gotReason": "AWAITING_OPERATOR",
+          "match": true,
+          "ms": 1314,
+          "error": null
+        },
+        {
+          "id": "mined-6e5880048b9fef07",
+          "expectedDecision": "AGENT_COMPLETE",
+          "expectedReason": "WORK_COMPLETE",
+          "gotDecision": "AGENT_COMPLETE",
+          "gotReason": "WORK_COMPLETE",
+          "match": true,
+          "ms": 1465,
+          "error": null
+        },
+        {
+          "id": "mined-6f091e79964caa9f",
+          "expectedDecision": "AGENT_BLOCKED",
+          "expectedReason": "AWAITING_OPERATOR",
+          "gotDecision": "AGENT_BLOCKED",
+          "gotReason": "AWAITING_OPERATOR",
+          "match": true,
+          "ms": 1234,
+          "error": null
+        },
+        {
+          "id": "mined-701837398c825dc1",
+          "expectedDecision": "AGENT_COMPLETE",
+          "expectedReason": "WORK_COMPLETE",
+          "gotDecision": "AGENT_COMPLETE",
+          "gotReason": "WORK_COMPLETE",
+          "match": true,
+          "ms": 1407,
+          "error": null
+        },
+        {
+          "id": "mined-719c906bfe91d3e9",
+          "expectedDecision": "AGENT_BLOCKED",
+          "expectedReason": "AWAITING_USER",
+          "gotDecision": "AGENT_BLOCKED",
+          "gotReason": "AWAITING_USER",
+          "match": true,
+          "ms": 1229,
+          "error": null
+        },
+        {
+          "id": "mined-72593d8b15cf8527",
+          "expectedDecision": "AGENT_BLOCKED",
+          "expectedReason": "AWAITING_OPERATOR",
+          "gotDecision": "AGENT_BLOCKED",
+          "gotReason": "AWAITING_OPERATOR",
+          "match": true,
+          "ms": 1305,
+          "error": null
+        },
+        {
+          "id": "mined-7696d2b6b3a01458",
+          "expectedDecision": "AGENT_COMPLETE",
+          "expectedReason": "WORK_COMPLETE",
+          "gotDecision": "AGENT_COMPLETE",
+          "gotReason": "WORK_COMPLETE",
+          "match": true,
+          "ms": 1224,
+          "error": null
+        },
+        {
+          "id": "op-work-then-click-then-next",
+          "expectedDecision": "AGENT_BLOCKED",
+          "expectedReason": "AWAITING_OPERATOR",
+          "gotDecision": "AGENT_BLOCKED",
+          "gotReason": "AWAITING_OPERATOR",
+          "match": true,
+          "ms": 1337,
+          "error": null
+        },
+        {
+          "id": "mined-7ea02152fd8947ed",
+          "expectedDecision": "AGENT_BLOCKED",
+          "expectedReason": "AWAITING_OPERATOR",
+          "gotDecision": "AGENT_BLOCKED",
+          "gotReason": "AWAITING_OPERATOR",
+          "match": true,
+          "ms": 1191,
+          "error": null
+        },
+        {
+          "id": "mined-891889c0f3e64ea8",
+          "expectedDecision": "AGENT_CONTINUING",
+          "expectedReason": "WORK_REMAINS",
+          "gotDecision": "AGENT_CONTINUING",
+          "gotReason": "WORK_REMAINS",
+          "match": true,
+          "ms": 1687,
+          "error": null
+        },
+        {
+          "id": "mined-8a326fdb1cd932b1",
+          "expectedDecision": "AGENT_COMPLETE",
+          "expectedReason": "WORK_COMPLETE",
+          "gotDecision": "AGENT_COMPLETE",
+          "gotReason": "WORK_COMPLETE",
+          "match": true,
+          "ms": 1232,
+          "error": null
+        },
+        {
+          "id": "mined-8af15b29a6d52f19",
+          "expectedDecision": "AGENT_BLOCKED",
+          "expectedReason": "AWAITING_OPERATOR",
+          "gotDecision": "AGENT_BLOCKED",
+          "gotReason": "AWAITING_OPERATOR",
+          "match": true,
+          "ms": 3527,
+          "error": null
+        },
+        {
+          "id": "mined-8be6c47a66c051bd",
+          "expectedDecision": "AGENT_BLOCKED",
+          "expectedReason": "AWAITING_OPERATOR",
+          "gotDecision": "AGENT_BLOCKED",
+          "gotReason": "AWAITING_OPERATOR",
+          "match": true,
+          "ms": 1398,
+          "error": null
+        },
+        {
+          "id": "mined-902b5548e3c058f7",
+          "expectedDecision": "AGENT_BLOCKED",
+          "expectedReason": "AWAITING_OPERATOR",
+          "gotDecision": "AGENT_BLOCKED",
+          "gotReason": "AWAITING_OPERATOR",
+          "match": true,
+          "ms": 1595,
+          "error": null
+        },
+        {
+          "id": "mined-9c8958b2dee79fa5",
+          "expectedDecision": "AGENT_CONTINUING",
+          "expectedReason": "WORK_REMAINS",
+          "gotDecision": "AGENT_CONTINUING",
+          "gotReason": "WORK_REMAINS",
+          "match": true,
+          "ms": 2084,
+          "error": null
+        },
+        {
+          "id": "mined-9f5bb0fd0ce8392c",
+          "expectedDecision": "AGENT_CONTINUING",
+          "expectedReason": "WORK_REMAINS",
+          "gotDecision": "AGENT_CONTINUING",
+          "gotReason": "WORK_REMAINS",
+          "match": true,
+          "ms": 1245,
+          "error": null
+        },
+        {
+          "id": "mined-9f66d5f369ab850d",
+          "expectedDecision": "AGENT_COMPLETE",
+          "expectedReason": "WORK_COMPLETE",
+          "gotDecision": "AGENT_COMPLETE",
+          "gotReason": "WORK_COMPLETE",
+          "match": true,
+          "ms": 1866,
+          "error": null
+        },
+        {
+          "id": "op-self-answered-question-continue",
+          "expectedDecision": "AGENT_CONTINUING",
+          "expectedReason": "WORK_REMAINS",
+          "gotDecision": "AGENT_CONTINUING",
+          "gotReason": "WORK_REMAINS",
+          "match": true,
+          "ms": 1004,
+          "error": null
+        },
+        {
+          "id": "mined-a24e6d52c7701431",
+          "expectedDecision": "AGENT_COMPLETE",
+          "expectedReason": "WORK_COMPLETE",
+          "gotDecision": "AGENT_COMPLETE",
+          "gotReason": "WORK_COMPLETE",
+          "match": true,
+          "ms": 1047,
+          "error": null
+        },
+        {
+          "id": "mined-af46de001a697faf",
+          "expectedDecision": "AGENT_CONTINUING",
+          "expectedReason": "WORK_REMAINS",
+          "gotDecision": "AGENT_CONTINUING",
+          "gotReason": "WORK_REMAINS",
+          "match": true,
+          "ms": 1074,
+          "error": null
+        },
+        {
+          "id": "op-click-then-try-with-open-todos",
+          "expectedDecision": "AGENT_BLOCKED",
+          "expectedReason": "AWAITING_OPERATOR",
+          "gotDecision": "AGENT_BLOCKED",
+          "gotReason": "AWAITING_OPERATOR",
+          "match": true,
+          "ms": 1013,
+          "error": null
+        },
+        {
+          "id": "mined-b0bf59d0de5fe8a8",
+          "expectedDecision": "AGENT_COMPLETE",
+          "expectedReason": "WORK_COMPLETE",
+          "gotDecision": "AGENT_COMPLETE",
+          "gotReason": "WORK_COMPLETE",
+          "match": true,
+          "ms": 1174,
+          "error": null
+        },
+        {
+          "id": "mined-b76f8de36d4a9d87",
+          "expectedDecision": "AGENT_COMPLETE",
+          "expectedReason": "WORK_COMPLETE",
+          "gotDecision": "AGENT_COMPLETE",
+          "gotReason": "WORK_COMPLETE",
+          "match": true,
+          "ms": 1011,
+          "error": null
+        },
+        {
+          "id": "mined-b7e81640f338edb1",
+          "expectedDecision": "AGENT_COMPLETE",
+          "expectedReason": "WORK_COMPLETE",
+          "gotDecision": "AGENT_COMPLETE",
+          "gotReason": "WORK_COMPLETE",
+          "match": true,
+          "ms": 1032,
+          "error": null
+        },
+        {
+          "id": "mined-b8e55d526649d3e5",
+          "expectedDecision": "AGENT_CONTINUING",
+          "expectedReason": "WORK_REMAINS",
+          "gotDecision": "AGENT_CONTINUING",
+          "gotReason": "WORK_REMAINS",
+          "match": true,
+          "ms": 1120,
+          "error": null
+        },
+        {
+          "id": "mined-b97bad8b970d6154",
+          "expectedDecision": "AGENT_CONTINUING",
+          "expectedReason": "WORK_REMAINS",
+          "gotDecision": "AGENT_CONTINUING",
+          "gotReason": "WORK_REMAINS",
+          "match": true,
+          "ms": 1030,
+          "error": null
+        },
+        {
+          "id": "mined-b9f15d3f034c3cbe",
+          "expectedDecision": "AGENT_BLOCKED",
+          "expectedReason": "AWAITING_OPERATOR",
+          "gotDecision": "AGENT_BLOCKED",
+          "gotReason": "AWAITING_OPERATOR",
+          "match": true,
+          "ms": 1255,
+          "error": null
+        },
+        {
+          "id": "mined-c3769698d61cfc02",
+          "expectedDecision": "AGENT_BLOCKED",
+          "expectedReason": "AWAITING_OPERATOR",
+          "gotDecision": "AGENT_BLOCKED",
+          "gotReason": "AWAITING_OPERATOR",
+          "match": true,
+          "ms": 1193,
+          "error": null
+        },
+        {
+          "id": "op-plan-handoff",
+          "expectedDecision": "AGENT_BLOCKED",
+          "expectedReason": "AWAITING_USER",
+          "gotDecision": "AGENT_BLOCKED",
+          "gotReason": "AWAITING_USER",
+          "match": true,
+          "ms": 1474,
+          "error": null
+        },
+        {
+          "id": "mined-cbe867fbe60d66e6",
+          "expectedDecision": "AGENT_COMPLETE",
+          "expectedReason": "WORK_COMPLETE",
+          "gotDecision": "AGENT_COMPLETE",
+          "gotReason": "WORK_COMPLETE",
+          "match": true,
+          "ms": 1171,
+          "error": null
+        },
+        {
+          "id": "mined-cd59a406aa2b815f",
+          "expectedDecision": "AGENT_CONTINUING",
+          "expectedReason": "WORK_REMAINS",
+          "gotDecision": "AGENT_CONTINUING",
+          "gotReason": "WORK_REMAINS",
+          "match": true,
+          "ms": 1242,
+          "error": null
+        },
+        {
+          "id": "mined-ce73300266ff914a",
+          "expectedDecision": "AGENT_COMPLETE",
+          "expectedReason": "WORK_COMPLETE",
+          "gotDecision": "AGENT_COMPLETE",
+          "gotReason": "WORK_COMPLETE",
+          "match": true,
+          "ms": 1183,
+          "error": null
+        },
+        {
+          "id": "mined-d091dd85b5b24439",
+          "expectedDecision": "AGENT_CONTINUING",
+          "expectedReason": "WORK_REMAINS",
+          "gotDecision": "AGENT_CONTINUING",
+          "gotReason": "WORK_REMAINS",
+          "match": true,
+          "ms": 1211,
+          "error": null
+        },
+        {
+          "id": "mined-d2798491c9a1a013",
+          "expectedDecision": "AGENT_BLOCKED",
+          "expectedReason": "AWAITING_USER",
+          "gotDecision": "AGENT_COMPLETE",
+          "gotReason": "WORK_COMPLETE",
+          "match": false,
+          "ms": 1506,
+          "error": "expected AGENT_BLOCKED, got AGENT_COMPLETE"
+        },
+        {
+          "id": "mined-d3089d816c6d3574",
+          "expectedDecision": "AGENT_BLOCKED",
+          "expectedReason": "AWAITING_OPERATOR",
+          "gotDecision": "AGENT_BLOCKED",
+          "gotReason": "AWAITING_OPERATOR",
+          "match": true,
+          "ms": 1493,
+          "error": null
+        },
+        {
+          "id": "op-imperative-report-back",
+          "expectedDecision": "AGENT_BLOCKED",
+          "expectedReason": "AWAITING_OPERATOR",
+          "gotDecision": "AGENT_BLOCKED",
+          "gotReason": "AWAITING_OPERATOR",
+          "match": true,
+          "ms": 1179,
+          "error": null
+        },
+        {
+          "id": "mined-d9028aaa30a400ec",
+          "expectedDecision": "AGENT_COMPLETE",
+          "expectedReason": "WORK_COMPLETE",
+          "gotDecision": "AGENT_COMPLETE",
+          "gotReason": "WORK_COMPLETE",
+          "match": true,
+          "ms": 1489,
+          "error": null
+        },
+        {
+          "id": "mined-dadd7342581e75c4",
+          "expectedDecision": "AGENT_COMPLETE",
+          "expectedReason": "WORK_COMPLETE",
+          "gotDecision": "AGENT_COMPLETE",
+          "gotReason": "WORK_COMPLETE",
+          "match": true,
+          "ms": 1261,
+          "error": null
+        },
+        {
+          "id": "mined-e2fac5b0772378a8",
+          "expectedDecision": "AGENT_CONTINUING",
+          "expectedReason": "WORK_REMAINS",
+          "gotDecision": "AGENT_CONTINUING",
+          "gotReason": "WORK_REMAINS",
+          "match": true,
+          "ms": 1598,
+          "error": null
+        },
+        {
+          "id": "mined-ea1237048ffd6520",
+          "expectedDecision": "AGENT_COMPLETE",
+          "expectedReason": "WORK_COMPLETE",
+          "gotDecision": "AGENT_COMPLETE",
+          "gotReason": "WORK_COMPLETE",
+          "match": true,
+          "ms": 1721,
+          "error": null
+        },
+        {
+          "id": "mined-eb0284987fb076d7",
+          "expectedDecision": "AGENT_CONTINUING",
+          "expectedReason": "WORK_REMAINS",
+          "gotDecision": "AGENT_CONTINUING",
+          "gotReason": "WORK_REMAINS",
+          "match": true,
+          "ms": 1475,
+          "error": null
+        },
+        {
+          "id": "mined-ed8110b854025002",
+          "expectedDecision": "AGENT_STALLED",
+          "expectedReason": "NO_PROGRESS",
+          "gotDecision": "AGENT_STALLED",
+          "gotReason": "NO_PROGRESS",
+          "match": true,
+          "ms": 1061,
+          "error": null
+        },
+        {
+          "id": "op-work-remains",
+          "expectedDecision": "AGENT_CONTINUING",
+          "expectedReason": "WORK_REMAINS",
+          "gotDecision": "AGENT_CONTINUING",
+          "gotReason": "WORK_REMAINS",
+          "match": true,
+          "ms": 1178,
+          "error": null
+        },
+        {
+          "id": "op-user-question",
+          "expectedDecision": "AGENT_BLOCKED",
+          "expectedReason": "AWAITING_USER",
+          "gotDecision": "AGENT_BLOCKED",
+          "gotReason": "AWAITING_USER",
+          "match": true,
+          "ms": 5096,
+          "error": null
+        },
+        {
+          "id": "mined-fd20063aaf519d45",
+          "expectedDecision": "AGENT_COMPLETE",
+          "expectedReason": "WORK_COMPLETE",
+          "gotDecision": "AGENT_COMPLETE",
+          "gotReason": "WORK_COMPLETE",
+          "match": true,
+          "ms": 1060,
+          "error": null
+        },
+        {
+          "id": "suite-sudo-restart",
+          "expectedDecision": "AGENT_BLOCKED",
+          "expectedReason": "AWAITING_OPERATOR",
+          "gotDecision": "AGENT_BLOCKED",
+          "gotReason": "AWAITING_OPERATOR",
+          "match": true,
+          "ms": 1450,
+          "error": null
+        },
+        {
+          "id": "suite-grant-access",
+          "expectedDecision": "AGENT_BLOCKED",
+          "expectedReason": "AWAITING_OPERATOR",
+          "gotDecision": "AGENT_BLOCKED",
+          "gotReason": "AWAITING_OPERATOR",
+          "match": true,
+          "ms": 1429,
+          "error": null
+        },
+        {
+          "id": "suite-press-f5",
+          "expectedDecision": "AGENT_BLOCKED",
+          "expectedReason": "AWAITING_OPERATOR",
+          "gotDecision": "AGENT_BLOCKED",
+          "gotReason": "AWAITING_OPERATOR",
+          "match": true,
+          "ms": 1037,
+          "error": null
+        },
+        {
+          "id": "suite-watch-cutscene",
+          "expectedDecision": "AGENT_BLOCKED",
+          "expectedReason": "AWAITING_OPERATOR",
+          "gotDecision": "AGENT_BLOCKED",
+          "gotReason": "AWAITING_OPERATOR",
+          "match": true,
+          "ms": 1299,
+          "error": null
+        },
+        {
+          "id": "suite-which-db",
+          "expectedDecision": "AGENT_BLOCKED",
+          "expectedReason": "AWAITING_USER",
+          "gotDecision": "AGENT_BLOCKED",
+          "gotReason": "AWAITING_USER",
+          "match": true,
+          "ms": 1555,
+          "error": null
+        },
+        {
+          "id": "suite-approve-scope",
+          "expectedDecision": "AGENT_BLOCKED",
+          "expectedReason": "AWAITING_USER",
+          "gotDecision": "AGENT_BLOCKED",
+          "gotReason": "AWAITING_USER",
+          "match": true,
+          "ms": 1125,
+          "error": null
+        },
+        {
+          "id": "suite-clarify-name",
+          "expectedDecision": "AGENT_BLOCKED",
+          "expectedReason": "AWAITING_USER",
+          "gotDecision": "AGENT_BLOCKED",
+          "gotReason": "AWAITING_USER",
+          "match": true,
+          "ms": 1207,
+          "error": null
+        },
+        {
+          "id": "suite-tests-pass",
+          "expectedDecision": "AGENT_COMPLETE",
+          "expectedReason": "WORK_COMPLETE",
+          "gotDecision": "AGENT_COMPLETE",
+          "gotReason": "WORK_COMPLETE",
+          "match": true,
+          "ms": 1246,
+          "error": null
+        },
+        {
+          "id": "suite-pushed",
+          "expectedDecision": "AGENT_COMPLETE",
+          "expectedReason": "WORK_COMPLETE",
+          "gotDecision": "AGENT_COMPLETE",
+          "gotReason": "WORK_COMPLETE",
+          "match": true,
+          "ms": 985,
+          "error": null
+        },
+        {
+          "id": "suite-explained",
+          "expectedDecision": "AGENT_COMPLETE",
+          "expectedReason": "WORK_COMPLETE",
+          "gotDecision": "AGENT_COMPLETE",
+          "gotReason": "WORK_COMPLETE",
+          "match": true,
+          "ms": 1163,
+          "error": null
+        },
+        {
+          "id": "suite-files-done-tests-left",
+          "expectedDecision": "AGENT_CONTINUING",
+          "expectedReason": "WORK_REMAINS",
+          "gotDecision": "AGENT_CONTINUING",
+          "gotReason": "WORK_REMAINS",
+          "match": true,
+          "ms": 1726,
+          "error": null
+        },
+        {
+          "id": "suite-found-cause-will-fix",
+          "expectedDecision": "AGENT_CONTINUING",
+          "expectedReason": "WORK_REMAINS",
+          "gotDecision": "AGENT_CONTINUING",
+          "gotReason": "WORK_REMAINS",
+          "match": true,
+          "ms": 1348,
+          "error": null
+        },
+        {
+          "id": "suite-build-running",
+          "expectedDecision": "AGENT_CONTINUING",
+          "expectedReason": "WORK_REMAINS",
+          "gotDecision": "AGENT_CONTINUING",
+          "gotReason": "WORK_REMAINS",
+          "match": true,
+          "ms": 1189,
+          "error": null
+        },
+        {
+          "id": "suite-explored-only",
+          "expectedDecision": "AGENT_STALLED",
+          "expectedReason": "NO_PROGRESS",
+          "gotDecision": "AGENT_STALLED",
+          "gotReason": "NO_PROGRESS",
+          "match": true,
+          "ms": 1423,
+          "error": null
+        },
+        {
+          "id": "suite-repeated-failure",
+          "expectedDecision": "AGENT_STALLED",
+          "expectedReason": "NO_PROGRESS",
+          "gotDecision": "AGENT_STALLED",
+          "gotReason": "NO_PROGRESS",
+          "match": true,
+          "ms": 1228,
+          "error": null
+        },
+        {
+          "id": "suite-no-next-action",
+          "expectedDecision": "AGENT_STALLED",
+          "expectedReason": "NO_PROGRESS",
+          "gotDecision": "AGENT_STALLED",
+          "gotReason": "NO_PROGRESS",
+          "match": true,
+          "ms": 1165,
+          "error": null
+        },
+        {
+          "id": "suite-user-stop",
+          "expectedDecision": "AGENT_STOPPED",
+          "expectedReason": "USER_STOP",
+          "gotDecision": "AGENT_STOPPED",
+          "gotReason": "USER_STOP",
+          "match": true,
+          "ms": 1317,
+          "error": null
+        },
+        {
+          "id": "suite-user-halt",
+          "expectedDecision": "AGENT_STOPPED",
+          "expectedReason": "USER_STOP",
+          "gotDecision": "AGENT_STOPPED",
+          "gotReason": "USER_STOP",
+          "match": true,
+          "ms": 1576,
+          "error": null
+        },
+        {
+          "id": "suite-user-cancel",
+          "expectedDecision": "AGENT_STOPPED",
+          "expectedReason": "USER_STOP",
+          "gotDecision": "AGENT_STOPPED",
+          "gotReason": "USER_STOP",
+          "match": true,
+          "ms": 1224,
+          "error": null
+        },
+        {
+          "id": "suite-self-answer-continue",
+          "expectedDecision": "AGENT_CONTINUING",
+          "expectedReason": "WORK_REMAINS",
+          "gotDecision": "AGENT_CONTINUING",
+          "gotReason": "WORK_REMAINS",
+          "match": true,
+          "ms": 1081,
+          "error": null
+        },
+        {
+          "id": "suite-click-and-report",
+          "expectedDecision": "AGENT_BLOCKED",
+          "expectedReason": "AWAITING_OPERATOR",
+          "gotDecision": "AGENT_BLOCKED",
+          "gotReason": "AWAITING_OPERATOR",
+          "match": true,
+          "ms": 2140,
+          "error": null
+        },
+        {
+          "id": "suite-question-and-action",
+          "expectedDecision": "AGENT_BLOCKED",
+          "expectedReason": "AWAITING_OPERATOR",
+          "gotDecision": "AGENT_BLOCKED",
+          "gotReason": "AWAITING_OPERATOR",
+          "match": true,
+          "ms": 1348,
+          "error": null
+        }
+      ]
+    }
+  ]
+}

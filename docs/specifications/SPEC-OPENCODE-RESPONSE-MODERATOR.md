@@ -1,7 +1,7 @@
 # Specification: OpenCode Response Moderator
 
 **Document ID:** WS-SPEC-OPENCODE-RESPONSE-MODERATOR-v1.6  
-**Status:** Superseded - replaced by REQ-AGENTCI-RESPONSE-MODERATION (TypeScript AgentCI plugin)
+**Status:** Superseded. Classifier and replay behavior live in SPEC-AGENTCI-RESPONSE-MODERATION. This file is not the classifier contract.
 **Date:** 2026-08-10  
 **Requirements:** [REQ-AGENTCI-RESPONSE-MODERATION](../requirements/REQ-AGENTCI-RESPONSE-MODERATION.md)
 

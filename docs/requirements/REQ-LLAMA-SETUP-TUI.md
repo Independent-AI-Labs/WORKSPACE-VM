@@ -72,7 +72,7 @@ install scripts) with one interactive wizard and one non-interactive CI entry.
 
 | ID | Requirement |
 |----|-------------|
-| FR-3.1 | The registry MUST define at minimum: `llamafile_vulkan_server`, `llama_cpp_vulkan`, `llama_cpp_sycl`, `llama_cpp_cpu`, `llamafile_cpu_chat`. |
+| FR-3.1 | The registry MUST define at minimum: `llamafile_vulkan_server`, `llama_cpp_vulkan`, `llama_cpp_sycl`. CPU inference profiles are forbidden. |
 | FR-3.2 | Prereq scripts MUST cover `intel_drivers`, `intel_monitoring` (`--monitoring-only`), `vulkan_dev`, and `oneapi`. |
 | FR-3.3 | The wizard MUST delegate to existing Make targets so scripted use can bypass the TUI (`Makefile.llamafile`, `Makefile.llamaserver`). |
 

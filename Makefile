@@ -45,6 +45,9 @@ CI_RUFF := $(CI_DIR)/ruff.toml
 CI_MYPY := $(CI_DIR)/mypy.toml
 UV := $(CI_BOOT_BIN)/uv
 MOON := $(CI_BOOT_BIN)/moon
+AUX_DEFAULTS_DEFAULT := workspace/config/install-aux-defaults.yaml
+AUX_DEFAULTS ?= $(AUX_DEFAULTS_DEFAULT)
+AUX_INSTALLER := $(UV) run python -m workspace.scripts.host_setup_installer
 # User-configurable (env or CLI override); uses CI's boot bin when omitted
 ANSIBLE_PLAYBOOK ?= $(CI_BOOT_BIN)/ansible-playbook
 # Containment: uv-managed interpreters live inside CI's boot dir, never in
@@ -117,6 +120,15 @@ init-root: ## (ROOT) Privileged bootstrap: deploy-ci + guard + hooks/exemptions 
 	fi
 	_agent_home=$$(getent passwd "$${SUDO_USER:-root}" | cut -d: -f6); \
 	HOME="$${_agent_home:-$$HOME}" $(MAKE) -C projects/WORKSPACE-CI deploy-ci
+	if [ ! -d .venv ]; then \
+		echo "Host configuration skipped: .venv missing."; \
+		echo "Run 'make install' first, then re-run 'sudo make init' or 'make install-aux'."; \
+	elif [ -t 0 ] && [ "$(AUX_DEFAULTS)" = "$(AUX_DEFAULTS_DEFAULT)" ]; then \
+		$(UV) run --no-sync python -m workspace.scripts.host_setup_installer --scope all; \
+	else \
+		$(UV) run --no-sync python -m workspace.scripts.host_setup_installer \
+			--defaults "$(AUX_DEFAULTS)" --scope all; \
+	fi
 	$(MAKE) install-guard-host-exec
 	$(MAKE) install-hooks-recursive
 	$(MAKE) enforce-syslog-limits
@@ -130,7 +142,12 @@ init-root: ## (ROOT) Privileged bootstrap: deploy-ci + guard + hooks/exemptions 
 .PHONY: core
 core: require-non-root ## Bootstrap CI tools (uv + ansible + node) + VM-specific tools (uv python + git-xet)
 	echo "🔧 Verifying deployed CI tools..."
-	test -x "$(UV)" && test -x "$(ANSIBLE_PLAYBOOK)" && test -x "$(CI_BOOT_BIN)/node"
+	if [ ! -x "$(UV)" ]; then \
+		echo "ERROR: /opt/workspace-ci is not provisioned (missing $(UV))." >&2; \
+		echo "Bootstrap it with: git clone <CI repo> projects/WORKSPACE-CI && sudo make -C projects/WORKSPACE-CI deploy-ci" >&2; \
+		exit 1; \
+	fi
+	test -x "$(ANSIBLE_PLAYBOOK)" && test -x "$(CI_BOOT_BIN)/node"
 	echo "🔧 Bootstrapping VM-specific tools..."
 	WORKSPACE_ROOT="$$(pwd)" bash workspace/scripts/bootstrap/bootstrap_python.sh
 	WORKSPACE_ROOT="$$(pwd)" bash workspace/scripts/bootstrap/bootstrap_git_xet.sh
@@ -165,6 +182,7 @@ install: require-non-root init-check sync-package ## Interactive TUI to select a
 	$(MAKE) install-shell && \
 	$(MAKE) ci-install-deps && \
 	$(MAKE) install-deps-recursive && \
+	$(MAKE) install-aux-ci && \
 	bash workspace/scripts/shell/shell-setup --welcome && \
 	echo "" && \
 	echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" && \
@@ -197,6 +215,7 @@ install-ci: require-non-root init-check sync-package ## Non-interactive componen
 	$(MAKE) install-shell && \
 	$(MAKE) ci-install-deps && \
 	$(MAKE) install-deps-recursive && \
+	$(MAKE) install-aux-ci && \
 	echo "✨ Installation complete (CI mode)!" && \
 	echo "" && \
 	echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" && \
@@ -209,6 +228,13 @@ install-ci: require-non-root init-check sync-package ## Non-interactive componen
 	echo "    repo, enforces syslog limits (INCIDENT-2026-07-05), and raises" && \
 	echo "    multi-server capacity limits (inotify/conntrack/sockets/fds)." && \
 	echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+.PHONY: install-aux install-aux-ci
+install-aux: require-non-root install-package ## Interactive host configuration (agent-scope features)
+	$(AUX_INSTALLER) --scope agent
+
+install-aux-ci: require-non-root install-package ## Non-interactive host configuration (agent-scope defaults)
+	$(AUX_INSTALLER) --defaults "$(AUX_DEFAULTS)" --scope agent
 
 # WORKSPACE-GUARD: git protection (delegates to CI + WORKSPACE-GUARD)
 # Guard targets require git over SSH (ensure-repos pulls every workspace
@@ -263,6 +289,10 @@ enforce-multi-server-limits: ## Enforce multi-server capacity limits: inotify/co
 
 .PHONY: install-diagnostics
 install-diagnostics: ## Install + start the hang-evidence sampler user unit
+	install -D -m 755 scripts/setup/hang-evidence-sampler.sh \
+		"$(HOME)/.local/bin/hang-evidence-sampler.sh"
+	install -D -m 644 docs/OPS-FAST-STORAGE.md \
+		"$(HOME)/.local/share/workspace-vm/docs/OPS-FAST-STORAGE.md"
 	install -D -m 644 scripts/setup/hang-evidence-sampler.service \
 		"$(HOME)/.config/systemd/user/hang-evidence-sampler.service"
 	systemctl --user daemon-reload
@@ -291,7 +321,8 @@ ensure-repos: ## Clone every workspace repo per moon.yml metadata
 # =============================================================================
 
 .PHONY: sync-package
-sync-package: core ensure-repos ## Sync package dependencies via uv
+sync-package: core ## Sync package dependencies via uv
+	$(MAKE) ensure-repos
 	echo "🔧 Syncing workspace..."
 	$(UV) sync --extra dev
 	echo "✅ Package 'workspace' installed with dev dependencies"
@@ -353,6 +384,16 @@ status-agentci: ## Show AgentCI plugin release status and drift
 	bash workspace/scripts/install-agentci status
 uninstall-agentci: ## Remove the installed AgentCI OpenCode plugin release
 	bash workspace/scripts/install-agentci uninstall
+
+.PHONY: install-moderator verify-moderator status-moderator uninstall-moderator
+install-moderator: ## Install the response moderator OpenCode plugin release
+	bash workspace/scripts/install-moderator install
+verify-moderator: ## Verify the active response moderator release
+	bash workspace/scripts/install-moderator verify
+status-moderator: ## Show response moderator release status and drift
+	bash workspace/scripts/install-moderator status
+uninstall-moderator: ## Remove the installed response moderator release
+	bash workspace/scripts/install-moderator uninstall
 
 # =============================================================================
 # VM Management
@@ -477,21 +518,13 @@ check-hooks: ensure-repos ## Preview generated hooks (dry-run)
 test: ## Run tests (delegates to moon for caching)
 	$(MOON) run workspace:test
 
-.PHONY: test-opencode-extensions
-test-opencode-extensions: ## Run AgentCI TypeScript plugin tests
+.PHONY: test-opencode-extensions test-moderator
+test-opencode-extensions: ## Run AgentCI and moderator TypeScript plugin tests
 	cd workspace/agentci && npm run typecheck && npm test && npm run test:release
+	cd workspace/moderator && npm run typecheck && npm test && npm run build
 
-.PHONY: test-agentci-e2e
-test-agentci-e2e: ## Run the AgentCI live end-to-end tests (Gateway + OpenCode Go required)
-	cd workspace/agentci && npm run test:live
-
-.PHONY: test-agentci-inject
-test-agentci-inject: ## Run the AgentCI user-note injection live test (real OpenCode, captured upstream)
-	cd workspace/agentci && npm run test:inject
-
-.PHONY: bench-agentci-inject
-bench-agentci-inject: ## Benchmark the user-note injection against a static question (real model)
-	cd workspace/agentci && npm run test:inject:bench
+test-moderator: ## Run response moderator TypeScript tests
+	cd workspace/moderator && npm run typecheck && npm test && npm run build
 
 .PHONY: test-e2e
 test-e2e: ## Run end-to-end VM integration tests

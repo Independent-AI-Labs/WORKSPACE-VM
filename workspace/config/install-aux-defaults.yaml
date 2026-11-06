@@ -1,0 +1,25 @@
+# Non-interactive auxiliary selections for `sudo make init` and
+# `make install-aux-ci`. See docs/specifications/SPEC-INSTALLER.md.
+
+features:
+  storage-locations:
+    enabled: true
+    args:
+      fast: /mnt/ws-fast
+      backup: /mnt/ws-backup
+  storage-backup-mount:
+    enabled: false
+  storage-backup-persist:
+    enabled: false
+  storage-fast-provision:
+    enabled: false
+  storage-migrate:
+    enabled: false
+  diagnostics:
+    enabled: true
+  agentci:
+    enabled: true
+  dataops-profiles:
+    enabled: false
+    args:
+      profiles: data,secrets

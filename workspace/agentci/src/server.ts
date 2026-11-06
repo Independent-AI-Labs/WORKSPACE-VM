@@ -1,99 +1,67 @@
 import { appendFile, readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { createV1HookAdapter, type V1MessagesTransformOutput, type V1SystemTransformInput, type V1SystemTransformOutput, type V1ToolExecuteAfterInput, type V1ToolExecuteAfterOutput } from "./v1-hook-adapter.ts";
+import { createV1HookAdapter, validatePolicyFiles } from "./v1-hook-adapter.ts";
 import { loadPolicies } from "./policies.ts";
-import { createModerationAdapter, type ModerationClient } from "./moderation/adapter.ts";
-import { loadModerationOptions, resolveModerationOptions, type ModerationOptions } from "./moderation/config.ts";
-import { runReplay, type ReplayClient } from "./moderation/replay.ts";
 import { applyThinkingEffort } from "./thinking.ts";
 
 interface AgentCIOptions {
   policies?: string[];
-  moderation?: unknown;
-}
-
-export interface AgentCIInput {
-  client: ModerationClient;
 }
 
 const moduleDirectory = dirname(fileURLToPath(import.meta.url));
 
 export default {
   id: "agentci",
-  server: async (input: AgentCIInput, options: AgentCIOptions = {}) => {
-    const policies = await resolvePolicies(options);
-    const moderation = moderationDisabled() ? null : await resolveModeration(options);
-    const hooks: Record<string, unknown> = { "chat.params": applyThinkingEffort };
-    if (policies === null && moderation === null) {
-      if (moderationDisabled()) return hooks;
-      throw new Error("AgentCI requires either a non-empty 'policies' array or moderation options");
+  server: async (input: unknown, options: AgentCIOptions = {}) => {
+    const fileOptions = await readOptionsFile();
+    const policies = await resolvePolicies(options, fileOptions);
+    const requestedEffort = process.env.OC_THINKING_EFFORT;
+    const hooks: Record<string, unknown> = {
+      "chat.params": (hookInput: Parameters<typeof applyThinkingEffort>[0], output: Parameters<typeof applyThinkingEffort>[1]) => {
+        applyThinkingEffort(hookInput, output, requestedEffort);
+      },
+    };
+    if (policies === null || policies.length === 0) {
+      throw new Error("AgentCI requires a non-empty 'policies' array");
     }
-    if (policies !== null) {
-      const loaded = await loadPolicies(policies);
-      const v1 = createV1HookAdapter(loaded);
-      const evidence = process.env.AGENTCI_EVIDENCE_FILE;
-      hooks["tool.execute.before"] = v1["tool.execute.before"];
-      hooks["tool.execute.after"] = evidence === undefined ? v1["tool.execute.after"] : async (toolInput: V1ToolExecuteAfterInput, output: V1ToolExecuteAfterOutput) => {
-        await v1["tool.execute.after"](toolInput, output);
-        await appendFile(evidence, `${JSON.stringify({ input: toolInput, output })}\n`);
-      };
-      hooks["experimental.chat.system.transform"] = evidence === undefined ? v1["experimental.chat.system.transform"] : async (transformInput: V1SystemTransformInput, transformOutput: V1SystemTransformOutput) => {
-        await v1["experimental.chat.system.transform"](transformInput, transformOutput);
-        await appendFile(evidence, `${JSON.stringify({ input: transformInput, output: transformOutput })}\n`);
-      };
-      hooks["experimental.chat.messages.transform"] = evidence === undefined ? v1["experimental.chat.messages.transform"] : async (transformInput: Record<string, never>, transformOutput: V1MessagesTransformOutput) => {
-        await v1["experimental.chat.messages.transform"](transformInput, transformOutput);
-        await appendFile(evidence, `${JSON.stringify({ input: transformInput, output: transformOutput })}\n`);
-      };
-    }
-    if (moderation !== null) {
-      const adapter = createModerationAdapter(input, moderation);
-      hooks.event = adapter.event;
-      hooks["experimental.session.compacting"] = adapter["experimental.session.compacting"];
-      hooks["experimental.compaction.autocontinue"] = adapter["experimental.compaction.autocontinue"];
-      if (runModRequested()) {
-        void runReplay(input.client as unknown as ReplayClient, moderation, process.env.AGENTCI_RUN_MOD_SESSION);
-      }
-    }
+    const loaded = await loadPolicies(policies);
+    await validatePolicyFiles(loaded);
+    const v1 = createV1HookAdapter(loaded);
+    const evidence = process.env.AGENTCI_EVIDENCE_FILE;
+    hooks["tool.execute.before"] = v1["tool.execute.before"];
+    hooks["tool.execute.after"] = evidence === undefined
+      ? v1["tool.execute.after"]
+      : withEvidence(v1["tool.execute.after"], evidence);
+    hooks["experimental.chat.system.transform"] = evidence === undefined
+      ? v1["experimental.chat.system.transform"]
+      : withEvidence(v1["experimental.chat.system.transform"], evidence);
+    hooks["experimental.chat.messages.transform"] = evidence === undefined
+      ? v1["experimental.chat.messages.transform"]
+      : withEvidence(v1["experimental.chat.messages.transform"], evidence);
+    void input;
     return hooks;
   },
 };
 
-function runModRequested(): boolean {
-  const value = process.env.AGENTCI_RUN_MOD;
-  if (value === undefined) return false;
-  const normalized = value.trim().toLowerCase();
-  return normalized === "1" || normalized === "true" || normalized === "on" || normalized === "yes";
-}
-
-function moderationDisabled(): boolean {
-  const value = process.env.AGENTCI_MODERATION;
-  if (value === undefined) return false;
-  const normalized = value.trim().toLowerCase();
-  return normalized === "off" || normalized === "0" || normalized === "false" || normalized === "none";
-}
-
-async function resolveModeration(options: AgentCIOptions): Promise<ModerationOptions | null> {
-  if (options.moderation !== undefined) return resolveModerationOptions(options.moderation);
+async function readOptionsFile(): Promise<Record<string, unknown> | null> {
   try {
-    return await loadModerationOptions(join(moduleDirectory, "options.json"));
+    const raw = await readFile(join(moduleDirectory, "options.json"), "utf8");
+    const parsed = JSON.parse(raw) as unknown;
+    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+      throw new Error("AgentCI options.json is not a mapping");
+    }
+    return parsed as Record<string, unknown>;
   } catch (error) {
     if ((error as { code?: string }).code === "ENOENT") return null;
     throw error;
   }
 }
 
-async function resolvePolicies(options: AgentCIOptions): Promise<string[] | null> {
+async function resolvePolicies(options: AgentCIOptions, fileOptions: Record<string, unknown> | null): Promise<string[] | null> {
   if (options.policies !== undefined) return parsePolicies(options.policies);
-  let raw: string;
-  try {
-    raw = await readFile(join(moduleDirectory, "options.json"), "utf8");
-  } catch (error) {
-    if ((error as { code?: string }).code === "ENOENT") return null;
-    throw error;
-  }
-  return parsePolicies((JSON.parse(raw) as { policies?: unknown }).policies);
+  if (fileOptions === null) return null;
+  return parsePolicies(fileOptions.policies);
 }
 
 function parsePolicies(raw: unknown): string[] | null {
@@ -107,4 +75,12 @@ function parsePolicies(raw: unknown): string[] | null {
     }
   }
   return raw as string[];
+}
+
+function withEvidence<A extends unknown[], R>(hook: (...args: A) => Promise<R>, file: string): (...args: A) => Promise<R> {
+  return async (...args: A): Promise<R> => {
+    const result = await hook(...args);
+    await appendFile(file, `${JSON.stringify({ args })}\n`);
+    return result;
+  };
 }

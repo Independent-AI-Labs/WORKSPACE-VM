@@ -31,7 +31,7 @@ class TestLlamaSetupRegistrySanity:
 
     def test_stack_by_id_resolves_known_profile(self) -> None:
         registry = load_registry()
-        stack = stack_by_id(registry, "llama_cpp_cpu")
+        stack = stack_by_id(registry, "llamafile_vulkan_server")
         assert stack is not None
         assert stack.deploy is not None
 
@@ -85,7 +85,7 @@ class TestLlamaSetupCiDefaultsSanity:
     def test_defaults_path_drives_non_interactive_entry(self, tmp_path: Path) -> None:
         defaults = tmp_path / "llama-defaults.yaml"
         defaults.write_text(
-            "stacks: [llama_cpp_cpu]\n"
+            "stacks: [llamafile_vulkan_server]\n"
             "prereqs: []\n"
             "run_diagnostics: false\n"
             "deploy: false\n"

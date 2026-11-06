@@ -28,22 +28,15 @@ test("requestedEffort uses low and refuses off", () => {
 });
 
 test("applyThinkingEffort writes the chosen effort into provider options", () => {
-  const previous = process.env.OC_THINKING_EFFORT;
-  try {
-    process.env.OC_THINKING_EFFORT = "low";
-    const output: { options?: Record<string, unknown> } = { options: { existing: true } };
-    applyThinkingEffort({ model: { variants: LADDER } }, output);
-    assert.deepEqual(output.options, { existing: true, reasoningEffort: "low" });
+  const output: { options?: Record<string, unknown> } = { options: { existing: true } };
+  applyThinkingEffort({ model: { variants: LADDER } }, output, "low");
+  assert.deepEqual(output.options, { existing: true, reasoningEffort: "low" });
 
-    const empty: { options?: Record<string, unknown> } = {};
-    applyThinkingEffort({ model: { variants: { high: {}, max: {} } } }, empty);
-    assert.deepEqual(empty.options, { reasoningEffort: "high" });
+  const empty: { options?: Record<string, unknown> } = {};
+  applyThinkingEffort({ model: { variants: { high: {}, max: {} } } }, empty, "low");
+  assert.deepEqual(empty.options, { reasoningEffort: "high" });
 
-    const unsupported: { options?: Record<string, unknown> } = {};
-    applyThinkingEffort({ model: { variants: {} } }, unsupported);
-    assert.deepEqual(unsupported, {});
-  } finally {
-    if (previous === undefined) delete process.env.OC_THINKING_EFFORT;
-    else process.env.OC_THINKING_EFFORT = previous;
-  }
+  const unsupported: { options?: Record<string, unknown> } = {};
+  applyThinkingEffort({ model: { variants: {} } }, unsupported, "low");
+  assert.deepEqual(unsupported, {});
 });

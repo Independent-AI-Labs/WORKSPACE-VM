@@ -59,7 +59,6 @@ argument manifest, so no host toolchain is required at run time.
 | ID | Requirement |
 |----|-------------|
 | FR-1.1 | The engine MUST build with cosmocc from a pristine `mozilla-ai/llamafile` checkout without root and without `sudo make install`. |
-| FR-1.2 | The CPU bundle's engine MUST be CPU-only (no GPU code compiled in) and its server manifest MUST pin `-ngl 0`. GPU (Vulkan) bundles are a separate deliverable owned by REQ-LLAMA-SETUP-TUI. |
 | FR-1.3 | The default build MUST be a fat APE (AMD64 + ARM64); an ARM64-only build MAY be produced for a smaller binary. |
 
 ### FR-2: Manifests and bundles

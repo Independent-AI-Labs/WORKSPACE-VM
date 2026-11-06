@@ -10,7 +10,7 @@
   vars:
     llama_model_path: "{{ lookup('env', 'LLAMA_MODEL_PATH') }}"
     llama_server_host: "{{ lookup('env', 'LLAMA_SERVER_HOST') | default('0.0.0.0', true) }}"
-    llama_context_size: "{{ lookup('env', 'LLAMA_CONTEXT_SIZE') | default('200000', true) }}"
+    llama_context_size: "{{ lookup('env', 'MODERATOR_CTX') | default('32768', true) }}"
     llama_gpu_layers: "{{ lookup('env', 'LLAMA_GPU_LAYERS') | default('99', true) }}"
     llama_threads: "{{ lookup('env', 'LLAMA_THREADS') | default('4', true) }}"
     llama_parallel: "{{ lookup('env', 'LLAMA_PARALLEL') | default('2', true) }}"

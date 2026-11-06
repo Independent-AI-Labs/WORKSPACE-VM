@@ -3,7 +3,7 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { createV1HookAdapter, type V1MessagesTransformOutput } from "../src/v1-hook-adapter.ts";
+import { createV1HookAdapter, validatePolicyFiles, type V1MessagesTransformOutput } from "../src/v1-hook-adapter.ts";
 import { loadPolicies } from "../src/policies.ts";
 
 test("policy files drive block, warn, and inject behavior", async () => {
@@ -152,6 +152,21 @@ policies:
     const policies = await loadPolicies([join(directory, "policies.yaml")]);
     const hooks = createV1HookAdapter(policies);
     await assert.rejects(hooks["experimental.chat.system.transform"]({ sessionID: "ses-1" }, { system: [] }), /ENOENT/);
+  });
+});
+
+test("startup validation rejects a missing inject file before any turn", async () => {
+  await withPolicies(`
+policies:
+  - name: inject-guide
+    event: experimental.chat.system.transform
+    match:
+      file: missing.md
+    action: inject
+    message: Session guidance.
+`, {}, async (directory) => {
+    const policies = await loadPolicies([join(directory, "policies.yaml")]);
+    await assert.rejects(validatePolicyFiles(policies), /ENOENT/);
   });
 });
 

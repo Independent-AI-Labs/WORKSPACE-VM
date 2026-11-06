@@ -1,565 +1,427 @@
-# REQ-AGENTCI-RESPONSE-MODERATION: Local Response Moderation
+# REQ-AGENTCI-RESPONSE-MODERATION: Standalone Response Moderator
 
-**Date:** 2026-08-29
-**Status:** Active
+**Date:** 2026-11-04
+**Status:** Draft for prototype implementation
 **Type:** Requirements
+**Supersedes:** All earlier revisions of this requirement
 
-> Completion-gating requirements for the AgentCI plugin (`workspace/agentci/`,
-> TypeScript only): before an OpenCode agent stops, the local MiniCPM5
-> llamafile server decides whether the task is complete and whether the
-> response follows the user's instructions. A failure on either decision makes
-> the agent continue.
+## 1. Purpose
 
----
+Define a standalone response moderator for OpenCode.
 
-## Goal
+The moderator watches completed Build responses. It decides whether the agent is
+complete, still working, stalled, blocked, or stopped. It then records the
+decision and applies the required control action.
 
-Moderate terminal Build responses using the existing local MiniCPM5 llamafile
-server reached through the Workspace Gateway `/llamafile` relay. A response
-that fails completion or adherence makes the agent continue; a pass lets the
-session stay idle.
+The default model SHALL be `gpt-5.6-luna`, selected through OpenCode.
 
-## Requirements
+Configuration SHALL provide an ordered list of OpenCode model selectors. Each
+selector SHALL be a provider and model pair. The moderator SHALL try selectors in
+order. A valid verdict stops the list. A prompt or format failure moves to the
+next selector. When every selector is exhausted, the moderator SHALL fail closed:
+moderation error, no completion, no continuation.
 
-### Event Observation
+The moderator SHALL use only OpenCode model facilities. It SHALL NOT call
+upstream model APIs directly.
 
-1. The AgentCI plugin SHALL use the `event` hook and accept `session.status`,
+The moderator is a prototype first. It MUST later replace the existing AgentCI
+moderation path through one composition point.
+
+## 2. Scope
+
+### In scope
+
+- A new standalone package at `workspace/moderator/`.
+- A pure finite-state machine.
+- An OpenCode event adapter.
+- An in-process classifier that calls `LLM.generate`.
+- A deterministic effect policy.
+- State persistence and audit records.
+- A replay command for real sessions.
+- Unit, integration, and live end-to-end tests.
+
+### Out of scope
+
+- Direct calls to external model providers outside OpenCode.
+- Root access or privilege escalation.
+- A new daemon.
+- A new database.
+- A new HTTP route.
+- Shell commands that start or manage inference servers.
+- Reuse of the broken AgentCI moderation implementation.
+
+## 3. Terms
+
+- **Terminal response**: the newest assistant message with `finish == "stop"`.
+- **Real user message**: a user message that is not injected, not synthetic, and
+  not a moderator trace.
+- **Cycle**: the work span started by one real user message.
+- **Eligible response**: a terminal response that passes every deterministic
+  eligibility rule in section 4.2.
+- **Verdict**: one decision and one reason code from section 4.4.
+- **Effect**: an action selected by the finite-state machine.
+- **Prototype**: the standalone package, not the installed AgentCI plugin.
+
+## 4. Functional Requirements
+
+### 4.1 Event Observation
+
+1. The moderator SHALL expose OpenCode plugin hooks through a server entry point.
+2. The moderator SHALL consume `session.status` events with status values
+   `busy` and `idle`.
+3. The moderator SHALL consume compaction lifecycle events from
    `experimental.session.compacting`, `experimental.compaction.autocontinue`,
-   and `session.compacted` lifecycle events. It SHALL record each event before
-   filtering, track a `busy` transition, and moderate the completed assistant
-   response observed on the subsequent `idle` event.
-2. The idle event SHALL be emitted after the agent processing loop has finished
-   the assistant response. Turn completion SHALL be correlated by the completed
-   assistant message identity, not by a busy/idle counter: a duplicate idle for
-   an already-moderated assistant SHALL NOT process the same assistant message
-   twice.
-3. Completion moderation SHALL apply only when the completed assistant has
-   `info.agent == "build"`. Missing or other values SHALL be ignored with an
-   auditable reason.
-4. Plan-mode responses and compaction summary responses SHALL never receive a
-   corrective prompt or classifier request. A completed assistant with
-   `info.summary == true`, `info.mode == "compaction"`, or
-   `info.agent == "compaction"` SHALL produce `ignored-compaction`.
-5. Completion moderation SHALL process only an assistant message whose
-   `info.finish == "stop"`. Messages ending in `tool-calls` or another
-   nonterminal finish state SHALL be ignored without retry, classifier call,
-   or retry-cycle mutation. An assistant message that carries `info.error` (an
-   interrupted or aborted turn, which has no `finish`) SHALL produce
-   `ignored-cancellation` without a classifier call, corrective prompt, or
-   retry-cycle mutation.
-6. The plugin SHALL select only the newest assistant response, using
-   chronological API ordering, and SHALL resolve the real user turn that
-   originated it by walking `parentID` links upward past injected continuation
-   and trace messages. It SHALL not re-moderate an earlier turn, and SHALL not
-   infer recency from lexicographic message IDs. A Build response produced in
-   reply to an injected continuation SHALL be eligible for normal moderation.
+   and `session.compacted`.
+4. The moderator SHALL treat every event as untrusted input and SHALL validate
+   session identifiers, event names, and message shapes.
+5. The moderator SHALL process events per session in arrival order.
+6. A duplicate idle event for an already-moderated assistant message SHALL NOT
+   start a second classification.
 
-### Classifier
+### 4.2 Eligibility
 
-7. The plugin SHALL read that session's todo list and messages through the
-   OpenCode client supplied to the plugin, using the installed SDK request
-   shapes.
-8. The classifier SHALL call MiniCPM5 only through the Workspace Gateway's
-   `/llamafile` relay. It SHALL NOT connect directly to the llamafile port or
-   start, install, or manage an inference server. Each classification request
-   SHALL pin deterministic greedy sampling (`temperature` 0, `top_k` 1, `top_p`
-   1, `min_p` 0, and a fixed seed) and SHALL set `cache_prompt` false so that
-   identical inputs produce identical verdicts. The serving model SHALL likewise
-   pin greedy sampling, disable prompt caching, and run with a single slot and a
-   fixed thread count so verdicts do not vary between runs.
-9. The classifier input SHALL contain the todo list and the last three real
-   user messages. It SHALL call the Gateway token-count endpoint on the final
-   candidate request and remove oldest intervening agent context until the
-   measured input is at most 16,384 tokens. A token-count failure or a request
-   still above that bound is a visible classifier error and no request is sent.
-10. The classifier SHALL return exactly two YAML lines: `decision` with one of
-    `AGENT_COMPLETE`, `AGENT_CONTINUING`, `AGENT_STALLED`, `AGENT_BLOCKED`, or
-    `AGENT_STOPPED`, followed by a `reason` code from `WORK_COMPLETE`,
-    `WORK_REMAINS`, `NO_PROGRESS`, `AWAITING_USER`, `AWAITING_OPERATOR`, or
-    `USER_STOP`. The only valid pairs are `AGENT_COMPLETE`/`WORK_COMPLETE`,
-    `AGENT_CONTINUING`/`WORK_REMAINS`, `AGENT_STALLED`/`NO_PROGRESS`,
-    `AGENT_BLOCKED`/`AWAITING_USER`, `AGENT_BLOCKED`/`AWAITING_OPERATOR`, and
-    `AGENT_STOPPED`/`USER_STOP`.
-    Any extra, missing,
-    title-case, prose, JSON, or ruling line is a classifier-format failure. The
-    adapter SHALL trace and retry that failure three times before a visible
-    classifier-unavailable stop. The adapter SHALL enforce this closed YAML
-    language with the gateway's GBNF grammar, not only a natural-language
-    instruction. A future protocol version MAY add a bounded free-text `detail`
-    field, but SHALL update the GBNF grammar and fixed validator together; the
-    current two-line protocol SHALL not accept it.
-11. The classifier SHALL be the single authority on whether work remains. The
-    adapter SHALL pass the actual user request(s) and the tracked todo state to
-    the classifier for every eligible response. No controller eligibility rule
-    SHALL override a classifier verdict: an `AGENT_COMPLETE` SHALL stand even
-    when tracked todos remain `pending` or `in_progress`. The classifier SHALL
-    apply this ordered decision procedure, first match wins:
-    1. `AGENT_BLOCKED` when the assistant asks the user or operator to act or
-       answer before the agent can proceed. `AWAITING_OPERATOR` SHALL cover any
-       request for a concrete external action, command, credential, access,
-       experiment, reproduction, observation, or reported result that the agent
-       cannot perform itself. `AWAITING_USER` SHALL cover a question, decision,
-       approval, or clarification. A handoff SHALL stand even when the overall
-       task is unfinished and even when the assistant also promises later work
-       after the user responds.
-    2. `AGENT_STOPPED` with `USER_STOP` when the most recent real user message
-       explicitly instructs the agent to halt, stop, cancel, abort, wait, or
-       otherwise not continue.
-    3. `AGENT_COMPLETE` with `WORK_COMPLETE` when the assistant response has
-       fully satisfied the request.
-    4. `AGENT_CONTINUING` with `WORK_REMAINS` when the request is unfinished and
-       the agent can keep working on its own, or `AGENT_STALLED` with
-       `NO_PROGRESS` when the agent can act but has made no progress.
-    An empty, whitespace-only, or missing user message is not a halt: it marks an
-    interrupted, cancelled, aborted, errored, or cleared turn and SHALL be treated
-    as a request to continue. The classifier SHALL judge the assistant response,
-    not the user request alone. A response that lists remaining work, or promises
-    future work without asking the user to act, is not a handoff. A handoff
-    verdict SHALL take precedence over an automatic continuation. `AGENT_STALLED`
-    SHALL remain a distinct decision, separate from `AGENT_CONTINUING`.
-12. Except for the deterministic rules in clauses 13 and 14, the adapter SHALL
-    issue exactly one classifier call per eligible response. It SHALL NOT issue
-    supplementary yes/no calls to confirm, refine, or override the verdict, and
-    it SHALL NOT upgrade a non-blocked verdict to `AGENT_BLOCKED`.
-13. A question the response answers itself in the same response SHALL NOT be a
-    handoff. When the classifier returns `AGENT_BLOCKED` and the response
-    contains such a self-answered question, the adapter SHALL emit
-    `AGENT_CONTINUING` with `WORK_REMAINS`.
-14. Answer mode SHALL be a deterministic override: when the judged response is
-    the final answer to a user question, a classifier verdict other than
-    `AGENT_STOPPED` SHALL become `AGENT_COMPLETE` with `WORK_COMPLETE`.
-15. Invalid classifier output or a failed relay request SHALL be reported as an
-    error. It SHALL NOT be treated as `AGENT_COMPLETE`.
+7. The moderator SHALL select only the newest assistant message in the session.
+8. The moderator SHALL moderate only a terminal response with
+   `info.finish == "stop"`.
+9. The moderator SHALL ignore a response with a nonterminal finish such as
+    `tool-calls` and SHALL record `ignored-nonterminal`.
+10. The moderator SHALL ignore a response with `info.error` and SHALL record
+    `ignored-assistant-error`. This is not cancellation. Cancellation is the
+    `CANCELLED` event and SHALL record `cancelled`.
+11. The moderator SHALL moderate responses produced by the `build` and `answer`
+    agents.
+12. The moderator SHALL ignore plan-mode responses with `ignored-plan-mode`.
+13. The moderator SHALL ignore compaction responses, summary responses, and
+    `compaction` agents with `ignored-compaction`.
+14. The moderator SHALL ignore a response when a newer real user message already
+    exists and SHALL record `ignored-newer-user`.
+15. The moderator SHALL ignore a response that is a moderator trace with
+    `ignored-moderator-trace`.
+16. The moderator SHALL suppress a response whose assistant identity equals
+    `lastTerminalAssistantID` and SHALL record `ignored-duplicate`. A following
+    moderator line is not a duplicate. `inflightAssistantID` is not duplicate
+    suppression. A missing real-user ancestor SHALL NOT ignore the response.
+    A continuation reply SHALL be classified when it is a new terminal `build`
+    or `answer` assistant.
 
-### Moderation Path
+### 4.3 Context Selection
 
-16. Every eligible terminal Build response SHALL enter one checklist-free
-    moderation path. The adapter SHALL resolve mechanically knowable facts
-    (duplicates, nonterminal/tool-call updates, interrupted/aborted assistants,
-    compaction, blocker discussion, and fenced-`sudo` root handoffs) before
-    invoking MiniCPM. Every other
-    eligible terminal response SHALL be classified by MiniCPM with the user
-    request(s) and tracked todos as input; MiniCPM is the single authority on
-    completion. The adapter SHALL not issue a completion checklist or require a
-    completion marker.
-17. `AGENT_COMPLETE` SHALL stand as the completion decision whenever the
-    classifier returns it, even when tracked todos remain `pending` or
-    `in_progress`; the adapter SHALL NOT override a classifier `AGENT_COMPLETE`.
-    A response that leaves work undone SHALL be classified `AGENT_CONTINUING` or
-    `AGENT_STALLED`, and a genuine blocker, clarification requirement, or
-    operator handoff SHALL be classified `AGENT_BLOCKED`, never `AGENT_COMPLETE`.
-    An explicit user halt SHALL be classified `AGENT_STOPPED`, never
-    `AGENT_CONTINUING` or `AGENT_STALLED`.
-18. `AGENT_COMPLETE` SHALL allow the session to remain idle only after the
-    plugin persists a passive audit trace in the transcript. That trace SHALL be
-    a single concise status line and SHALL be excluded from subsequent
-    moderation context. The decision, reason, derived completion/adherence
-    rulings, and decision ID SHALL be recorded in the audit file only. The
-    adapter SHALL not request self-certification or a second adjudication of the
-    same classifier input.
-19. `AGENT_CONTINUING` and `AGENT_STALLED` SHALL send a corrective prompt to the
-    same session with `promptAsync`. The directive SHALL instruct the agent to
-    continue and SHALL NOT request any self-certification status line. It SHALL
-    be sent as one message with two parts, both carrying moderation metadata: a synthetic
-    directive (persisted and delivered to the next agent turn, not rendered) and
-    a short visible note (rendered in the transcript so the operator can see why
-    the moderator spoke). Moderator-generated prompts SHALL be identified by
-    that metadata, not by their text, and excluded from the last three real user
-    messages. `AGENT_STOPPED` SHALL NOT send any corrective prompt.
-20. The corrective prompt SHALL explicitly state that the work appears
-    unfinished and that the agent must continue unless the operator or the
-    system has explicitly requested a halt. It SHALL NOT instruct the agent to
-    disregard an explicit halt or to suppress an explanation the user requested.
-21. The plugin SHALL show client-visible feedback while checking, on
-    `AGENT_COMPLETE`, on `AGENT_BLOCKED`, on `AGENT_STOPPED`, and when issuing a
+17. The moderator SHALL walk `parentID` links backward from the judged assistant
+    response. It SHALL NOT use the flat session list.
+18. The walk SHALL skip injected continuation messages, moderator traces,
+    synthetic moderation parts, synthetic compaction notes, and summary
+    messages. Those messages SHALL NOT end the walk and SHALL NOT count as
+    chained user text.
+19. The moderator SHALL use chronological message order from the OpenCode client.
+20. The moderator SHALL NOT infer order from message identifier text.
+21. The walk SHALL include every assistant message and tool call from the judged
+    response back to, but not including, the first real user message. Assistant
+    text in that span SHALL be kept. Each tool call SHALL include its name,
+    input, and output.
+22. Each tool output SHALL be truncated to `MODERATOR_TOOL_OUTPUT_CHARS`. The
+    default is 1024. The cut SHALL be marked. The judged assistant text SHALL
+    NOT be truncated.
+23. If the messages immediately before that user message are also real user
+    messages, with no assistant message between them, the moderator SHALL
+    include all of them. It SHALL NOT include any assistant message from before
+    that chain.
+24. An empty or whitespace-only latest real user message SHALL be represented by
+    an explicit continue sentinel. It SHALL NOT be treated as a stop.
+25. The moderator SHALL include the todo list as it exists at classification
+    time, and one mode line for the response agent mode.
+
+### 4.4 Classifier
+
+26. The classifier SHALL import and call `LLM.generate` from `packages/llm` in
+    the same process. It SHALL NOT spawn a process, create a session, start a
+    server, or take a separate URL or credential variable. The selector is
+    `provider/model`. The route comes from that provider in `opencode.jsonc`.
+27. The classifier SHALL use OpenCode provider and model selectors from the
+    moderator model selection source.
+28. The classifier SHALL NOT persist a transcript. The only classifier record
+    SHALL be the audit log.
+29. The classifier SHALL use a dedicated system prompt.
+30. The classifier SHALL disable all tools except the verdict tool.
+31. The verdict tool SHALL accept exactly one decision and one reason.
+32. The only valid decision and reason pairs SHALL be:
+    - `AGENT_COMPLETE` / `WORK_COMPLETE`
+    - `AGENT_CONTINUING` / `WORK_REMAINS`
+    - `AGENT_STALLED` / `NO_PROGRESS`
+    - `AGENT_BLOCKED` / `AWAITING_USER`
+    - `AGENT_BLOCKED` / `AWAITING_OPERATOR`
+    - `AGENT_STOPPED` / `USER_STOP`
+33. A missing verdict tool call, an invalid decision, an invalid reason, or a
+    mismatched pair SHALL be a format failure.
+34. The classifier SHALL make one `LLM.generate` call per selector per cycle. A
+    format failure or a timeout SHALL move to the next selector. A timeout
+    SHALL start another cycle through the selector list. The cycle limit is
+    `MODERATOR_TIMEOUT_CYCLES`. The default is 3. A format failure SHALL NOT
+    start another cycle. A valid verdict SHALL stop the list. `packages/llm`
+    SHALL own transport retries.
+35. When every selector fails, the moderator SHALL fail closed with a visible
+    moderation error. It SHALL NOT become `AGENT_COMPLETE`.
+36. The classifier input SHALL contain:
+    - the assistant messages in the walk, with the latest response as the
+      decision target
+    - each tool call in that walk, with name, input, and truncated output
+    - the chained real user messages that end the walk
+    - the todo list at classification time
+    - one mode message for the response agent mode
+37. The counted size SHALL be the system prompt plus that input. The limit is
+    `MODERATOR_CTX`. The default is 32768. A request over that limit SHALL
+    throw. The moderator SHALL NOT call the model, SHALL NOT emit a verdict,
+    SHALL show the error to the user, and SHALL write one
+    `Automated Moderation:` record into the working session.
+38. The classifier SHALL decide from the full assistant response. The adapter
+    SHALL NOT rewrite a verdict by keyword matching or text parsing after the
+    verdict tool returns.
+
+### 4.5 Classification Rules
+
+The classifier SHALL apply this order and stop at the first match.
+
+39. `AGENT_BLOCKED` with `AWAITING_OPERATOR` when the response asks the operator
+    to perform an external action that the agent cannot perform. Examples include
+    click, press, play, launch, observe, watch, listen, hold, grant access,
+    check, confirm, run a command, or report a result.
+40. `AGENT_BLOCKED` with `AWAITING_USER` when the response asks the user to
+    answer a question, choose, decide, approve, or clarify, and rule 39 does not
+    apply.
+41. Rule 39 SHALL win over rule 40 when the response asks both for an action and
+    for an answer.
+42. A handoff SHALL stand even when the task is unfinished and even when the
+    response promises later work.
+43. A question that the response answers itself in the same response SHALL NOT
+    be a handoff.
+44. `AGENT_STOPPED` with `USER_STOP` when the latest real user message explicitly
+    tells the agent to halt, stop, cancel, abort, wait, or not continue.
+45. A push to proceed such as `go`, `proceed`, `execute`, `continue`, or `do it`
+    SHALL NOT be a stop.
+46. A question about stopping SHALL NOT be a stop.
+47. `AGENT_COMPLETE` with `WORK_COMPLETE` when the response fully satisfies the
+    request.
+48. `AGENT_CONTINUING` with `WORK_REMAINS` when work remains and the agent can
+    continue on its own.
+49. `AGENT_STALLED` with `NO_PROGRESS` when the agent can act but made no
+    progress.
+50. Listing remaining work, proposing a plan, or naming the agent's own next
+    step SHALL NOT be a handoff.
+
+### 4.6 Control Policy
+
+51. `AGENT_COMPLETE` SHALL leave the session idle.
+52. `AGENT_COMPLETE` SHALL write one passive status line to the transcript.
+53. `AGENT_CONTINUING` and `AGENT_STALLED` SHALL send a corrective prompt to the
+    same session.
+54. The corrective prompt SHALL state that the work appears unfinished and that
+    the agent must continue unless the operator or system requested a halt.
+55. The corrective prompt SHALL be sent as one message with two parts:
+    - a synthetic directive delivered to the model
+    - a short visible note for the transcript
+56. Both parts SHALL carry moderation metadata.
+57. Moderator-generated messages SHALL be excluded from real user context by
+    metadata, not by text.
+58. `AGENT_BLOCKED` SHALL leave the session idle and write one passive status
+    line.
+59. `AGENT_STOPPED` SHALL leave the session idle and SHALL NOT write a transcript
+    line.
+60. `AGENT_STOPPED` SHALL reset the no-progress count.
+61. `AGENT_CONTINUING` SHALL reset the no-progress count.
+62. `AGENT_STALLED` SHALL increment the no-progress count.
+63. Three consecutive `AGENT_STALLED` verdicts in one cycle SHALL stop automatic
+    continuation and record `moderation-escalated`.
+64. Every moderated agent mode SHALL append one mode-specific message to the
+    classifier input. Mode messages SHALL NOT override a classifier verdict.
+    `AGENT_BLOCKED` SHALL stand in every mode.
+65. A new real user message SHALL start a new cycle and reset the no-progress
+    count.
+66. A new cycle SHALL clear blocker scope unless the message belongs to the
+    blocker branch.
+
+### 4.7 Blockers
+
+67. The moderator SHALL inspect fenced shell-like code blocks before
+    classification.
+68. A fenced block containing `sudo` as a command token SHALL produce
+    `root-handoff`.
+69. `root-handoff` SHALL write one passive status line and SHALL NOT send a
     corrective prompt.
-    Every transcript status line SHALL be exactly one line of the form
-    `<emoji> Automated Moderation: <status>`. It SHALL NOT embed decision or
-    reason codes, completion/adherence rulings, audit detail, or the moderator
-    model name, and internal outcomes (blocker discussion, escalation, error)
-    and `AGENT_STOPPED` SHALL NOT write a transcript line at all. Model
-    identification, decision, reason, rulings, and the decision ID SHALL live in
-    the audit record only.
+70. `root-handoff` SHALL start blocker-discussion scope.
+71. A valid `AGENT_BLOCKED` verdict SHALL also start blocker-discussion scope.
+72. Blocker scope SHALL store the originating real user message identity.
+73. Blocker scope SHALL apply only to later responses in the same branch.
+74. A response inside blocker scope SHALL record a passive `blocker-discussion`
+    decision without a classifier call.
+75. `AGENT_COMPLETE` in the blocker branch SHALL clear blocker scope.
+76. An unrelated user task SHALL clear blocker scope.
 
-### Retry Cycle
+### 4.8 Compaction
 
-22. `AGENT_CONTINUING` SHALL reset the consecutive no-progress count.
-    `AGENT_STALLED` SHALL increment it. Automatic continuation SHALL stop only
-    after three consecutive `AGENT_STALLED` decisions in one real-user cycle,
-    with a visible `moderation-escalated` trace. `AGENT_STOPPED` SHALL return the
-    session to idle, reset the consecutive no-progress count, and SHALL NOT
-    escalate or continue.
-23. A new real user message SHALL start a new retry cycle and reset the
-    per-cycle no-progress count. It SHALL clear blocker-discussion state unless
-    its `parentID` continues the blocker-originating user branch.
+77. The moderator SHALL mark compaction active before compaction processing.
+78. The moderator SHALL clear compaction state after successful compaction.
+79. Compaction SHALL NOT consume, reset, or increment the real-user cycle.
+80. A response that follows auto-continuation after compaction SHALL remain
+    eligible for normal moderation.
 
-### Blockers
+### 4.9 Persistence and Audit
 
-24. The adapter SHALL inspect fenced shell-like code blocks before classifier
-    invocation. A block containing `sudo` as a command token SHALL produce the
-    terminal `root-handoff` decision. It is a legitimate operator blocker, not
-    a failure, and SHALL create a single visible passive status line and toast
-    without an automatic continuation. It SHALL activate durable
-    blocker-discussion state.
-25. A valid `AGENT_BLOCKED` verdict SHALL also activate blocker-discussion state.
-    The state SHALL store its originating real-user message ID and persist
-    across restart. It SHALL apply only to later prompt-response pairs in that
-    `parentID` branch. It SHALL clear for an unrelated user task or a final
-    accepted `AGENT_COMPLETE` in the blocker-originating branch.
-    `AGENT_CONTINUING` and `AGENT_STALLED` outcomes SHALL not clear it.
-26. Blocker-discussion state is nudge-suppression context, not a continuing
-    operator-action requirement. A response in this state SHALL persist a
-    deterministic passive `blocker-discussion` decision without a classifier
-    request, corrective prompt, or operator-action claim.
+81. The moderator SHALL persist per-session state in the XDG state directory.
+82. State writes SHALL be atomic.
+83. Restored state SHALL be validated before use.
+84. An invalid state document SHALL produce a visible moderation error.
+85. Restore SHALL clear in-flight classification state.
+86. An unfinished classification SHALL be re-evaluated after restart.
+87. Every decision SHALL write an audit record with:
+    - timestamp
+    - session identity
+    - assistant identity
+    - event
+    - decision
+    - reason
+    - previous phase
+    - next phase
+    - effects
+    - effect results
+    - previous state
+    - next state
+88. Audit records SHALL NOT contain credentials.
+89. Audit records SHALL be append-only.
 
-### Compaction
+### 4.10 Replay
 
-27. The plugin SHALL observe the OpenCode compaction lifecycle. It SHALL mark
-    `experimental.session.compacting` before compaction processing and record
-    `session.compacted` after successful compaction. A compaction event SHALL
-    not consume, reset, or increment the real-user retry cycle. A later Build
-    response after auto-continuation SHALL be eligible for normal moderation.
+90. The moderator SHALL provide `oc --run-mod [sessionID]` and `oc --run-mod-force [sessionID]`.
+91. Those commands SHALL open that session in the working OpenCode process. Plugin `server()` SHALL register hooks and return.
+92. Replay SHALL read messages from that process's `session.messages` client.
+93. Opening that session SHALL start the replay. Replay SHALL NOT wait for a new `session.status` idle event.
+94. `--run-mod` SHALL revert the moderator trace after the terminal assistant, then apply section 4.6. `--run-mod-force` SHALL apply section 4.6 without revert.
+95. Continuation SHALL be one `promptAsync` message with the two parts required by rules 55 and 56.
+96. A replay failure SHALL show a toast and write an audit error. A successful replay SHALL write a `REPLAY` audit record and SHALL call `LLM.generate`.
 
-### Audit Persistence
+### 4.11 Provisioning and Configuration
 
-28. The plugin SHALL write one YAML decision file per decision under
-    `${XDG_STATE_HOME:-$HOME/.local/state}/opencode/agentci/moderation/<sessionID>/`.
-    Every status event and every decision outcome SHALL produce its own YAML
-    file; missing files SHALL be treated as an observability failure.
-29. Each decision file SHALL include timestamp, plugin version, session ID,
-    assistant ID, decision ID, decision type, exact assistant response, marker
-    results, todos, selected context, parsed verdict, blocker-discussion state
-    and source, prompt/toast results, errors, and timings. A `CLASSIFIER_RESULT`
-    record SHALL embed the classifier capture inline: the exact messages sent,
-    the raw completion, the model, the sampling settings, the seed, the attempt
-    count, and the request duration. The capture SHALL be persisted in the
-    existing decision record and SHALL NOT add a separate capture file. A
-    non-classifier decision record SHALL omit the capture field. The captured
-    messages SHALL be the authoritative record of what the classifier saw; a
-    later reconstruction from the session database SHALL not be required to
-    audit a decision.
-30. Decision types SHALL include `blocker-discussion`, `moderation-complete`,
-    `moderation-continue`, `moderation-agent-blocked`, `moderation-user-stop`,
-    `moderation-escalated`,
-    `moderation-error`, `root-handoff`, `ignored-cancellation`,
-    `ignored-duplicate`,
-    `ignored-no-completed-assistant`, `ignored-plan-mode`,
-    `ignored-non-build-agent`, `ignored-compaction`,
-    `ignored-nonterminal-assistant`, and `ignored-moderator-trace`.
+97. The package SHALL provide a production bundle entry point.
+98. The user-configurable runtime source SHALL contain an ordered list of
+    OpenCode provider and model selectors.
+99. The runtime source SHALL reject an empty model selector list.
+100. The runtime source SHALL reject a selector that OpenCode does not expose.
+101. The installer SHALL seed `gpt-5.6-luna` as the default selector.
+102. The installer SHALL verify that the bundle and runtime source match the
+     source.
+103. The installed release SHALL be activated atomically.
+104. The moderator SHALL NOT read configuration from an environment variable
+     that can override the user-configurable runtime model source.
 
-### Operator Replay
+## 5. Non-Functional Requirements
 
-31. The plugin SHALL support an operator replay mode enabled by the
-    `AGENTCI_RUN_MOD` environment flag (set by the `oc --run-mod` wrapper launch
-    mode). When enabled, it SHALL replay the last moderator decision for a single
-    session: the current project's most recently updated session by default (the
-    session the launcher resumes), or the session named by
-    `AGENTCI_RUN_MOD_SESSION`. An invalid session id SHALL be rejected, and an
-    absent session SHALL be a visible replay failure.
-32. Replay SHALL revert the moderator's most recent injected transcript line for
-    that session (when one exists), recompute the moderation decision with a
-    fresh classifier call over the same assistant response and current context,
-    and reconcile the transcript to the new verdict: `AGENT_CONTINUING` and
-    `AGENT_STALLED` SHALL send a new corrective prompt that starts a new upstream
-    turn, `AGENT_COMPLETE` and `AGENT_BLOCKED` SHALL write a passive status line,
-    and `AGENT_STOPPED` SHALL write no transcript line.
-33. Replay SHALL require moderation to be enabled and SHALL record its outcome
-    as a `REPLAY` audit event carrying the recomputed verdict and the reverted
-    message id. A replay failure SHALL be surfaced to the operator as a visible
-    client toast and, when a session is known, an error audit record; it SHALL
-    never be treated as a completion.
+105. The implementation SHALL use TypeScript.
+106. The implementation SHALL run on the repository Node.js version.
+107. Every source file SHALL stay below 512 lines.
+108. The implementation SHALL NOT use banned patterns or suppression comments.
+109. The implementation SHALL NOT use `unsafe`.
+110. The implementation SHALL NOT use `unwrap` equivalents in production paths.
+111. The implementation SHALL surface every error.
+112. The moderator SHALL keep every verdict transition in one finite-state machine.
+113. The package SHALL NOT import from `workspace/agentci/`.
+114. The package SHALL have no runtime dependency on the old moderation code.
+115. The finite-state machine SHALL be pure and free of I/O.
+116. The adapter SHALL own all I/O.
+117. The classifier SHALL be replaceable through one interface.
+118. The audit store SHALL be replaceable through one interface.
+119. The audit record SHALL capture the selector, attempt count, and model
+     response identity for every classifier run.
+120. A verdict SHALL apply only to the assistant identity that produced it.
+121. Classification SHALL have a finite timeout.
+122. The timeout SHALL be visible as an error.
+123. The moderator SHALL show client-visible feedback for checking, completion,
+     blocking, stopping, continuation, escalation, and error.
+124. Transcript status lines SHALL be exactly one line.
+125. Transcript status lines SHALL NOT contain decision codes, reason codes, or
+     model names.
 
-### Classifier Prompt And Input Layout
+## 6. Evidence
 
-34. The classifier system prompt SHALL encode the ordered decision procedure from
-    requirement 11 as a short, explicit, first-match-wins list. It SHALL state
-    that the assistant response is the decision target, that a handoff to the
-    user or operator takes precedence over unfinished work, that listing
-    remaining work or promising future work is not a handoff, and that only an
-    explicit user halt produces `AGENT_STOPPED`. It SHALL NOT contain a trailing
-    instruction that biases the model toward continuing, and its final rule SHALL
-    be neutral.
-35. The prompt SHALL contain a small representative example set, one example per
-    decision family. It SHALL include a handoff example in which the assistant
-    asks the user to perform an action and report back, the exact failure case
-    that motivated this requirement. It SHALL also include a launched-and-ready
-    handoff, a game-up handoff, and a response that asks the user for a decision.
-36. The classifier request SHALL place the assistant response first, labeled as
-    the decision target, followed by the real user messages and then the tracked
-    todos. It SHALL place a one-line instruction immediately above that data,
-    SHALL NOT place the user request before the assistant response, and SHALL end
-    with a one-line reminder that a request for the user to act or answer is
-    `AGENT_BLOCKED`.
-37. The adapter SHALL expose the exact input layout and prompt as testable
-    values. Unit tests SHALL assert the prompt invariants from requirements 31
-    and 32, and the exact section order and labels from requirement 33. A frozen
-    baseline prompt fixture SHALL exist so the reworked prompt can be compared
-    against its predecessor in a live A/B run.
+The following evidence informed this requirement.
 
-### Failure Mining And Regression Testing
+- A 50-case fixture was audited against real OpenCode transcripts.
+- Eleven clear label errors were corrected.
+- Five ambiguous cases were replaced with clearer real transcripts.
+- The fixture contains 15 synthetic cases and 35 real transcript cases.
+- Exact verdict scoring exposed a consistent ambiguity between
+  `AWAITING_OPERATOR` and `AWAITING_USER`.
+- The fixture exposed false-complete cases where a response offered a plan but
+  performed no work.
+- The fixture exposed false-stop cases where an emphatic `continue` instruction
+  was misread as a halt.
+- Default model result on the fixture:
+    - `gpt-5.6-luna`: 45/50
+- Local open-weight model results on the fixture:
+    - MiniCPM5-1B: 22/50
+    - MiniCPM5-2B FP8 to Q8_0: 29/50
+    - LFM2.5-8B-A1B Q4_K_M: 23/50
+    - LFM2.5-24B-A2B Q4_K_M: 42/50
+- The extracted transcripts are the end-to-end cases.
+- Each case SHALL run through the adapter, the FSM, and in-process `LLM.generate`.
+- A side scorer that calls the classifier outside the adapter is not acceptance evidence.
 
-38. The integration suite SHALL exercise every classifier decision and every
-    valid decision/reason pair against inputs drawn from real conversation
-    transcripts.
-39. The suite SHALL hunt prior failures by comparing the recorded verdict with
-    the observed user reaction, because the classifier verdict is not ground
-    truth. Two failure types SHALL be mined:
-    - False continue: a `AGENT_CONTINUING` or `AGENT_STALLED` verdict with a sent
-      continuation, followed within a bounded window by an aborted assistant
-      message or a removed moderator message. The expected decision SHALL forbid
-      that continue verdict.
-    - False stop: an `AGENT_BLOCKED`, `AGENT_COMPLETE`, or `AGENT_STOPPED`
-      verdict followed within the same window by a removed moderator message.
-      The expected decision SHALL forbid that stop verdict.
-    The default window SHALL be 300 seconds and SHALL be configurable.
-40. Failure signals SHALL come from the OpenCode session database and its
-    append-only event log. An aborted assistant SHALL be detected from
-    `message.data.error.name` equal to `MessageAbortedError`. A removed message
-    SHALL be detected from `event` rows of type `message.removed.1`. The content
-    of a removed message SHALL be reconstructed from earlier
-    `message.updated.1` and `message.part.updated.1` event rows, because the
-    `message` row is deleted. `session.revert` is transient and SHALL NOT be the
-    source of a revert signal.
-41. Every mined case SHALL record its provenance (session ID, assistant message
-    ID, decision ID), its inputs, the forbidden decision, and a `labelSource`.
-    Transcript bodies SHALL be machine-local files under
-    `tests/fixtures/transcripts/<hash>.json` and SHALL be gitignored, mirroring
-    the transcript-classifier benchmark. The tracked manifest SHALL carry the
-    provenance, hash, labels, and a transcript reference, never the body text.
-    A mined case SHALL record a forbidden-decision constraint. An
-    operator-confirmed exact expected decision SHALL be permitted to upgrade a
-    case. The live suite SHALL assert the exact expected decision when present
-    and the forbidden-decision constraint otherwise.
-42. A test-case sourcing script SHALL extract cases from the audit directory and
-    the session databases. It SHALL be idempotent: each case SHALL have a stable
-    content hash, only hashes absent from the manifest SHALL be appended, a body
-    SHALL be rewritten only when its content changes, and a run over
-    already-imported data SHALL write nothing. It SHALL write atomically,
-    sort deterministically by hash, never mutate its source data, and report
-    added, skipped, and total counts plus per-pathway coverage. It SHALL support a
-    dry-run mode and a rebuild mode that re-derives every body from its
-    provenance and fails when a hash changes.
-43. Each sourcing run SHALL also add up to five fresh non-classifier reducer
-    cases drawn from real decision records that exercised ignored, duplicate,
-    cancellation, compaction, timeout, or escalation paths. Cases SHALL be
-    deduplicated by hash. When fewer than five unseen cases exist, the script
-    SHALL add the available cases and report the shortage. These cases SHALL be
-    stored separately from the classifier cases and SHALL feed the deterministic
-    reducer tests.
-44. The live classifier suite SHALL be bounded by a configurable case limit and
-    SHALL remain excluded from hermetic CI.
-45. The sourcing script SHALL be a development tool. It SHALL NOT run as part of
-    plugin startup, moderation, or the shipped bundle.
-46. The sourcing script SHALL keep a ledger of consumed source decision IDs, so
-    each real decision is considered once and re-running over the same data adds
-    nothing. A non-classifier decision record SHALL persist its replayable event
-    payload and a schema version; the script SHALL skip records whose state shape
-    predates the current schema.
+## 7. Acceptance
 
-## Constraints
+The prototype is accepted when all of these are true.
 
-- Reuse the Gateway's existing `relay-llamafile` route at
-  `http://127.0.0.1:9080/llamafile`, which proxies to the existing
-  `llamafile-minicpm5-1b.service` upstream.
-- All moderation logic SHALL be TypeScript inside `workspace/agentci/`; no
-  shell-out classifier, no new daemon, service, model deployment path,
-  database, queue, classifier framework, or Gateway route.
-- Gateway endpoint and MiniCPM model configuration SHALL come from the plugin
-  option configuration validated at startup. Runtime environment overrides
-  SHALL NOT permit direct llamafile connections. The runtime SHALL reject a
-  configuration whose endpoint is not the Workspace Gateway `/llamafile`
-  relay. The input limit is fixed at 16,384 tokens.
-- Do not modify OpenCode source.
-- Moderation SHALL run asynchronously after the idle event and SHALL NOT delay
-  the worker response or user-message submission.
-- User messages SHALL be used only as context. The moderator SHALL never run on
-  user-message arrival and SHALL never classify a user message as the response.
+126. Unit tests cover every state transition and every effect.
+127. Integration tests drive the adapter with a real client interface and
+     verify persisted state, decisions, and effects.
+128. Every extracted transcript runs through the adapter and in-process `LLM.generate`.
+129. That run writes the trace, the continuation decision, and `decisions.jsonl`.
+130. The classifier capture includes the appended mode message.
+131. The default model is `gpt-5.6-luna`.
+132. Hosted and local selectors pass the same verdict parse test.
+133. Type checking passes.
+134. All tests pass.
+135. The production bundle builds.
+136. The installed release verifies.
+137. The requirement and specification match the prototype behavior.
+138. The old AgentCI moderation implementation is deleted only after the
+     prototype passes its own acceptance tests.
+139. The TUI entry exposes only model selection.
 
-## Acceptance
+## 8. Migration
 
-- Every transcript-writing outcome (`AGENT_COMPLETE`, `AGENT_BLOCKED`,
-  `AGENT_CONTINUING`, `AGENT_STALLED`, root handoff) produces exactly one
-  single-line transcript status of the form `<emoji> Automated Moderation:
-  <status>`; internal outcomes (blocker discussion, escalation, error) and a
-  user stop (`AGENT_STOPPED`) produce only a toast and an audit record.
-- `AGENT_COMPLETE` produces a passive status line without starting a new agent
-  turn.
-- `AGENT_CONTINUING` and `AGENT_STALLED` each produce one corrective
-  prompt visible as a persisted user message in the same transcript.
-- Three consecutive `AGENT_STALLED` decisions produce a visible escalation
-  toast and no further automatic prompt.
-- An explicit user halt classified as `AGENT_STOPPED` produces no corrective
-  prompt and no transcript line, even when tracked todos remain open.
-- An interrupted assistant (`info.error` set with no `finish`) produces
-  `ignored-cancellation` and starts no classifier request or continuation.
-- A fenced `sudo` command produces a visible root-handoff status line and no
-  automatic prompt.
-- A root-handoff or `AGENT_BLOCKED` outcome records branch-scoped passive
-  discussion context. This state survives restart and clears only after final
-  accepted `AGENT_COMPLETE`.
-- The transcript status line does not embed decision codes, rulings, audit
-  detail, or the moderator model name; that detail lives in the audit record.
-- The request includes all todos and the last three real user messages and does
-  not exceed 16,384 input tokens.
-- Repeated idle notification for one response produces at most one classifier
-  request.
-- A Build response ending in `tool-calls` produces no moderation action; the
-  subsequent terminal assistant response is moderated exactly once.
-- An integration test SHALL load the actual plugin module, invoke its returned
-  idle-event hook with test SDK clients, and verify every status-line path,
-  false-pass prevention, toasts, classification, and persisted corrective
-  prompting.
-- An isolated OpenCode server test SHALL verify plugin discovery and event
-  dispatch using the installed plugin contract.
-- A handoff response that asks the user to perform an action and report back
-  SHALL be classified `AGENT_BLOCKED`, not `AGENT_CONTINUING`, including when
-  the overall task is unfinished.
-- A `CLASSIFIER_RESULT` decision record SHALL contain the exact classifier
-  messages and raw completion inline.
-- A test-case sourcing run over already-imported data SHALL write nothing, and a
-  run over new data SHALL append only unseen cases.
-- The regression suite SHALL include mined false-continue and false-stop cases
-  and non-classifier reducer cases.
+140. The prototype SHALL expose the same plugin hook surface as the production
+     moderation adapter.
+141. Replacement SHALL occur at one composition point.
+142. The old implementation SHALL NOT be used as a comparison target.
+143. The old implementation SHALL be deleted.
+144. The replacement SHALL be one commit.
+145. The replacement commit SHALL include tests, configuration, installer, and
+     documentation.
+146. A failed replacement SHALL be reported and SHALL NOT be hidden.
 
-## Finite-State-Machine Architecture
+## 9. Model Selection
 
-The runtime SHALL use one dependency-free, pure reducer per session, written in
-TypeScript. The reducer is the sole authority for moderation policy: it accepts
-an immutable state and one named event, validates the transition, and returns
-the next state plus ordered named effects. SDK calls, classifier invocation,
-filesystem writes, timers, and toasts SHALL execute outside the reducer and
-SHALL report their result through a new event. No effect implementation may
-choose a state transition.
+147. The plugin SHALL provide a `/moderator` command inside OpenCode.
+148. `/moderator` SHALL open the existing OpenCode model picker UI.
+149. The selected model SHALL replace only the topmost moderator model selector.
+150. The remaining moderator model selectors SHALL remain unchanged.
+151. The selection SHALL persist and apply to subsequent moderation calls without
+     reinstalling or restarting the plugin.
+152. `oc --set-mod` and `oc --set-mod-list` SHALL be aliases for one command.
+153. Both aliases SHALL accept comma-separated `provider/model` selectors.
+154. Both aliases SHALL replace the full moderator model selector list.
+155. The plugin and the CLI SHALL validate selectors against the OpenCode
+     provider and model registry.
+156. An empty list, an invalid selector, or a duplicate selector SHALL fail
+     without writing.
+157. The plugin and the CLI SHALL use one user-configurable runtime model source.
+158. Model selection SHALL NOT edit the installed release.
+159. `/moderator` SHALL show the current topmost selector.
+160. A missing selection source SHALL be an explicit startup error.
 
-The adapter owns event-hook wiring, one FIFO queue per session, effect
-execution, and conversion between OpenCode/SDK data and machine events. The
-machine module owns states, events, guards, transition table, initial state,
-and no I/O.
+## 10. Model Selection Acceptance
 
-### State Model
-
-Each session has exactly one lifecycle phase:
-
-```text
-IDLE -> OBSERVING -> CLASSIFYING -> CONTINUING | AGENT_BLOCKED | AGENT_STOPPED | OPERATOR_HANDOFF | ERROR
-CLASSIFYING -> AGENT_COMPLETE | ESCALATED
-ERROR -> OBSERVING | IDLE
-```
-
-`AGENT_COMPLETE`, `AGENT_BLOCKED`, `AGENT_STOPPED`, `OPERATOR_HANDOFF`, and
-`ESCALATED` are
-recorded outcomes, not durable lifecycle phases. The next `STATUS_BUSY` begins observation of a later
-response. Blocker discussion is a nullable branch scope, not a lifecycle phase.
-A new unrelated real-user branch clears that scope before classification.
-
-Turn completion SHALL be keyed on the completed assistant message identity
-(`lastTerminalAssistantID`, `inflightAssistantID`), never on a busy/idle
-generation counter. Duplicate suppression and stale-idle protection SHALL be
-derived from that identity and the current phase, so a process restart cannot
-desynchronize two representations of the same fact.
-
-The durable state record SHALL contain only facts required to reconstruct legal
-future transitions:
-
-```text
-phase
-inflightAssistantID
-lastTerminalAssistantID
-realUserCycleID
-consecutiveNoProgressCount
-blocker: null | { source, originUserID }
-compaction: { active }
-```
-
-Transcript snapshots, classifier captures, prompts, toasts, and decision IDs
-are decision evidence, not machine state. The reducer SHALL not retain message
-objects, client objects, promises, or mutable collections in its state.
-
-### Events, Guards, And Effects
-
-The machine SHALL expose a closed event vocabulary at least covering:
-
-```text
-STATUS_BUSY, STATUS_IDLE, COMPACTION_STARTED, COMPACTION_AUTOCONTINUE,
-COMPACTION_COMPLETED, CONTEXT_LOADED, ASSISTANT_IGNORED, ROOT_BLOCK_DETECTED,
-CLASSIFIER_RESULT, CLASSIFIER_FORMAT_RETRY, CLASSIFIER_ERROR, TRACE_PERSISTED,
-CONTINUATION_PERSISTED, BUSY_VERIFIED, CONTINUATION_TIMEOUT, EFFECT_ERROR
-```
-
-Guards SHALL be pure predicates over the state and event payload. They include
-assistant eligibility, duplicate suppression, chronological parent selection,
-real-user-cycle changes, blocker-branch membership, completion-claim validity,
-classifier result validity, and no-progress escalation.
-The reducer SHALL reject or explicitly record every event that is invalid for
-the current phase; it SHALL surface an explicit error rather than continue.
-
-Effects SHALL be declarative values from this closed set:
-
-```text
-LOAD_CONTEXT, WRITE_DECISION, WRITE_TRACE, SHOW_TOAST, CLASSIFY,
-SEND_CONTINUATION, VERIFY_PROMPT, WAIT_FOR_BUSY
-```
-
-The adapter SHALL execute effects in order. It SHALL append every effect result
-to the relevant decision evidence and enqueue its corresponding result event.
-`WRITE_DECISION` SHALL precede an externally visible trace or prompt that
-claims that decision. Failed persistence, prompt verification, classifier,
-transport, or toast operations SHALL enter `ERROR` visibly; they SHALL never
-imply a pass.
-
-### Queue, Recovery, And Persistence
-
-One serialized FIFO queue SHALL exist per session. The event hook SHALL enqueue
-all relevant lifecycle events and return without awaiting moderation. While an
-effect is active, later idle events remain queued; a queued context load SHALL be
-consumed once and only once after the preceding transition finishes. A queued
-idle for a terminal assistant that was already moderated SHALL be suppressed by
-the assistant-identity duplicate guard, not by a counter.
-
-Continuation-start verification ("the agent began a new turn after the corrective
-prompt") SHALL use an adapter-local, in-memory busy observation that is never
-persisted; it SHALL NOT compare a durable counter against a process-local one.
-
-Each completed transition SHALL write an atomic decision record containing the
-previous phase, event type, guard results, next phase, emitted effects, effect
-results, state snapshot, and existing required audit fields. Restore SHALL fold
-the latest valid snapshots in chronological decision-record order, then normalize
-the folded state: the phase SHALL be coerced to `IDLE` and the in-flight
-assistant claim cleared, and an unfinished `CLASSIFYING` claim SHALL also be
-cleared so that turn is re-evaluated. An
-incomplete or corrupt record SHALL be observable and SHALL not manufacture a
-completed claim. Recoverable errors SHALL release the in-flight assistant
-claim so the same completed assistant can be retried deliberately.
-
-Only final accepted `AGENT_COMPLETE` clears the blocker scope. A new real-user cycle
-resets only `consecutiveNoProgressCount`; it clears blocker scope only when its
-user message is outside the blocker-originating branch. Compaction lifecycle
-events remain observable and cannot change retry, blocker, or completion
-state.
-
-### Verification Requirements
-
-The machine module SHALL have direct transition tests independent of OpenCode,
-the filesystem, and MiniCPM. Tests SHALL cover every phase and every accepted
-event, invalid-event handling, effect order, duplicate idle suppression by
-assistant identity, restart normalization, branch-scoped blockers, restart
-restoration, format-retry
-exhaustion, todo-state classification, three no-progress escalation, and error
-recovery. Adapter integration tests SHALL verify that each emitted effect calls
-its installed SDK or classifier boundary exactly once and feeds the observed
-result back to the machine. Adapter tests SHALL also verify that moderation
-resumes after a process restart (a new terminal assistant is classified from a
-restored session).
-
-The implementation SHALL use random temporary files for classifier snapshots
-and captures, paginate message history when necessary, and preserve complete
-atomic decision records including timings, the inline classifier capture,
-prompt/action results, and the final state transition.
-
-Unit tests SHALL assert the classifier prompt invariants, the exact classifier
-input section order and labels, and the inline capture shape. A sourcing-script
-test SHALL run the miner twice over the same input and assert the second run
-writes nothing, and SHALL assert deterministic ordering. The reducer test suite
-SHALL consume the mined non-classifier cases. The live classifier suite SHALL
-consume the mined and operator-confirmed cases and enforce the forbidden-decision
-constraint for every case without an exact label.
+161. `/moderator` opens the OpenCode model picker.
+162. The picker selection replaces only the topmost selector.
+163. `oc --set-mod` and `oc --set-mod-list` produce the same result.
+164. The comma-separated syntax replaces the full selector list.
+165. Invalid selectors fail without writing.
+166. The selection survives restart.
+167. The installed release is not modified by selection changes.

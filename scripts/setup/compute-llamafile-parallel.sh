@@ -16,7 +16,7 @@
 #   LLAMAFILE_PARALLEL       auto | integer (default: auto)
 #   LLAMAFILE_PARALLEL_MAX   optional hard cap (unset = VRAM-only limit)
 #   LLAMAFILE_PARALLEL_RESERVE  when probe fails (default: 4)
-#   LLAMAFILE_CTX            context size (default: 8192)
+#   MODERATOR_CTX            context size (default: 32768)
 #   LLAMAFILE_VRAM_MARGIN_MIB  reserved MiB (default: 1024)
 #   LLAMAFILE_MODEL_GGUF     path to weights (required for auto)
 #   LLAMAFILE_SPLIT_MODE     passed through (default: none)
@@ -41,7 +41,7 @@ main_gpu="${LLAMAFILE_MAIN_GPU:-auto}"
 parallel="${LLAMAFILE_PARALLEL:-auto}"
 parallel_max="${LLAMAFILE_PARALLEL_MAX:-}"
 parallel_reserve="${LLAMAFILE_PARALLEL_RESERVE:-4}"
-ctx="${LLAMAFILE_CTX:-8192}"
+ctx="${MODERATOR_CTX:-32768}"
 margin_mib="${LLAMAFILE_VRAM_MARGIN_MIB:-1024}"
 split_mode="${LLAMAFILE_SPLIT_MODE:-none}"
 model_gguf="${LLAMAFILE_MODEL_GGUF:-}"

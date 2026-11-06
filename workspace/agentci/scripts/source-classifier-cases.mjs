@@ -6,6 +6,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { DatabaseSync } from "node:sqlite";
 
+const TOOL_OUTPUT_CHARS = Number(process.env.MODERATOR_TOOL_OUTPUT_CHARS ?? 1024);
 const WINDOW_MS = Number(process.env.AGENTCI_MINER_WINDOW_MS ?? 300000);
 const LIMIT = Number(process.env.AGENTCI_MINER_LIMIT ?? 500);
 const NON_CLASSIFIER_LIMIT = 5;
@@ -171,7 +172,7 @@ async function rebuildBodies(manifest, shards) {
     if (!db) throw new Error(`classifier case ${value.id} has no shard database for session ${sessionID}`);
     const found = textOf(db, assistantID);
     if (!found || found.text.length === 0) throw new Error(`classifier case ${value.id} has no assistant transcript`);
-    const inputs = { previousResponse: found.text, userMessages: userPromptsBefore(db, sessionID, found.info.time?.created ?? 0), todos: [] };
+    const inputs = { ...caseWindow(db, assistantID), todos: [] };
     const computed = hash({ previousResponse: inputs.previousResponse, userMessages: inputs.userMessages, forbidden: [...value.forbiddenDecisions].sort() });
     if (computed !== value.hash) throw new Error(`classifier case ${value.id}: rebuilt transcript hash does not match the manifest`);
     await writeBody(value.hash, inputs);
@@ -248,18 +249,69 @@ function injected(text) {
   return text.includes(MARKER);
 }
 
-function userPromptsBefore(db, sessionID, before) {
-  const rows = db.prepare(SQL.userMessagesBefore).all(sessionID, before);
-  const prompts = [];
-  for (const row of rows) {
-    const info = JSON.parse(row.data);
-    if (info.role !== "user") continue;
-    const found = textOf(db, row.id);
-    if (!found || found.synthetic || found.text.length === 0 || injected(found.text)) continue;
-    prompts.unshift(found.text);
-    if (prompts.length === 3) break;
+function loadMessage(db, id) {
+  const row = db.prepare(SQL.messageData).get(id);
+  if (!row) return null;
+  const info = JSON.parse(row.data);
+  info.id = info.id ?? id;
+  const parts = db.prepare(SQL.messageParts).all(id).map((part) => JSON.parse(part.data));
+  return { info, parts };
+}
+
+function skippedMessage(message) {
+  const text = message.parts
+    .filter((part) => part.type === "text" && typeof part.text === "string")
+    .map((part) => part.text)
+    .join("\n");
+  return message.info.summary === true || message.info.agent === "compaction" || message.parts.some((part) => part.synthetic === true) || injected(text);
+}
+
+function truncateOutput(text) {
+  if (text.length <= TOOL_OUTPUT_CHARS) return text;
+  return `${text.slice(0, TOOL_OUTPUT_CHARS)}\n[truncated]`;
+}
+
+function caseWindow(db, assistantID) {
+  const assistants = [];
+  const seen = new Set();
+  let current = loadMessage(db, assistantID);
+  while (current) {
+    const id = current.info.id;
+    if (seen.has(id)) throw new Error(`parent cycle at ${id}`);
+    seen.add(id);
+    if (!skippedMessage(current)) {
+      if (current.info.role === "user") break;
+      if (current.info.role === "assistant") assistants.push(current);
+    }
+    current = current.info.parentID ? loadMessage(db, current.info.parentID) : null;
   }
-  return prompts;
+  const prompts = [];
+  while (current) {
+    const id = current.info.id;
+    if (seen.has(id)) throw new Error(`parent cycle at ${id}`);
+    seen.add(id);
+    if (skippedMessage(current)) {
+      current = current.info.parentID ? loadMessage(db, current.info.parentID) : null;
+      continue;
+    }
+    if (current.info.role !== "user") break;
+    const text = current.parts.filter((part) => part.type === "text" && part.synthetic !== true && typeof part.text === "string").map((part) => part.text).join("\n").trim();
+    if (text.length > 0) prompts.unshift(text);
+    current = current.info.parentID ? loadMessage(db, current.info.parentID) : null;
+  }
+  const toolActivity = [];
+  for (const message of assistants) {
+    for (const part of [...message.parts].reverse()) {
+      if (part.type !== "tool" || typeof part.tool !== "string") continue;
+      const input = part.state?.input === undefined ? "" : JSON.stringify(part.state.input);
+      toolActivity.push(`${part.tool} input=${input} output=${truncateOutput(part.state?.output ?? "")}`);
+    }
+  }
+  const previousResponse = assistants
+    .map((message) => message.parts.filter((part) => part.type === "text" && part.synthetic !== true && typeof part.text === "string").map((part) => part.text).join("\n").trim())
+    .filter((text) => text.length > 0)
+    .join("\n\n");
+  return { previousResponse, userMessages: prompts, toolActivity };
 }
 
 function signalAfter(db, sessionID, timestamp) {
@@ -304,7 +356,8 @@ function classifierCase(sessionID, record, db) {
   if (CONTINUE_DECISIONS.has(decision) && continuationSent) forbidden = ["AGENT_CONTINUING", "AGENT_STALLED"];
   else if (STOP_DECISIONS.has(decision)) forbidden = [decision];
   if (!forbidden) return null;
-  const userMessages = userPromptsBefore(db, sessionID, found.info.time?.created ?? timestamp);
+  const window = caseWindow(db, assistantID);
+  const userMessages = window.userMessages;
   if (userMessages.length === 0) return null;
   const observed = signalAfter(db, sessionID, timestamp);
   let signal = CONTINUE_DECISIONS.has(decision) && observed === "aborted" ? observed : null;
@@ -317,7 +370,7 @@ function classifierCase(sessionID, record, db) {
   return {
     id: `mined-${caseHash.slice(0, 16)}`,
     provenance: { sessionID, assistantID, decisionID: record.decisionID ?? null },
-    inputs: { previousResponse: found.text, userMessages, todos: [] },
+    inputs: { previousResponse: window.previousResponse, userMessages, toolActivity: window.toolActivity, todos: [] },
     expectedDecision: null,
     expectedReason: null,
     forbiddenDecisions: forbidden,

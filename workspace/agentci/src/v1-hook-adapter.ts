@@ -72,21 +72,13 @@ export function createV1HookAdapter(policies: readonly Policy[]): V1HookAdapter 
     async "experimental.chat.system.transform"(input, output) {
       for (const policy of inject) {
         if (policy.match.sessionID !== undefined && policy.match.sessionID !== input.sessionID) continue;
-        const file = policy.match.file as string;
-        const content = await readFile(file, "utf8");
-        if (Buffer.byteLength(content, "utf8") > MAX_FILE_BYTES) {
-          throw new Error(`AgentCI policy '${policy.name}' file exceeds ${MAX_FILE_BYTES} bytes: ${file}`);
-        }
+        const content = await readInjectedFile(policy);
         output.system.push(`AgentCI (${policy.name}): ${content}`);
       }
     },
     async "experimental.chat.messages.transform"(_input, output) {
       for (const policy of messageInject) {
-        const file = policy.match.file as string;
-        const content = await readFile(file, "utf8");
-        if (Buffer.byteLength(content, "utf8") > MAX_FILE_BYTES) {
-          throw new Error(`AgentCI policy '${policy.name}' file exceeds ${MAX_FILE_BYTES} bytes: ${file}`);
-        }
+        const content = await readInjectedFile(policy);
         const text = `AgentCI (${policy.name}): ${content}`;
         for (const message of output.messages) {
           if (message.info.role !== "user") continue;
@@ -95,6 +87,22 @@ export function createV1HookAdapter(policies: readonly Policy[]): V1HookAdapter 
       }
     },
   };
+}
+
+export async function validatePolicyFiles(policies: readonly Policy[]): Promise<void> {
+  for (const policy of policies) {
+    if (policy.action === "inject") await readInjectedFile(policy);
+  }
+}
+
+async function readInjectedFile(policy: Policy): Promise<string> {
+  const file = policy.match.file;
+  if (file === undefined) throw new Error(`AgentCI policy '${policy.name}' action 'inject' requires a file`);
+  const content = await readFile(file, "utf8");
+  if (Buffer.byteLength(content, "utf8") > MAX_FILE_BYTES) {
+    throw new Error(`AgentCI policy '${policy.name}' file exceeds ${MAX_FILE_BYTES} bytes: ${file}`);
+  }
+  return content;
 }
 
 const MAX_FILE_BYTES = 16384;

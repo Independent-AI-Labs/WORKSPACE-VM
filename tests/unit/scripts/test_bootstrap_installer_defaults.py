@@ -76,30 +76,16 @@ class TestRunFromDefaults:
         assert any(c.name == "uv" for c in components)
 
     @patch("workspace.scripts.bootstrap_installer._run_installation")
-    def test_warns_on_unknown_component(self, mock_run, tmp_path: Path, capsys) -> None:
+    def test_fails_on_unknown_component(self, mock_run, tmp_path: Path, capsys) -> None:
         f = tmp_path / "defaults.yaml"
         f.write_text("components:\n  - uv\n  - zzz_does_not_exist_zzz\n")
         mock_run.return_value = InstallationResult(success_count=1, failed_labels=[])
 
         rc = _run_from_defaults(f)
 
-        out = capsys.readouterr().out
-        assert "Unknown component 'zzz_does_not_exist_zzz'" in out
-        assert rc == 0
-
-    @patch("workspace.scripts.bootstrap_installer._run_installation")
-    def test_no_valid_components_short_circuits(self, mock_run, tmp_path: Path) -> None:
-        # An entry that resolves to nothing; combined with no mandatory repos
-        # being defined in the patched WORKSPACE_REPOS, _run_installation
-        # must NOT be invoked.
-        f = tmp_path / "defaults.yaml"
-        f.write_text("components:\n  - zzz_does_not_exist_zzz\n")
-        with patch(
-            "workspace.scripts.bootstrap_installer._bootstrap_defs.WORKSPACE_REPOS", []
-        ):
-            rc = _run_from_defaults(f)
-
-        assert rc == 0
+        captured = capsys.readouterr()
+        assert "Unknown component 'zzz_does_not_exist_zzz'" in captured.err
+        assert rc == 1
         mock_run.assert_not_called()
 
     @patch("workspace.scripts.bootstrap_installer._run_installation")

@@ -1,0 +1,12 @@
+{
+  "models": [
+    {
+      "providerID": "workspace-gw-opencode-go-api-key",
+      "modelID": "gpt-6-luna"
+    },
+    {
+      "providerID": "workspace-gw-minicpm5-2b",
+      "modelID": "MiniCPM5-2B-FP8-Q8_0.gguf"
+    }
+  ]
+}

@@ -74,7 +74,7 @@ def test_vm_qemu_persistent_lifecycle(tmp_path: Path) -> None:
 
         backend.stop(uuid)
         backend.start(uuid)
-        survived = backend.exec(uuid, ["bash", "-c", f"cat {_MARKER}"])
+        survived = backend.exec(uuid, ["bash", "-c", shlex.quote(f"cat {_MARKER}")])
         assert survived.stdout.strip() == "keep", survived.stderr
 
         vm_snapshots.snapshot_create(uuid, "e2e")
@@ -95,14 +95,14 @@ def test_vm_qemu_persistent_lifecycle(tmp_path: Path) -> None:
         vm_snapshots.snapshot_delete(uuid, "e2e")
 
         backend.rebuild(uuid)
-        rebuilt = backend.exec(uuid, ["bash", "-c", f"cat {_MARKER}"])
+        rebuilt = backend.exec(uuid, ["bash", "-c", shlex.quote(f"cat {_MARKER}")])
         assert rebuilt.stdout.strip() == "keep", rebuilt.stderr
 
         bundle = tmp_path / "bundle"
         vm_snapshots.export_vm(uuid, bundle)
         imported = vm_snapshots.import_vm(bundle)
         backend.start(imported)
-        restored = backend.exec(imported, ["bash", "-c", f"cat {_MARKER}"])
+        restored = backend.exec(imported, ["bash", "-c", shlex.quote(f"cat {_MARKER}")])
         assert restored.stdout.strip() == "keep", restored.stderr
     finally:
         if imported:

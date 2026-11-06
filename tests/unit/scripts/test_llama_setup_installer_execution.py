@@ -76,7 +76,7 @@ class TestRegistryIntegration:
     def test_registry_loads_from_disk(self) -> None:
         registry = load_registry()
         ids = {stack.id for stack in registry.stacks}
-        assert "llama_cpp_cpu" in ids
+        assert "llama_cpp_cpu" not in ids
         assert "llamafile_vulkan_server" in ids
 
 
@@ -205,7 +205,7 @@ class TestPlanAndRun:
     ) -> None:
         defaults = tmp_path / "defaults.yaml"
         defaults.write_text(
-            "stacks: [missing_stack, llama_cpp_cpu]\n"
+            "stacks: [missing_stack, llamafile_vulkan_server]\n"
             "prereqs: []\n"
             "run_diagnostics: false\n"
             "deploy: false\n"

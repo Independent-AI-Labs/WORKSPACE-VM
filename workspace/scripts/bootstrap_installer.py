@@ -388,7 +388,12 @@ def _run_from_defaults(defaults_file: Path) -> int:
         if comp:
             components.append(comp)
         else:
-            print(f"{YELLOW}Warning:{RESET} Unknown component '{name}', skipping")
+            print(
+                f"{RED}Error:{RESET} Unknown component '{name}' in {defaults_file}. "
+                "Fix the selection or add it to bootstrap-components.yaml.",
+                file=sys.stderr,
+            )
+            return 1
 
     env = get_bootstrap_env()
     pending: list[Component] = []

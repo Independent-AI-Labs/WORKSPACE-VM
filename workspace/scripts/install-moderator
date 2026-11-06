@@ -1,0 +1,177 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+WORKSPACE_ROOT="$PWD"
+while [[ "$WORKSPACE_ROOT" != "/" && ! -f "$WORKSPACE_ROOT/pyproject.toml" ]]; do
+    WORKSPACE_ROOT="$(dirname "$WORKSPACE_ROOT")"
+done
+[[ -f "$WORKSPACE_ROOT/pyproject.toml" ]] || { printf 'install-moderator: cannot locate workspace root from %s\n' "$PWD" >&2; exit 1; }
+
+MODERATOR_DIR="${WORKSPACE_ROOT}/workspace/moderator"
+SOURCE_SERVER="${MODERATOR_DIR}/dist/server.js"
+SOURCE_TUI="${MODERATOR_DIR}/dist/tui.js"
+SOURCE_MODELS="${WORKSPACE_ROOT}/workspace/config/opencode/moderator/models.template.json"
+CONFIG_ROOT="${XDG_CONFIG_HOME:-${HOME}/.config}/opencode"
+MODELS_FILE="${CONFIG_ROOT}/moderator/models.json"
+PLUGIN_DIR="${CONFIG_ROOT}/plugins"
+STATE_DIR="${PLUGIN_DIR}/.moderator"
+RELEASES_DIR="${STATE_DIR}/releases"
+CURRENT_LINK="${STATE_DIR}/current"
+SERVER_LINK="${PLUGIN_DIR}/moderator.js"
+TUI_LINK="${PLUGIN_DIR}/moderator-tui.js"
+
+fail() {
+    printf 'install-moderator: %s\n' "$*" >&2
+    exit 1
+}
+
+require_tools() {
+    local resolved
+    resolved="$(command -v npm)" || fail "npm is required"
+    [[ -x "$resolved" ]] || fail "npm is not executable"
+    resolved="$(command -v node)" || fail "node is required"
+    [[ -x "$resolved" ]] || fail "node is not executable"
+}
+
+build_bundle() {
+    printf 'install-moderator: installing dependencies\n'
+    local output
+    if ! output="$( cd "$MODERATOR_DIR" && npm ci --ignore-scripts )"; then
+        printf '%s\n' "$output" >&2
+        fail "failed to install moderator dependencies"
+    fi
+    printf 'install-moderator: building the moderator bundle\n'
+    if ! output="$( cd "$MODERATOR_DIR" && npm run build )"; then
+        printf '%s\n' "$output" >&2
+        fail "failed to build the moderator bundle"
+    fi
+    [[ -f "$SOURCE_SERVER" ]] || fail "moderator server bundle was not produced"
+    [[ -f "$SOURCE_TUI" ]] || fail "moderator TUI bundle was not produced"
+}
+
+seed_models() {
+    mkdir -p "$(dirname "$MODELS_FILE")"
+    if [[ ! -f "$MODELS_FILE" ]]; then
+        cp "$SOURCE_MODELS" "$MODELS_FILE"
+    fi
+    node "${WORKSPACE_ROOT}/workspace/scripts/moderator_validate_models.mjs" "$MODELS_FILE" \
+        || fail "moderator model source is invalid: ${MODELS_FILE}"
+}
+
+validate_current() {
+    [[ -L "$CURRENT_LINK" ]] || fail "no active moderator release"
+    local release
+    release="$(readlink -f "$CURRENT_LINK")" || fail "active moderator release target is invalid"
+    [[ -d "$release" && "$release" == "$RELEASES_DIR"/* ]] || fail "active moderator release escapes the releases directory"
+}
+
+verify_entry() {
+    local link="$1" name="$2"
+    [[ -L "$link" ]] || fail "moderator entry is missing: ${link}"
+    local expected actual
+    expected="$(readlink -f "${CURRENT_LINK}/${name}")" || fail "moderator release entry is invalid: ${name}"
+    actual="$(readlink -f "$link")" || fail "moderator plugin entry target is invalid: ${link}"
+    [[ "$actual" == "$expected" ]] || fail "moderator plugin entry does not resolve to the current release: ${link}"
+}
+
+verify_release() {
+    local release="$1"
+    [[ -f "${release}/moderator.js" ]] || fail "moderator server bundle missing from release"
+    [[ -f "${release}/moderator-tui.js" ]] || fail "moderator TUI bundle missing from release"
+}
+
+install() {
+    require_tools
+    build_bundle
+    [[ -f "$SOURCE_MODELS" ]] || fail "moderator model template is missing"
+    seed_models
+    if [[ -L "$CURRENT_LINK" ]]; then
+        validate_current
+    fi
+    if [[ -e "$SERVER_LINK" || -L "$SERVER_LINK" ]]; then
+        [[ -L "$SERVER_LINK" ]] || fail "refusing to replace a non-moderator entry: ${SERVER_LINK}"
+        verify_entry "$SERVER_LINK" moderator.js
+    fi
+    if [[ -e "$TUI_LINK" || -L "$TUI_LINK" ]]; then
+        [[ -L "$TUI_LINK" ]] || fail "refusing to replace a non-moderator entry: ${TUI_LINK}"
+        verify_entry "$TUI_LINK" moderator-tui.js
+    fi
+    mkdir -p "$RELEASES_DIR"
+    local stage release_id release
+    stage="$(mktemp -d "${RELEASES_DIR}/.stage-XXXXXX")"
+    trap 'rm -rf "$stage"' EXIT
+    cp "$SOURCE_SERVER" "${stage}/moderator.js"
+    cp "$SOURCE_TUI" "${stage}/moderator-tui.js"
+    release_id="$(cksum "${stage}/moderator.js" "${stage}/moderator-tui.js" | cksum | cut -d ' ' -f 1)"
+    release="${RELEASES_DIR}/${release_id}"
+    if [[ -d "$release" ]]; then
+        rm -rf "$stage"
+    else
+        verify_release "$stage"
+        mv "$stage" "$release"
+    fi
+    verify_release "$release"
+    ln -s "releases/${release_id}" "${STATE_DIR}/.current-${release_id}"
+    mv -Tf "${STATE_DIR}/.current-${release_id}" "$CURRENT_LINK"
+    mkdir -p "$PLUGIN_DIR"
+    ln -s ".moderator/current/moderator.js" "${PLUGIN_DIR}/.entry-${release_id}.js"
+    mv -Tf "${PLUGIN_DIR}/.entry-${release_id}.js" "$SERVER_LINK"
+    ln -s ".moderator/current/moderator-tui.js" "${PLUGIN_DIR}/.entry-tui-${release_id}.js"
+    mv -Tf "${PLUGIN_DIR}/.entry-tui-${release_id}.js" "$TUI_LINK"
+    trap - EXIT
+    printf 'installed moderator release: %s\n' "$release_id"
+    printf 'destination: %s\n' "$release"
+    printf 'model source: %s\n' "$MODELS_FILE"
+    printf 'restart OpenCode to load the active moderator release\n'
+}
+
+verify() {
+    require_tools
+    validate_current
+    local release
+    release="$(readlink -f "$CURRENT_LINK")"
+    verify_entry "$SERVER_LINK" moderator.js
+    verify_entry "$TUI_LINK" moderator-tui.js
+    verify_release "$release"
+    if [[ -f "$SOURCE_SERVER" ]]; then cmp "$SOURCE_SERVER" "${release}/moderator.js"; fi
+    if [[ -f "$SOURCE_TUI" ]]; then cmp "$SOURCE_TUI" "${release}/moderator-tui.js"; fi
+    printf 'verified active moderator release: %s\n' "$release"
+}
+
+status() {
+    validate_current
+    local release
+    release="$(readlink -f "$CURRENT_LINK")"
+    printf 'active release: %s\n' "$release"
+    if [[ -f "$MODELS_FILE" ]]; then
+        printf 'model source: %s\n' "$MODELS_FILE"
+    fi
+    if [[ -f "$SOURCE_SERVER" && -f "${release}/moderator.js" ]] && cmp -s "$SOURCE_SERVER" "${release}/moderator.js"; then
+        printf 'source drift: none\n'
+    else
+        printf 'source drift: detected\n'
+    fi
+}
+
+uninstall() {
+    if [[ -e "$SERVER_LINK" || -L "$SERVER_LINK" ]]; then
+        [[ -L "$SERVER_LINK" ]] || fail "refusing to remove a non-moderator entry: ${SERVER_LINK}"
+        verify_entry "$SERVER_LINK" moderator.js
+        rm "$SERVER_LINK"
+    fi
+    if [[ -e "$TUI_LINK" || -L "$TUI_LINK" ]]; then
+        [[ -L "$TUI_LINK" ]] || fail "refusing to remove a non-moderator entry: ${TUI_LINK}"
+        verify_entry "$TUI_LINK" moderator-tui.js
+        rm "$TUI_LINK"
+    fi
+    rm -rf "$STATE_DIR"
+    printf 'uninstalled moderator; restart OpenCode to unload it\n'
+}
+
+case "${1:-install}" in
+    install) install ;;
+    verify) verify ;;
+    status) status ;;
+    uninstall) uninstall ;;
+    *) fail "usage: $0 {install|verify|status|uninstall}" ;;
+esac

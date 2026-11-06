@@ -138,7 +138,7 @@
       # Runtime tuning (mapped to LLAMA_ARG_* by llamafile-server.sh).
       LLAMAFILE_PARALLEL=1
       LLAMAFILE_PARALLEL_RESERVE=1
-      LLAMAFILE_CTX=131072
+      MODERATOR_CTX={{ lookup('env', 'MODERATOR_CTX') | default('32768', true) }}
       LLAMAFILE_VRAM_MARGIN_MIB=1024
       # auto = headless discrete GPU first, then most free VRAM; single GPU only.
       LLAMAFILE_MAIN_GPU=auto

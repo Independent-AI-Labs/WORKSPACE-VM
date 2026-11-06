@@ -156,6 +156,7 @@ oc_wrapper_set_ctx() {
 }
 
 source "${_OC_WRAPPER_DIR}/opencode-thinking.sh" || exit 1
+source "${_OC_WRAPPER_DIR}/opencode-mod.sh" || exit 1
 
 oc_wrapper_shard_db() {
     if [[ -n "${OPENCODE_DB:-}" ]]; then
@@ -289,6 +290,10 @@ oc_wrapper_resolve_session_db() {
     sid="${sid//\'/\'\'}"
     for f in "$data_dir"/*.db; do
         [ -f "$f" ] || continue
+        has="$(sqlite3 "$f" < "${_OC_WRAPPER_DIR}/../sql/oc_session_table_count.sql")"
+        if [ "$has" != "1" ]; then
+            continue
+        fi
         n="$(
             {
                 printf ".parameter set :sid '%s'\n" "${sid//\'/\'\'}"
@@ -325,8 +330,10 @@ oc_wrapper_dispatch() {
     local direct=0
     local set_ctx_spec=""
     local set_ctx_size=""
+    local set_mod_spec=""
     local persist_ctx=0
     local run_mod=0
+    local run_mod_force=0
     local agent=""
     local -a args=()
     shift 2
@@ -346,12 +353,25 @@ oc_wrapper_dispatch() {
                 set_ctx_size="$3"
                 shift 3
                 ;;
+            --set-mod|--set-mod-list)
+                if [[ $# -lt 2 ]]; then
+                    echo "oc: $1 requires <provider>/<model>[,<provider>/<model>...]" >&2
+                    return 2
+                fi
+                set_mod_spec="$2"
+                shift 2
+                ;;
             --persist)
                 persist_ctx=1
                 shift
                 ;;
             --run-mod)
                 run_mod=1
+                shift
+                ;;
+            --run-mod-force)
+                run_mod=1
+                run_mod_force=1
                 shift
                 ;;
             --agent)
@@ -401,6 +421,10 @@ oc_wrapper_dispatch() {
         esac
     done
 
+    if [[ -n "$set_mod_spec" ]]; then
+        oc_wrapper_set_mod "$set_mod_spec" || return 2
+        return 0
+    fi
     if [[ $mono -eq 1 && $has_db -eq 1 ]]; then
         echo "oc: --mono and --db are mutually exclusive" >&2
         return 2
@@ -437,29 +461,8 @@ oc_wrapper_dispatch() {
         fi
     fi
     if [[ $run_mod -eq 1 ]]; then
-        local run_mod_sid="" _run_mod_arg
-        for _run_mod_arg in "${args[@]}"; do
-            if [[ "$_run_mod_arg" =~ ^ses_[A-Za-z0-9]+$ ]]; then
-                run_mod_sid="$_run_mod_arg"
-            elif [[ "$_run_mod_arg" != -* ]]; then
-                echo "oc: --run-mod does not take a task argument: ${_run_mod_arg}" >&2
-                return 2
-            fi
-        done
-        export AGENTCI_RUN_MOD=1
-        if [[ -n "$run_mod_sid" ]]; then
-            export AGENTCI_RUN_MOD_SESSION="$run_mod_sid"
-            printf '[oc] run-mod: replaying the last moderation decision for %s\n' "$run_mod_sid" >&2
-            exec "$opencode" --session "$run_mod_sid" "${args[@]/$run_mod_sid}"
-        fi
-        printf '[oc] run-mod: replaying the last moderation decision for the latest session\n' >&2
-        if [[ -z "$resume_sid" ]]; then
-            resume_sid="$(oc_wrapper_latest_session)"
-            if [[ -n "$resume_sid" ]]; then
-                oc_wrapper_apply_session_variant "$resume_sid" "$effort"
-            fi
-        fi
-        exec "$opencode" --continue "${args[@]}"
+        oc_wrapper_finish_run_mod "$run_mod_force" "$opencode" "$resume_sid" "${args[@]}"
+        return $?
     fi
     if [[ $direct -eq 1 ]]; then
         exec "$opencode" "${args[@]}"
