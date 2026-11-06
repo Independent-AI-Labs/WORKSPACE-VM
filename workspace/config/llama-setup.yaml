@@ -51,7 +51,7 @@ stacks:
       kind: llamaserver
       flavor: sycl
 
-  prereqs:
+prereqs:
   - id: intel_drivers
     label: 'Intel GPU drivers'
     description: 'Intel compute/media stack, render/video groups'

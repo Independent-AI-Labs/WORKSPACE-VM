@@ -58,11 +58,20 @@ def _detect_command(feature: AuxFeature) -> bool:
             capture_output=True,
         )
     except subprocess.CalledProcessError as exc:
-        detail = exc.stderr.decode("utf-8", errors="replace") if exc.stderr else ""
-        message = detail or f"{feature.label} detect failed rc={exc.returncode}\n"
+        message = _detect_failure(feature, exc)
         sys.stderr.write(message)
         return False
+    except OSError as exc:
+        sys.stderr.write(f"{feature.label} detect failed: {exc}\n")
+        return False
     return True
+
+
+def _detect_failure(feature: AuxFeature, exc: subprocess.CalledProcessError) -> str:
+    if exc.stderr:
+        detail: str = exc.stderr.decode("utf-8", errors="replace")
+        return detail
+    return f"{feature.label} detect failed rc={exc.returncode}\n"
 
 
 def detect_configured(feature: AuxFeature) -> bool:

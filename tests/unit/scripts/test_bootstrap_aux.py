@@ -117,7 +117,7 @@ class TestRunFeature:
 
     @patch("workspace.scripts.bootstrap_aux.subprocess.run")
     def test_failed_command_stops(self, run) -> None:
-        run.return_value = subprocess.CompletedProcess([], 1)
+        run.side_effect = subprocess.CalledProcessError(1, [])
         result = run_feature(_feature("storage-configure"), {}, effective_uid=1000)
         assert result.success is False
         assert "rc=1" in result.message

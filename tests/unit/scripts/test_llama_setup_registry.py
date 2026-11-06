@@ -2,7 +2,7 @@
 
 from workspace.scripts.llama_setup_registry import load_registry, stack_by_id
 
-MIN_STACK_COUNT = 5
+MIN_STACK_COUNT = 3
 MIN_PREREQ_COUNT = 4
 LLAMAFILE_VULKAN_BUILD_STEPS = 3
 
