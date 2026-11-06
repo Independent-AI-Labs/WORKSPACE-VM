@@ -32,6 +32,7 @@ workspace/moderator/
     model-select.ts   shared model selector persistence
     audit.ts          state and audit persistence
     adapter.ts        event wiring, effect execution, and replay
+    toast-queue.ts    serialized in-memory toast queue
     cli.ts            replay command entry point
     server.ts         OpenCode server plugin entry point
     tui.ts            OpenCode TUI plugin entry point
@@ -41,6 +42,7 @@ workspace/moderator/
     context.test.ts
     classifier.test.ts
     adapter.integration.test.ts
+    toast-queue.test.ts
     replay.integration.test.ts
     server.test.ts
 ```
@@ -709,6 +711,33 @@ classifier call.
 A response outside the branch clears the blocker.
 
 An `AGENT_COMPLETE` in the blocker branch clears the blocker.
+
+### 11.5 Toast Queue
+
+The adapter owns one in-memory FIFO queue per plugin instance.
+
+Each entry carries its session ID and toast body.
+
+The worker calls `client.tui.showToast` for one entry, then waits for that
+entry's duration before the next entry.
+
+A new entry never replaces a visible toast.
+
+The pending queue holds at most 16 entries. A push while full drops the oldest
+pending entry.
+
+A session delete removes that session's pending entries.
+
+A show or wait failure calls the moderation error path. The worker then
+continues with the next entry.
+
+Durations in milliseconds:
+
+| Toast | Duration |
+|---|---|
+| checking | 2000 |
+| complete, agent-blocked, user-stop, operator-handoff, continuing | 8000 |
+| escalated, error | 12000 |
 
 ## 12. Audit Persistence
 

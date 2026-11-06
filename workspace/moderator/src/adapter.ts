@@ -18,6 +18,7 @@ import {
 import { createInitialState, isValidState, normalizeRestoredState, transition } from "./fsm.ts";
 import { CONTINUATION_LINE, CONTINUATION_NOTE, OPERATOR_LINE, statusLine } from "./prompt.ts";
 import type { ModelSelector } from "./model-select.ts";
+import { createToastQueue, type ToastBody } from "./toast-queue.ts";
 import type {
   ClassifierCapture,
   ContextFact,
@@ -81,6 +82,14 @@ const VERIFY_INTERVAL_MS = 100;
 
 export function createModeratorAdapter(input: { client: ModeratorClient; generate?: GenerateFn }, selectors: readonly ModelSelector[]) {
   const sessions = new Map<string, Session>();
+  const toasts = createToastQueue({
+    show: (body) => input.client.tui.showToast({ body }),
+    onError: (sessionID, error) => {
+      failClosed(sessionID, error).catch((failure: unknown) => {
+        console.error(`moderator toast error: ${String(failure)}`);
+      });
+    },
+  });
 
   const get = (sessionID: string): Session => {
     const existing = sessions.get(sessionID);
@@ -155,7 +164,7 @@ export function createModeratorAdapter(input: { client: ModeratorClient; generat
       await verifyPrompt(sessionID);
       return null;
     }
-    await showToast(input.client, effect.kind, effect.kind === "error" ? session.lastError : null);
+    toasts.push(sessionID, toast(effect.kind, effect.kind === "error" ? session.lastError : null));
     return null;
   };
 
@@ -233,6 +242,7 @@ export function createModeratorAdapter(input: { client: ModeratorClient; generat
     if (typeof sessionID !== "string" || sessionID.length === 0) return;
     if (event.type === "session.deleted") {
       sessions.delete(sessionID);
+      toasts.removeSession(sessionID);
       rm(sessionDirectory(sessionID), { recursive: true, force: true }).catch((error: unknown) => failClosed(sessionID, error));
       return;
     }
@@ -292,7 +302,7 @@ export function createModeratorAdapter(input: { client: ModeratorClient; generat
       replayStarted.delete(sessionID);
       const message = error instanceof Error ? error.message : String(error);
       if (isContextLimit(message)) await writeTrace(sessionID, get(sessionID), undefined, message);
-      await input.client.tui.showToast({ body: { title: "Moderator failed", message, variant: "error", duration: 30000 } });
+      toasts.push(sessionID, toast("error", message));
       await failClosed(sessionID, error);
     }
   };
@@ -383,14 +393,6 @@ function messageID(response: unknown): string | null {
   return typeof data?.info?.id === "string" ? data.info.id : null;
 }
 
-async function showToast(client: ModeratorClient, kind: ToastKind, errorText: string | null): Promise<void> {
-  const detail = toast(kind, errorText);
-  await Promise.race([
-    client.tui.showToast({ body: detail }),
-    sleep(2000),
-  ]);
-}
-
 function isContextLimit(message: string): boolean {
   return message.includes("MODERATOR_CTX") || message.includes("moderator context is");
 }
@@ -418,16 +420,16 @@ async function failClosed(sessionID: string, error: unknown): Promise<void> {
   });
 }
 
-function toast(kind: ToastKind, errorText: string | null): Record<string, unknown> {
-  const table: Record<ToastKind, { title: string; message: string; variant: string; duration: number }> = {
-    checking: { title: "Moderator", message: "Checking the completed response.", variant: "info", duration: 30000 },
-    complete: { title: "Moderator: complete", message: "Work completion verified.", variant: "success", duration: 30000 },
-    "agent-blocked": { title: "Moderator: blocked", message: "The agent is waiting for user or operator input.", variant: "warning", duration: 30000 },
-    "user-stop": { title: "Moderator: stop", message: "Automation stood down.", variant: "info", duration: 30000 },
-    "operator-handoff": { title: "Moderator: operator handoff", message: "A privileged command requires operator action.", variant: "warning", duration: 30000 },
-    continuing: { title: "Moderator: continuing", message: "Prompting the agent to continue.", variant: "warning", duration: 30000 },
-    escalated: { title: "Moderator: escalation", message: "Three stalled decisions stopped continuation.", variant: "error", duration: 30000 },
-    error: { title: "Moderator failed", message: errorText ?? "Moderation failed.", variant: "error", duration: 30000 },
+function toast(kind: ToastKind, errorText: string | null): ToastBody {
+  const table: Record<ToastKind, ToastBody> = {
+    checking: { title: "Moderator", message: "Checking the completed response.", variant: "info", duration: 2000 },
+    complete: { title: "Moderator: complete", message: "Work completion verified.", variant: "success", duration: 8000 },
+    "agent-blocked": { title: "Moderator: blocked", message: "The agent is waiting for user or operator input.", variant: "warning", duration: 8000 },
+    "user-stop": { title: "Moderator: stop", message: "Automation stood down.", variant: "info", duration: 8000 },
+    "operator-handoff": { title: "Moderator: operator handoff", message: "A privileged command requires operator action.", variant: "warning", duration: 8000 },
+    continuing: { title: "Moderator: continuing", message: "Prompting the agent to continue.", variant: "warning", duration: 8000 },
+    escalated: { title: "Moderator: escalation", message: "Three stalled decisions stopped continuation.", variant: "error", duration: 12000 },
+    error: { title: "Moderator failed", message: errorText ?? "Moderation failed.", variant: "error", duration: 12000 },
   };
   return table[kind];
 }

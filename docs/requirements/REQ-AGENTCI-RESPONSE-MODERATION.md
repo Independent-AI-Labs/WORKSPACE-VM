@@ -333,7 +333,8 @@ The classifier SHALL apply this order and stop at the first match.
 121. Classification SHALL have a finite timeout.
 122. The timeout SHALL be visible as an error.
 123. The moderator SHALL show client-visible feedback for checking, completion,
-     blocking, stopping, continuation, escalation, and error.
+     blocking, stopping, continuation, escalation, and error through the toast
+     queue in Section 11.
 124. Transcript status lines SHALL be exactly one line.
 125. Transcript status lines SHALL NOT contain decision codes, reason codes, or
      model names.
@@ -425,3 +426,24 @@ The prototype is accepted when all of these are true.
 165. Invalid selectors fail without writing.
 166. The selection survives restart.
 167. The installed release is not modified by selection changes.
+
+## 11. Toast Feedback
+
+168. The moderator SHALL show checking, completion, blocking, stopping,
+     continuation, escalation, and error feedback through one client-visible
+     toast queue.
+169. The toast queue SHALL be first-in, first-out.
+170. The queue SHALL show one toast at a time.
+171. A new toast SHALL NOT replace a toast that is already visible.
+172. Each toast SHALL remain visible for its own duration before the next toast
+     is shown.
+173. The queue SHALL be owned by one plugin instance and SHALL accept toasts from
+     every session.
+174. Deleting a session SHALL remove that session's pending toasts.
+175. The queue SHALL be bounded. When full, the oldest pending toast SHALL be
+     dropped.
+176. A toast failure SHALL use the existing moderation error path and SHALL NOT
+     block later toasts.
+177. The queue SHALL use only an in-memory array and promise sequencing.
+178. The queue SHALL use the state duration for both the toast and its own
+     wait.
